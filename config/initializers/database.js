@@ -1,16 +1,23 @@
-const mongoose = require('mongoose')
+const Sequelize = require('sequelize')
 
 module.exports = (config, Logger) => {
-  const connection = mongoose.connection
-  mongoose.connect(`mongodb://${config.host}:${config.port}/${config.name}`, { useNewUrlParser: true })
+  const instance = new Sequelize(
+    config.name,
+    config.user,
+    config.password, {
+      host: config.host,
+      dialect: 'mysql',
+      operatorsAliases: false,
+      logging: Logger.debug
+    }
+)
 
-  connection.on('error', Logger.error)
-  connection.once('open', () => {
-    Logger.info(`Connected to database: ${config.name}`)
-  })
+  instance.authenticate()
+    .then(() => Logger.info('Connected to database'))
+    .catch(err => Logger.info(err))
 
   return {
-    connection,
-    mongoose
+    instance,
+    Sequelize
   }
 }
