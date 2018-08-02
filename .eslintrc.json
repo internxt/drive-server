@@ -1,0 +1,14 @@
+{
+    "extends": "airbnb-base",
+    "rules": {
+        "semi": 0,
+        "func-names": 0,
+        "space-before-function-paren": 0,
+        "global-require": 0,
+        "comma-dangle": 0,
+        "prefer-destructuring": 0,
+        "import/no-dynamic-require": 0,
+        "prefer-arrow-callback": 0,
+        "no-unused-vars": 1
+    }
+}
