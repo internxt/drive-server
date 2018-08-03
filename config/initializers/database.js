@@ -1,4 +1,5 @@
 const Sequelize = require('sequelize')
+require('sequelize-hierarchy')(Sequelize)
 
 module.exports = (config, Logger) => {
   const instance = new Sequelize(
@@ -10,7 +11,7 @@ module.exports = (config, Logger) => {
       operatorsAliases: false,
       logging: Logger.debug
     }
-)
+  )
 
   instance.authenticate()
     .then(() => Logger.info('Connected to database'))
