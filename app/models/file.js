@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const folder = sequelize.define('folder', {
+  const file = sequelize.define('file', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -8,6 +8,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     name: {
       type: DataTypes.STRING,
+    },
+    type: {
+      type: DataTypes.STRING
+    },
+    size: {
+      type: DataTypes.INTEGER
     }
   },
   {
@@ -17,12 +23,9 @@ module.exports = (sequelize, DataTypes) => {
     ]
   })
 
-  folder.isHierarchy()
-
-  folder.associate = function(models) {
-    folder.hasOne(models.folderMetadata)
-    folder.hasMany(models.file)
+  file.associate = function(models) {
+    file.belongsTo(models.folder)
   }
 
-  return folder
+  return file
 }
