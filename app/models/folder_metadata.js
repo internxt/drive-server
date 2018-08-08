@@ -7,10 +7,10 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true
     },
     color: {
-      type: DataTypes.String,
+      type: DataTypes.STRING,
     },
     icon: {
-      type: DataTypes.String
+      type: DataTypes.STRING
     }
   },
   {
