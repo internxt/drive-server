@@ -14,23 +14,40 @@ module.exports = (Router, Service, Logger) => {
     res.send(swaggerSpec)
   })
 
-
-  Router.post('/user', (req, res) => {
-    const newUser = Service.User.Create(req.body);
-    res.json(newUser);
+  Router.post('/auth', function(req, res) {
+    // TODO implement civic reg/login
   });
 
-  Router.get('/user/:id', (req, res) => {
-    Service.User.GetUserById(req.params.id).then((foundUser) => {
+  Router.get('/user/:id', function(req, res) {
+    Service.User.GetUserById(req.params.id).then((foundUser) {
       res.send(foundUser);
     });
   });
 
-  Router.get('/user/:id/root_folder', (req, res) => {
-    Service.User.GetUsersRootFolder(req.params.id).then((rootFolder) => {
-      res.send(rootFolder);
-    });
+  Router.get('/storage/folder/:id', function(req, res) {
+    // TODO
+  });
+  
+  Router.get('/storage/folder/:id/meta', function(req, res) {
+    // TODO
   });
 
+  Rotuer.post('/storage/folder/:id/upload', function(req, res) {
+    // TODO
+  })
+
+  Router.get('./storage/file/:id', function(req, res) {
+    // TODO
+  })
+  
+  Router.delete('./storage/file/:id', function(req, res) {
+    // TODO
+  })
+  
+  Router.get('./storage/file/search', function(req, res) {
+    const query = req.query.q
+    // TODO
+  })
+  
   return Router
 }
