@@ -21,13 +21,13 @@ module.exports = (Router, Service, Logger) => {
   });
 
   Router.get('/user/:id', (req, res) => {
-    Service.User.GetUserById(req.params.id).then(foundUser => {
+    Service.User.GetUserById(req.params.id).then((foundUser) => {
       res.send(foundUser);
     });
   });
 
   Router.get('/user/:id/root_folder', (req, res) => {
-    Service.User.GetUsersRootFolder(req.params.id).then(rootFolder => {
+    Service.User.GetUsersRootFolder(req.params.id).then((rootFolder) => {
       res.send(rootFolder);
     });
   });
