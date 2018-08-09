@@ -103,7 +103,7 @@ Server.prototype.initMiddleware = function(Middleware) {
 }
 
 Server.prototype.initRoutes = function(Router) {
-  const routesPrefix = '/api/v1' // TODO refactor
+  const routesPrefix = '/api'
   this.logger.info(`Initializing and mounting routes to ${routesPrefix}`)
   this.routes = Router(this.router, this.services, this.logger)
   this.express.use(routesPrefix, this.routes)
