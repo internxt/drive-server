@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
   folder.associate = function(models) {
     folder.hasOne(models.folderMetadata)
     folder.hasMany(models.file)
+    folder.belongsTo(models.users, { foreignKey: 'userId' })
   }
 
   return folder

@@ -14,5 +14,23 @@ module.exports = (Router, Service, Logger) => {
     res.send(swaggerSpec)
   })
 
+
+  Router.post('/user', (req, res) => {
+    const newUser = Service.User.Create(req.body);
+    res.json(newUser);
+  });
+
+  Router.get('/user/:id', (req, res) => {
+    Service.User.GetUserById(req.params.id).then(foundUser => {
+      res.send(foundUser);
+    });
+  });
+
+  Router.get('/user/:id/root_folder', (req, res) => {
+    Service.User.GetUsersRootFolder(req.params.id).then(rootFolder => {
+      res.send(rootFolder);
+    });
+  });
+
   return Router
 }
