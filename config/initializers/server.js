@@ -3,6 +3,7 @@ const express = require('express')
 const Logger = require('../../lib/logger')
 const Config = require('../index')
 const Database = require('./database')
+const Civic = require('./auth')
 
 /**
  * Instance of Server application
@@ -19,6 +20,7 @@ const Server = function(config) {
   this.logger = Logger(this.config.get('logger'))
   this.express = express()
   this.router = express.Router()
+  this.civic = Civic(this.config)
   this.instance = null
   this.database = null
   this.models = null
@@ -86,7 +88,7 @@ Server.prototype.initDatabase = function() {
 
 Server.prototype.initModels = function(Models) {
   this.logger.info('Initializing Models')
-  this.models = Models(this.database)
+  this.models = Models(this.database, this)
   this.logger.info('Models OK')
 }
 
@@ -105,7 +107,7 @@ Server.prototype.initMiddleware = function(Middleware) {
 Server.prototype.initRoutes = function(Router) {
   const routesPrefix = '/api'
   this.logger.info(`Initializing and mounting routes to ${routesPrefix}`)
-  this.routes = Router(this.router, this.services, this.logger)
+  this.routes = Router(this.router, this.services, this.logger, this)
   this.express.use(routesPrefix, this.routes)
   this.logger.info('Routes OK')
 }

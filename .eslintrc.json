@@ -9,6 +9,7 @@
         "prefer-destructuring": 0,
         "import/no-dynamic-require": 0,
         "prefer-arrow-callback": 0,
-        "no-unused-vars": 1
+        "no-unused-vars": 1,
+        "arrow-body-style": 0
     }
 }

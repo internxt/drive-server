@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const folderMetadata = sequelize.define('folder', {
+  const folderMetadata = sequelize.define('folder_metadata', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,

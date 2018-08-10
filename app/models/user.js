@@ -6,31 +6,27 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       autoIncrement: true
     },
-    // can be one field.
-    first_name: {
+    userId: {
       type: DataTypes.STRING,
-      allowNull: false
-    },
-    last_name: {
-      type: DataTypes.STRING,
-      allowNull: false
     },
     email: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false
-    },
     root_folder_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'folders',
         key: 'id'
       }
+    },
+    isFreeTier: {
+      type: DataTypes.BOOLEAN,
     }
+  },
+  {
+    timestamps: false,
+    underscored: true,
   })
 
   User.associate = function(models) {

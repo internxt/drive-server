@@ -4,8 +4,10 @@
   "description": "XCloud server API",
   "main": "app.js",
   "dependencies": {
+    "axios": "^0.18.0",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.18.3",
+    "civic-sip-api": "^1.0.1",
     "cors": "^2.8.4",
     "dotenv": "^5.0.1",
     "express": "^4.16.3",
@@ -25,14 +27,17 @@
   "scripts": {
     "start": "node app.js",
     "dev": "./node_modules/.bin/nodemon app.js",
-    "test": "./node_modules/.bin/jest"
+    "test": "./node_modules/.bin/jest",
+    "migrate": "./node_modules/.bin/sequelize db:migrate"
   },
   "devDependencies": {
+    "axios-debug-log": "^0.4.0",
     "eslint": "^4.19.1",
     "eslint-config-airbnb-base": "^13.0.0",
     "eslint-plugin-import": "^2.13.0",
     "jest": "^22.4.3",
     "nodemon": "^1.17.3",
+    "sequelize-cli": "^4.0.0",
     "supertest": "^3.0.0"
   },
   "license": "MIT"

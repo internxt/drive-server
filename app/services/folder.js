@@ -1,5 +1,5 @@
 module.exports = (Model) => {
-  const Create = (folder) => { }
+  const Create = folder => Model.folder.create(folder)
 
   const Delete = (folder) => { }
 
@@ -10,7 +10,7 @@ module.exports = (Model) => {
   const GetChildren = (folder) => {}
 
   return {
-    Name: 'User',
+    Name: 'Folder',
     Create,
     Delete,
     GetTree,
