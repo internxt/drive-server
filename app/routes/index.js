@@ -14,6 +14,22 @@ module.exports = (Router, Service, Logger, App) => {
     res.send(swaggerSpec)
   })
 
+  /**
+   * @swagger
+   * /login:
+   *   post:
+   *     description: Unified Civic registrtion/login. User is registered or created.
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: civictoken
+   *         description: JWT token returned from Civic service
+   *         in: header
+   *         required: true
+   *     responses:
+   *       201:
+   *         description: Created/Found user object
+   */
   Router.get('/auth', function (req, res) {
     const civicClient = App.civic
     const jwtToken = req.headers.civictoken
@@ -32,6 +48,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.send(error)
       });
   });
+
 
   Router.get('/user/:id', function(req, res) {
     Service.User.GetUserById(req.params.id).then(function(foundUser) {
