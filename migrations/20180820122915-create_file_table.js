@@ -1,31 +1,31 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.createTable('folders', {
+    return queryInterface.createTable('files', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
         autoIncrement: true
       },
-      parentId: {
-        type: Sequelize.INTEGER
+      bucketId: {
+        type: Sequelize.STRING
       },
       name: {
+        type: Sequelize.STRING,
+      },
+      type: {
         type: Sequelize.STRING
       },
-      bucket: {
-        type: Sequelize.STRING
-      },
-      user_id: {
+      size: {
         type: Sequelize.INTEGER
       },
-      hierarchy_level: {
+      folder_id: {
         type: Sequelize.INTEGER
       }
-    });
+    })
   },
 
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('folders');
+    return queryInterface.dropTable('files')
   }
-};
+}

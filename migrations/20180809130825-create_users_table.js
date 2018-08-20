@@ -14,6 +14,9 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
+      mnemonic: {
+        type: Sequelize.STRING
+      },
       isFreeTier: {
         type: Sequelize.BOOLEAN,
       },
@@ -31,3 +34,4 @@ module.exports = {
     return queryInterface.dropTable('users')
   }
 };
+
