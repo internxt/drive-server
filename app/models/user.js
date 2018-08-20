@@ -13,6 +13,9 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    mnemonic: {
+      type: DataTypes.STRING
+    },
     root_folder_id: {
       type: DataTypes.INTEGER,
       references: {
@@ -27,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
   {
     timestamps: false,
     underscored: true,
+  },
+  {
+    defaultScope: {
+      attributes: { exclude: ['userId'] }
+    }
   })
 
   User.associate = function(models) {

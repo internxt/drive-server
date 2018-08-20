@@ -6,6 +6,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       autoIncrement: true
     },
+    parentId: {
+      type: DataTypes.INTEGER,
+      hierarchy: true
+    },
     name: {
       type: DataTypes.STRING,
     },
@@ -27,8 +31,6 @@ module.exports = (sequelize, DataTypes) => {
       { name: 'name', fields: ['name'] }
     ]
   })
-
-  folder.isHierarchy()
 
   folder.associate = function(models) {
     folder.hasOne(models.folder_metadata)
