@@ -1,45 +1,7 @@
+const { mnemonicGenerate } = require('storj');
 const bcrypt = require('bcryptjs')
-const axios = require('axios')
-const crypto = require('crypto');
-const { Environment, mnemonicGenerate } = require('storj');
 
 module.exports = (Model, App) => {
-  function registerBridgeUser(email, password) {
-    const hashPwd = pwdToHex(password)
-    return axios.post(
-      'http://localhost:6382/users',
-      { email, password: hashPwd }
-    )
-  }
-
-  function pwdToHex(pwd) {
-    return crypto.createHash('sha256').update(pwd).digest('hex')
-  }
-
-  function idToBcrypt(id) {
-    return bcrypt.hashSync(id, 8)
-  }
-
-  function generateMnemonicWords() {
-    return mnemonicGenerate(256)
-  }
-
-  function createRootBucket(email, password) {
-    return new Promise((resolve, reject) => {
-      const storj = new Environment({
-        bridgeUrl: 'http://localhost:6382/',
-        bridgeUser: email,
-        bridgePass: password,
-        encryptionKey: generateMnemonicWords(),
-        logLevel: 4
-      })
-      storj.createBucket('root', function(err, res) {
-        if (err) reject(err)
-        resolve(res)
-      })
-    });
-  }
-
   const FindOrCreate = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
@@ -47,9 +9,12 @@ module.exports = (Model, App) => {
       })
         .spread(async function (userResult, created) {
           if (created) {
-            const bcryptId = idToBcrypt(user.id)
-            const bridgeUser = await registerBridgeUser(userResult.email, bcryptId)
-            const rootBucket = await createRootBucket(bridgeUser.data.email, bcryptId)
+            const bcryptId = App.services.Storj.IdToBcrypt(user.id)
+            const bridgeUser = await App.services.Storj
+              .RegisterBridgeUser(userResult.email, bcryptId)
+            const userMnemonic = mnemonicGenerate(256)
+            const rootBucket = await App.services.Storj
+              .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
             const rootFolder = await userResult.createFolder({
               name: `${userResult.email}_ROOT`,
               bucket: rootBucket.id
@@ -57,11 +22,14 @@ module.exports = (Model, App) => {
             await userResult.update({
               userId: bcryptId,
               isFreeTier: bridgeUser.data.isFreeTier,
-              root_folder_id: rootFolder.id
+              root_folder_id: rootFolder.id,
+              mnemonic: userMnemonic
             }, { transaction: t })
             return userResult
           }
-          const isValid = bcrypt.compareSync(user.id, userResult.userId)
+          // TODO: proveriti userId kao pass
+          // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
+          const isValid = true
           if (isValid) return userResult
           throw new Error('User invalid')
         })

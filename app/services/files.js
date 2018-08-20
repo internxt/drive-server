@@ -1,48 +1,42 @@
-const { Environment } = require('storj');
-
-const storj = new Environment({
-  bridgeUrl: 'http://localhost:6382',
-  bridgeUser: 'user10@test.com',
-  bridgePass: 'asdf1234',
-  encryptionKey: 'upgrade kid tissue front annual boy cannon planet auto siege gravity fence knee bid wing tired help walk mixture rally grass human acoustic basic',
-  logLevel: 4
-})
-
 module.exports = (Model, App) => {
-  const Upload = (fileName, filePath, bucketId) => {
-    return new Promise((resolve, reject) => {
-      storj.storeFile(bucketId, filePath, {
-        filename: fileName,
-        progressCallback(progress, downloadedBytes, totalBytes) {
-          App.logger.info('progress:', progress);
-          App.logger.info('totalBytes:', totalBytes);
-        },
-        finishedCallback(err, fileId) {
-          if (err) {
-            App.logger.info(err);
-            reject(err)
-          }
-          App.logger.info('File complete:', fileId);
-          resolve(fileId)
-        }
-      });
+  const Upload = (user, folderId, fileName, filePath) => {
+    return new Promise(async (resolve, reject) => {
+      const folder = await Model.folder.findOne({ where: { id: folderId } })
+      const extSeparatorPos = fileName.lastIndexOf('.')
+      const fileNameNoExt = fileName.slice(0, fileName.lastIndexOf('.'))
+      const fileExt = fileName.slice(extSeparatorPos + 1)
+      App.services.Storj.StoreFile(user, folder.bucket, fileName, filePath)
+        .then(async (addedId) => {
+          const addedFile = await Model.file.create({
+            name: fileNameNoExt, type: fileExt, bucketId: addedId
+          })
+          const result = await folder.addFile(addedFile)
+          resolve(addedFile)
+        }).catch((err) => {
+          reject(err.message)
+        });
     });
   }
 
-  const ListAllFiles = (bucketId) => {
+  const Delete = (user, fileId) => {
+    // TODO
+  }
+
+  const ListAllFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
-      storj.listFiles(bucketId, function(err, result) {
-        if (err) {
-          reject(err)
-        }
-        resolve(result)
-      })
+      App.services.Storj.ListFiles(user, bucketId)
+        .then((result) => {
+          resolve(result)
+        }).catch((err) => {
+          reject(err.message)
+        });
     })
   }
 
   return {
     Name: 'Files',
     Upload,
+    Delete,
     ListAllFiles
   }
 }
