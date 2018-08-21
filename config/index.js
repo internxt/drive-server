@@ -19,7 +19,7 @@ const Config = function() {
   nconf.argv()
   nconf.env()
   nconf.required(['NODE_ENV'])
-  nconf.file(`config/environments/${nconf.get('NODE_ENV')}.json`)
+  nconf.use('conf', { type: 'literal', store: require(`./environments/${nconf.get('NODE_ENV')}.js`).data })
   nconf.required(['server:port'])
 
   this.nconf = nconf

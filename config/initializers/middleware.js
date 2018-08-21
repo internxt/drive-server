@@ -26,6 +26,12 @@ module.exports = (App, Config) => {
   }
 
   Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
+    return App.services.User.FindOrCreate({ email: payload })
+      .then((user) => {
+        return done(null, user)
+      }).catch((err) => {
+        return done(err)
+      })
   }))
 
   App.express.use(function(req, res, next) {
