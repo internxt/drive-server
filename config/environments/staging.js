@@ -3,13 +3,13 @@ exports.data = {
     port: 8000
   },
   database: {
-    name: process.env.RDS_HOSTNAME,
+    host: process.env.RDS_HOSTNAME,
+    name: process.env.RDS_DBNAME,
     user: process.env.RDS_USERNAME,
-    password: process.env.RDS_PASSWORD,
-    host: process.env.RDS_PORT
+    password: process.env.RDS_PASSWORD
   },
   secrets: {
-    JWT: "asdf1234"
+    JWT: 'asdf1234'
   },
   logger: {
     level: 0
