@@ -121,7 +121,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/folder', passportAuth, async function(req, res) {
     const folderName = req.body.folderName
     const parentFolderId = req.body.parentFolderId
-    const user = await Service.User.FindOrCreate({ id: 1, email: 'jokolino@msn.com', userId: '$2a$08$a6GWBl/qdkh/jZXfqb6NKulBajkQFB4vIhlh53Vooril1H2M2nkXm' })
+    const user = req.user
     Service.Folder.Create(user, folderName, parentFolderId)
       .then((result) => {
         res.status(201).json(result)
@@ -129,12 +129,12 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).json(err)
       });
   })
-  
+
   /**
    * @swagger
-   * /storage/folder:
+   * /storage/folder/:id:
    *   post:
-   *     description: Create folder
+   *     description: Delete folder
    *     produces:
    *       - application/json
    *     parameters:
@@ -144,10 +144,10 @@ module.exports = (Router, Service, Logger, App) => {
    *         required: true
    *     responses:
    *       200:
-   *         description: Array of folder items
+   *         description: Message
   */
   Router.delete('/storage/folder/:id', passportAuth, async function(req, res) {
-    const user = await Service.User.FindOrCreate({ id: 1, email: 'jokolino@msn.com', userId: '$2a$08$a6GWBl/qdkh/jZXfqb6NKulBajkQFB4vIhlh53Vooril1H2M2nkXm' })
+    const user = req.user
     const folderId = req.params.id
     Service.Folder.Delete(user, folderId)
       .then((result) => {
@@ -174,7 +174,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Uploaded object
   */
   Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), async function(req, res) {
-    const user = await Service.User.FindOrCreate({ id: 1, email: 'jokolino@msn.com', userId: '$2a$08$a6GWBl/qdkh/jZXfqb6NKulBajkQFB4vIhlh53Vooril1H2M2nkXm' })
+    const user = req.user
     const xfile = req.file
     const folderId = req.params.id
     Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
@@ -185,15 +185,38 @@ module.exports = (Router, Service, Logger, App) => {
       })
   })
 
-  Router.get('./storage/file/:id', function(req, res) {
+  /**
+   * @swagger
+   * /storage/file/:id:
+   *   post:
+   *     description: Download file
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: fileId
+   *         description: ID of file in XCloud
+   *         in: query
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Uploaded object
+  */
+  Router.get('/storage/file/:id', async function(req, res) {
+    const user = req.user
+    const fileIdInBucket = req.params.id
+    Service.Files.Download(user, fileIdInBucket)
+      .then((result) => {
+        res.status(200).sendFile(result.file.name, { root: `${process.cwd()}/downloads` })
+      }).catch((err) => {
+        res.status(500).json(err.message)
+      });
+  })
+
+  Router.delete('/storage/file/:id', function(req, res) {
     // TODO
   })
 
-  Router.delete('./storage/file/:id', function(req, res) {
-    // TODO
-  })
-
-  Router.get('./storage/file/search', function(req, res) {
+  Router.get('/storage/file/search', function(req, res) {
     const query = req.query.q
     // TODO
   })

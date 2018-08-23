@@ -72,6 +72,28 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ResolveFile = (user, file) => {
+    return new Promise((resolve, reject) => {
+      const storj = getEnvironment(user.email, user.userId, user.mnemonic)
+      const state = storj.resolveFile(file.folder.bucket, file.bucketId, `./downloads/${file.name}.${file.type}`, {
+        progressCallback: (progress, downloadedBytes, totalBytes) => {
+          App.logger.info('progress:', progress);
+        },
+        finishedCallback: (err) => {
+          if (err) {
+            App.logger.error('Error:', err)
+            reject(err)
+            return err
+          }
+          App.logger.info('File resolved!')
+          resolve({ name: `${file.name}.${file.type}` })
+          storj.destroy()
+          return state
+        }
+      })
+    })
+  }
+
   const ListBucketFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
@@ -89,6 +111,7 @@ module.exports = (Model, App) => {
     CreateBucket,
     DeleteBucket,
     StoreFile,
+    ResolveFile,
     ListBucketFiles
   }
 }

@@ -18,6 +18,18 @@ module.exports = (Model, App) => {
     });
   }
 
+  const Download = (user, fileBucketId) => {
+    return new Promise(async (resolve, reject) => {
+      const file = await Model.file.find({ where: { bucketId: fileBucketId }, include: { model: Model.folder, as: 'folder' } })
+      App.services.Storj.ResolveFile(user, file)
+        .then((result) => {
+          resolve({ file: result })
+        }).catch((err) => {
+          reject(err)
+        });
+    });
+  }
+
   const Delete = (user, fileId) => {
     // TODO
   }
@@ -37,6 +49,7 @@ module.exports = (Model, App) => {
     Name: 'Files',
     Upload,
     Delete,
+    Download,
     ListAllFiles
   }
 }
