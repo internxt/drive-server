@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
     const storj = getEnvironment(email, password, mnemonic)
     return new Promise((resolve, reject) => {
       storj.createBucket(bucketName, function(err, res) {
-        if (err) reject(err)
+        if (err) reject(err.message)
         resolve(res)
       })
     })

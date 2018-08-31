@@ -25,6 +25,9 @@ module.exports = (Model, App) => {
         .then((result) => {
           resolve({ file: result })
         }).catch((err) => {
+          if (err.message === 'File already exists') {
+            resolve({ file: { name: `${file.name}.${file.type}` } })
+          }
           reject(err)
         });
     });

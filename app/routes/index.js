@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const passport = require('passport')
+const mime = require('mime');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
 /**
@@ -47,7 +48,7 @@ module.exports = (Router, Service, Logger, App) => {
             res.send(err.message)
           });
       }).catch((error) => {
-        res.send(error)
+        res.send(error.message)
       });
   });
 
@@ -201,12 +202,17 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Uploaded object
   */
-  Router.get('/storage/file/:id', async function(req, res) {
+  Router.get('/storage/file/:id', passportAuth, async function(req, res) {
     const user = req.user
     const fileIdInBucket = req.params.id
     Service.Files.Download(user, fileIdInBucket)
       .then((result) => {
-        res.status(200).sendFile(result.file.name, { root: `${process.cwd()}/downloads` })
+        const mimetype = mime.getType(result.file.name)
+        // res.set('Content-Type', mimetype);
+        // res.set('Content-disposition', `attachment; filename=${result.file.name}`);
+        res.set('x-file-name', result.file.name);
+        // res.status(200).download(`${process.cwd()}/downloads/${result.file.name}`)
+        res.status(200).sendFile(result.file.name, { root: `${process.cwd()}/downloads/` })
       }).catch((err) => {
         res.status(500).json(err.message)
       });

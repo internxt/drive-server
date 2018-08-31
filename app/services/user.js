@@ -41,7 +41,9 @@ module.exports = (Model, App) => {
   }
 
   const GetUserById = id => Model.users.findOne({ where: { id } })
-    .then(response => response.dataValues)
+    .then((response) => {
+      return response.dataValues
+    })
 
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
