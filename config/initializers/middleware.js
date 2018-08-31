@@ -3,6 +3,8 @@ const cors = require('cors')
 const Passport = require('passport')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
+const path = require('path')
+const express = require('express')
 
 module.exports = (App, Config) => {
 
@@ -16,6 +18,8 @@ module.exports = (App, Config) => {
   }))
   App.express.use(bodyParser.json())
   App.express.use(bodyParser.urlencoded({ extended: true }))
+
+  App.express.use(express.static(path.join(process.cwd(), 'app', 'public')))
 
   /**
    * JWT
