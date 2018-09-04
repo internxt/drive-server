@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs')
-const crypto = require('crypto');
+const crypto = require('crypto')
 const axios = require('axios')
-const { Environment, mnemonicGenerate } = require('storj');
+const shortid = require('shortid')
+const { Environment, mnemonicGenerate } = require('storj')
 
 module.exports = (Model, App) => {
   function pwdToHex(pwd) {
@@ -31,7 +32,7 @@ module.exports = (Model, App) => {
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
-    const bucketName = name ? `${email}_${name}` : `${email}_ROOT`
+    const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
     const storj = getEnvironment(email, password, mnemonic)
     return new Promise((resolve, reject) => {
       storj.createBucket(bucketName, function(err, res) {
