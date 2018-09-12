@@ -33,8 +33,25 @@ module.exports = (Model, App) => {
     });
   }
 
-  const Delete = (user, fileId) => {
-    // TODO
+  const Delete = (user, bucket, fileId) => {
+    return new Promise((resolve, reject) => {
+      App.services.Storj.DeleteFile(user, bucket, fileId)
+        .then(async (result) => {
+          const file = await Model.file.findOne({ where: { bucketId: fileId } })
+          if (file) {
+            const isDestroyed = await file.destroy()
+            if (isDestroyed) {
+              resolve('File deleted')
+            } else {
+              throw new Error('Cannot delete file')
+            }
+          } else {
+            throw new Error('File not found')
+          }
+        }).catch((err) => {
+          reject(err)
+        })
+    })
   }
 
   const ListAllFiles = (user, bucketId) => {

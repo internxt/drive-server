@@ -24,6 +24,7 @@ module.exports = (Model, App) => {
       try {
         const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
         const isFolderDeleted = await folder.destroy()
+        Model.folder.rebuildHierarchy()
         resolve(isFolderDeleted)
       } catch (error) {
         reject(error)

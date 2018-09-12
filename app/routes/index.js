@@ -218,8 +218,16 @@ module.exports = (Router, Service, Logger, App) => {
       });
   })
 
-  Router.delete('/storage/file/:id', function(req, res) {
-    // TODO
+  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function(req, res) {
+    const user = req.user
+    const bucketId = req.params.bucketid
+    const fileIdInBucket = req.params.fileid
+    Service.Files.Delete(user, bucketId, fileIdInBucket)
+      .then((result) => {
+        res.status(200).json({ deleted: true })
+      }).catch((err) => {
+        res.status(500).json({ error: err.message })
+      })
   })
 
   Router.get('/storage/file/search', function(req, res) {

@@ -95,6 +95,19 @@ module.exports = (Model, App) => {
     })
   }
 
+  const DeleteFile = (user, bucketId, file) => {
+    return new Promise((resolve, reject) => {
+      const storj = getEnvironment(user.email, user.userId, user.mnemonic)
+      storj.deleteFile(bucketId, file, function(err, result) {
+        if (err) {
+          App.logger.error(err)
+          reject(err)
+        }
+        resolve(result)
+      })
+    });
+  }
+
   const ListBucketFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
@@ -113,6 +126,7 @@ module.exports = (Model, App) => {
     DeleteBucket,
     StoreFile,
     ResolveFile,
+    DeleteFile,
     ListBucketFiles
   }
 }

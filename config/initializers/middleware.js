@@ -30,11 +30,13 @@ module.exports = (App, Config) => {
   }
 
   Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
-    return App.services.User.FindOrCreate({ email: payload })
+    App.services.User.FindOrCreate({ email: payload })
       .then((user) => {
-        return done(null, user)
+        done(null, user)
+        return null
       }).catch((err) => {
-        return done(err)
+        done(err)
+        return null
       })
   }))
 
