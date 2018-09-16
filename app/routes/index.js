@@ -207,12 +207,8 @@ module.exports = (Router, Service, Logger, App) => {
     const fileIdInBucket = req.params.id
     Service.Files.Download(user, fileIdInBucket)
       .then((result) => {
-        const mimetype = mime.getType(result.file.name)
-        // res.set('Content-Type', mimetype);
-        // res.set('Content-disposition', `attachment; filename=${result.file.name}`);
         res.set('x-file-name', result.file.name);
-        // res.status(200).download(`${process.cwd()}/downloads/${result.file.name}`)
-        res.status(200).sendFile(result.file.name, { root: `${process.cwd()}/downloads/` })
+        res.download(`${process.cwd()}/downloads/${result.file.name}`)
       }).catch((err) => {
         res.status(500).json(err.message)
       });
