@@ -1,9 +1,14 @@
 const _ = require('lodash')
 
 module.exports = (Model, App) => {
+  const Op = App.database.Sequelize.Op
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
+        const exists = await Model.folder.findOne({
+          where: { parentId: parentFolderId, name: folderName }
+        })
+        if (exists) throw new Error('Folder with same name already exists')
         const bucket = await App.services.Storj
           .CreateBucket(user.email, user.userId, user.mnemonic, folderName)
         const xCloudFolder = await user.createFolder({

@@ -1,20 +1,26 @@
 module.exports = (Model, App) => {
   const Upload = (user, folderId, fileName, filePath) => {
     return new Promise(async (resolve, reject) => {
-      const folder = await Model.folder.findOne({ where: { id: folderId } })
-      const extSeparatorPos = fileName.lastIndexOf('.')
-      const fileNameNoExt = fileName.slice(0, fileName.lastIndexOf('.'))
-      const fileExt = fileName.slice(extSeparatorPos + 1)
-      App.services.Storj.StoreFile(user, folder.bucket, fileName, filePath)
-        .then(async (addedId) => {
-          const addedFile = await Model.file.create({
-            name: fileNameNoExt, type: fileExt, bucketId: addedId
-          })
-          const result = await folder.addFile(addedFile)
-          resolve(addedFile)
-        }).catch((err) => {
-          reject(err.message)
-        });
+      try {
+        const folder = await Model.folder.findOne({ where: { id: folderId } })
+        const extSeparatorPos = fileName.lastIndexOf('.')
+        const fileNameNoExt = fileName.slice(0, fileName.lastIndexOf('.'))
+        const exists = await Model.file.findOne({ where: { name: fileNameNoExt, folder_id: folderId } })
+        if (exists) throw new Error('File with same name already exists in this folder')
+        const fileExt = fileName.slice(extSeparatorPos + 1)
+        App.services.Storj.StoreFile(user, folder.bucket, fileName, filePath)
+          .then(async (addedId) => {
+            const addedFile = await Model.file.create({
+              name: fileNameNoExt, type: fileExt, bucketId: addedId
+            })
+            const result = await folder.addFile(addedFile)
+            resolve(addedFile)
+          }).catch((err) => {
+            reject(err.message)
+          });
+      } catch (err) {
+        reject(err.message)
+      }
     });
   }
 
