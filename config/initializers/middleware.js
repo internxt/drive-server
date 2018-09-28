@@ -10,7 +10,7 @@ module.exports = (App, Config) => {
 
   // enables cors
   App.express.use(cors({
-    allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'civicToken'],
+    allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'civicToken', 'method'],
     exposedHeaders: ['sessionId'],
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
