@@ -34,9 +34,13 @@ module.exports = (Model, App) => {
           throw new Error('User invalid')
         })
         .catch(function(err) {
-          const errMsg = err.response.data.error || err.message
-          throw new Error(errMsg)
+          console.log(err)
+          // const errMsg = err.response.data.error || err.message
+          throw new Error(err)
         })
+    }).catch((err) => {
+      console.log(err);
+      throw new Error(err);
     }) // end transaction
   }
 
