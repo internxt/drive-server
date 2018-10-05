@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 module.exports = (Model, App) => {
   const Upload = (user, folderId, fileName, filePath) => {
     return new Promise(async (resolve, reject) => {
@@ -20,6 +22,11 @@ module.exports = (Model, App) => {
           });
       } catch (err) {
         reject(err.message)
+      } finally {
+        fs.unlink(filePath, (error) => {
+          if (error) throw error;
+          console.log(`Deleted:  ${filePath}`);
+        });
       }
     });
   }
