@@ -53,6 +53,7 @@ module.exports = (Model, App) => {
   }
 
   const StoreFile = (user, bucketId, fileName, filePath) => {
+    let size;
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.storeFile(bucketId, filePath, {
@@ -60,6 +61,7 @@ module.exports = (Model, App) => {
         progressCallback(progress, downloadedBytes, totalBytes) {
           App.logger.info('progress:', progress);
           App.logger.info('totalBytes:', totalBytes);
+          size = totalBytes;
         },
         finishedCallback(err, fileId) {
           if (err) {
@@ -67,7 +69,7 @@ module.exports = (Model, App) => {
             reject(err)
           }
           App.logger.info('File complete:', fileId);
-          resolve(fileId)
+          resolve({ fileId, size })
         }
       });
     });

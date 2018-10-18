@@ -11,9 +11,9 @@ module.exports = (Model, App) => {
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1)
         App.services.Storj.StoreFile(user, folder.bucket, fileName, filePath)
-          .then(async (addedId) => {
+          .then(async ({ fileId: addedId, size }) => {
             const addedFile = await Model.file.create({
-              name: fileNameNoExt, type: fileExt, bucketId: addedId
+              name: fileNameNoExt, type: fileExt, bucketId: addedId, size
             })
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
