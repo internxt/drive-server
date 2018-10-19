@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const axios = require('axios')
 const shortid = require('shortid')
-const { Environment, mnemonicGenerate } = require('storj')
+const { Environment, mnemonicGenerate } = require('storj');
+const fs = require('fs')
 
 module.exports = (Model, App) => {
   function pwdToHex(pwd) {
@@ -69,6 +70,7 @@ module.exports = (Model, App) => {
             reject(err)
           }
           App.logger.info('File complete:', fileId);
+          storj.destroy();
           resolve({ fileId, size })
         }
       });
@@ -76,9 +78,13 @@ module.exports = (Model, App) => {
   }
 
   const ResolveFile = (user, file) => {
+    const downloadDir = './downloads'
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir);
+    }
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
-      const state = storj.resolveFile(file.folder.bucket, file.bucketId, `./downloads/${file.name}.${file.type}`, {
+      const state = storj.resolveFile(file.folder.bucket, file.bucketId, `${downloadDir}/${file.name}.${file.type}`, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           App.logger.info('progress:', progress);
         },
@@ -90,7 +96,7 @@ module.exports = (Model, App) => {
           }
           App.logger.info('File resolved!')
           resolve({ name: `${file.name}.${file.type}` })
-          storj.destroy()
+          storj.destroy();
           return state
         }
       })

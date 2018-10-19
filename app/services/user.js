@@ -33,14 +33,13 @@ module.exports = (Model, App) => {
           if (isValid) return userResult
           throw new Error('User invalid')
         })
-        .catch(function(err) {
-          console.log(err)
+        .catch((err) => {
+          if (err.response) {
+            throw new Error(err.response.data.error)
+          }
           // const errMsg = err.response.data.error || err.message
           throw new Error(err)
         })
-    }).catch((err) => {
-      console.log(err);
-      throw new Error(err);
     }) // end transaction
   }
 
