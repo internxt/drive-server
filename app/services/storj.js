@@ -4,6 +4,7 @@ const axios = require('axios')
 const shortid = require('shortid')
 const { Environment, mnemonicGenerate } = require('storj');
 const fs = require('fs')
+const mime = require('mime');
 
 module.exports = (Model, App) => {
   function pwdToHex(pwd) {
@@ -94,8 +95,12 @@ module.exports = (Model, App) => {
             reject(err)
             return err
           }
+          const downloadFile = `${downloadDir}/${file.name}.${file.type}`;
+          const mimetype = mime.getType(downloadFile);
+          const filestream = fs.createReadStream(downloadFile);
+
           App.logger.info('File resolved!')
-          resolve({ name: `${file.name}.${file.type}` })
+          resolve({ filestream, mimetype, downloadFile })
           storj.destroy();
           return state
         }
