@@ -36,7 +36,7 @@ module.exports = (Model, App) => {
       const file = await Model.file.find({ where: { bucketId: fileBucketId }, include: { model: Model.folder, as: 'folder' } })
       App.services.Storj.ResolveFile(user, file)
         .then((result) => {
-          resolve({ file: result })
+          resolve(result)
         }).catch((err) => {
           if (err.message === 'File already exists') {
             resolve({ file: { name: `${file.name}.${file.type}` } })

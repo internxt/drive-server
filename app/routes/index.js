@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const passport = require('passport')
 const mime = require('mime');
+const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
 /**
@@ -205,13 +206,21 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/storage/file/:id', passportAuth, async function(req, res) {
     const user = req.user
     const fileIdInBucket = req.params.id
+    let filePath;
     Service.Files.Download(user, fileIdInBucket)
-      .then((result) => {
-        res.set('x-file-name', result.file.name);
-        res.download(`${process.cwd()}/downloads/${result.file.name}`)
+      .then(({ filestream, mimetype, downloadFile }) => {
+        filePath = downloadFile;
+
+        res.setHeader('Content-type', mimetype);
+        res.set('x-file-name', downloadFile.split('/')[2]);
+        filestream.pipe(res)
+        fs.unlink(filePath, (error) => {
+          if (error) throw error;
+          console.log(`Deleted:  ${filePath}`);
+        });
       }).catch((err) => {
         res.status(500).json(err.message)
-      });
+      })
   })
 
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function(req, res) {
