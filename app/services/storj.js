@@ -12,7 +12,7 @@ module.exports = (Model, App) => {
   }
 
   function IdToBcrypt(id) {
-    return bcrypt.hashSync(id, 8)
+    return bcrypt.hash(id, 8)
   }
 
   function getEnvironment(email, password, mnemonic) {

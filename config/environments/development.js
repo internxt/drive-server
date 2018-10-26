@@ -9,7 +9,8 @@ exports.data = {
     host: 'localhost'
   },
   secrets: {
-    JWT: 'asdf1234'
+    JWT: 'asdf1234',
+    CRYPTO: 'asdf1234'
   },
   logger: {
     level: 0
