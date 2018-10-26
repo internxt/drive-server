@@ -1,14 +1,6 @@
 const { mnemonicGenerate } = require('storj');
-const Secret = require('crypto-js');
 
 module.exports = (Model, App) => {
-  const encryptFolderName = (folderName) => {
-    const b64 = Secret.AES.encrypt(folderName, App.config.get('secrets').CRYPTO).toString();
-    const e64 = Secret.enc.Base64.parse(b64);
-    const eHex = e64.toString(Secret.enc.Hex);
-    return eHex;
-  }
-
   const FindOrCreate = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
@@ -26,7 +18,7 @@ module.exports = (Model, App) => {
             const rootBucket = await App.services.Storj
               .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
 
-            const rootFolderName = App.services.Folder.encryptFolderName(`${userResult.email}_root`)
+            const rootFolderName = App.services.Crypt.encryptName(`${userResult.email}_root`)
 
             const rootFolder = await userResult.createFolder({
               name: rootFolderName,

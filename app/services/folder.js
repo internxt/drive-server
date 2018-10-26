@@ -2,26 +2,11 @@ const _ = require('lodash')
 const Secret = require('crypto-js');
 
 module.exports = (Model, App) => {
-  function decryptFolderName(cipherText) {
-    const reb64 = Secret.enc.Hex.parse(cipherText);
-    const bytes = reb64.toString(Secret.enc.Base64);
-    const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO);
-    const plain = decrypt.toString(Secret.enc.Utf8);
-    return plain;
-  }
-
-  const encryptFolderName = (folderName) => {
-    const b64 = Secret.AES.encrypt(folderName, App.config.get('secrets').CRYPTO).toString();
-    const e64 = Secret.enc.Base64.parse(b64);
-    const eHex = e64.toString(Secret.enc.Hex);
-    return eHex;
-  }
-
   const Op = App.database.Sequelize.Op
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const cryptoFolderName = encryptFolderName(folderName);
+        const cryptoFolderName = App.services.Crypt.encryptName(folderName);
         const exists = await Model.folder.findOne({
           where: { parentId: parentFolderId, name: cryptoFolderName }
         })
@@ -62,7 +47,7 @@ module.exports = (Model, App) => {
 
   const mapChildrenNames = (folder = []) => {
     return folder.map((child) => {
-      child.name = decryptFolderName(child.name)
+      child.name = App.services.Crypt.decryptName(child.name)
       child.children = mapChildrenNames(child.children)
       return child;
     });
@@ -82,9 +67,12 @@ module.exports = (Model, App) => {
         as: 'files'
       }]
     })
-    result.name = decryptFolderName(result.name);
+    result.name = App.services.Crypt.decryptName(result.name);
     result.children = mapChildrenNames(result.children)
-
+    result.files = result.files.map((file) => {
+      file.name = `${App.services.Crypt.decryptName(file.name)}`;
+      return file;
+    })
     return result
   }
 
@@ -95,7 +83,5 @@ module.exports = (Model, App) => {
     GetTree,
     GetParent,
     GetContent,
-    decryptFolderName,
-    encryptFolderName
   }
 }

@@ -6,14 +6,20 @@ module.exports = (Model, App) => {
       try {
         const folder = await Model.folder.findOne({ where: { id: folderId } })
         const extSeparatorPos = fileName.lastIndexOf('.')
-        const fileNameNoExt = fileName.slice(0, fileName.lastIndexOf('.'))
-        const exists = await Model.file.findOne({ where: { name: fileNameNoExt, folder_id: folderId } })
+        const fileNameNoExt = fileName.slice(0, extSeparatorPos)
+
+        const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
+
+        const exists = await Model.file.findOne({ where: { name: encryptedFileName, folder_id: folderId } })
         if (exists) throw new Error('File with same name already exists in this folder')
-        const fileExt = fileName.slice(extSeparatorPos + 1)
-        App.services.Storj.StoreFile(user, folder.bucket, fileName, filePath)
+        const fileExt = fileName.slice(extSeparatorPos + 1);
+
+        const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
+
+        App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId: addedId, size }) => {
             const addedFile = await Model.file.create({
-              name: fileNameNoExt, type: fileExt, bucketId: addedId, size
+              name: encryptedFileName, type: fileExt, bucketId: addedId, size
             })
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
