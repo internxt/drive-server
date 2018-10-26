@@ -10,15 +10,22 @@ module.exports = (Model, App) => {
         .spread(async function (userResult, created) {
           if (created) {
             const bcryptId = App.services.Storj.IdToBcrypt(user.id)
+
             const bridgeUser = await App.services.Storj
               .RegisterBridgeUser(userResult.email, bcryptId)
+
             const userMnemonic = mnemonicGenerate(256)
+
             const rootBucket = await App.services.Storj
               .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
+
+            const rootFolderName = await bcrypt.hash(userResult.email, 10);
+
             const rootFolder = await userResult.createFolder({
-              name: `${userResult.email}_ROOT`,
+              name: rootFolderName,
               bucket: rootBucket.id
             })
+
             await userResult.update({
               userId: bcryptId,
               isFreeTier: bridgeUser.data.isFreeTier,
