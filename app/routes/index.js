@@ -53,6 +53,20 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
+  Router.put('/auth/mnemonic', function (req, res) {
+    const {
+      body: { id, mnemonic },
+    } = req;
+    Service.User.UpdateMnemonic(id, mnemonic)
+      .then(() => {
+        res.status(200).json({
+          message: 'Successfully updated user with mnemonic'
+        });
+      }).catch(({ message }) => {
+        res.status(400).json({ message, code: 400 });
+      });
+  })
+
   /**
    * @swagger
    * /user/:id:
@@ -91,7 +105,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Array of folder items
   */
   Router.get('/storage/folder/:id', passportAuth, function(req, res) {
-    const folderId = req.params.id
+    const folderId = req.params.id;
     Service.Folder.GetContent(folderId)
       .then((result) => {
         res.status(200).json(result)
