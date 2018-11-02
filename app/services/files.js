@@ -4,12 +4,13 @@ module.exports = (Model, App) => {
   const Upload = (user, folderId, fileName, filePath) => {
     return new Promise(async (resolve, reject) => {
       try {
+        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+
         const folder = await Model.folder.findOne({ where: { id: folderId } })
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = fileName.slice(0, extSeparatorPos)
 
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
-
         const exists = await Model.file.findOne({ where: { name: encryptedFileName, folder_id: folderId } })
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1);
@@ -39,6 +40,7 @@ module.exports = (Model, App) => {
 
   const Download = (user, fileBucketId) => {
     return new Promise(async (resolve, reject) => {
+      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
       const file = await Model.file.find({ where: { bucketId: fileBucketId }, include: { model: Model.folder, as: 'folder' } })
       App.services.Storj.ResolveFile(user, file)
         .then((result) => {
