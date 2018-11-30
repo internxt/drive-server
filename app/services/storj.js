@@ -17,7 +17,7 @@ module.exports = (Model, App) => {
 
   function getEnvironment(email, password, mnemonic) {
     return new Environment({
-      bridgeUrl: 'http://localhost:6382/',
+      bridgeUrl: App.config.get('STORJ_BRIDGE'),
       bridgeUser: email,
       bridgePass: password,
       encryptionKey: mnemonic,
@@ -28,7 +28,7 @@ module.exports = (Model, App) => {
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
     return axios.post(
-      'http://localhost:6382/users',
+      `${App.config.get('STORJ_BRIDGE')}/users`,
       { email, password: hashPwd }
     )
   }
