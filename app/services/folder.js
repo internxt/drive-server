@@ -11,7 +11,7 @@ module.exports = (Model, App) => {
           where: { parentId: parentFolderId, name: cryptoFolderName }
         })
         if (exists) throw new Error('Folder with same name already exists')
-
+        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
         const bucket = await App.services.Storj
           .CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
@@ -31,6 +31,7 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       const folder = await Model.folder.findOne({ where: { id: folderId } })
       try {
+        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
         const isFolderDeleted = await folder.destroy()
         Model.folder.rebuildHierarchy()

@@ -53,6 +53,20 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
+  Router.put('/auth/mnemonic', function (req, res) {
+    const {
+      body: { id, mnemonic },
+    } = req;
+    Service.User.UpdateMnemonic(id, mnemonic)
+      .then(() => {
+        res.status(200).json({
+          message: 'Successfully updated user with mnemonic'
+        });
+      }).catch(({ message }) => {
+        res.status(400).json({ message, code: 400 });
+      });
+  })
+
   /**
    * @swagger
    * /user/:id:
@@ -91,7 +105,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Array of folder items
   */
   Router.get('/storage/folder/:id', passportAuth, function(req, res) {
-    const folderId = req.params.id
+    const folderId = req.params.id;
     Service.Folder.GetContent(folderId)
       .then((result) => {
         res.status(200).json(result)
@@ -124,6 +138,9 @@ module.exports = (Router, Service, Logger, App) => {
     const folderName = req.body.folderName
     const parentFolderId = req.body.parentFolderId
     const user = req.user
+    if (!user.mnemonic) {
+      user.mnemonic = req.headers['internxt-mnemonic'];
+    }
     Service.Folder.Create(user, folderName, parentFolderId)
       .then((result) => {
         res.status(201).json(result)
@@ -151,6 +168,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.delete('/storage/folder/:id', passportAuth, async function(req, res) {
     const user = req.user
     const folderId = req.params.id
+    if (!user.mnemonic) {
+      user.mnemonic = req.headers['internxt-mnemonic'];
+    }
     Service.Folder.Delete(user, folderId)
       .then((result) => {
         res.status(204).json(result)
@@ -179,6 +199,9 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user
     const xfile = req.file
     const folderId = req.params.id
+    if (!user.mnemonic) {
+      user.mnemonic = req.headers['internxt-mnemonic'];
+    }
     Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
       .then((result) => {
         res.status(201).json(result)
@@ -207,6 +230,9 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user
     const fileIdInBucket = req.params.id
     let filePath;
+    if (!user.mnemonic) {
+      user.mnemonic = req.headers['internxt-mnemonic'];
+    }
     Service.Files.Download(user, fileIdInBucket)
       .then(({ filestream, mimetype, downloadFile }) => {
         filePath = downloadFile;
@@ -232,6 +258,9 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user
     const bucketId = req.params.bucketid
     const fileIdInBucket = req.params.fileid
+    if (!user.mnemonic) {
+      user.mnemonic = req.headers['internxt-mnemonic'];
+    }
     Service.Files.Delete(user, bucketId, fileIdInBucket)
       .then((result) => {
         res.status(200).json({ deleted: true })

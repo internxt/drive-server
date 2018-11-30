@@ -29,9 +29,11 @@ module.exports = (Model, App) => {
               userId: bcryptId,
               isFreeTier: bridgeUser.data.isFreeTier,
               root_folder_id: rootFolder.id,
-              mnemonic: userMnemonic
             }, { transaction: t })
-            return userResult
+            /**
+             * On return mnemonic to user. He needs to decide if he will preserve it in DB
+             */
+            return Object.assign(userResult, { mnemonic: userMnemonic });
           }
           // TODO: proveriti userId kao pass
           // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
@@ -49,6 +51,21 @@ module.exports = (Model, App) => {
     }) // end transaction
   }
 
+  const UpdateMnemonic = async (userId, mnemonic) => {
+    const found = Model.users.findById(userId);
+    if (found) {
+      try {
+        const user = await Model.users.update(
+          { mnemonic },
+          { where: { id: userId }, validate: true }
+        );
+        return user
+      } catch (errorResponse) {
+        throw new Error(errorResponse);
+      }
+    }
+  }
+
   const GetUserById = id => Model.users.findOne({ where: { id } })
     .then((response) => {
       return response.dataValues
@@ -62,6 +79,7 @@ module.exports = (Model, App) => {
     Name: 'User',
     FindOrCreate,
     GetUserById,
-    GetUsersRootFolder
+    GetUsersRootFolder,
+    UpdateMnemonic
   }
 }
