@@ -1,29 +1,38 @@
 const { mnemonicGenerate } = require('storj');
 
 module.exports = (Model, App) => {
+  const logger = App.logger
   const FindOrCreate = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email }, transaction: t
       })
         .spread(async function (userResult, created) {
+          logger.info('userResult')
+          logger.info(userResult)
           if (created) {
             const bcryptId = await App.services.Storj.IdToBcrypt(user.id)
-
+            
+            logger.info('User Service | creating brigde user')
             const bridgeUser = await App.services.Storj
               .RegisterBridgeUser(userResult.email, bcryptId)
+            logger.info(bridgeUser)
 
             const userMnemonic = mnemonicGenerate(256)
-
+            logger.info('User Service | mnemonic generated')
+            
             const rootBucket = await App.services.Storj
-              .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
-
+            .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
+            logger.info('User Service | root bucket created')
+            
+            
             const rootFolderName = App.services.Crypt.encryptName(`${userResult.email}_root`)
-
+            
             const rootFolder = await userResult.createFolder({
               name: rootFolderName,
               bucket: rootBucket.id
             })
+            logger.info('User Service | root folder created')
 
             await userResult.update({
               userId: bcryptId,
