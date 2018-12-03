@@ -8,11 +8,9 @@ module.exports = (Model, App) => {
         where: { email: user.email }, transaction: t
       })
         .spread(async function (userResult, created) {
-          logger.info('userResult')
-          logger.info(userResult)
           if (created) {
             const bcryptId = await App.services.Storj.IdToBcrypt(user.id)
-            
+
             logger.info('User Service | creating brigde user')
             const bridgeUser = await App.services.Storj
               .RegisterBridgeUser(userResult.email, bcryptId)
@@ -20,14 +18,13 @@ module.exports = (Model, App) => {
 
             const userMnemonic = mnemonicGenerate(256)
             logger.info('User Service | mnemonic generated')
-            
+
             const rootBucket = await App.services.Storj
-            .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
+              .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
             logger.info('User Service | root bucket created')
-            
-            
+
             const rootFolderName = App.services.Crypt.encryptName(`${userResult.email}_root`)
-            
+
             const rootFolder = await userResult.createFolder({
               name: rootFolderName,
               bucket: rootBucket.id
