@@ -206,6 +206,10 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(201).json(result)
       }).catch((err) => {
+        if (err === 'Bridge rate limit error') {
+          res.status(402).json({ message: err })
+          return;
+        }
         res.status(500).json({ message: err })
       })
   })
@@ -249,8 +253,12 @@ module.exports = (Router, Service, Logger, App) => {
           if (error) throw error;
           console.log(`Deleted:  ${filePath}`);
         });
-      }).catch((err) => {
-        res.status(500).json(err.message)
+      }).catch(({ message }) => {
+        if (message === 'Bridge rate limit error') {
+          res.status(402).json({ message })
+          return;
+        }
+        res.status(500).json({ message })
       })
   })
 
