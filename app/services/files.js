@@ -5,18 +5,22 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
-
+        App.logger.info(`Starting file upload: ${fileName}`)
         const folder = await Model.folder.findOne({ where: { id: folderId } })
+        App.logger.info(`Found upload folder: ${folder.name}`)
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = fileName.slice(0, extSeparatorPos)
 
+        App.logger.info(`Encrypting file name`)
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
+
         const exists = await Model.file.findOne({ where: { name: encryptedFileName, folder_id: folderId } })
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1);
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
-
+        
+        App.logger.info(`Uploading file to network`)
         App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId: addedId, size }) => {
             const addedFile = await Model.file.create({
@@ -25,9 +29,11 @@ module.exports = (Model, App) => {
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
           }).catch((err) => {
+            App.logger.error(err.message)
             reject(err.message)
           });
       } catch (err) {
+        App.logger.error(err.message)
         reject(err.message)
       } finally {
         fs.unlink(filePath, (error) => {
