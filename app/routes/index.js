@@ -1,9 +1,9 @@
 const jwt = require('jsonwebtoken');
 const passport = require('passport')
-const mime = require('mime');
 const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
+
 /**
  * JWT
  */
@@ -115,6 +115,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/storage/folder/:id/meta', function(req, res) {
+    res.send(200)
     // TODO
   });
 
@@ -251,7 +252,6 @@ module.exports = (Router, Service, Logger, App) => {
         filestream.pipe(res)
         fs.unlink(filePath, (error) => {
           if (error) throw error;
-          console.log(`Deleted:  ${filePath}`);
         });
       }).catch(({ message }) => {
         if (message === 'Bridge rate limit error') {
@@ -278,7 +278,6 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.get('/storage/file/search', function(req, res) {
-    const query = req.query.q
     // TODO
   })
 

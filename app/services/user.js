@@ -22,8 +22,9 @@ module.exports = (Model, App) => {
             const rootBucket = await App.services.Storj
               .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
             logger.info('User Service | root bucket created')
-
+            
             const rootFolderName = App.services.Crypt.encryptName(`${userResult.email}_root`)
+            logger.info('User Service | root folder name: ' + rootFolderName)
 
             const rootFolder = await userResult.createFolder({
               name: rootFolderName,

@@ -14,5 +14,6 @@ exports.data = {
   },
   logger: {
     level: 0
-  }
+  },
+  STORJ_BRIDGE: 'http://localhost:6382'
 }
