@@ -83,15 +83,18 @@ module.exports = (Model, App) => {
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir);
     }
+
     return new Promise((resolve, reject) => {
+      App.logger.info('Getting network environment')
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
+      App.logger.info(`Resolving file ${file.name}`)
       const state = storj.resolveFile(file.folder.bucket, file.bucketId, `${downloadDir}/${file.name}.${file.type}`, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           App.logger.info('progress:', progress);
         },
         finishedCallback: (err) => {
           if (err) {
-            App.logger.error('Error:', err)
+            App.logger.error('Error resolving file:', err)
             reject(err)
             return err
           }
