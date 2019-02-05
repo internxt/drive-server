@@ -37,6 +37,7 @@ module.exports = (Router, Service, Logger, App) => {
     const civicClient = App.civic
     const jwtToken = req.headers.civictoken
 
+    // Civic call for get user data
     civicClient.exchangeCode(jwtToken)
       .then((userData) => {
         const id = userData.userId
