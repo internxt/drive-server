@@ -66,6 +66,7 @@ module.exports = (Router, Service, Logger, App) => {
           message: 'Successfully updated user with mnemonic'
         });
       }).catch(({ message }) => {
+        Logger.error(message);
         res.status(400).json({ message, code: 400 });
       });
   })
@@ -88,6 +89,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/users/:id', passportAuth, function(req, res) {
     Service.User.GetUserById(req.params.id).then(function(foundUser) {
       res.send(foundUser);
+    }).catch((err) => {
+      Logger.error(err.message + '\n' + err.stack);
+      res.status(500).json(err)
     });
   });
 
@@ -113,6 +117,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(200).json(result)
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         res.status(500).json(err)
       });
   });
@@ -149,6 +154,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(201).json(result)
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         res.status(500).json(err)
       });
   })
@@ -179,6 +185,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(204).json(result)
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         res.status(500).json(err)
       });
   })
@@ -210,6 +217,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(201).json(result)
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         if (err === 'Bridge rate limit error') {
           res.status(402).json({ message: err })
           return;
@@ -276,6 +284,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(200).json({ deleted: true })
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         res.status(500).json({ error: err.message })
       })
   })
