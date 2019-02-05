@@ -47,9 +47,11 @@ module.exports = (Router, Service, Logger, App) => {
             const token = jwt.sign(user.email, App.config.get('secrets').JWT);
             res.status(201).json({ user, token, created })
           }).catch((err) => {
-            res.send(err.message)
+            Logger.error(err.message);
+            res.send(err.message);
           });
       }).catch((error) => {
+        Logger.error(error.message);
         res.send(error.message)
       });
   });
