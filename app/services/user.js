@@ -22,7 +22,7 @@ module.exports = (Model, App) => {
             const rootBucket = await App.services.Storj
               .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
             logger.info('User Service | root bucket created')
-            
+
             const rootFolderName = App.services.Crypt.encryptName(`${userResult.email}_root`)
             logger.info('User Service | root folder name: ' + rootFolderName)
 
@@ -40,12 +40,16 @@ module.exports = (Model, App) => {
             /**
              * On return mnemonic to user. He needs to decide if he will preserve it in DB
              */
-            return Object.assign(userResult, { mnemonic: userMnemonic });
+            return [Object.assign(userResult, { mnemonic: userMnemonic }), created];
+          }
+          // Create mnemonic for existing user when doesnt have yet
+          if (userResult.mnemonic == null) {
+            Object.assign(userResult, { mnemonic: mnemonicGenerate(256) })
           }
           // TODO: proveriti userId kao pass
           // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
           const isValid = true
-          if (isValid) return userResult
+          if (isValid) return [userResult, created]
           throw new Error('User invalid')
         })
         .catch((err) => {

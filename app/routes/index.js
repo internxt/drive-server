@@ -43,9 +43,9 @@ module.exports = (Router, Service, Logger, App) => {
         const id = userData.userId
         const email = userData.data[0].value
         Service.User.FindOrCreate({ id, email })
-          .then((user) => {
+          .then((user, created) => {
             const token = jwt.sign(user.email, App.config.get('secrets').JWT);
-            res.status(201).json({ user, token })
+            res.status(201).json({ user, token, created })
           }).catch((err) => {
             res.send(err.message)
           });
