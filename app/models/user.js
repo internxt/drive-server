@@ -25,6 +25,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     isFreeTier: {
       type: DataTypes.BOOLEAN,
+    },
+    isCreated: {
+      type: DataTypes.VIRTUAL
     }
   },
   {
