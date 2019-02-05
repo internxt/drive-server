@@ -50,6 +50,7 @@ module.exports = (Model, App) => {
           // TODO: proveriti userId kao pass
           // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
           const isValid = true
+          logger.info('user result: ' + userResult);
           if (isValid) return { userResult, created };
           throw new Error('User invalid')
         })
