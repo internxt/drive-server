@@ -41,7 +41,7 @@ module.exports = (Model, App) => {
              * On return mnemonic to user. He needs to decide if he will preserve it in DB
              */
             Object.assign(userResult, { mnemonic: userMnemonic });
-            return { userResult, created };
+            return { userResult.get({ plain: true}), created };
           }
           // Create mnemonic for existing user when doesnt have yet
           if (userResult.mnemonic == null) {
@@ -51,7 +51,7 @@ module.exports = (Model, App) => {
           // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
           const isValid = true
           logger.info('user result: ' + userResult.get({ plain: true}));
-          if (isValid) return { userResult, created };
+          if (isValid) return { userResult.get({ plain: true}), created };
           throw new Error('User invalid')
         })
         .catch((err) => {
