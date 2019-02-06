@@ -8,11 +8,20 @@ module.exports = {
         autoIncrement: true
       },
       userId: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
+      },
+      name: {
+        type: Sequelize.STRING
+      },
+      lastname: {
+        type: Sequelize.STRING
       },
       email: {
         type: Sequelize.STRING,
         allowNull: false
+      },
+      password: {
+        type: Sequelize.STRING
       },
       mnemonic: {
         type: Sequelize.STRING
@@ -26,6 +35,9 @@ module.exports = {
           model: 'folders',
           key: 'id'
         }
+      },
+      isCreated: {
+        type: DataTypes.VIRTUAL
       }
     });
   },
