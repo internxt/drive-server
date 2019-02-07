@@ -5,11 +5,13 @@ module.exports = (Model, App) => {
   const FindOrCreate = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
-        where: { email: user.email }, transaction: t
+        where: { email: user.email },
+        defaults: { name: user.name, lastname: user.lastname, password: App.services.Crypt.encryptName(user.password) },
+        transaction: t
       })
         .spread(async function (userResult, created) {
           if (created) {
-            const bcryptId = await App.services.Storj.IdToBcrypt(user.id)
+            const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
 
             logger.info('User Service | creating brigde user')
             const bridgeUser = await App.services.Storj
@@ -55,6 +57,7 @@ module.exports = (Model, App) => {
         })
         .catch((err) => {
           if (err.response) {
+            logger.error('FindOrCreate error: ' + err.response.data.error);
             throw new Error(err.response.data.error)
           }
           // const errMsg = err.response.data.error || err.message
@@ -83,6 +86,11 @@ module.exports = (Model, App) => {
       return response.dataValues
     })
 
+  const FindUserByEmail = email => Model.users.findOne({ where: { email } })
+    .then((userData) => {
+      return userData
+    })
+
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
   }).then(user => user.dataValues)
@@ -91,6 +99,7 @@ module.exports = (Model, App) => {
     Name: 'User',
     FindOrCreate,
     GetUserById,
+    FindUserByEmail,
     GetUsersRootFolder,
     UpdateMnemonic
   }

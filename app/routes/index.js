@@ -21,39 +21,77 @@ module.exports = (Router, Service, Logger, App) => {
    * @swagger
    * /login:
    *   post:
-   *     description: Unified Civic registrtion/login. User is registered or created.
+   *     description: User login. Check if user exists.
    *     produces:
    *       - application/json
    *     parameters:
-   *       - name: civictoken
-   *         description: JWT token returned from Civic service
-   *         in: header
+   *       - description: user object with email and password only
+   *         in: body
    *         required: true
    *     responses:
-   *       201:
-   *         description: Created/Found user object
+   *       200:
+   *         description: Successfull login
+   *       204:
+   *         description: Wrong username or password
    */
-  Router.get('/auth', function (req, res) {
-    const civicClient = App.civic
-    const jwtToken = req.headers.civictoken
-
-    // Civic call for get user data
-    civicClient.exchangeCode(jwtToken)
+  Router.post('/login', function (req, res) {
+    // Call user service to find or create user
+    Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
-        const id = userData.userId
-        const email = userData.data[0].value
-        Service.User.FindOrCreate({ id, email })
-          .then((user) => {
-            const token = jwt.sign(user.email, App.config.get('secrets').JWT);
-            res.status(201).json({ user, token })
-          }).catch((err) => {
-            Logger.error(err.message + '\n' + err.stack);
-            res.send(err.message);
-          });
-      }).catch((error) => {
-        Logger.error(error.message + '\n' + error.stack);
-        res.send(error.message)
-      });
+        // Process user data and answer API call
+        if (userData) {
+          if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
+            // Successfull login
+            const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+            res.status(200).json({ token });
+          } else {
+            // Wrong password
+            res.status(204).json({ message: 'Wrong password' })
+          }
+        } else {
+          // User not found
+          res.status(204).json({ message: 'Wrong email' })
+        }
+      }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
+        res.send(err.message);
+      })
+  });
+
+  /**
+   * @swagger
+   * /register:
+   *   post:
+   *     description: User registration. User is registered or created.
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - description: user object with all registration info
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Successfull user registration
+   *       204:
+   *         description: User with this email exists
+   */
+  Router.post('/register', function (req, res) {
+    // Call user service to find or create user
+    Service.User.FindOrCreate(req.body.email, req.body.password)
+      .then((userData) => {
+        // Process user data and answer API call
+        if (userData.isCreated) {
+          // Successfull register
+          const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+          res.status(200).json({ token });
+        } else {
+          // This account already exists
+          res.status(204).json({ message: 'This account already exists' });
+        }
+      }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
+        res.send(err.message);
+      })
   });
 
   Router.put('/auth/mnemonic', function (req, res) {
