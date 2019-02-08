@@ -8,7 +8,7 @@ const mime = require('mime');
 
 module.exports = (Model, App) => {
   const logger = App.logger;
-  
+
   function pwdToHex(pwd) {
     try {
       return crypto.createHash('sha256').update(pwd).digest('hex')
@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
 
   function IdToBcrypt(id) {
     try {
-      return bcrypt.hash(id, 8)
+      return bcrypt.hashSync(id, 8)
     } catch (error) {
       logger.error(error);
       return null;
