@@ -3,7 +3,6 @@ const { mnemonicGenerate } = require('storj');
 module.exports = (Model, App) => {
   const logger = App.logger
   const FindOrCreate = (user) => {
-    logger.info(App.services.Crypt.encryptName(user.password));
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
