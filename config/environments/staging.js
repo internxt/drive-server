@@ -10,7 +10,7 @@ exports.data = {
   },
   secrets: {
     JWT: 'asdf1234',
-    CRYPTO: ''
+    CRYPTO: 'asdf1234'
   },
   logger: {
     level: 0

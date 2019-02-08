@@ -59,7 +59,6 @@ module.exports = (Model, App) => {
           if (err.response) {
             throw new Error(err.response.data.error)
           }
-          logger.error('FindOrCreate error: ' + err.message);
           throw new Error(err)
         })
     }) // end transaction
