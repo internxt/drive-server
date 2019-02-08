@@ -78,7 +78,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/register', function (req, res) {
     // Call user service to find or create user
     Logger.info(req.body);
-    Service.User.FindOrCreate(req.body.email, req.body.password)
+    Service.User.FindOrCreate(req.body)
       .then((userData) => {
         // Process user data and answer API call
         if (userData.isCreated) {
