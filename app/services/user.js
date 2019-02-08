@@ -3,6 +3,7 @@ const { mnemonicGenerate } = require('storj');
 module.exports = (Model, App) => {
   const logger = App.logger
   const FindOrCreate = (user) => {
+    logger.info(App.services.Crypt.encryptName(user.password));
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
@@ -10,7 +11,6 @@ module.exports = (Model, App) => {
         transaction: t
       })
         .spread(async function (userResult, created) {
-          logger.info('Created: ' + created);
           if (created) {
             const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
 
@@ -48,7 +48,6 @@ module.exports = (Model, App) => {
           }
           // Create mnemonic for existing user when doesnt have yet
           if (userResult.mnemonic == null) {
-            logger.info('Assign object props');
             Object.assign(userResult, { mnemonic: mnemonicGenerate(256), isCreated: created })
           }
           // TODO: proveriti userId kao pass
