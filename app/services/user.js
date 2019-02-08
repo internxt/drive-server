@@ -16,8 +16,8 @@ module.exports = (Model, App) => {
       }).spread(async function (userResult, created) {
         if (created) {
           const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
-          logger.info('bCryptId: ' + bcryptId);
           logger.info('User Service | creating brigde user')
+          
           const bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
           logger.info(bridgeUser)

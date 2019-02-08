@@ -21,7 +21,7 @@ module.exports = (Model, App) => {
   function IdToBcrypt(id) {
     try {
       logger.info('Id passed to IdToBcrypt: ' + id);
-      return bcrypt.hashSync(id, 8)
+      return bcrypt.hashSync(id.toString(), 8)
     } catch (error) {
       logger.error(error);
       return null;
