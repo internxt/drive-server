@@ -7,41 +7,69 @@ const fs = require('fs')
 const mime = require('mime');
 
 module.exports = (Model, App) => {
+  const logger = App.logger;
+  
   function pwdToHex(pwd) {
-    return crypto.createHash('sha256').update(pwd).digest('hex')
+    try {
+      return crypto.createHash('sha256').update(pwd).digest('hex')
+    } catch (error) {
+      logger.error(error);
+      return null;
+    }
   }
 
   function IdToBcrypt(id) {
-    return bcrypt.hash(id, 8)
+    try {
+      return bcrypt.hash(id, 8)
+    } catch (error) {
+      logger.error(error);
+      return null;
+    }
   }
 
   function getEnvironment(email, password, mnemonic) {
-    return new Environment({
-      bridgeUrl: App.config.get('STORJ_BRIDGE'),
-      bridgeUser: email,
-      bridgePass: password,
-      encryptionKey: mnemonic,
-      logLevel: 4
-    })
+    try {
+      return new Environment({
+        bridgeUrl: App.config.get('STORJ_BRIDGE'),
+        bridgeUser: email,
+        bridgePass: password,
+        encryptionKey: mnemonic,
+        logLevel: 4
+      })
+    } catch (error) {
+      logger.error(error);
+      return null;
+    }
   }
 
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
-    return axios.post(
-      `${App.config.get('STORJ_BRIDGE')}/users`,
-      { email, password: hashPwd }
-    )
+    try {
+      return axios.post(
+        `${App.config.get('STORJ_BRIDGE')}/users`,
+        { email, password: hashPwd }
+      )
+    } catch (error) {
+      logger.error(error);
+      return null;
+    }
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
     const storj = getEnvironment(email, password, mnemonic)
-    return new Promise((resolve, reject) => {
-      storj.createBucket(bucketName, function(err, res) {
-        if (err) reject(err.message)
-        resolve(res)
+    
+    try {
+      return new Promise((resolve, reject) => {
+        storj.createBucket(bucketName, function(err, res) {
+          if (err) reject(err.message)
+          resolve(res)
+        })
       })
-    })
+    } catch (error) {
+      logger.error(error);
+      return null;
+    }
   }
 
   const DeleteBucket = (user, bucketId) => {
