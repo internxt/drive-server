@@ -57,10 +57,10 @@ module.exports = (Model, App) => {
         })
         .catch((err) => {
           if (err.response) {
-            logger.error('FindOrCreate error: ' + err.response.data.error);
             throw new Error(err.response.data.error)
           }
-          // const errMsg = err.response.data.error || err.message
+          const errMsg = err.response.data.error || err.message;
+          logger.error('FindOrCreate error: ' + errMsg);
           throw new Error(err)
         })
     }) // end transaction
