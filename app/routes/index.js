@@ -89,7 +89,6 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(204).json({ message: 'This account already exists' });
         }
       }).catch((err) => {
-        Logger.error(err.message + '\n' + err.stack);
         res.send(err.message);
       })
   });

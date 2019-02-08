@@ -20,6 +20,7 @@ module.exports = (Model, App) => {
 
   function IdToBcrypt(id) {
     try {
+      logger.info('Id passed to IdToBcrypt: ' + id);
       return bcrypt.hashSync(id, 8)
     } catch (error) {
       logger.error(error);
@@ -43,7 +44,6 @@ module.exports = (Model, App) => {
   }
 
   const RegisterBridgeUser = (email, password) => {
-    logger.info(password);
     const hashPwd = pwdToHex(password)
     try {
       return axios.post(
