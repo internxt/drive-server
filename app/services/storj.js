@@ -43,6 +43,7 @@ module.exports = (Model, App) => {
   }
 
   const RegisterBridgeUser = (email, password) => {
+    logger.info(password);
     const hashPwd = pwdToHex(password)
     try {
       return axios.post(
