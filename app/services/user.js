@@ -10,6 +10,8 @@ module.exports = (Model, App) => {
         transaction: t
       })
         .spread(async function (userResult, created) {
+          logger.info(userResult);
+          logger.info('Created: ' + created);
           if (created) {
             const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
 
