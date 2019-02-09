@@ -35,9 +35,6 @@ module.exports = {
           model: 'folders',
           key: 'id'
         }
-      },
-      isCreated: {
-        type: DataTypes.VIRTUAL
       }
     });
   },
