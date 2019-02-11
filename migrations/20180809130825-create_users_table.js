@@ -21,7 +21,8 @@ module.exports = {
         allowNull: false
       },
       password: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
+        allowNull: false
       },
       mnemonic: {
         type: Sequelize.STRING
@@ -43,4 +44,3 @@ module.exports = {
     return queryInterface.dropTable('users')
   }
 };
-
