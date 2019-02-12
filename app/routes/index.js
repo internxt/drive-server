@@ -43,14 +43,14 @@ module.exports = (Router, Service, Logger, App) => {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
             // Successfull login
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-            res.status(200).json({ token });
+            res.status(200).send({ token });
           } else {
             // Wrong password
-            res.status(204).json({ message: 'Wrong password' })
+            res.status(204).send({ message: 'Wrong password' })
           }
         } else {
           // User not found
-          res.status(204).json({ message: 'Wrong email' })
+          res.status(204).send({ message: 'Wrong email' })
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
