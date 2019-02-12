@@ -34,6 +34,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
+
   Router.post('/login', function (req, res) {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
@@ -43,19 +44,25 @@ module.exports = (Router, Service, Logger, App) => {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
             // Successfull login
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-            res.status(200).send({ token });
+            res.status(200).json({ token });
           } else {
             // Wrong password
-            res.status(204).send({ message: 'Wrong password' })
+            res.status(204).json({ message: 'Wrong password' })
           }
         } else {
           // User not found
-          res.status(204).send({ message: 'Wrong email' })
+          res.status(204).json({ message: 'Wrong email' })
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
         res.send(err.message);
       })
+  });
+
+  Router.post('/buy', function(req, res) {
+	var stripe = require("stripe")("sk_test_eiDRaKtloBuXr2IZ6c3QkFoX");
+console.log(stripe);
+	res.status(200).json({ message: 'Bien' });
   });
 
   /**
