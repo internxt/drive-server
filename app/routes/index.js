@@ -65,6 +65,73 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
+
+  Router.post('/buy', function (req, res) {
+    var stripe = require("stripe")("");
+
+    var error = false;
+
+    var token = JSON.parse(req.body.token);
+    var plan = req.body.plan;
+
+    // 0. Only show data
+
+    /*
+    console.log('Token: ');
+    console.log(token);
+
+    console.log('Plan');
+    console.log(plan);
+    */
+
+    // 1. Sign up user as customer
+
+    var customerString = "Customer for " + token.email;
+    var customerId = null;
+
+    stripe.customers.create({
+      description: customerString,
+      source: token.id,
+      email: token.email
+    }, function (err, customer) {
+
+      if (err) {
+        error = true;
+      } else {
+
+        /**** SUBCRIPBE TO PLAN ****/
+        stripe.subscriptions.create(
+          {
+            customer: customer.id,
+            items: [
+              {
+                plan: plan,
+              },
+            ]
+          }, function (err, subscription) {
+
+            console.log('Subscription error');
+            console.log(err);
+            console.log('Subscription');
+            console.log(subscription);
+
+            if (err) {
+              error = true;
+            }
+          }
+        );
+
+      }
+    });
+
+
+    if (error) {
+      res.status(400).json({ message: 'error' });
+    } else {
+      res.status(200).json({ message: 'ok' });
+    }
+  });
+
   /**
    * @swagger
    * /register:
@@ -97,65 +164,11 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(204).send({ message: 'This account already exists' });
         }
       }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
         res.send(err.message);
       })
   });
 
-  Router.post('/buy', function (req, res) {
-    var stripe = require("stripe")("");
-
-    var error = false;
-
-    var token = req.body.token;
-    var plan = req.body.plan;
-
-    // 0. Only show data
-
-    /*
-    console.log('Token: ');
-    console.log(token);
-
-    console.log('Plan');
-    console.log(plan);
-    */
-
-    // 1. Sign up user as customer
-
-    var customerString = "Customer for " + token.email;
-    var customerId = null;
-
-    stripe.customers.create({
-      description: customerString,
-      source: token.id,
-      email: token.email
-    }, function (err, customer) {
-      customerId = customer.id;
-    });
-
-    // 2. Subscription to plan
-
-    stripe.subscriptions.create(
-      {
-        customer: customerId,
-        items: [
-          {
-            plan: plan,
-          },
-        ]
-      }, function (err, subscription) {
-        if (err) {
-          error = true;
-        }
-      }
-    );
-
-
-    if (error) {
-      res.status(400).json({ message: 'error' });
-    } else {
-      res.status(200).json({ message: 'ok' });
-    }
-  });
 
   Router.put('/auth/mnemonic', function (req, res) {
     const {
