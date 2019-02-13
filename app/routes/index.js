@@ -12,7 +12,7 @@ const passportAuth = passport.authenticate('jwt', {
 })
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/api-docs.json', function(req, res) {
+  Router.get('/api-docs.json', function (req, res) {
     res.setHeader('Content-Type', 'application/json')
     res.send(swaggerSpec)
   })
@@ -65,10 +65,60 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
-  Router.post('/buy', function(req, res) {
-	var stripe = require("stripe")("sk_test_eiDRaKtloBuXr2IZ6c3QkFoX");
-console.log(stripe);
-	res.status(200).json({ message: 'Bien' });
+  Router.post('/buy', function (req, res) {
+    var stripe = require("stripe")("");
+
+    var error = false;
+
+    var token = req.body.token;
+    var plan = req.body.plan;
+
+    // 0. Only show data
+
+    /*
+    console.log('Token: ');
+    console.log(token);
+
+    console.log('Plan');
+    console.log(plan);
+    */
+
+    // 1. Sign up user as customer
+
+    var customerString = "Customer for " + token.email;
+    var customerId = null;
+
+    stripe.customers.create({
+      description: customerString,
+      source: token.id,
+      email: token.email
+    }, function (err, customer) {
+      customerId = customer.id;
+    });
+
+    // 2. Subscription to plan
+
+    stripe.subscriptions.create(
+      {
+        customer: customerId,
+        items: [
+          {
+            plan: plan,
+          },
+        ]
+      }, function (err, subscription) {
+        if (err) {
+          error = true;
+        }
+      }
+    );
+
+
+    if (error) {
+      res.status(400).json({ message: 'error' });
+    } else {
+      res.status(200).json({ message: 'ok' });
+    }
   });
 
   /**
@@ -136,8 +186,8 @@ console.log(stripe);
    *     responses:
    *       200:
   */
-  Router.get('/users/:id', passportAuth, function(req, res) {
-    Service.User.GetUserById(req.params.id).then(function(foundUser) {
+  Router.get('/users/:id', passportAuth, function (req, res) {
+    Service.User.GetUserById(req.params.id).then(function (foundUser) {
       res.send(foundUser);
     }).catch((err) => {
       Logger.error(err.message + '\n' + err.stack);
@@ -161,7 +211,7 @@ console.log(stripe);
    *       200:
    *         description: Array of folder items
   */
-  Router.get('/storage/folder/:id', passportAuth, function(req, res) {
+  Router.get('/storage/folder/:id', passportAuth, function (req, res) {
     const folderId = req.params.id;
     Service.Folder.GetContent(folderId)
       .then((result) => {
@@ -172,7 +222,7 @@ console.log(stripe);
       });
   });
 
-  Router.get('/storage/folder/:id/meta', function(req, res) {
+  Router.get('/storage/folder/:id/meta', function (req, res) {
     res.send(200)
     // TODO
   });
@@ -193,7 +243,7 @@ console.log(stripe);
    *       200:
    *         description: Array of folder items
   */
-  Router.post('/storage/folder', passportAuth, async function(req, res) {
+  Router.post('/storage/folder', passportAuth, async function (req, res) {
     const folderName = req.body.folderName
     const parentFolderId = req.body.parentFolderId
     const user = req.user
@@ -225,7 +275,7 @@ console.log(stripe);
    *       200:
    *         description: Message
   */
-  Router.delete('/storage/folder/:id', passportAuth, async function(req, res) {
+  Router.delete('/storage/folder/:id', passportAuth, async function (req, res) {
     const user = req.user
     const folderId = req.params.id
     if (!user.mnemonic) {
@@ -256,7 +306,7 @@ console.log(stripe);
    *       200:
    *         description: Uploaded object
   */
-  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), async function(req, res) {
+  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), async function (req, res) {
     const user = req.user
     const xfile = req.file
     const folderId = req.params.id
@@ -292,7 +342,7 @@ console.log(stripe);
    *       200:
    *         description: Uploaded object
   */
-  Router.get('/storage/file/:id', passportAuth, async function(req, res) {
+  Router.get('/storage/file/:id', passportAuth, async function (req, res) {
     const user = req.user
     const fileIdInBucket = req.params.id
     let filePath;
@@ -323,7 +373,7 @@ console.log(stripe);
       })
   })
 
-  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function(req, res) {
+  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
     const user = req.user
     const bucketId = req.params.bucketid
     const fileIdInBucket = req.params.fileid
@@ -339,7 +389,7 @@ console.log(stripe);
       })
   })
 
-  Router.get('/storage/file/search', function(req, res) {
+  Router.get('/storage/file/search', function (req, res) {
     // TODO
   })
 
