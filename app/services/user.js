@@ -18,9 +18,15 @@ module.exports = (Model, App) => {
           const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
           logger.info('User Service | creating brigde user')
           
-          const bridgeUser = await App.services.Storj
+          let bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
           logger.info(bridgeUser)
+
+          //In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
+          // TO-DO Change this making API giving userData when exists
+          if (!bridgeUser) {
+            bridgeUser = { data: { email: userResult.email, isFreeTier: true } };
+          }
 
           const userMnemonic = mnemonicGenerate(256)
           logger.info('User Service | mnemonic generated')
