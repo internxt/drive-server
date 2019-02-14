@@ -44,19 +44,19 @@ module.exports = (Model, App) => {
 
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
-    try {
-      axios.post(
-        `${App.config.get('STORJ_BRIDGE')}/users`,
-        { email, password: hashPwd }
-      ).then((response) => {
-        return response;
-      }).catch((error) => {
+    axios.post(
+      `${App.config.get('STORJ_BRIDGE')}/users`,
+      { email, password: hashPwd }
+    ).then((response) => {
+      return response;
+    }).catch((error) => {
+      if (error.response && error.response.data) {
+        logger.error('Bridge registration error: ' + error.response.data);
+      } else {
         logger.error('Bridge registration error: ' + error);
-      });
-    } catch (error) {
-      logger.error('Bridge registration error: ' + error.message);
+      }
       return null;
-    }
+    });
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
