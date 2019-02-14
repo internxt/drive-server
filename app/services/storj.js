@@ -51,7 +51,9 @@ module.exports = (Model, App) => {
       return response;
     }).catch((error) => {
       if (error.response) {
-        logger.error(error.response);
+        error.response.json().then((body) => {
+          logger.error(body);
+        });
       } else {
         logger.error('Bridge registration error: ' + error);
       }
