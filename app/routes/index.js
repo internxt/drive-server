@@ -171,14 +171,13 @@ module.exports = (Router, Service, Logger, App) => {
 
 
   Router.post('/plans', function(req, res) {
-    let x = Service.Plan.ListAll().then(data => console.log(data));
-
-    console.log(x);
-    res.status(200).json({
-      message: 'RES'
+    let x = Service.Plan.ListAll().then(data => {
+      res.status(200).json(data);
+    }).catch(e => {
+      res.status(400).json({ message: 'Error retrieving list of plans' });
     });
   });
-  
+    
   Router.put('/auth/mnemonic', function (req, res) {
     const {
       body: { id, mnemonic },
