@@ -44,7 +44,7 @@ module.exports = (Model, App) => {
 
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
-    logger.info('Proceding bridge register');
+    logger.info('Bridge register params: ' + email + ' ' + hashPwd);
     try {
       return axios.post(
         `${App.config.get('STORJ_BRIDGE')}/users`,
