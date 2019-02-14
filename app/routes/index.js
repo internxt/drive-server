@@ -40,6 +40,8 @@ module.exports = (Router, Service, Logger, App) => {
     Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
         // Process user data and answer API call
+        Logger.info(App.config.get('STORJ_BRIDGE'));
+        Logger.info(App.config.get('database').host);
         if (userData) {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
             // Successfull login
