@@ -65,9 +65,46 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
+  /**
+   * @swagger
+   * /register:
+   *   post:
+   *     description: User registration. User is registered or created.
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - description: user object with all registration info
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Successfull user registration
+   *       204:
+   *         description: User with this email exists
+   */
+  Router.post('/register', function (req, res) {
+    // Call user service to find or create user
+    Logger.info('Register call');
+    Service.User.FindOrCreate(req.body)
+      .then((userData) => {
+        // Process user data and answer API call
+        if (userData.isCreated) {
+          // Successfull register
+          const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+          const user = { email: userData.email, mnemonic: userData.mnemonic, root_folder_id: userData.root_folder_id }
+          res.status(200).send({ token, user });
+        } else {
+          // This account already exists
+          res.status(204).send({ message: 'This account already exists' });
+        }
+      }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
+        res.send(err.message);
+      })
+  });
 
   Router.post('/buy', function (req, res) {
-    var stripe = require("stripe")("");
+    var stripe = require("stripe")(App.config.get('secrets').STRIPE_SK);
 
     var error = false;
 
@@ -110,10 +147,10 @@ module.exports = (Router, Service, Logger, App) => {
             ]
           }, function (err, subscription) {
 
-            console.log('Subscription error');
-            console.log(err);
-            console.log('Subscription');
-            console.log(subscription);
+                    console.log('Subscription error');
+                    console.log(err);
+                    console.log('Subscription');
+                    console.log(subscription);
 
             if (err) {
               error = true;
@@ -131,44 +168,6 @@ module.exports = (Router, Service, Logger, App) => {
       res.status(200).json({ message: 'ok' });
     }
   });
-
-  /**
-   * @swagger
-   * /register:
-   *   post:
-   *     description: User registration. User is registered or created.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with all registration info
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull user registration
-   *       204:
-   *         description: User with this email exists
-   */
-  Router.post('/register', function (req, res) {
-    // Call user service to find or create user
-    Service.User.FindOrCreate(req.body)
-      .then((userData) => {
-        // Process user data and answer API call
-        if (userData.isCreated) {
-          // Successfull register
-          const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-          const user = { email: userData.email, mnemonic: userData.mnemonic, root_folder_id: userData.root_folder_id }
-          res.status(200).send({ token, user });
-        } else {
-          // This account already exists
-          res.status(204).send({ message: 'This account already exists' });
-        }
-      }).catch((err) => {
-        Logger.error(err.message + '\n' + err.stack);
-        res.send(err.message);
-      })
-  });
-
 
   Router.put('/auth/mnemonic', function (req, res) {
     const {
