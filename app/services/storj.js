@@ -45,10 +45,14 @@ module.exports = (Model, App) => {
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
     try {
-      return axios.post(
+      axios.post(
         `${App.config.get('STORJ_BRIDGE')}/users`,
         { email, password: hashPwd }
-      )
+      ).then((response) => {
+        return response;
+      }).catch((error) => {
+        logger.error('Bridge registration error: ' + error.message);
+      });
     } catch (error) {
       logger.error('Bridge registration error: ' + error.message);
       return null;
