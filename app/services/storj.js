@@ -20,7 +20,6 @@ module.exports = (Model, App) => {
 
   function IdToBcrypt(id) {
     try {
-      logger.info('Id passed to IdToBcrypt: ' + id);
       return bcrypt.hashSync(id.toString(), 8)
     } catch (error) {
       logger.error(error);
@@ -45,13 +44,14 @@ module.exports = (Model, App) => {
 
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password)
+    logger.info('Proceding bridge register');
     try {
       return axios.post(
         `${App.config.get('STORJ_BRIDGE')}/users`,
         { email, password: hashPwd }
       )
     } catch (error) {
-      logger.error(error);
+      logger.error('Bridge registration error: ' + error);
       return null;
     }
   }
