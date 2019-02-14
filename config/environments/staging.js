@@ -14,5 +14,6 @@ exports.data = {
   },
   logger: {
     level: 0
-  }
+  },
+  STORJ_BRIDGE: 'https://api.internxt.com'
 }
