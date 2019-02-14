@@ -59,10 +59,7 @@ module.exports = (Model, App) => {
         if (isValid) return userResult;
         throw new Error('User invalid')
       }).catch((err) => {
-        if (err.response) {
-          throw new Error(err.response.data.error)
-        }
-        logger.error(err);
+        logger.error(err.message + '\n' + err.stack);
         throw new Error(err)
       })
     }) // end transaction
