@@ -11,19 +11,14 @@ module.exports = {
       name: {
         type: Sequelize.STRING
       },
-      price: {
-        type: Sequelize.DECIMAL
+      price_eur: {
+        type: Sequelize.DECIMAL(10, 2)
       },
       space_gb: {
         type: Sequelize.INTEGER
       },
-      createdAt: {
-        allowNull: false,
-        type: Sequelize.DATE
-      },
-      updatedAt: {
-        allowNull: false,
-        type: Sequelize.DATE
+      stripe_plan_id: {
+        type: Sequelize.STRING
       }
     });
   },

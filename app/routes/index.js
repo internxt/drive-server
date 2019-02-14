@@ -169,6 +169,16 @@ module.exports = (Router, Service, Logger, App) => {
     }
   });
 
+
+  Router.post('/plans', function(req, res) {
+    let x = Service.Plan.ListAll().then(data => console.log(data));
+
+    console.log(x);
+    res.status(200).json({
+      message: 'RES'
+    });
+  });
+  
   Router.put('/auth/mnemonic', function (req, res) {
     const {
       body: { id, mnemonic },
