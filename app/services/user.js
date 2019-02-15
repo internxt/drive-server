@@ -1,4 +1,5 @@
 const { mnemonicGenerate } = require('storj');
+const crypto = require('crypto')
 
 module.exports = (Model, App) => {
   const logger = App.logger;
@@ -10,17 +11,18 @@ module.exports = (Model, App) => {
         defaults: {
           name: user.name,
           lastname: user.lastname,
-          password: App.services.Crypt.encryptName(user.password)
+          password: crypto.createHash('sha256').update(user.password).digest('hex')
         },
         transaction: t
       }).spread(async function (userResult, created) {
         if (created) {
-          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.id)
+          // Create bridge pass using email (because id is unconsistent)
+          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
           logger.info('User Service | creating brigde user')
           
           let bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
-          logger.info('Userid: ' + userResult.id + ' bridgeUser: ' + bridgeUser)
+          logger.info('bridgeUser: ' + bridgeUser)
 
           // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
           // TO-DO Change this making API giving userData when exists
