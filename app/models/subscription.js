@@ -17,8 +17,8 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: false
     });
   subscription.associate = function (models) {
-    subscription.hasOne(models.User);
-    subscription.hasOne(models.plan);
+    //subscription.hasOne(models.User);
+    //subscription.hasOne(models.plan);
   };
   return subscription;
 };
