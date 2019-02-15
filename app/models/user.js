@@ -51,6 +51,7 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = function(models) {
     User.hasMany(models.folder);
+    User.hasOne(models.subscription);
   }
 
   return User
