@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
           
           let bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
-          logger.info(bridgeUser)
+          logger.info('Userid: ' + userResult.id + ' bridgeUser: ' + bridgeUser)
 
           // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
           // TO-DO Change this making API giving userData when exists
