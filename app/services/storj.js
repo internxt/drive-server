@@ -32,8 +32,8 @@ module.exports = (Model, App) => {
       return new Environment({
         bridgeUrl: App.config.get('STORJ_BRIDGE'),
         bridgeUser: email,
-        bridgePass: password,
-        encryptionKey: mnemonic,
+        bridgePass: pwdToHex(IdToBcrypt(password)),
+        encryptionKey: pwdToHex(IdToBcrypt(mnemonic)),
         logLevel: 4
       })
     } catch (error) {
@@ -42,13 +42,17 @@ module.exports = (Model, App) => {
     }
   }
 
-  const RegisterBridgeUser = (email, password) => {
+  const RegisterBridgeUser = (email, password, mnemonic) => {
     const hashPwd = pwdToHex(password)
+    const hashMnemonic = pwdToHex(IdToBcrypt(mnemonic))
     logger.info(hashPwd);
-    logger.info(password);
     axios.post(
       `${App.config.get('STORJ_BRIDGE')}/users`,
-      { email, password: hashPwd }
+      {
+        email,
+        password: hashPwd,
+        pubKey: hashMnemonic
+      }
     ).then((response) => {
       return response;
     }).catch((error) => {

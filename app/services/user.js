@@ -20,8 +20,11 @@ module.exports = (Model, App) => {
           const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
           logger.info('User Service | creating brigde user')
           
+          const userMnemonic = mnemonicGenerate(256)
+          logger.info('User Service | mnemonic generated')
+
           let bridgeUser = await App.services.Storj
-            .RegisterBridgeUser(userResult.email, bcryptId)
+            .RegisterBridgeUser(userResult.email, bcryptId, userMnemonic)
           logger.info('bridgeUser: ' + bridgeUser)
 
           // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
@@ -29,9 +32,6 @@ module.exports = (Model, App) => {
           if (!bridgeUser) {
             bridgeUser = { data: { email: userResult.email, isFreeTier: true } };
           }
-
-          const userMnemonic = mnemonicGenerate(256)
-          logger.info('User Service | mnemonic generated')
 
           const rootBucket = await App.services.Storj
             .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
