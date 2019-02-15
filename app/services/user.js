@@ -18,13 +18,14 @@ module.exports = (Model, App) => {
         if (created) {
           // Create bridge pass using email (because id is unconsistent)
           const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
-          logger.info('User Service | creating brigde user')
           
           const userMnemonic = mnemonicGenerate(256)
+          const encryptMnemonic = await App.services.Storj.IdToBcrypt(userMnemonic)
           logger.info('User Service | mnemonic generated')
 
           let bridgeUser = await App.services.Storj
-            .RegisterBridgeUser(userResult.email, bcryptId, userMnemonic)
+            .RegisterBridgeUser(userResult.email, bcryptId, encryptMnemonic)
+          logger.info('User Service | creating brigde user')
           logger.info('bridgeUser: ' + bridgeUser)
 
           // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
@@ -34,7 +35,7 @@ module.exports = (Model, App) => {
           }
 
           const rootBucket = await App.services.Storj
-            .CreateBucket(bridgeUser.data.email, bcryptId, userMnemonic)
+            .CreateBucket(bridgeUser.data.email, bcryptId, encryptMnemonic)
           logger.info('User Service | root bucket created')
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userResult.email}_root`)
@@ -54,7 +55,7 @@ module.exports = (Model, App) => {
           /**
            * On return mnemonic to user. He needs to decide if he will preserve it in DB
            */
-          Object.assign(userResult, { mnemonic: userMnemonic, isCreated: created });
+          Object.assign(userResult, { mnemonic: encryptMnemonic, isCreated: created });
           return userResult;
         }
         // Create mnemonic for existing user when doesnt have yet
