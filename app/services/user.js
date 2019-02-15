@@ -22,7 +22,7 @@ module.exports = (Model, App) => {
             .RegisterBridgeUser(userResult.email, bcryptId)
           logger.info(bridgeUser)
 
-          //In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
+          // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
           // TO-DO Change this making API giving userData when exists
           if (!bridgeUser) {
             bridgeUser = { data: { email: userResult.email, isFreeTier: true } };
