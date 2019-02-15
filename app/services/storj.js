@@ -37,7 +37,7 @@ module.exports = (Model, App) => {
         logLevel: 4
       })
     } catch (error) {
-      logger.error(error);
+      logger.error('(getEnvironment) ' + error);
       return null;
     }
   }
@@ -56,7 +56,7 @@ module.exports = (Model, App) => {
         // This happens when email is registered in bridge
         logger.error(error.response.data);
       } else {
-        logger.error('Bridge registration error: ' + error);
+        logger.error('(RegisterBridgeUser) ' + error);
       }
       return null;
     });
@@ -74,7 +74,7 @@ module.exports = (Model, App) => {
         })
       })
     } catch (error) {
-      logger.error(error);
+      logger.error('(CreateBucket) ' + error);
       return null;
     }
   }
