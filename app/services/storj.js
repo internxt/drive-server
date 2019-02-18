@@ -43,17 +43,24 @@ module.exports = (Model, App) => {
   }
 
   const RegisterBridgeUser = (email, password, mnemonic) => {
+    // Set variables
     const hashPwd = pwdToHex(password)
     const hashMnemonic = pwdToHex(mnemonic)
     logger.info('p: ' + hashPwd);
     logger.info('m: ' + mnemonic);
+
+    // Set api call settings
+    const headers = { 'Content-Type': 'application/json' }
+
+    // Do api call
     axios.post(
       `${App.config.get('STORJ_BRIDGE')}/users`,
       {
         email,
         password: hashPwd,
         pubkey: hashMnemonic
-      }
+      },
+      headers
     ).then((response) => {
       return response;
     }).catch((error) => {
