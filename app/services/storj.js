@@ -2,7 +2,7 @@ const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const axios = require('axios')
 const shortid = require('shortid')
-const { Environment, mnemonicGenerate } = require('storj');
+const { Environment } = require('storj');
 const fs = require('fs')
 const mime = require('mime');
 
@@ -50,23 +50,15 @@ module.exports = (Model, App) => {
     logger.info('m: ' + mnemonic);
 
     // Set api call settings
-    const headers = { 'Content-Type': 'application/json' }
+    const params = { headers: { 'Content-Type': 'application/json' } };
     const data = { email, password: hashPwd, pubkey: hashMnemonic }
 
     // Do api call
-    // axios.post(
-    //   `${App.config.get('STORJ_BRIDGE')}/users`,
-    //   JSON.stringify({
-    //     email,
-    //     password: hashPwd,
-    //     pubkey: hashMnemonic
-    //   }),
-    //   headers
-    fetch(`${App.config.get('STORJ_BRIDGE')}/users`, {
-      method: 'POST', // or 'PUT'
-      body: JSON.stringify(data), // data can be `string` or {object}!
-      headers
-    }).then((response) => {
+    axios.post(
+      `${App.config.get('STORJ_BRIDGE')}/users`,
+      JSON.stringify(data),
+      params
+    ).then((response) => {
       return response;
     }).catch((error) => {
       if (error.response) {
