@@ -23,8 +23,7 @@ module.exports = (Model, App) => {
           const encryptMnemonic = await App.services.Storj.IdToBcrypt(userMnemonic)
           logger.info('User Service | mnemonic generated')
 
-          let bridgeUser = await App.services.Storj
-            .RegisterBridgeUser(userResult.email, bcryptId, encryptMnemonic)
+          let bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId, encryptMnemonic)
           logger.info(bridgeUser)
           if (!bridgeUser) { throw new Error('Error creating bridge user') }
           logger.info('User Service | creating brigde user')
@@ -70,7 +69,12 @@ module.exports = (Model, App) => {
         if (isValid) return userResult;
         throw new Error('User invalid')
       }).catch((err) => {
-        logger.error(err.message + '\n' + err.stack);
+        if (err.response) {
+          // This happens when email is registered in bridge
+          logger.error(err.response.data);
+        } else {
+          logger.error(err.message + '\n' + err.stack);
+        }
         throw new Error(err)
       })
     }) // end transaction

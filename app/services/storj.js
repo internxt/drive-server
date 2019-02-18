@@ -59,21 +59,12 @@ module.exports = (Model, App) => {
     }
 
     // Do api call
-    axios.post(
+    return axios.post(
       `${App.config.get('STORJ_BRIDGE')}/users`,
       data,
       params
-    ).then((response) => {
-      return response.data;
-    }).catch((error) => {
-      if (error.response) {
-        // This happens when email is registered in bridge
-        logger.error(error.response.data);
-      } else {
-        logger.error('(RegisterBridgeUser) ' + error.message + '\n' + error.stack);
-      }
-      return null;
-    });
+    ).then(response => response.data)
+      .catch(error => error);
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
