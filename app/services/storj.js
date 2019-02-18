@@ -51,17 +51,22 @@ module.exports = (Model, App) => {
 
     // Set api call settings
     const headers = { 'Content-Type': 'application/json' }
+    const data = { email, password: hashPwd, pubkey: hashMnemonic }
 
     // Do api call
-    axios.post(
-      `${App.config.get('STORJ_BRIDGE')}/users`,
-      JSON.stringify({
-        email,
-        password: hashPwd,
-        pubkey: hashMnemonic
-      }),
+    // axios.post(
+    //   `${App.config.get('STORJ_BRIDGE')}/users`,
+    //   JSON.stringify({
+    //     email,
+    //     password: hashPwd,
+    //     pubkey: hashMnemonic
+    //   }),
+    //   headers
+    fetch(`${App.config.get('STORJ_BRIDGE')}/users`, {
+      method: 'POST', // or 'PUT'
+      body: JSON.stringify(data), // data can be `string` or {object}!
       headers
-    ).then((response) => {
+    }).then((response) => {
       return response;
     }).catch((error) => {
       if (error.response) {
