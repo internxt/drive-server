@@ -59,7 +59,7 @@ module.exports = (Model, App) => {
     }).catch((error) => {
       if (error.response) {
         // This happens when email is registered in bridge
-        logger.error('(RegisterBridgeUser) ' + error.response.data);
+        logger.error(error.response.data);
       } else {
         logger.error('(RegisterBridgeUser) ' + error.message + '\n' + error.stack);
       }
