@@ -55,11 +55,11 @@ module.exports = (Model, App) => {
     // Do api call
     axios.post(
       `${App.config.get('STORJ_BRIDGE')}/users`,
-      {
+      JSON.stringify({
         email,
         password: hashPwd,
         pubkey: hashMnemonic
-      },
+      }),
       headers
     ).then((response) => {
       return response;
@@ -76,7 +76,7 @@ module.exports = (Model, App) => {
 
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
-    
+
     try {
       const storj = getEnvironment(email, password, mnemonic);
       return new Promise((resolve, reject) => {
