@@ -64,7 +64,6 @@ module.exports = (Model, App) => {
       data,
       params
     ).then((response) => {
-      logger.info(response.data);
       return response.data;
     }).catch((error) => {
       if (error.response) {
