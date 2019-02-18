@@ -52,40 +52,40 @@ module.exports = (Model, App) => {
   const InitializeUser = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOne({ where: { email: user.email } })
-      .spread(async function (userData) {
-        const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
+        .spread(async function (userData) {
+          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
 
-        const userMnemonic = mnemonicGenerate(256)
-        logger.info('User init | mnemonic generated')
+          const userMnemonic = mnemonicGenerate(256)
+          logger.info('User init | mnemonic generated')
 
-        const rootBucket = await App.services.Storj
-          .CreateBucket(user.email, user.email, userMnemonic)
-        logger.info('User init | root bucket created')
+          const rootBucket = await App.services.Storj
+            .CreateBucket(user.email, user.email, userMnemonic)
+          logger.info('User init | root bucket created')
 
-        const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
-        logger.info('User init | root folder name: ' + rootFolderName)
+          const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
+          logger.info('User init | root folder name: ' + rootFolderName)
 
-        const rootFolder = await userData.createFolder({
-          name: rootFolderName,
-          bucket: rootBucket.id
+          const rootFolder = await userData.createFolder({
+            name: rootFolderName,
+            bucket: rootBucket.id
+          })
+          logger.info('User init | root folder created')
+
+          await userData.update({
+            userId: bcryptId,
+            isFreeTier: userData.isFreeTier,
+            root_folder_id: rootFolder.id,
+          }, { transaction: t });
+
+          /**
+           * On return mnemonic to user. He needs to decide if he will preserve it in DB
+           */
+          Object.assign(userData, { mnemonic: userMnemonic, isCreated: created });
+          return userData
+        }).catch((error) => {
+          logger.error(error.message + '\n' + error.stack);
         })
-        logger.info('User init | root folder created')
-
-        await userData.update({
-          userId: bcryptId,
-          isFreeTier: userData.isFreeTier,
-          root_folder_id: rootFolder.id,
-        }, { transaction: t });
-
-        /**
-         * On return mnemonic to user. He needs to decide if he will preserve it in DB
-         */
-        Object.assign(userData, { mnemonic: userMnemonic, isCreated: created });
-        return userData
-      }).catch((error) => {
-        logger.error(error.message + '\n' + error.stack);
-      })
-    }
+    })
   }
 
   const UpdateMnemonic = async (userId, mnemonic) => {
