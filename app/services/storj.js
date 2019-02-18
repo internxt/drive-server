@@ -64,7 +64,7 @@ module.exports = (Model, App) => {
       data,
       params
     ).then((response) => {
-      response.json.then(((body) => {
+      response.json().then(((body) => {
         return body;
       }));
     }).catch((error) => {
