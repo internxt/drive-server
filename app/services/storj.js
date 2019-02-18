@@ -64,9 +64,7 @@ module.exports = (Model, App) => {
       data,
       params
     ).then((response) => {
-      response.json().then(((body) => {
-        return body;
-      }));
+      return response.data;
     }).catch((error) => {
       if (error.response) {
         // This happens when email is registered in bridge
