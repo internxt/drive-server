@@ -17,7 +17,7 @@ module.exports = (Model, App) => {
                 let result = await Model.plans.findOne({
                     raw: true,
                     where: {
-                        stripe_code_id: stripeCode
+                        stripe_plan_id: stripeCode
                     }
                 });
                 resolve(result);

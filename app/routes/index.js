@@ -138,6 +138,17 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
+  Router.get('/test', function (req, res) {
+
+    Service.Subscription.Find().then(data => {
+      if (data.length != 0) {
+
+      }
+    }).catch(e => {
+      res.status(400);
+    });
+  });
+
   Router.post('/buy', function (req, res) {
     var stripe = require("stripe")(App.config.get('secrets').STRIPE_SK);
 
