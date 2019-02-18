@@ -32,8 +32,8 @@ module.exports = (Model, App) => {
       return new Environment({
         bridgeUrl: App.config.get('STORJ_BRIDGE'),
         bridgeUser: email,
-        bridgePass: pwdToHex(password),
-        encryptionKey: pwdToHex(mnemonic),
+        bridgePass: password,
+        encryptionKey: mnemonic,
         logLevel: 4
       })
     } catch (error) {
@@ -46,9 +46,6 @@ module.exports = (Model, App) => {
     // Set variables
     const hashPwd = pwdToHex(password)
     const hashMnemonic = pwdToHex(mnemonic)
-    logger.info('e: ' + email);
-    logger.info('p: ' + hashPwd);
-    logger.info('m: ' + hashMnemonic);
 
     // Set api call settings
     const params = { headers: { 'Content-Type': 'application/json' } };
