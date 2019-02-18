@@ -42,18 +42,16 @@ module.exports = (Model, App) => {
     }
   }
 
-  const RegisterBridgeUser = (email, password, mnemonic) => {
+  const RegisterBridgeUser = (email, password) => {
     // Set variables
     const hashPwd = pwdToHex(password)
-    const hashMnemonic = pwdToHex(mnemonic)
 
     logger.info('p: ' + hashPwd);
     // Set api call settings
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = {
       email,
-      password: hashPwd,
-      pubKey: hashMnemonic
+      password: hashPwd
     }
 
     // Do api call

@@ -102,6 +102,42 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
+  /**
+   * @swagger
+   * /initialize:
+   *   post:
+   *     description: User bridge initialization (creation of bucket and folder).
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - description: user object with all info
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Successfull user initialization
+   *       204:
+   *         description: User needs to be activated
+   */
+  Router.post('/initialize', function (req, res) {
+    // Call user service to find or create user
+    Service.User.InitializeUser(req.body)
+      .then((userData) => {
+        // Process user data and answer API call
+        if (userData.root_folder_id) {
+          // Successfull initialization
+          const user = { email: userData.email, mnemonic: userData.mnemonic, root_folder_id: userData.root_folder_id }
+          res.status(200).send({ user });
+        } else {
+          // User initialization unsuccessfull
+          res.status(204).send({ message: "Your account can't be initialized" });
+        }
+      }).catch((err) => {
+        Logger.error(err.message + '\n' + err.stack);
+        res.send(err.message);
+      })
+  });
+
   Router.post('/buy', function (req, res) {
     var stripe = require("stripe")(App.config.get('secrets').STRIPE_SK);
 
