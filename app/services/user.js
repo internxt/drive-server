@@ -24,10 +24,9 @@ module.exports = (Model, App) => {
           logger.info('User Service | mnemonic generated')
 
           let bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId, encryptMnemonic)
-          logger.info(bridgeUser)
-          if (!bridgeUser) { throw new Error('Error creating bridge user') }
+          logger.info(bridgeUser.data)
+          if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
           logger.info('User Service | creating brigde user')
-          logger.info(bridgeUser)
 
           // In case of user was registered in bridge, give bridgeuser.data.email the userData.email value
           // TO-DO Change this making API giving userData when exists

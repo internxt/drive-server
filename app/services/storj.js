@@ -63,7 +63,7 @@ module.exports = (Model, App) => {
       `${App.config.get('STORJ_BRIDGE')}/users`,
       data,
       params
-    ).then(response => response.data)
+    ).then(response => response)
       .catch(error => error);
   }
 
