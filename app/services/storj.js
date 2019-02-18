@@ -45,20 +45,21 @@ module.exports = (Model, App) => {
   const RegisterBridgeUser = (email, password, mnemonic) => {
     const hashPwd = pwdToHex(password)
     const hashMnemonic = pwdToHex(mnemonic)
-    logger.info(hashPwd);
+    logger.info('p: ' + hashPwd);
+    logger.info('m: ' + mnemonic);
     axios.post(
       `${App.config.get('STORJ_BRIDGE')}/users`,
       {
         email,
         password: hashPwd,
-        pubKey: hashMnemonic
+        pubkey: hashMnemonic
       }
     ).then((response) => {
       return response;
     }).catch((error) => {
       if (error.response) {
         // This happens when email is registered in bridge
-        logger.error(error.response.data);
+        logger.error('(RegisterBridgeUser) ' + error.response.data);
       } else {
         logger.error('(RegisterBridgeUser) ' + error);
       }

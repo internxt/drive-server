@@ -25,6 +25,7 @@ module.exports = (Model, App) => {
 
           let bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId, encryptMnemonic)
+          if (!bridgeUser) { throw new Error('Error creating bridge user') }
           logger.info('User Service | creating brigde user')
           logger.info('bridgeUser: ' + bridgeUser)
 
