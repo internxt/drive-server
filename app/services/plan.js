@@ -11,8 +11,25 @@ module.exports = (Model, App) => {
 
     }
 
+    const FindPlanByStripeCode = (stripeCode) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let result = await Model.plans.findOne({
+                    raw: true,
+                    where: {
+                        stripe_plan_id: stripeCode
+                    }
+                });
+                resolve(result);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
     return {
         Name: 'Plan',
-        ListAll
+        ListAll,
+        FindPlanByStripeCode
     }
 }
