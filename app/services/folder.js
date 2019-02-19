@@ -3,6 +3,7 @@ const Secret = require('crypto-js');
 
 module.exports = (Model, App) => {
   const Op = App.database.Sequelize.Op
+  const logger = App.logger;
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -68,6 +69,7 @@ module.exports = (Model, App) => {
         as: 'files'
       }]
     })
+    logger.info(result);
     result.name = App.services.Crypt.decryptName(result.name);
     result.children = mapChildrenNames(result.children)
     result.files = result.files.map((file) => {
