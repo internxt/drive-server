@@ -69,7 +69,6 @@ module.exports = (Model, App) => {
         as: 'files'
       }]
     })
-    logger.info(result);
     result.name = App.services.Crypt.decryptName(result.name);
     result.children = mapChildrenNames(result.children)
     result.files = result.files.map((file) => {
