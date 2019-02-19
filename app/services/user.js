@@ -113,7 +113,7 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
-      return userData
+      return userData.dataValues
     })
 
   const GetUsersRootFolder = id => Model.users.findAll({
