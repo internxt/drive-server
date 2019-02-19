@@ -5,13 +5,16 @@ module.exports = (Model, App) => {
   const logger = App.logger;
 
   const FindOrCreate = (user) => {
+    // Create password hashed pass only when a pass is given
+    const userPass = user.password ? crypto.createHash('sha256').update(user.password).digest('hex') : null;
+    
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
         defaults: {
           name: user.name,
           lastname: user.lastname,
-          password: crypto.createHash('sha256').update(user.password).digest('hex')
+          password: userPass
         },
         transaction: t
       }).spread(async function (userResult, created) {
