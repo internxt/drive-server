@@ -90,7 +90,7 @@ module.exports = (Router, Service, Logger, App) => {
         if (userData.isCreated) {
           // Successfull register
           const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-          const user = { email: userData.email, mnemonic: userData.mnemonic, root_folder_id: userData.root_folder_id }
+          const user = { email: userData.email }
           res.status(200).send({ token, user });
         } else {
           // This account already exists

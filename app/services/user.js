@@ -53,13 +53,13 @@ module.exports = (Model, App) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOne({ where: { email: user.email } })
         .spread(async function (userData) {
-          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
+          const bcryptId = await App.services.Storj.IdToBcrypt(userData.email)
 
           const userMnemonic = mnemonicGenerate(256)
           logger.info('User init | mnemonic generated')
 
           const rootBucket = await App.services.Storj
-            .CreateBucket(user.email, user.email, userMnemonic)
+            .CreateBucket(userData.email, userData.email, userMnemonic)
           logger.info('User init | root bucket created')
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
@@ -80,7 +80,7 @@ module.exports = (Model, App) => {
           /**
            * On return mnemonic to user. He needs to decide if he will preserve it in DB
            */
-          Object.assign(userData, { mnemonic: userMnemonic, isCreated: created });
+          Object.assign(userData, { mnemonic: userMnemonic });
           return userData
         }).catch((error) => {
           logger.error(error.message + '\n' + error.stack);
