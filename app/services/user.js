@@ -84,6 +84,7 @@ module.exports = (Model, App) => {
           // Update user register with root folder Id
           await userData.update({
             root_folder_id: rootFolder.id,
+            mnemonic: userMnemonic
           }, { transaction: t });
           logger.info(userData);
           /**
