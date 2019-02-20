@@ -64,9 +64,10 @@ module.exports = (Model, App) => {
 
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
-    logger.info('creating bucket for user: ' + email + ' ' + password + ' m: ' + ' name: ' + name)
+    const hashPwd = pwdToHex(this.IdToBcrypt(password));
+    logger.info('creating bucket for user: ' + email + ' ' + hashPwd + ' m: ' + mnemonic)
     try {
-      const storj = getEnvironment(email, password, mnemonic);
+      const storj = getEnvironment(email, hashPwd, mnemonic);
       return new Promise((resolve, reject) => {
         storj.createBucket(bucketName, function(err, res) {
           if (err) {
