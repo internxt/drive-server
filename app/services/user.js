@@ -6,7 +6,7 @@ module.exports = (Model, App) => {
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
-    const userPass = user.password ? crypto.createHash('sha256').update(user.password).digest('hex') : null;
+    const userPass = user.password ? App.services.Crypt.encryptName(user.password) : null;
     
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
