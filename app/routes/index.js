@@ -39,7 +39,6 @@ module.exports = (Router, Service, Logger, App) => {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
-        Logger.info(userData);
         // Process user data and answer API call
         if (userData) {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
@@ -55,15 +54,15 @@ module.exports = (Router, Service, Logger, App) => {
               });
             } else {
               // User activation needed
-              res.status(204).json({ message: 'You must activate your account' })
+              res.status(204).send({ message: 'You must activate your account' })
             }
           } else {
             // Wrong password
-            res.status(204).json({ message: 'Wrong password' })
+            res.status(204).send({ message: 'Wrong password' })
           }
         } else {
           // User not found
-          res.status(204).json({ message: 'Wrong email' })
+          res.status(204).send({ message: 'Wrong email' })
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
