@@ -120,7 +120,7 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
-      logger.info(userData)
+      logger.info(userData.values)
       return userData.dataValues
     })
 
