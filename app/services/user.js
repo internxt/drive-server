@@ -27,7 +27,12 @@ module.exports = (Model, App) => {
           logger.info(bridgeUser.data)
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
           logger.info('User Service | created brigde user')
-          
+
+          // Store bcryptid on user register
+          await userResult.update({
+            userId: bcryptId
+          }, { transaction: t });
+
           // Set created flag for Frontend management
           Object.assign(userResult, { isCreated: created })
 
@@ -56,13 +61,13 @@ module.exports = (Model, App) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOne({ where: { email: user.email } })
         .then(async (userData) => {
-          const bcryptId = await App.services.Storj.IdToBcrypt(userData.email)
+          const bcryptId = userData.userId;
 
           const userMnemonic = mnemonicGenerate(256)
           logger.info('User init | mnemonic generated')
 
           const rootBucket = await App.services.Storj
-            .CreateBucket(userData.email, userData.email, userMnemonic)
+            .CreateBucket(userData.email, bcryptId, userMnemonic)
           logger.info('User init | root bucket created')
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
@@ -75,7 +80,6 @@ module.exports = (Model, App) => {
           logger.info('User init | root folder created')
 
           await userData.update({
-            userId: bcryptId,
             isFreeTier: userData.isFreeTier,
             root_folder_id: rootFolder.id,
           }, { transaction: t });
