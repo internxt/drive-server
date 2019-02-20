@@ -24,7 +24,6 @@ module.exports = (Model, App) => {
 
           let bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
-          logger.info(bridgeUser.data)
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
           logger.info('User Service | created brigde user')
 
@@ -52,7 +51,7 @@ module.exports = (Model, App) => {
           // This happens when email is registered in bridge
           logger.error(err.response.data);
         } else {
-          logger.error(err.message + '\n' + err.stack);
+          logger.error(err.stack);
         }
         throw new Error(err)
       })
@@ -93,7 +92,7 @@ module.exports = (Model, App) => {
           Object.assign(userData, { mnemonic: userMnemonic });
           return userData
         }).catch((error) => {
-          logger.error(error.message + '\n' + error.stack);
+          logger.error(error.stack);
           throw new Error(error);
         })
     })
