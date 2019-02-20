@@ -64,7 +64,8 @@ module.exports = (Model, App) => {
 
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
-    const hashPwd = pwdToHex(this.IdToBcrypt(password));
+    const hashPass = IdToBcrypt(password)
+    const hashPwd = pwdToHex(hashPass);
     logger.info('creating bucket for user: ' + email + ' ' + hashPwd + ' m: ' + mnemonic)
     try {
       const storj = getEnvironment(email, hashPwd, mnemonic);
