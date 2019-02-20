@@ -46,7 +46,6 @@ module.exports = (Model, App) => {
     // Set variables
     const hashPwd = pwdToHex(password)
 
-    logger.info('p: ' + hashPwd);
     // Set api call settings
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = {

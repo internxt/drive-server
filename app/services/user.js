@@ -79,7 +79,7 @@ module.exports = (Model, App) => {
             isFreeTier: userData.isFreeTier,
             root_folder_id: rootFolder.id,
           }, { transaction: t });
-
+          logger.info(userData);
           /**
            * On return mnemonic to user. He needs to decide if he will preserve it in DB
            */
