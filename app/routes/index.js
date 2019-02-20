@@ -54,15 +54,16 @@ module.exports = (Router, Service, Logger, App) => {
               });
             } else {
               // User activation needed
-              res.status(204).send({ message: 'You must activate your account' })
+              Logger.info('Activation required triggered');
+              res.status(204).send({ message: 'You must activate your account' });
             }
           } else {
             // Wrong password
-            res.status(204).send({ message: 'Wrong password' })
+            res.status(204).send({ message: 'Wrong password' });
           }
         } else {
           // User not found
-          res.status(204).send({ message: 'Wrong email' })
+          res.status(204).send({ message: 'Wrong email' });
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
