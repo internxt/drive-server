@@ -28,9 +28,11 @@ module.exports = (Model, App) => {
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
           logger.info('User Service | created brigde user')
 
+          const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
           await userResult.update({
-            userId: bcryptId
+            userId: bcryptId,
+            isFreeTier: freeTier
           }, { transaction: t });
 
           // Set created flag for Frontend management
@@ -79,8 +81,8 @@ module.exports = (Model, App) => {
           })
           logger.info('User init | root folder created')
 
+          // Update user register with root folder Id
           await userData.update({
-            isFreeTier: userData.isFreeTier,
             root_folder_id: rootFolder.id,
           }, { transaction: t });
           logger.info(userData);
@@ -118,6 +120,7 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
+      logger.info(userData)
       return userData.dataValues
     })
 
