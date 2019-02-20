@@ -7,7 +7,7 @@ module.exports = (Model, App) => {
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
     const userPass = user.password ? App.services.Crypt.encryptName(user.password) : null;
-    
+
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
@@ -55,7 +55,7 @@ module.exports = (Model, App) => {
   const InitializeUser = (user) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOne({ where: { email: user.email } })
-        .spread(async function (userData) {
+        .then(async (userData) => {
           const bcryptId = await App.services.Storj.IdToBcrypt(userData.email)
 
           const userMnemonic = mnemonicGenerate(256)
@@ -87,6 +87,7 @@ module.exports = (Model, App) => {
           return userData
         }).catch((error) => {
           logger.error(error.message + '\n' + error.stack);
+          throw new Error(error);
         })
     })
   }
