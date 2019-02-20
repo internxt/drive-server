@@ -39,6 +39,7 @@ module.exports = (Router, Service, Logger, App) => {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
+        Logger.info(userData);
         // Process user data and answer API call
         if (userData) {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
@@ -54,8 +55,7 @@ module.exports = (Router, Service, Logger, App) => {
               });
             } else {
               // User activation needed
-              const message = 'You must activate your account';
-              res.status(204).json({ message })
+              res.status(204).json({ message: 'You must activate your account' })
             }
           } else {
             // Wrong password
