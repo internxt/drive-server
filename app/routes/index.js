@@ -54,15 +54,15 @@ module.exports = (Router, Service, Logger, App) => {
               });
             } else {
               // User activation needed
-              res.status(204).json({ message: 'You must activate your account' });
+              res.status(400).json({ message: 'You must activate your account' });
             }
           } else {
             // Wrong password
-            res.status(204).send({ message: 'Wrong password' });
+            res.status(400).json({ message: 'Wrong password' });
           }
         } else {
           // User not found
-          res.status(204).send({ message: 'Wrong email' });
+          res.status(400).json({ message: 'Wrong email' });
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
@@ -99,7 +99,7 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(200).send({ token, user });
         } else {
           // This account already exists
-          res.status(204).send({ message: 'This account already exists' });
+          res.status(400).send({ message: 'This account already exists' });
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
@@ -135,7 +135,7 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(200).send({ user });
         } else {
           // User initialization unsuccessfull
-          res.status(204).send({ message: "Your account can't be initialized" });
+          res.status(400).send({ message: "Your account can't be initialized" });
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
