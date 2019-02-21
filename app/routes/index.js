@@ -54,8 +54,7 @@ module.exports = (Router, Service, Logger, App) => {
               });
             } else {
               // User activation needed
-              Logger.info('Activation required triggered');
-              res.status(204).send({ message: 'You must activate your account' });
+              res.status(204).json({ message: 'You must activate your account' });
             }
           } else {
             // Wrong password
