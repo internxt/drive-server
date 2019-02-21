@@ -42,20 +42,15 @@ module.exports = (Router, Service, Logger, App) => {
         // Process user data and answer API call
         if (userData) {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
-            if (userData.root_folder_id) {
-              // Successfull login
-              const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-              res.status(200).json({
-                user: {
-                  mnemonic: userData.mnemonic,
-                  root_folder_id: userData.root_folder_id
-                },
-                token
-              });
-            } else {
-              // User activation needed
-              res.status(400).json({ message: 'You must activate your account' });
-            }
+            // Successfull login
+            const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+            res.status(200).json({
+              user: {
+                mnemonic: userData.mnemonic,
+                root_folder_id: userData.root_folder_id
+              },
+              token
+            });
           } else {
             // Wrong password
             res.status(400).json({ message: 'Wrong password' });
