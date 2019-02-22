@@ -7,6 +7,7 @@ module.exports = (Model, App) => {
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
     const userPass = user.password ? App.services.Crypt.encryptName(user.password) : null;
+    const userMnemonic = mnemonicGenerate(256)
 
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
@@ -14,7 +15,8 @@ module.exports = (Model, App) => {
         defaults: {
           name: user.name,
           lastname: user.lastname,
-          password: userPass
+          password: userPass,
+          mnemonic: userMnemonic
         },
         transaction: t
       }).spread(async function (userResult, created) {
@@ -36,16 +38,9 @@ module.exports = (Model, App) => {
 
           // Set created flag for Frontend management
           Object.assign(userResult, { isCreated: created })
-
-          return userResult;
-        } else {
-          // TODO: proveriti userId kao pass
-          // const isValid = bcrypt.compareSync(user.userId, userResult.userId)
-          //const isValid = true;
-          //if (isValid) return userResult;
-          //throw new Error('User invalid')
-          return userResult;
         }
+        // TODO: proveriti userId kao pass
+        return userResult;
       }).catch((err) => {
         if (err.response) {
           // This happens when email is registered in bridge
@@ -64,11 +59,8 @@ module.exports = (Model, App) => {
         .then(async (userData) => {
           const bcryptId = userData.userId;
 
-          const userMnemonic = mnemonicGenerate(256)
-          logger.info('User init | mnemonic generated')
-
           const rootBucket = await App.services.Storj
-            .CreateBucket(userData.email, bcryptId, userMnemonic)
+            .CreateBucket(userData.email, bcryptId, userData.mnemonic)
           logger.info('User init | root bucket created')
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
@@ -82,14 +74,9 @@ module.exports = (Model, App) => {
 
           // Update user register with root folder Id
           await userData.update({
-            root_folder_id: rootFolder.id,
-            mnemonic: userMnemonic
+            root_folder_id: rootFolder.id
           }, { transaction: t });
 
-          /**
-           * On return mnemonic to user. He needs to decide if he will preserve it in DB
-           */
-          Object.assign(userData, { mnemonic: userMnemonic });
           return userData
         }).catch((error) => {
           logger.error(error.stack);
