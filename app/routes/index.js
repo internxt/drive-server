@@ -452,9 +452,17 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(200).json({ deleted: true })
       }).catch((err) => {
-        Logger.error(err.message + '\n' + err.stack);
+        Logger.error(err.stack);
         res.status(500).json({ error: err.message })
       })
+  })
+
+  Router.get('/users/isactivated', passportAuth, function (req, res) {
+    App.services.Storj.IsUserActivated(req.user.email).then((response) => {
+      res.status(200).send({ activated: response.data.activated })
+    }).catch((error) => {
+      Logger.error(error.stack)
+    })
   })
 
   Router.get('/storage/file/search', function (req, res) {

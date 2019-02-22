@@ -62,9 +62,22 @@ module.exports = (Model, App) => {
       .catch(error => error);
   }
 
+  const IsUserActivated = (email) => {
+    // Set api call settings
+    const params = { headers: { 'Content-Type': 'application/json' } };
+    const data = { email }
+
+    // Do api call
+    return axios.get(
+      `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
+      data,
+      params
+    ).then(response => response)
+      .catch(error => error);
+  }
+
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
-    logger.info('creating bucket for user: ' + email + ' ' + password + ' m: ' + mnemonic)
     try {
       const storj = getEnvironment(email, password, mnemonic);
       return new Promise((resolve, reject) => {
@@ -181,6 +194,7 @@ module.exports = (Model, App) => {
     StoreFile,
     ResolveFile,
     DeleteFile,
-    ListBucketFiles
+    ListBucketFiles,
+    IsUserActivated
   }
 }

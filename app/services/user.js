@@ -22,7 +22,7 @@ module.exports = (Model, App) => {
           // Create bridge pass using email (because id is unconsistent)
           const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email)
 
-          let bridgeUser = await App.services.Storj
+          const bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
           logger.info('User Service | created brigde user')
@@ -85,7 +85,7 @@ module.exports = (Model, App) => {
             root_folder_id: rootFolder.id,
             mnemonic: userMnemonic
           }, { transaction: t });
-          logger.info(userData);
+
           /**
            * On return mnemonic to user. He needs to decide if he will preserve it in DB
            */
