@@ -64,13 +64,11 @@ module.exports = (Model, App) => {
 
   const IsUserActivated = (email) => {
     // Set api call settings
-    const params = { headers: { 'Content-Type': 'application/json' } };
-    const data = { email }
+    const params = { headers: { 'Content-Type': 'application/json', email } };
 
     // Do api call
     return axios.get(
       `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      data,
       params
     ).then(response => response)
       .catch(error => error);
