@@ -102,6 +102,7 @@ module.exports = (Model, App) => {
 
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = async (email, option) => {
+    logger.info('e:' + email)
     const found = Model.users.findOne({ where: { email } });
     if (found) {
       try {
