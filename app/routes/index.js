@@ -459,6 +459,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/user/isactivated', passportAuth, function (req, res) {
     App.services.Storj.IsUserActivated(req.headers.xEmail).then((response) => {
+      Logger.info(response.data)
       res.status(200).send({ activated: response.data.activated })
     }).catch((error) => {
       Logger.error(error.stack)
