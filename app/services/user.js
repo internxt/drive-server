@@ -103,7 +103,7 @@ module.exports = (Model, App) => {
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => {
     return Model.users.findOne({ where: { email } })
-    .then(userData => {
+    .then((userData) => {
       return userData.update({ storeMnemonic: option });
     }).catch(error => {
       logger.error(error.stack);
