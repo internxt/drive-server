@@ -467,6 +467,7 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.post('/user/storeOption', passportAuth, function (req, res) {
+    Logger.info(req);
     Service.User.UpdateStorageOption(req.email, req.option).then((response) => {
       res.status(200).json({ response })
     }).catch((error) => {
