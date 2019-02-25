@@ -104,7 +104,8 @@ module.exports = (Model, App) => {
   const UpdateStorageOption = (email, option) => {
     return Model.users.findOne({ where: { email } })
     .then((userData) => {
-      return userData.update({ storeMnemonic: option });
+      if (userData) { return userData.update({ storeMnemonic: option }); }
+      else { throw new Error('User not found')}
     }).catch(error => {
       logger.error(error.stack);
       throw new Error(error);
