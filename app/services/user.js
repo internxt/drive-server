@@ -100,6 +100,19 @@ module.exports = (Model, App) => {
     }
   }
 
+  // Get an email and option (true/false) and set storeMnemonic option for user with this email
+  const UpdateStorageOption = async (email, option) => {
+    Model.users.findOne({ where: { email } })
+    .then(userData => {
+      await userData.update({ storeMnemonic: option });
+
+      return userData;
+    }).catch(error => {
+      logger.error(error.stack);
+      throw new Error(error);
+    })
+  }
+
   const GetUserById = id => Model.users.findOne({ where: { id } })
     .then((response) => {
       return response.dataValues
@@ -118,6 +131,7 @@ module.exports = (Model, App) => {
     Name: 'User',
     FindOrCreate,
     UpdateMnemonic,
+    UpdateStorageOption,
     GetUserById,
     FindUserByEmail,
     InitializeUser,

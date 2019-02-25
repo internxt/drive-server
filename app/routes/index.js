@@ -458,10 +458,18 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.get('/user/isactivated', passportAuth, function (req, res) {
-    App.services.Storj.IsUserActivated(req.headers['xemail']).then((response) => {
+    Service.Storj.IsUserActivated(req.headers['xemail']).then((response) => {
       res.status(200).send({ activated: response.data.activated })
     }).catch((error) => {
       Logger.error(error.stack)
+      res.status(500).json({ error: error.message })
+    })
+  })
+
+  Router.post('/user/storeOption', passportAuth, function (req, res) {
+    Service.User.UpdateStorageOption(req.email, req.option).then((response) => {
+      res.status(200).json({ response })
+    }).catch((error) => {
       res.status(500).json({ error: error.message })
     })
   })
