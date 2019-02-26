@@ -119,7 +119,8 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
-      return userData.dataValues
+      if (userData) return userData.dataValues
+      else throw new Error('User not found');
     })
 
   const GetUsersRootFolder = id => Model.users.findAll({
