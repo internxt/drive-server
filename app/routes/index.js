@@ -44,7 +44,6 @@ module.exports = (Router, Service, Logger, App) => {
           if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
             // Successfull login
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-            Logger.info(userData);
             res.status(200).json({
               user: {
                 mnemonic: userData.mnemonic,
