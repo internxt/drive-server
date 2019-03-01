@@ -194,10 +194,10 @@ module.exports = (Router, Service, Logger, App) => {
             ]
           }, function (err, subscription) {
 
-                    console.log('Subscription error');
-                    console.log(err);
-                    console.log('Subscription');
-                    console.log(subscription);
+            console.log('Subscription error');
+            console.log(err);
+            console.log('Subscription');
+            console.log(subscription);
 
             if (err) {
               error = true;
@@ -217,14 +217,22 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
 
-  Router.post('/plans', function(req, res) {
+  Router.post('/plans', function (req, res) {
     let x = Service.Plan.ListAll().then(data => {
       res.status(200).json(data);
     }).catch(e => {
       res.status(400).json({ message: 'Error retrieving list of plans' });
     });
   });
-    
+
+  Router.post('/plans', function (req, res) {
+    let x = Service.Plan.GetUserUsage().then(data => {
+      res.status(200).json(data);
+    }).catch(e => {
+      res.status(400),json({ message: 'Error getting user plan' });
+    });
+  });
+
   Router.put('/auth/mnemonic', function (req, res) {
     const {
       body: { id, mnemonic },
@@ -461,9 +469,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/user/isactivated', passportAuth, function (req, res) {
     Service.Storj.IsUserActivated(req.headers['xemail']).then((response) => {
       if (response.data) {
-        res.status(200).send({ activated: response.data.activated }) 
+        res.status(200).send({ activated: response.data.activated })
       } else {
-        res.status(400).send({ error: 'User activation info not found'})
+        res.status(400).send({ error: 'User activation info not found' })
       }
     }).catch((error) => {
       Logger.error(error.stack)
@@ -481,7 +489,11 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/storage/file/search', function (req, res) {
     // TODO
-  })
+  });
+
+  Router.get('/usage', function (req, res) {
+
+  });
 
   return Router
 }
