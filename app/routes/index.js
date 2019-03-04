@@ -84,9 +84,10 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: User with this email exists
    */
   Router.post('/register', function (req, res) {
-    // Call user service to find or create user
-    Service.User.FindOrCreate(req.body)
-      .then((userData) => {
+    // Data validation for process only request with all data
+    if (req.body.email && req.body.password) {
+      // Call user service to find or create user
+      Service.User.FindOrCreate(req.body).then((userData) => {
         // Process user data and answer API call
         if (userData.isCreated) {
           // Successfull register
@@ -101,6 +102,10 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(err.message + '\n' + err.stack);
         res.send(err.message);
       })
+    }
+    else {
+      res.status(400).send({ message: 'You must provide registration data' });
+    }
   });
 
   /**
