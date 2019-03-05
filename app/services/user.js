@@ -136,7 +136,7 @@ module.exports = (Model, App) => {
     return axios.post(
       'https://www.google.com/recaptcha/api/siteverify',
       params
-    ).then(response => response)
+    ).then(response => response.data)
       .catch(error => error);
   }
 
