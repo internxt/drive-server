@@ -104,13 +104,13 @@ module.exports = (Model, App) => {
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => {
     return Model.users.findOne({ where: { email } })
-    .then((userData) => {
-      if (userData) { return userData.update({ storeMnemonic: option }); }
-      else { throw new Error('User not found') }
-    }).catch(error => {
-      logger.error(error.stack);
-      throw new Error(error);
-    })
+      .then((userData) => {
+        if (userData) { return userData.update({ storeMnemonic: option }); }
+        throw new Error('User not found')
+      }).catch((error) => {
+        logger.error(error.stack);
+        throw new Error(error);
+      })
   }
 
   const GetUserById = id => Model.users.findOne({ where: { id } })
@@ -129,13 +129,11 @@ module.exports = (Model, App) => {
   }).then(user => user.dataValues)
 
   const resolveCaptcha = (token) => {
-    const params = {
-      secret: App.config.get('secrets').CAPTCHA,
-      response: token
-    }
+    const secret = App.config.get('secrets').CAPTCHA
+    const responseToken = token
+
     return axios.post(
-      'https://www.google.com/recaptcha/api/siteverify',
-      params
+      `https://www.google.com/recaptcha/api/siteverify?secret=${secret}&response=${responseToken}`
     ).then(response => response.data)
       .catch(error => error);
   }
