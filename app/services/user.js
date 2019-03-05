@@ -1,5 +1,6 @@
 const { mnemonicGenerate } = require('storj');
 const crypto = require('crypto')
+const axios = require('axios')
 
 module.exports = (Model, App) => {
   const logger = App.logger;
@@ -120,12 +121,24 @@ module.exports = (Model, App) => {
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
       if (userData) return userData.dataValues
-      else throw new Error('User not found');
+      throw new Error('User not found');
     })
 
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
   }).then(user => user.dataValues)
+
+  const resolveCaptcha = (token) => {
+    const params = {
+      secret: App.config.get('secrets').CAPTCHA,
+      response: token
+    }
+    return axios.post(
+      'https://www.google.com/recaptcha/api/siteverify',
+      params
+    ).then(response => response)
+      .catch(error => error);
+  }
 
   return {
     Name: 'User',
@@ -135,6 +148,7 @@ module.exports = (Model, App) => {
     GetUserById,
     FindUserByEmail,
     InitializeUser,
-    GetUsersRootFolder
+    GetUsersRootFolder,
+    resolveCaptcha
   }
 }

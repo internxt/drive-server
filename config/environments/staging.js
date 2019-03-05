@@ -10,7 +10,8 @@ exports.data = {
   },
   secrets: {
     JWT: 'asdf1234',
-    CRYPTO: 'asdf1234'
+    CRYPTO: 'asdf1234',
+    CAPTCHA: process.env.CAPTCHA_SECRET
   },
   logger: {
     level: 0

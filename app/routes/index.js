@@ -492,6 +492,17 @@ module.exports = (Router, Service, Logger, App) => {
     })
   })
 
+  Router.get('/api/captcha/:token', function (req, res) {
+    Service.User.resolveCaptcha(req.params.token)
+      .then((response) => {
+        response.json().then((body) => {
+          res.status(200).json(body);
+        })
+      }).catch((error) => {
+        Logger.error(error.stack);
+      })
+  })
+
   Router.get('/storage/file/search', function (req, res) {
     // TODO
   });
