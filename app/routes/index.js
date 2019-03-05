@@ -492,7 +492,7 @@ module.exports = (Router, Service, Logger, App) => {
     })
   })
 
-  Router.get('/api/captcha/:token', function (req, res) {
+  Router.get('/captcha/:token', function (req, res) {
     Service.User.resolveCaptcha(req.params.token)
       .then((response) => {
         response.json().then((body) => {
