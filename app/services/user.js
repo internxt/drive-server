@@ -133,7 +133,7 @@ module.exports = (Model, App) => {
       secret: App.config.get('secrets').CAPTCHA,
       response: token
     }
-    logger.info(params);
+    logger.info(App.config.get('secrets'));
     return axios.post(
       'https://www.google.com/recaptcha/api/siteverify',
       params
