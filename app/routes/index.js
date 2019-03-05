@@ -495,11 +495,11 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/captcha/:token', function (req, res) {
     Service.User.resolveCaptcha(req.params.token)
       .then((response) => {
-        response.json().then((body) => {
-          res.status(200).json(body);
-        })
+        Logger.info(response);
+        res.status(200).json(response);
       }).catch((error) => {
         Logger.error(error.stack);
+        res.status(500);
       })
   })
 
