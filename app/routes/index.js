@@ -146,13 +146,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/test', function (req, res) {
 
-    Service.Subscription.Find().then(data => {
-      if (data.length != 0) {
 
-      }
-    }).catch(e => {
-      res.status(400);
-    });
   });
 
   Router.post('/buy', function (req, res) {
@@ -230,12 +224,66 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.post('/plans', function (req, res) {
-    let x = Service.Plan.GetUserUsage().then(data => {
-      res.status(200).json(data);
-    }).catch(e => {
-      res.status(400),json({ message: 'Error getting user plan' });
-    });
+  Router.get('/usage', function (req, res) {
+
+    const axios = require('axios');
+    const crypto = require('crypto')
+
+    Service.User.FindUserByEmail(req.body.email)
+      .then(userData => {
+
+        let pwd = userData.userId;
+        let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+
+        let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+
+        axios.get(App.config.get('STORJ_BRIDGE') + '/usage', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + credential
+          }
+        }).then(data => {
+          res.status(200).send(data.data);
+
+        }).catch(err => {
+          res.status(400).send({ result: 'Error retrieving bridge information' });
+
+        });
+
+      }).catch(err => {
+        res.status(400).send({ result: 'Error retrieving user info' });
+      });
+  });
+
+  Router.get('/limit', function (req, res) {
+
+    const axios = require('axios');
+    const crypto = require('crypto')
+
+    Service.User.FindUserByEmail(req.body.email)
+      .then(userData => {
+
+        let pwd = userData.userId;
+        let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+
+        let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+
+        axios.get(App.config.get('STORJ_BRIDGE') + '/limit', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + credential
+          }
+        }).then(data => {
+          res.status(200).send(data.data);
+
+        }).catch(err => {
+          res.status(400).send({ result: 'Error retrieving bridge information' });
+
+        });
+
+      }).catch(err => {
+        res.status(400).send({ result: 'Error retrieving user info' });
+      });
   });
 
   Router.put('/auth/mnemonic', function (req, res) {
