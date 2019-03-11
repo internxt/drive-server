@@ -41,7 +41,10 @@ module.exports = (Router, Service, Logger, App) => {
       .then((userData) => {
         // Process user data and answer API call
         if (userData) {
-          if (req.body.password == App.services.Crypt.decryptName(userData.password)) {
+          const pass = App.services.Crypt.decryptText(req.body.password);
+          const hashObj = App.services.Crypt.passToHash({ password: pass, salt: userData.hKey });
+
+          if (hashObj.hash == userData.password) {
             // Successfull login
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
             res.status(200).json({

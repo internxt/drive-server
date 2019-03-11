@@ -52,6 +52,21 @@ module.exports = (Model, App) => {
     }
   }
 
+  // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
+  function passToHash(passObject) {
+    try {
+      const salt = passObject.salt ? Secret.enc.Hex.parse(passObject.salt) : Secret.lib.WordArray.random(128 / 8);
+      const hash = Secret.PBKDF2(passObject.password, salt, { keySize: 256 / 32, iterations: 10000 });
+      const hashedObjetc = {
+        salt: salt.toString(),
+        hash: hash.toString()
+      }
+      return hashedObjetc;
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
   return {
     Name: 'Crypt',
     decryptName,
