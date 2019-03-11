@@ -3,13 +3,12 @@ const Secret = require('crypto-js');
 module.exports = (Model, App) => {
   const logger = App.logger;
 
-  // Decrypt Hex encrypted text
   function decryptName(cipherText) {
     try {
       const reb64 = Secret.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO_SECRET);
-      const plain = decrypt.toString();
+      const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO);
+      const plain = decrypt.toString(Secret.enc.Utf8);
       return plain;
     } catch (error) {
       logger.error(error);
@@ -17,10 +16,9 @@ module.exports = (Model, App) => {
     }
   }
 
-  // Encrypt text to Hec base
   const encryptName = (name) => {
     try {
-      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO_SECRET).toString();
+      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO).toString();
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
       return eHex;
@@ -28,7 +26,7 @@ module.exports = (Model, App) => {
       logger.error(error);
       return null;
     }
-  }
+}
 
   // AES Plain text decryption method
   function decryptText(encryptedText) {
