@@ -41,6 +41,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     isCreated: {
       type: DataTypes.VIRTUAL
+    },
+    hKey: {
+      type: DataTypes.STRING,
+      allowNull: false
     }
   },
   {
