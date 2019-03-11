@@ -6,8 +6,8 @@ module.exports = (Model, App) => {
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
-    const userPass = App.services.Crypt.decryptText(user.password);
-    const userSalt = App.services.Crypt.decryptText(user.salt);
+    const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
+    const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
     const userMnemonic = mnemonicGenerate(256)
 
