@@ -7,7 +7,8 @@ module.exports = (Model, App) => {
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
-    const userPass = user.password ? App.services.Crypt.encryptName(user.password) : null;
+    const userPass = App.services.Crypt.decryptName(user.password);
+    const userSalt = App.services.Crypt.decryptName(user.salt);
     const userMnemonic = mnemonicGenerate(256)
 
     return Model.users.sequelize.transaction(function (t) {
@@ -17,7 +18,8 @@ module.exports = (Model, App) => {
           name: user.name,
           lastname: user.lastname,
           password: userPass,
-          mnemonic: userMnemonic
+          mnemonic: userMnemonic,
+          hKey: userSalt
         },
         transaction: t
       }).spread(async function (userResult, created) {

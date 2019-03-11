@@ -7,7 +7,7 @@ module.exports = (Model, App) => {
     try {
       const reb64 = Secret.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO);
+      const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO_SECRET);
       const plain = decrypt.toString(Secret.enc.Utf8);
       return plain;
     } catch (error) {
@@ -18,7 +18,7 @@ module.exports = (Model, App) => {
 
   const encryptName = (name) => {
     try {
-      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO).toString();
+      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO_SECRET).toString();
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
       return eHex;
