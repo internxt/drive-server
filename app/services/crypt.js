@@ -72,6 +72,7 @@ module.exports = (Model, App) => {
     decryptName,
     encryptName,
     decryptText,
-    encryptText
+    encryptText,
+    passToHash
   }
 }
