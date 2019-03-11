@@ -32,6 +32,7 @@ module.exports = (Model, App) => {
   function decryptText(encryptedText) {
     try {
       const reb = Secret.enc.Hex.parse(encryptedText);
+      logger.info('Decrypting ' + encryptedText + ' obtained: ' + reb);
       const bytes = Secret.AES.decrypt(reb.toString(Secret.enc.Base64), process.env.CRYPTO_SECRET);
       return bytes.toString(Secret.enc.Utf8);
     } catch (error) {

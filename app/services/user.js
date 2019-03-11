@@ -1,5 +1,4 @@
 const { mnemonicGenerate } = require('storj');
-const crypto = require('crypto')
 const axios = require('axios')
 
 module.exports = (Model, App) => {
