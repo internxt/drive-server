@@ -5,8 +5,7 @@ module.exports = {
     return queryInterface.addColumn('users', 'hKey', 
     { 
       type: Sequelize.STRING, 
-      allowNull: false,
-      defaultValue: '0000'
+      allowNull: false
     });
   },
 
