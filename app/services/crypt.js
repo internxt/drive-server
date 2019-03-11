@@ -8,7 +8,7 @@ module.exports = (Model, App) => {
       const reb64 = Secret.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(Secret.enc.Base64);
       const decrypt = Secret.AES.decrypt(bytes, App.config.get('secrets').CRYPTO_SECRET);
-      const plain = decrypt.toString(Secret.enc.Utf8);
+      const plain = decrypt.toString();
       return plain;
     } catch (error) {
       logger.error(error);
