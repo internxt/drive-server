@@ -5,7 +5,8 @@ module.exports = {
     return queryInterface.addColumn('users', 'hKey', 
       {
         type: Sequelize.BLOB('medium'),
-        allowNull: false
+        allowNull: false,
+        get() { return this.getDataValue('hKey').toString('utf8'); }
       });
   },
 

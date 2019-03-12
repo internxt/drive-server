@@ -22,10 +22,12 @@ module.exports = {
       },
       password: {
         type: Sequelize.BLOB('medium'),
-        allowNull: false
+        allowNull: false,
+        get() { return this.getDataValue('password').toString('utf8'); }
       },
       mnemonic: {
-        type: Sequelize.BLOB('medium')
+        type: Sequelize.BLOB('medium'),
+        get() { return this.getDataValue('mnemonic').toString('utf8'); }
       },
       isFreeTier: {
         type: Sequelize.BOOLEAN,
