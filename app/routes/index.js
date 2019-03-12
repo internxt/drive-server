@@ -57,11 +57,11 @@ module.exports = (Router, Service, Logger, App) => {
             });
           } else {
             // Wrong password
-            res.status(400).json({ message: 'Wrong password' });
+            res.status(400).json({ message: 'Wrong email/password' });
           }
         } else {
           // User not found
-          res.status(400).json({ message: 'Wrong email' });
+          res.status(400).json({ message: 'Wrong email/password' });
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);

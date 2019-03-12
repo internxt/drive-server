@@ -21,13 +21,11 @@ module.exports = {
         allowNull: false
       },
       password: {
-        type: Sequelize.BLOB('medium'),
-        allowNull: false,
-        get() { return this.getDataValue('password').toString('utf8'); }
+        type: Sequelize.STRING,
+        allowNull: false
       },
       mnemonic: {
-        type: Sequelize.BLOB('medium'),
-        get() { return this.getDataValue('mnemonic').toString('utf8'); }
+        type: Sequelize.STRING,
       },
       isFreeTier: {
         type: Sequelize.BOOLEAN,
