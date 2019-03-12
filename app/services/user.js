@@ -123,7 +123,11 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = email => Model.users.findOne({ where: { email } })
     .then((userData) => {
-      if (userData) return userData.dataValues
+      if (userData) {
+        const user = userData.dataValues;
+        user.mnemonic = userData.mnemonic.toString();
+        return user;
+      }
       throw new Error('User not found');
     })
 
