@@ -3,10 +3,10 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.addColumn('users', 'hKey', 
-    { 
-      type: Sequelize.STRING, 
-      allowNull: false
-    });
+      {
+        type: Sequelize.BLOB('medium'),
+        allowNull: false
+      });
   },
 
   down: (queryInterface, Sequelize) => {
