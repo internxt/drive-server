@@ -1,4 +1,3 @@
-const { mnemonicGenerate } = require('storj');
 const axios = require('axios')
 
 module.exports = (Model, App) => {
@@ -9,8 +8,6 @@ module.exports = (Model, App) => {
     const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
     const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
-    const userMnemonic = mnemonicGenerate(256)
-
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
@@ -18,7 +15,7 @@ module.exports = (Model, App) => {
           name: user.name,
           lastname: user.lastname,
           password: userPass,
-          mnemonic: userMnemonic,
+          mnemonic: user.mnemonic,
           hKey: userSalt
         },
         transaction: t
@@ -63,7 +60,7 @@ module.exports = (Model, App) => {
           const bcryptId = userData.userId;
 
           const rootBucket = await App.services.Storj
-            .CreateBucket(userData.email, bcryptId, userData.mnemonic)
+            .CreateBucket(userData.email, bcryptId, user.mnemonic)
           logger.info('User init | root bucket created')
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
@@ -80,7 +77,11 @@ module.exports = (Model, App) => {
             root_folder_id: rootFolder.id
           }, { transaction: t });
 
-          return userData
+          // Set decrypted mnemonic to returning object
+          const updatedUser = userData;
+          updatedUser.mnemonic = user.mnemonic;
+
+          return updatedUser
         }).catch((error) => {
           logger.error(error.stack);
           throw new Error(error);
