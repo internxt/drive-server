@@ -43,7 +43,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GetTree = () => {}
+  const GetTree = () => { }
 
   const GetParent = (folder) => { }
 
@@ -56,7 +56,8 @@ module.exports = (Model, App) => {
   }
 
 
-  const GetContent = async (folderId) => {
+  const GetContent = async (folderId, email) => {
+
     const result = await Model.folder.find({
       where: { id: folderId },
       include: [{
@@ -67,14 +68,25 @@ module.exports = (Model, App) => {
       {
         model: Model.file,
         as: 'files'
+      },
+      {
+        model: Model.users,
+        as: 'user',
+        where: { email: email }
       }]
-    })
-    result.name = App.services.Crypt.decryptName(result.name);
-    result.children = mapChildrenNames(result.children)
-    result.files = result.files.map((file) => {
-      file.name = `${App.services.Crypt.decryptName(file.name)}`;
-      return file;
-    })
+    });
+
+    // Null result implies empty folder.
+    // TODO: Should send an error to be handled and showed on website.
+
+    if (result != null) {
+      result.name = App.services.Crypt.decryptName(result.name);
+      result.children = mapChildrenNames(result.children)
+      result.files = result.files.map((file) => {
+        file.name = `${App.services.Crypt.decryptName(file.name)}`;
+        return file;
+      })
+    }
     return result
   }
 

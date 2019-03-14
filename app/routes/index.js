@@ -346,7 +346,7 @@ module.exports = (Router, Service, Logger, App) => {
   */
   Router.get('/storage/folder/:id', passportAuth, function (req, res) {
     const folderId = req.params.id;
-    Service.Folder.GetContent(folderId)
+    Service.Folder.GetContent(folderId, req.user.dataValues.email)
       .then((result) => {
         res.status(200).json(result)
       }).catch((err) => {
