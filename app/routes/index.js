@@ -227,7 +227,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.get('/usage', function (req, res) {
+  Router.post('/usage', function (req, res) {
 
     const axios = require('axios');
     const crypto = require('crypto')
@@ -258,7 +258,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.get('/limit', function (req, res) {
+  Router.post('/limit', function (req, res) {
 
     const axios = require('axios');
     const crypto = require('crypto')
@@ -278,10 +278,8 @@ module.exports = (Router, Service, Logger, App) => {
           }
         }).then(data => {
           res.status(200).send(data.data);
-
         }).catch(err => {
           res.status(400).send({ result: 'Error retrieving bridge information' });
-
         });
 
       }).catch(err => {
