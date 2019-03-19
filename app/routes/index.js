@@ -49,6 +49,7 @@ module.exports = (Router, Service, Logger, App) => {
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
             res.status(200).json({
               user: {
+                userId: userData.userId,
                 mnemonic: userData.mnemonic,
                 root_folder_id: userData.root_folder_id,
                 storeMnemonic: userData.storeMnemonic
