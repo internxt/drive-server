@@ -12,7 +12,8 @@ exports.data = {
     JWT: 'asdf1234',
     CRYPTO: 'asdf1234',
     CAPTCHA: process.env.CAPTCHA_SECRET,
-    CRYPTO_SECRET: process.env.CRYPTO_SECRET
+    CRYPTO_SECRET: process.env.CRYPTO_SECRET,
+    STRIPE_SK: process.env.STRIPE_SK
   },
   logger: {
     level: 0
