@@ -49,7 +49,6 @@ module.exports = (Router, Service, Logger, App) => {
             const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
             res.status(200).json({
               user: {
-                userId: userData.userId,
                 mnemonic: userData.mnemonic,
                 root_folder_id: userData.root_folder_id,
                 storeMnemonic: userData.storeMnemonic
@@ -148,75 +147,60 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
-  Router.get('/test', function (req, res) {
-
-
-  });
-
   Router.post('/buy', function (req, res) {
-    var stripe = require("stripe")(App.config.get('secrets').STRIPE_SK);
+    const axios = require('axios');
+    const crypto = require('crypto')
 
-    var error = false;
+    var fullToken = req.body.token;
 
-    var token = JSON.parse(req.body.token);
-    var plan = req.body.plan;
+    var fullTokenJson = JSON.parse(fullToken);
+    var user = fullTokenJson.email;
+    var planToSubscribe = req.body.plan;
 
-    // 0. Only show data
 
-    /*
-    console.log('Token: ');
-    console.log(token);
+    Service.User.FindUserByEmail(user).then(userData => {
 
-    console.log('Plan');
-    console.log(plan);
-    */
+      console.log('USER FOUND', userData);
 
-    // 1. Sign up user as customer
+      let pwd = userData.userId;
+      let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+      let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
-    var customerString = "Customer for " + token.email;
-    var customerId = null;
+      console.log('CREDENTIAL: ', credential);
 
-    stripe.customers.create({
-      description: customerString,
-      source: token.id,
-      email: token.email
-    }, function (err, customer) {
+      let endpoint = App.config.get('STORJ_BRIDGE') + '/subscription';
 
-      if (err) {
-        error = true;
-      } else {
+      console.log(endpoint);
 
-        /**** SUBCRIPBE TO PLAN ****/
-        stripe.subscriptions.create(
-          {
-            customer: customer.id,
-            items: [
-              {
-                plan: plan,
-              },
-            ]
-          }, function (err, subscription) {
 
-            console.log('Subscription error');
-            console.log(err);
-            console.log('Subscription');
-            console.log(subscription);
+      axios.post(App.config.get('STORJ_BRIDGE') + '/subscription',
+      {
+        plan_id: planToSubscribe,
+        token: fullToken
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Basic ' + credential
+        }
+      }).then(data => {
+        console.log('AXIOS REQUEST: ', data);
+        console.log(data);
+        res.status(200).send({ message: 'Purchased OK' });
+      }).catch(err => {
+        if (err.response.data.error) {
+          res.status(400).send({ message: err.response.data.error });
+        }
+        else {
+          res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
+        }
+      });
 
-            if (err) {
-              error = true;
-            }
-          }
-        );
-
-      }
+    }).catch(err => {
+      console.log(err);
+      res.status(400).send({ message: 'Error purchasing: User not found' });
     });
 
-
-    if (error) {
-      res.status(400).json({ message: 'error' });
-    } else {
-      res.status(200).json({ message: 'ok' });
-    }
   });
 
 
