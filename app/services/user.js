@@ -89,21 +89,6 @@ module.exports = (Model, App) => {
     })
   }
 
-  const UpdateMnemonic = async (userId, mnemonic) => {
-    const found = Model.users.findById(userId);
-    if (found) {
-      try {
-        const user = await Model.users.update(
-          { mnemonic },
-          { where: { id: userId }, validate: true }
-        );
-        return user
-      } catch (errorResponse) {
-        throw new Error(errorResponse);
-      }
-    }
-  }
-
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => {
     return Model.users.findOne({ where: { email } })
@@ -134,6 +119,23 @@ module.exports = (Model, App) => {
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
   }).then(user => user.dataValues)
+
+  const UpdateMnemonic = async (userEmail, mnemonic) => {
+    const found = FindUserByEmail(userEmail);
+    if (found) {
+      try {
+        const user = await Model.users.update(
+          { mnemonic },
+          { where: { email: userEmail }, validate: true }
+        );
+        return user
+      } catch (errorResponse) {
+        throw new Error(errorResponse);
+      }
+    } else {
+      return null;
+    }
+  }
 
   const resolveCaptcha = (token) => {
     const secret = App.config.get('secrets').CAPTCHA

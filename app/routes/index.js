@@ -275,9 +275,9 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.put('/auth/mnemonic', function (req, res) {
     const {
-      body: { id, mnemonic },
+      body: { email, mnemonic },
     } = req;
-    Service.User.UpdateMnemonic(id, mnemonic)
+    Service.User.UpdateMnemonic(email, mnemonic)
       .then(() => {
         res.status(200).json({
           message: 'Successfully updated user with mnemonic'
