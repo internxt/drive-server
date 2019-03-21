@@ -110,6 +110,7 @@ module.exports = (Model, App) => {
     .then((userData) => {
       if (userData) {
         const user = userData.dataValues;
+        logger.info(user);
         user.mnemonic = user.mnemonic.toString();
         return user;
       }
