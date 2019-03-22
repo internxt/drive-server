@@ -27,7 +27,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     storeMnemonic: {
       type: DataTypes.BOOLEAN,
-      allowNull: true
+      allowNull: true,
+      defaultValue: true
     },
     root_folder_id: {
       type: DataTypes.INTEGER,
