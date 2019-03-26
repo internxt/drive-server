@@ -444,7 +444,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   /**
    * @swagger
-   * /storage/file
+   * /storage/file:
    *   post:
    *     description: Create file on DB for local upload
    *     produces:
