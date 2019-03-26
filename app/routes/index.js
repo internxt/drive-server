@@ -451,7 +451,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       - application/json
    *     parameters:
    *       - name: file
-   *         description; file object with properties
+   *         description: file object with properties
    *         in: body
    *         required: true
    *     responses:
