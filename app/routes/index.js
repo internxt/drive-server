@@ -444,6 +444,35 @@ module.exports = (Router, Service, Logger, App) => {
 
   /**
    * @swagger
+   * /storage/file
+   *   post:
+   *     description: Create file on DB for local upload
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: file
+   *         description; file object with properties
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: File created successfully
+   *       400:
+   *         description: Bad request. Any data is not passed on request.
+   */
+  Router.post('/storage/file', passportAuth, async function(req, res) {
+    const file = req.body.file;
+    Service.Files.CreateFile(file)
+      .then((result) => {
+        res.status(200).json(result);
+      }).catch((error) => {
+        res.status(400).json({ message: error.message });
+      })
+  })
+
+
+  /**
+   * @swagger
    * /storage/file/:id:
    *   post:
    *     description: Download file

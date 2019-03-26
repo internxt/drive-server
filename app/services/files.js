@@ -1,6 +1,25 @@
 const fs = require('fs');
 
 module.exports = (Model, App) => {
+  const CreateFile = (file) => {
+    return new Promise(async (result, reject) => {
+      try {
+        const folder = await Model.folder.findOne({ where: { id: file.folder_id } })
+        const addedFile = await Model.file.create({
+          name: file.name,
+          type: file.type,
+          bucketId: file.bucketId,
+          size: file.size
+        });
+        const res = await folder.addFile(addedFile)
+        result(res);
+      } catch (error) {
+        App.logger.error(error);
+        reject(error);
+      }
+    })
+  }
+
   const Upload = (user, folderId, fileName, filePath) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -95,6 +114,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Files',
     Upload,
+    CreateFile,
     Delete,
     Download,
     ListAllFiles
