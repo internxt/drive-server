@@ -429,7 +429,6 @@ module.exports = (Router, Service, Logger, App) => {
     const xfile = req.file
     const folderId = req.params.id
 
-    Logger.info(xfile.originalname);
     Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
       .then((result) => {
         res.status(201).json(result)

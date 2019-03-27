@@ -18,6 +18,7 @@ module.exports = (Model, App) => {
 
   const encryptName = (name) => {
     try {
+      logger.info(process.env.CRYPTO_SECRET);
       const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET);
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
