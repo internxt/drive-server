@@ -5,28 +5,27 @@ module.exports = (Model, App) => {
 
   function decryptName(cipherText) {
     try {
-      const reb64 = Secret.enc.Hex.parse(cipherText);
-      const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
-      const plain = decrypt.toString(Secret.enc.Utf8);
-      return plain;
+        const reb64 = Secret.enc.Hex.parse(cipherText);
+        const bytes = reb64.toString(Secret.enc.Base64);
+        const decrypt = Secret.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
+        const plain = decrypt.toString(Secret.enc.Utf8);
+        return plain;
     } catch (error) {
-      logger.error(`(decryptName): ${error}`);
-      return null;
+        logger.error(`(decryptName): ${error}`);
+        return null;
     }
-  }
-
-  const encryptName = (name) => {
-    try {
-      const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET);
+}
+function encryptName(name) {
+  try {
+      const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET).toString();
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
       return eHex;
-    } catch (error) {
+  } catch (error) {
       logger.error(`(encryptName): ${error}`);
       return null;
-    }
   }
+}
 
   // AES Plain text decryption method
   function decryptText(encryptedText) {
