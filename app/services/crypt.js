@@ -7,7 +7,7 @@ module.exports = (Model, App) => {
     try {
       const reb64 = Secret.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
+      const decrypt = Secret.AES.decrypt(bytes, process.env.CRYPTO_SECRET.toString());
       const plain = decrypt.toString(Secret.enc.Utf8);
       return plain;
     } catch (error) {
@@ -18,12 +18,12 @@ module.exports = (Model, App) => {
 
   const encryptName = (name) => {
     try {
-      const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET);
+      const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET.toString());
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
       return eHex;
     } catch (error) {
-      logger.error(`(wncryptName): ${error}`);
+      logger.error(`(encryptName): ${error}`);
       return null;
     }
 }
