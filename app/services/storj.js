@@ -129,15 +129,22 @@ module.exports = (Model, App) => {
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads'
+    const downloadFile = `${downloadDir}/${file.name}.${file.type}`;
+
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir);
     }
 
+    if (fs.existsSync(downloadFile)) {
+      fs.unlinkSync(downloadFile);
+    }
+
     return new Promise((resolve, reject) => {
-      App.logger.info('Getting network environment')
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       App.logger.info(`Resolving file ${file.name}`)
-      const state = storj.resolveFile(file.folder.bucket, file.bucketId, `${downloadDir}/${file.name}.${file.type}`, {
+
+      // Storj call
+      const state = storj.resolveFile(file.folder.bucket, file.bucketId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           App.logger.info('progress:', progress);
         },
@@ -147,7 +154,6 @@ module.exports = (Model, App) => {
             reject(err)
             return err
           }
-          const downloadFile = `${downloadDir}/${file.name}.${file.type}`;
           const mimetype = mime.getType(downloadFile);
           const filestream = fs.createReadStream(downloadFile);
 
