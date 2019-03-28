@@ -121,6 +121,14 @@ module.exports = (Model, App) => {
       throw new Error('User not found');
     })
 
+  const FindUserObjByEmail = email => Model.users.findOne({ where: { email } })
+  .then((userData) => {
+    if (userData) {
+      return userData;
+    }
+    throw new Error('User not found');
+  })
+
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
   }).then(user => user.dataValues)
@@ -159,6 +167,7 @@ module.exports = (Model, App) => {
     UpdateStorageOption,
     GetUserById,
     FindUserByEmail,
+    FindUserObjByEmail,
     InitializeUser,
     GetUsersRootFolder,
     resolveCaptcha
