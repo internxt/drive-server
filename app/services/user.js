@@ -8,6 +8,11 @@ module.exports = (Model, App) => {
     const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
     const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
+    // Throw error when user email. pass, salt or mnemonic is missing
+    if (!user.email || !userPass || !userSalt || !user.mnemonic) {
+      throw new Error('Wrong user registration data');
+    }
+
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
         where: { email: user.email },
