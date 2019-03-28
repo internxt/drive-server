@@ -28,7 +28,7 @@ module.exports = (App, Config) => {
   }
 
   Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
-    App.services.User.FindOrCreate({ email: payload })
+    App.services.User.FindUserByEmail(payload)
       .then((user) => {
         done(null, user)
         return null
