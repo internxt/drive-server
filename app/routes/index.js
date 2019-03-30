@@ -36,38 +36,50 @@ module.exports = (Router, Service, Logger, App) => {
    */
 
   Router.post('/login', function (req, res) {
-    // Call user service to find or create user
-    Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
-        // Process user data and answer API call
-        if (userData) {
-          const pass = App.services.Crypt.decryptText(req.body.password);
-          const hashObj = App.services.Crypt.passToHash({ password: pass, salt: userData.hKey });
 
-          if (hashObj.hash == userData.password) {
-            // Successfull login
-            const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-            res.status(200).json({
-              user: {
-                userId: userData.userId,
-                mnemonic: userData.mnemonic,
-                root_folder_id: userData.root_folder_id,
-                storeMnemonic: userData.storeMnemonic
-              },
-              token
-            });
-          } else {
-            // Wrong password
-            res.status(400).json({ message: 'Wrong email/password' });
-          }
+    if (!req.body.email) {
+      res.status(400).send({ error: 'No email address specified' });
+      return;
+    }
+    // Call user service to find or create user
+    Service.User.FindUserByEmail(req.body.email).then(userData => {
+
+      Service.Storj.IsUserActivated(req.body.email).then(resActivation => {
+        if (!resActivation.data.activated) {
+          res.status(400).send({ error: 'User is not activated' });
         } else {
-          // User not found
-          res.status(400).json({ message: 'Wrong email/password' });
+
+          // Process user data and answer API call
+          if (userData) {
+            const pass = App.services.Crypt.decryptText(req.body.password);
+            const hashObj = App.services.Crypt.passToHash({ password: pass, salt: userData.hKey });
+
+            if (hashObj.hash == userData.password) {
+              // Successfull login
+              const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+              res.status(200).json({
+                user: {
+                  userId: userData.userId,
+                  mnemonic: userData.mnemonic,
+                  root_folder_id: userData.root_folder_id,
+                  storeMnemonic: userData.storeMnemonic
+                },
+                token
+              });
+            } else {
+              // Wrong password
+              res.status(400).json({ error: 'Wrong email/password' });
+            }
+          }
         }
-      }).catch((err) => {
-        Logger.error(err.message + '\n' + err.stack);
-        res.send(err.message);
-      })
+      }).catch(err => {
+        res.status(400).send({ error: 'User not found on Bridge database', message: err.response.data });
+      });
+
+    }).catch((err) => {
+      Logger.error(err.message + '\n' + err.stack);
+      res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+    })
   });
 
   /**
@@ -90,6 +102,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/register', function (req, res) {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
+      req.body.email = req.body.email.toLowerCase().trim();
       // Call user service to find or create user
       Service.User.FindOrCreate(req.body).then((userData) => {
         // Process user data and answer API call
@@ -175,27 +188,27 @@ module.exports = (Router, Service, Logger, App) => {
 
 
       axios.post(App.config.get('STORJ_BRIDGE') + '/subscription',
-      {
-        plan_id: planToSubscribe,
-        token: fullToken
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Basic ' + credential
-        }
-      }).then(data => {
-        console.log('AXIOS REQUEST: ', data);
-        console.log(data);
-        res.status(200).send({ message: 'Purchased OK' });
-      }).catch(err => {
-        if (err.response.data.error) {
-          res.status(400).send({ message: err.response.data.error });
-        }
-        else {
-          res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
-        }
-      });
+        {
+          plan_id: planToSubscribe,
+          token: fullToken
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + credential
+          }
+        }).then(data => {
+          console.log('AXIOS REQUEST: ', data);
+          console.log(data);
+          res.status(200).send({ message: 'Purchased OK' });
+        }).catch(err => {
+          if (err.response.data.error) {
+            res.status(400).send({ message: err.response.data.error });
+          }
+          else {
+            res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
+          }
+        });
 
     }).catch(err => {
       console.log(err);
@@ -460,7 +473,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       400:
    *         description: Bad request. Any data is not passed on request.
    */
-  Router.post('/storage/file', passportAuth, async function(req, res) {
+  Router.post('/storage/file', passportAuth, async function (req, res) {
     const file = req.body.file;
     Service.Files.CreateFile(file)
       .then((result) => {
