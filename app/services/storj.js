@@ -70,8 +70,7 @@ module.exports = (Model, App) => {
     return axios.get(
       `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
       params
-    ).then(response => response)
-      .catch(error => error);
+    );
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
