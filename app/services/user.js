@@ -122,12 +122,12 @@ module.exports = (Model, App) => {
     })
 
   const FindUserObjByEmail = email => Model.users.findOne({ where: { email } })
-  .then((userData) => {
-    if (userData) {
-      return userData;
-    }
-    throw new Error('User not found');
-  })
+    .then((userData) => {
+      if (userData) {
+        return userData;
+      }
+      throw new Error('User not found');
+    })
 
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
@@ -160,6 +160,38 @@ module.exports = (Model, App) => {
       .catch(error => error);
   }
 
+  const DeactivateUser = (email) => {
+    return new Promise((resolve, reject) => {
+
+      Model.users.findOne({ where: { email: email } }).then(user => {
+
+        const crypto = require('crypto-js');
+        const password = crypto.SHA256(user.userId).toString();
+        const auth = new Buffer(user.email + ':' + password).toString('base64');
+
+        axios.delete(App.config.get('STORJ_BRIDGE') + '/cancelAccount/' + email,
+          {
+            headers: {
+              'Authorization': 'Basic ' + auth,
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(data => {
+            resolve(data);
+          })
+          .catch(err => {
+            console.log(err.response.data);
+            reject(err);
+          });
+
+      }).catch(err => {
+        reject(err);
+      });
+
+    });
+  }
+
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -170,6 +202,7 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     InitializeUser,
     GetUsersRootFolder,
-    resolveCaptcha
+    resolveCaptcha,
+    DeactivateUser
   }
 }

@@ -582,9 +582,18 @@ module.exports = (Router, Service, Logger, App) => {
     // TODO
   });
 
-  Router.get('/usage', function (req, res) {
-
+  Router.get('/deactivate', passportAuth, function (req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+    Service.User.DeactivateUser(user).then(bridgeRes => {
+      res.status(200).send({ error: null, message: 'User deactivated' });
+    }).catch(err => {
+      res.status(500).send({ error: err.message });
+    });
   });
+
+  function GetUserFromJwtToken(token) {
+    return jwt.decode(token.split(" ")[1], App.config.get('secrets').JWT);
+  }
 
   return Router
 }
