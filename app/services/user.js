@@ -169,7 +169,7 @@ module.exports = (Model, App) => {
         const password = crypto.SHA256(user.userId).toString();
         const auth = new Buffer(user.email + ':' + password).toString('base64');
 
-        axios.delete(App.config.get('STORJ_BRIDGE') + '/cancelAccount/' + email,
+        axios.delete(App.config.get('STORJ_BRIDGE') + '/users/' + email,
           {
             headers: {
               'Authorization': 'Basic ' + auth,
@@ -191,6 +191,21 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ConfirmDeactivateUser = (token) => {
+    return new Promise((resolve, reject) => {
+      axios.get(App.config.get('STORJ_BRIDGE') + '/deactivationStripe/' + token,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }).then(res => {
+          resolve(res);
+        }).catch(err => {
+          reject(err);
+        });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -203,6 +218,7 @@ module.exports = (Model, App) => {
     InitializeUser,
     GetUsersRootFolder,
     resolveCaptcha,
-    DeactivateUser
+    DeactivateUser,
+    ConfirmDeactivateUser
   }
 }

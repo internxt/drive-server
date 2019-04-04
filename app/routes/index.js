@@ -591,6 +591,18 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
+  Router.get('/confirmDeactivation/:token', (req, res) => {
+    let token = req.params.token;
+
+    Service.User.ConfirmDeactivateUser(token).then(resConfirm => {
+      res.status(resConfirm.status).send(req.data);
+    }).catch(err => {
+      console.log('Deactivation request to Server failed');
+      console.log(err);
+      res.status(400).send({ error: err.message });
+    });
+  });
+
   function GetUserFromJwtToken(token) {
     return jwt.decode(token.split(" ")[1], App.config.get('secrets').JWT);
   }
