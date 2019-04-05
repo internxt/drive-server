@@ -43,7 +43,7 @@ module.exports = (Model, App) => {
         App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
             const addedFile = await Model.file.create({
-              name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, size
+              name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, bucket: folder.bucket, size
             })
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
