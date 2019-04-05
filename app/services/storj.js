@@ -143,7 +143,7 @@ module.exports = (Model, App) => {
       App.logger.info(`Resolving file ${file.name}`)
 
       // Storj call
-      const state = storj.resolveFile(file.folder.bucket, file.bucketId, downloadFile, {
+      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           App.logger.info('progress:', progress);
         },

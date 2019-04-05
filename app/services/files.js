@@ -8,7 +8,7 @@ module.exports = (Model, App) => {
         const addedFile = await Model.file.create({
           name: file.name,
           type: file.type,
-          bucketId: file.bucketId,
+          fileId: file.fileId,
           size: file.size
         });
         const res = await folder.addFile(addedFile)
@@ -41,9 +41,9 @@ module.exports = (Model, App) => {
         
         App.logger.info(`Uploading file to network`)
         App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
-          .then(async ({ fileId: addedId, size }) => {
+          .then(async ({ fileId, size }) => {
             const addedFile = await Model.file.create({
-              name: encryptedFileName, type: fileExt, bucketId: addedId, size
+              name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, size
             })
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
@@ -63,10 +63,10 @@ module.exports = (Model, App) => {
     });
   }
 
-  const Download = (user, fileBucketId) => {
+  const Download = (user, fileId) => {
     return new Promise(async (resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
-      const file = await Model.file.find({ where: { bucketId: fileBucketId }, include: { model: Model.folder, as: 'folder' } })
+      const file = await Model.file.find({ where: { fileId } })
       App.services.Storj.ResolveFile(user, file)
         .then((result) => {
           resolve(result)
@@ -83,7 +83,7 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       App.services.Storj.DeleteFile(user, bucket, fileId)
         .then(async (result) => {
-          const file = await Model.file.findOne({ where: { bucketId: fileId } })
+          const file = await Model.file.findOne({ where: { fileId } })
           if (file) {
             const isDestroyed = await file.destroy()
             if (isDestroyed) {

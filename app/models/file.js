@@ -6,6 +6,9 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       autoIncrement: true
     },
+    fileId: {
+      type: DataTypes.STRING
+    },
     bucketId: {
       type: DataTypes.STRING
     },
