@@ -23,6 +23,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     bucket: {
       type: DataTypes.INTEGER
+    },
+    folder_id: {
+      type: DataTypes.INTEGER
     }
   },
   {

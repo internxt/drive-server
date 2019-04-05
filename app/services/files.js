@@ -100,6 +100,20 @@ module.exports = (Model, App) => {
     })
   }
 
+  const MoveFile = (fileId, origin, destination) => {
+    return new Promise(async (resolve, reject) => {
+      const file = await Model.file.find({ where: { fileId } });
+      if (!file) {
+        reject(new Error('File not found'));
+      } else if (file.folder_id !== origin) {
+        reject(new Error('Origin folder is wrong'));
+      } else {
+        file.update({ folder_id: destination })
+          .then(resolve());
+      }
+    })
+  }
+
   const ListAllFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
       App.services.Storj.ListFiles(user, bucketId)
@@ -117,6 +131,7 @@ module.exports = (Model, App) => {
     CreateFile,
     Delete,
     Download,
+    MoveFile,
     ListAllFiles
   }
 }

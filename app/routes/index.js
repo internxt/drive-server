@@ -531,6 +531,44 @@ module.exports = (Router, Service, Logger, App) => {
       })
   })
 
+  /**
+   * @swagger
+   * /storage/moveFile:
+   *   post:
+   *     description: Move file on cloud DB from one folder to other
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: fileId
+   *         description: file id
+   *         in: body
+   *         required: true
+   *       - name: origin
+   *         description: original folder
+   *         in: body
+   *         required: true
+   *       - name: destination
+   *         description: destination folder
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: File moved successfully
+   *       400:
+   *         description: Bad request. File or original folder not exists.
+   */
+  Router.post('/storage/moveFile', passportAuth, function (req, res) {
+    const fileId = req.body.fileId;
+    const origin = req.body.origin;
+    const destination = req.body.destination;
+    Service.Files.MoveFile(fileId, origin, destination)
+      .then(() => {
+        res.status(200);
+      }).catch((error) => {
+        res.status(400).json({ message: error.message });
+      })
+  })
+
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
     const user = req.user
     // Set mnemonic to decrypted mnemonic
