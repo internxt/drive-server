@@ -20,6 +20,9 @@ module.exports = (sequelize, DataTypes) => {
     },
     size: {
       type: DataTypes.INTEGER
+    },
+    bucket: {
+      type: DataTypes.INTEGER
     }
   },
   {
