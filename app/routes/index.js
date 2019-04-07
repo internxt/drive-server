@@ -21,11 +21,57 @@ module.exports = (Router, Service, Logger, App) => {
    * @swagger
    * /login:
    *   post:
-   *     description: User login. Check if user exists.
+   *     description: User login first part. Check if user exists.
    *     produces:
    *       - application/json
    *     parameters:
-   *       - description: user object with email and password only
+   *       - description: user object with email
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Email exists
+   *       204:
+   *         description: Wrong username or password
+   */
+
+  Router.post('/login', function (req, res) {
+    if (!req.body.email) {
+      res.status(400).send({ error: 'No email address specified' });
+      return;
+    }
+    // Call user service to find or create user
+    Service.User.FindUserByEmail(req.body.email).then((userData) => {
+      if (!userData) {
+        // Wrong user
+        res.status(400).json({ error: 'Wrong email/password' });
+      } else {
+        Service.Storj.IsUserActivated(req.body.email).then((resActivation) => {
+          if (!resActivation.data.activated) {
+            res.status(400).send({ error: 'User is not activated' });
+          } else {
+            const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
+            res.status(200).send({ sKey: encSalt })
+          }
+        }).catch((err) => {
+          res.status(400).send({ error: 'User not found on Bridge database', message: err.response ? err.response.data : err });
+        });
+      }
+    }).catch((err) => {
+      Logger.error(err.message + '\n' + err.stack);
+      res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+    })
+  });
+
+  /**
+   * @swagger
+   * /access:
+   *   post:
+   *     description: User login second part. Check if password is correct.
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - description: user object with email and password
    *         in: body
    *         required: true
    *     responses:
@@ -35,51 +81,32 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Wrong username or password
    */
 
-  Router.post('/login', function (req, res) {
-
-    if (!req.body.email) {
-      res.status(400).send({ error: 'No email address specified' });
-      return;
-    }
+  Router.post('/access', function (req, res) {
     // Call user service to find or create user
-    Service.User.FindUserByEmail(req.body.email).then(userData => {
+    Service.User.FindUserByEmail(req.body.email).then((userData) => {
+      // Process user data and answer API call
+      const pass = App.services.Crypt.decryptText(req.body.password);
 
-      Service.Storj.IsUserActivated(req.body.email).then(resActivation => {
-        if (!resActivation.data.activated) {
-          res.status(400).send({ error: 'User is not activated' });
-        } else {
-
-          // Process user data and answer API call
-          if (userData) {
-            const pass = App.services.Crypt.decryptText(req.body.password);
-            const hashObj = App.services.Crypt.passToHash({ password: pass, salt: userData.hKey });
-
-            if (hashObj.hash == userData.password) {
-              // Successfull login
-              const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-              res.status(200).json({
-                user: {
-                  userId: userData.userId,
-                  mnemonic: userData.mnemonic,
-                  root_folder_id: userData.root_folder_id,
-                  storeMnemonic: userData.storeMnemonic
-                },
-                token
-              });
-            } else {
-              // Wrong password
-              res.status(400).json({ error: 'Wrong email/password' });
-            }
-          }
-        }
-      }).catch(err => {
-        res.status(400).send({ error: 'User not found on Bridge database', message: err.response.data });
-      });
-
+      if (pass == userData.password) {
+        // Successfull login
+        const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+        res.status(200).json({
+          user: {
+            userId: userData.userId,
+            mnemonic: userData.mnemonic,
+            root_folder_id: userData.root_folder_id,
+            storeMnemonic: userData.storeMnemonic
+          },
+          token
+        });
+      } else {
+        // Wrong password
+        res.status(400).json({ error: 'Wrong email/password' });
+      }
     }).catch((err) => {
       Logger.error(err.message + '\n' + err.stack);
       res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
-    })
+    });
   });
 
   /**
