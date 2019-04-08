@@ -590,7 +590,7 @@ module.exports = (Router, Service, Logger, App) => {
     const destination = req.body.destination;
     Service.Files.MoveFile(fileId, origin, destination)
       .then(() => {
-        res.status(200);
+        res.status(200).json({ moved: true });
       }).catch((error) => {
         res.status(400).json({ message: error.message });
       })
