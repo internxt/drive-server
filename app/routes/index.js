@@ -570,10 +570,6 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: file id
    *         in: body
    *         required: true
-   *       - name: origin
-   *         description: original folder
-   *         in: body
-   *         required: true
    *       - name: destination
    *         description: destination folder
    *         in: body
@@ -586,9 +582,8 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/storage/moveFile', passportAuth, function (req, res) {
     const fileId = req.body.fileId;
-    const origin = req.body.origin;
     const destination = req.body.destination;
-    Service.Files.MoveFile(fileId, origin, destination)
+    Service.Files.MoveFile(fileId, destination)
       .then(() => {
         res.status(200).json({ moved: true });
       }).catch((error) => {

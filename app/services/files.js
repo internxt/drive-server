@@ -100,13 +100,11 @@ module.exports = (Model, App) => {
     })
   }
 
-  const MoveFile = (fileId, origin, destination) => {
+  const MoveFile = (fileId, destination) => {
     return new Promise(async (resolve, reject) => {
       const file = await Model.file.find({ where: { fileId } });
       if (!file) {
         reject(new Error('File not found'));
-      } else if (file.folder_id !== parseInt(origin)) {
-        reject(new Error('Origin folder is wrong'));
       } else {
         file.update({ folder_id: parseInt(destination) })
           .then(resolve());
