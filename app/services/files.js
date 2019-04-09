@@ -102,7 +102,7 @@ module.exports = (Model, App) => {
 
   const MoveFile = (fileId, destination) => {
     return new Promise(async (resolve, reject) => {
-      const file = await Model.file.find({ where: { fileId } });
+      const file = await Model.file.findOne({ where: { fileId } });
       if (!file) {
         reject(new Error('File not found'));
       } else {
