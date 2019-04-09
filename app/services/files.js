@@ -2,21 +2,26 @@ const fs = require('fs');
 
 module.exports = (Model, App) => {
   const CreateFile = (file) => {
-    return new Promise(async (result, reject) => {
-      try {
-        const folder = await Model.folder.findOne({ where: { id: file.folder_id } })
-        const addedFile = await Model.file.create({
-          name: file.name,
-          type: file.type,
-          fileId: file.fileId,
-          size: file.size
+    return new Promise(async (resolve, reject) => {
+      Model.folder.findOne({ where: { bucket: file.folder_id } })
+        .then(folder => {
+          // Attention: bucketId is the fileId.
+          Model.file.create({
+            bucketId: file.fileId,
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            folder_id: folder.id,
+            fileId: file.fileId,
+            bucket: file.folder_id
+          }).then(creation => {
+            resolve(creation);
+          }).catch(err => {
+            reject('Unable to create file in database');
+          });
+        }).catch(err => {
+          reject('Cannot find bucket ' + file.folder_id);
         });
-        const res = await folder.addFile(addedFile)
-        result(res);
-      } catch (error) {
-        App.logger.error(error);
-        reject(error);
-      }
     })
   }
 
@@ -38,7 +43,7 @@ module.exports = (Model, App) => {
         const fileExt = fileName.slice(extSeparatorPos + 1);
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
-        
+
         App.logger.info(`Uploading file to network`)
         App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
