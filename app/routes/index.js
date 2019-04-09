@@ -587,6 +587,7 @@ module.exports = (Router, Service, Logger, App) => {
       .then(() => {
         res.status(200).json({ moved: true });
       }).catch((error) => {
+        Logger.error(`Error moving file (${fileId}): ${error.message}`);
         res.status(400).json({ message: error.message });
       })
   })
