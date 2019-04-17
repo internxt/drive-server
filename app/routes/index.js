@@ -3,6 +3,7 @@ const passport = require('passport')
 const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
+const speakeasy = require('speakeasy');
 
 /**
  * JWT
@@ -88,7 +89,20 @@ module.exports = (Router, Service, Logger, App) => {
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
 
-      if (pass == userData.password) {
+
+      // 2-Factor Auth. Verification
+      const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+      var tfa_result = true;
+      
+      if (needsTfa) {
+        tfa_result = speakeasy.totp.verify({
+          secret: userData.secret_2FA,
+          encoding: 'base32',
+          token: req.body.tfa
+        });
+      }
+
+      if (pass == userData.password && tfa_result) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
         res.status(200).json({
