@@ -40,7 +40,7 @@ module.exports = (Router, Service, Logger, App) => {
       res.status(400).send({ error: 'No email address specified' });
       return;
     }
-    // Call user service to find or create user
+    // Call user service to find user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
       if (!userData) {
         // Wrong user
@@ -51,7 +51,8 @@ module.exports = (Router, Service, Logger, App) => {
             res.status(400).send({ error: 'User is not activated' });
           } else {
             const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-            res.status(200).send({ sKey: encSalt })
+            const required_2FA = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+            res.status(200).send({ sKey: encSalt, tfa: required_2FA })
           }
         }).catch((err) => {
           res.status(400).send({ error: 'User not found on Bridge database', message: err.response ? err.response.data : err });
