@@ -46,6 +46,9 @@ module.exports = (sequelize, DataTypes) => {
     hKey: {
       type: DataTypes.STRING,
       allowNull: false
+    },
+    secret_2FA: {
+      type: DataTypes.STRING,
     }
   },
   {

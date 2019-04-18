@@ -3,6 +3,7 @@ const passport = require('passport')
 const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
+const speakeasy = require('speakeasy');
 
 /**
  * JWT
@@ -40,7 +41,7 @@ module.exports = (Router, Service, Logger, App) => {
       res.status(400).send({ error: 'No email address specified' });
       return;
     }
-    // Call user service to find or create user
+    // Call user service to find user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
       if (!userData) {
         // Wrong user
@@ -51,7 +52,8 @@ module.exports = (Router, Service, Logger, App) => {
             res.status(400).send({ error: 'User is not activated' });
           } else {
             const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-            res.status(200).send({ sKey: encSalt })
+            const required_2FA = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+            res.status(200).send({ sKey: encSalt, tfa: required_2FA })
           }
         }).catch((err) => {
           res.status(400).send({ error: 'User not found on Bridge database', message: err.response ? err.response.data : err });
@@ -87,7 +89,20 @@ module.exports = (Router, Service, Logger, App) => {
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
 
-      if (pass == userData.password) {
+
+      // 2-Factor Auth. Verification
+      const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+      var tfa_result = true;
+      
+      if (needsTfa) {
+        tfa_result = speakeasy.totp.verify({
+          secret: userData.secret_2FA,
+          encoding: 'base32',
+          token: req.body.tfa
+        });
+      }
+
+      if (pass == userData.password && tfa_result) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
         res.status(200).json({
