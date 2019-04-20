@@ -4,6 +4,7 @@ const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
 const speakeasy = require('speakeasy');
+const qrcode = require('qrcode')
 
 /**
  * JWT
@@ -93,7 +94,7 @@ module.exports = (Router, Service, Logger, App) => {
       // 2-Factor Auth. Verification
       const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
       var tfa_result = true;
-      
+
       if (needsTfa) {
         tfa_result = speakeasy.totp.verify({
           secret: userData.secret_2FA,
@@ -102,7 +103,9 @@ module.exports = (Router, Service, Logger, App) => {
         });
       }
 
-      if (pass == userData.password && tfa_result) {
+      if (!tfa_result) {
+        res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      } else if (pass == userData.password && tfa_result) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
         res.status(200).json({
@@ -121,6 +124,63 @@ module.exports = (Router, Service, Logger, App) => {
     }).catch((err) => {
       Logger.error(err.message + '\n' + err.stack);
       res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+    });
+  });
+
+  /**
+   * Gets a new 2FA code
+   * Only auth. users can generate a new code.
+   * Prevent 2FA users from getting a new code.
+   */
+  Router.get('/tfa', passportAuth, function (req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+    Service.User.FindUserByEmail(user).then(async userData => {
+      if (!userData) {
+        res.status(500).send({ error: 'User does not exists' });
+      } else if (userData.secret_2FA) {
+        res.status(500).send({ error: 'User has already 2FA' });
+      } else {
+        let secret = speakeasy.generateSecret({ length: 10 }).base32;
+        let url = speakeasy.otpauthURL({ secret: secret, encoding: 'base32', label: 'X Cloud', algorithm: 'sha512' });
+        var bidi = await qrcode.toDataURL(url);
+        res.status(200).send({
+          code: secret,
+          qr: bidi
+        });
+      }
+    }).catch(err => {
+      res.status(500).send({ error: 'Server error' });
+    });
+  });
+
+  Router.put('/tfa', passportAuth, function (req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+
+    Service.User.FindUserByEmail(user).then(userData => {
+      if (userData.secret_2FA) {
+        res.status(500).send({ error: 'User already has 2FA' });
+      } else {
+        // Check 2FA
+        let isValid =  speakeasy.totp.verify({
+          secret: req.body.key,
+          encoding: 'base32',
+          token: req.body.code
+        });
+
+        if (isValid) {
+          Service.User.Store2FA(user, req.body.key)
+          .then(result => {
+            res.status(200).send({ message: 'ok' });
+          })
+          .catch(err => {
+            res.status(500).send({ error: 'Error storing configuration' });
+          })
+        } else {
+          res.status(500).send({ error: 'Code is not valid' });
+        }
+      }
+    }).catch(err => {
+      res.status(500).send({ error: 'Internal server error' });
     });
   });
 
