@@ -206,6 +206,26 @@ module.exports = (Model, App) => {
     });
   }
 
+  const Store2FA = (user, key) => {
+    return new Promise((resolve, reject) => {
+      Model.users.update({ secret_2FA: key }, { where: { email: user } }).then(result => {
+        resolve()
+      }).catch(err => {
+        reject();
+      });
+    });
+  }
+
+  const Delete2FA = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.users.update({ secret_2FA: null }, { where: { email: user } }).then(result => {
+        resolve()
+      }).catch(err => {
+        reject();
+      });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -219,6 +239,8 @@ module.exports = (Model, App) => {
     GetUsersRootFolder,
     resolveCaptcha,
     DeactivateUser,
-    ConfirmDeactivateUser
+    ConfirmDeactivateUser,
+    Store2FA,
+    Delete2FA
   }
 }
