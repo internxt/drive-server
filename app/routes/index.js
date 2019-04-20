@@ -96,10 +96,11 @@ module.exports = (Router, Service, Logger, App) => {
       var tfa_result = true;
 
       if (needsTfa) {
-        tfa_result = speakeasy.totp.verify({
+        tfa_result = speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
+          token: req.body.tfa,
           encoding: 'base32',
-          token: req.body.tfa
+          window: 2
         });
       }
 
@@ -140,11 +141,11 @@ module.exports = (Router, Service, Logger, App) => {
       } else if (userData.secret_2FA) {
         res.status(500).send({ error: 'User has already 2FA' });
       } else {
-        let secret = speakeasy.generateSecret({ length: 10 }).base32;
-        let url = speakeasy.otpauthURL({ secret: secret, encoding: 'base32', label: 'X Cloud', algorithm: 'sha512' });
+        let secret = speakeasy.generateSecret({ length: 10 });
+        let url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
         var bidi = await qrcode.toDataURL(url);
         res.status(200).send({
-          code: secret,
+          code: secret.base32,
           qr: bidi
         });
       }
@@ -161,10 +162,11 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({ error: 'User already has 2FA' });
       } else {
         // Check 2FA
-        let isValid =  speakeasy.totp.verify({
+        let isValid =  speakeasy.totp.verifyDelta({
           secret: req.body.key,
+          token: req.body.code,
           encoding: 'base32',
-          token: req.body.code
+          window: 2
         });
 
         if (isValid) {
@@ -192,10 +194,11 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({ error: 'Your account does not have 2FA activated.' });
       } else {
         // Check 2FA confirmation is valid
-        let isValid =  speakeasy.totp.verify({
+        let isValid =  speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
+          token: req.body.code,
           encoding: 'base32',
-          token: req.body.code
+          window: 2
         });
 
         // Check user password is valid
