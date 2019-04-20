@@ -184,6 +184,41 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
+  Router.delete('/tfa', function(req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+
+    Service.User.FindUserByEmail(user).then(userData => {
+      if (!userData.secret_2FA) {
+        res.status(500).send({ error: 'Your account does not have 2FA activated.' });
+      } else {
+        // Check 2FA confirmation is valid
+        let isValid =  speakeasy.totp.verify({
+          secret: userData.secret_2FA,
+          encoding: 'base32',
+          token: req.body.code
+        });
+
+        // Check user password is valid
+        const decryptedPass = App.services.Crypt.decryptText(req.body.pass);
+
+        if (userData.password.toString() != decryptedPass) {
+          res.status(500).send({ error: 'Invalid password' });
+        } else if (!isValid) {
+          res.status(500).send({ error: 'Invalid 2FA code. Please, use an updated code.' });
+        } else {
+          Service.User.Delete2FA(user).then(result => {
+            res.status(200).send({ message: 'ok' });
+          }).catch(err => {
+            res.status(500).send({ error: 'Server error deactivating user 2FA. Try again later.' });
+          });
+        }
+      }
+    }).catch(err => {
+      res.status(500).send();
+    })
+
+  })
+
   /**
    * @swagger
    * /register:

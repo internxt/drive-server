@@ -216,6 +216,16 @@ module.exports = (Model, App) => {
     });
   }
 
+  const Delete2FA = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.users.update({ secret_2FA: null }, { where: { email: user } }).then(result => {
+        resolve()
+      }).catch(err => {
+        reject();
+      });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -230,6 +240,7 @@ module.exports = (Model, App) => {
     resolveCaptcha,
     DeactivateUser,
     ConfirmDeactivateUser,
-    Store2FA
+    Store2FA,
+    Delete2FA
   }
 }
