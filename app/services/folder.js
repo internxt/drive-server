@@ -104,14 +104,14 @@ module.exports = (Model, App) => {
   const UpdateMetadata = async (folderId ,metadata) => {
     let result = null;
     // If icon or color is passed, update folder fields
-    if (metadata.folderName || metadata.color || metadata.icon) {
+    if (metadata.itemName || metadata.color || metadata.icon) {
       // Get folder to update metadata
       const folder = await Model.folder.findOne({ where: { id: folderId } });
 
       const newMeta = {}
-      if (metadata.folderName) {
+      if (metadata.itemName) {
         // Check if exists folder with new name
-        const cryptoFolderName = App.services.Crypt.encryptName(metadata.folderName);
+        const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName);
         const exists = await Model.folder.findOne({
           where: { parentId: folder.parentId, name: cryptoFolderName }
         });
