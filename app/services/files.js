@@ -105,6 +105,32 @@ module.exports = (Model, App) => {
     })
   }
 
+  const UpdateMetadata = async (fileId, metadata) => {
+    let result = null;
+    // If metadata is passed, update file fields
+    if (metadata.fileName) {
+      // Get file to update metadata
+      const file = await Model.file.findOne({ where: { fileId } });
+
+      const newMeta = {}
+      if (metadata.folderName) {
+        // Check if exists file with new name
+        const cryptoFileName = App.services.Crypt.encryptName(metadata.fileName);
+        const exists = await Model.file.findOne({
+          where: { folder_id: file.folder_id, name: cryptoFileName }
+        });
+        if (exists) throw new Error('File with this name exists')
+        else {
+          newMeta.name = cryptoFileName;
+        }
+      }
+
+      result = await file.update(newMeta);
+    }
+
+    return result;
+  }
+
   const MoveFile = (fileId, destination) => {
     return new Promise(async (resolve, reject) => {
       const file = await Model.file.findOne({ where: { fileId } });
@@ -134,6 +160,7 @@ module.exports = (Model, App) => {
     CreateFile,
     Delete,
     Download,
+    UpdateMetadata,
     MoveFile,
     ListAllFiles
   }

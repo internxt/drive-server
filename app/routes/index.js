@@ -799,6 +799,41 @@ module.exports = (Router, Service, Logger, App) => {
 
   /**
    * @swagger
+   * /storage/file/:id/meta:
+   *   post:
+   *     description: Update metada on file
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: fileId
+   *         description: ID of file in XCloud
+   *         in: query
+   *         required: true
+   *       - name: metadata
+   *         description: metadata to update (now is only name)
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: File updated
+   *       500:
+   *         description: Error updating file
+  */
+  Router.post('/storage/file/:id/meta', passportAuth, function (req, res) {
+    const fileId = req.params.id;
+    const metadata = req.body.metadata;
+
+    Service.File.UpdateMetadata(fileId, metadata)
+      .then((result) => {
+        res.status(200).json(result);
+      }).catch((error) => {
+        Logger.error(`Error updating metadata from file ${req.params.id} : ${error}`)
+        res.status(500).json(error.message)
+      })
+  });
+
+  /**
+   * @swagger
    * /storage/moveFile:
    *   post:
    *     description: Move file on cloud DB from one folder to other
