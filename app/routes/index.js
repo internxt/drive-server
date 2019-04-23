@@ -4,6 +4,7 @@ const fs = require('fs');
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
 const speakeasy = require('speakeasy');
+const qrcode = require('qrcode')
 
 /**
  * JWT
@@ -95,14 +96,17 @@ module.exports = (Router, Service, Logger, App) => {
       var tfa_result = true;
       
       if (needsTfa) {
-        tfa_result = speakeasy.totp.verify({
+        tfa_result = speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
+          token: req.body.tfa,
           encoding: 'base32',
-          token: req.body.tfa
+          window: 2
         });
       }
 
-      if (pass == userData.password && tfa_result) {
+      if (!tfa_result) {
+        res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      } else if (pass == userData.password && tfa_result) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
         res.status(200).json({
@@ -123,6 +127,100 @@ module.exports = (Router, Service, Logger, App) => {
       res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
     });
   });
+
+    /**
+   * Gets a new 2FA code
+   * Only auth. users can generate a new code.
+   * Prevent 2FA users from getting a new code.
+   */
+  Router.get('/tfa', passportAuth, function (req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+    Service.User.FindUserByEmail(user).then(async userData => {
+      if (!userData) {
+        res.status(500).send({ error: 'User does not exists' });
+      } else if (userData.secret_2FA) {
+        res.status(500).send({ error: 'User has already 2FA' });
+      } else {
+        let secret = speakeasy.generateSecret({ length: 10 });
+        let url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
+        var bidi = await qrcode.toDataURL(url);
+        res.status(200).send({
+          code: secret.base32,
+          qr: bidi
+        });
+      }
+    }).catch(err => {
+      res.status(500).send({ error: 'Server error' });
+    });
+  });
+
+  Router.put('/tfa', passportAuth, function (req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+
+    Service.User.FindUserByEmail(user).then(userData => {
+      if (userData.secret_2FA) {
+        res.status(500).send({ error: 'User already has 2FA' });
+      } else {
+        // Check 2FA
+        let isValid =  speakeasy.totp.verifyDelta({
+          secret: req.body.key,
+          token: req.body.code,
+          encoding: 'base32',
+          window: 2
+        });
+
+        if (isValid) {
+          Service.User.Store2FA(user, req.body.key)
+          .then(result => {
+            res.status(200).send({ message: 'ok' });
+          })
+          .catch(err => {
+            res.status(500).send({ error: 'Error storing configuration' });
+          })
+        } else {
+          res.status(500).send({ error: 'Code is not valid' });
+        }
+      }
+    }).catch(err => {
+      res.status(500).send({ error: 'Internal server error' });
+    });
+  });
+
+  Router.delete('/tfa', function(req, res) {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+
+    Service.User.FindUserByEmail(user).then(userData => {
+      if (!userData.secret_2FA) {
+        res.status(500).send({ error: 'Your account does not have 2FA activated.' });
+      } else {
+        // Check 2FA confirmation is valid
+        let isValid =  speakeasy.totp.verifyDelta({
+          secret: userData.secret_2FA,
+          token: req.body.code,
+          encoding: 'base32',
+          window: 2
+        });
+
+        // Check user password is valid
+        const decryptedPass = App.services.Crypt.decryptText(req.body.pass);
+
+        if (userData.password.toString() != decryptedPass) {
+          res.status(500).send({ error: 'Invalid password' });
+        } else if (!isValid) {
+          res.status(500).send({ error: 'Invalid 2FA code. Please, use an updated code.' });
+        } else {
+          Service.User.Delete2FA(user).then(result => {
+            res.status(200).send({ message: 'ok' });
+          }).catch(err => {
+            res.status(500).send({ error: 'Server error deactivating user 2FA. Try again later.' });
+          });
+        }
+      }
+    }).catch(err => {
+      res.status(500).send();
+    })
+
+  })
 
   /**
    * @swagger
@@ -654,7 +752,8 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.get('/user/isactivated', passportAuth, function (req, res) {
-    Service.Storj.IsUserActivated(req.headers['xemail']).then((response) => {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+    Service.Storj.IsUserActivated(user).then((response) => {
       if (response.data) {
         res.status(200).send({ activated: response.data.activated })
       } else {

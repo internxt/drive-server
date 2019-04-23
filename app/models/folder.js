@@ -22,6 +22,16 @@ module.exports = (sequelize, DataTypes) => {
         model: 'users',
         key: 'id'
       }
+    },
+    icon_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'icon',
+        key: 'id'
+      }
+    },
+    color: {
+      type: DataTypes.STRING
     }
   },
   {
@@ -36,6 +46,7 @@ module.exports = (sequelize, DataTypes) => {
     folder.hasOne(models.folder_metadata)
     folder.hasMany(models.file)
     folder.belongsTo(models.users)
+    folder.belongsTo(models.icon)
   }
 
   return folder

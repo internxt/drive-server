@@ -64,6 +64,12 @@ module.exports = (Model, App) => {
         model: Model.folder,
         as: 'descendents',
         hierarchy: true,
+        include: [
+          { 
+            model: Model.icon,
+            as: 'icon'
+          }
+        ]
       },
       {
         model: Model.file,
@@ -72,8 +78,13 @@ module.exports = (Model, App) => {
       {
         model: Model.users,
         as: 'user',
-        where: { email: email }
-      }]
+        where: { email }
+      },
+      { 
+        model: Model.icon,
+        as: 'icon'
+      }
+    ]
     });
 
     // Null result implies empty folder.
@@ -90,6 +101,34 @@ module.exports = (Model, App) => {
     return result
   }
 
+  const UpdateMetadata = async (folderId ,metadata) => {
+    let result = null;
+    // If icon or color is passed, update folder fields
+    if (metadata.folderName || metadata.color || metadata.icon) {
+      // Get folder to update metadata
+      const folder = await Model.folder.findOne({ where: { id: folderId } });
+
+      const newMeta = {}
+      if (metadata.folderName) {
+        // Check if exists folder with new name
+        const cryptoFolderName = App.services.Crypt.encryptName(metadata.folderName);
+        const exists = await Model.folder.findOne({
+          where: { parentId: folder.parentId, name: cryptoFolderName }
+        });
+        if (exists) throw new Error('Folder with this name exists')
+        else {
+          newMeta.name = cryptoFolderName;
+        }
+      }
+      if (metadata.color) newMeta.color = metadata.color;
+      if (metadata.icon) newMeta.icon_id = metadata.icon;
+
+      result = await folder.update(newMeta);
+    }
+
+    return result;
+  }
+
   return {
     Name: 'Folder',
     Create,
@@ -97,5 +136,6 @@ module.exports = (Model, App) => {
     GetTree,
     GetParent,
     GetContent,
+    UpdateMetadata
   }
 }
