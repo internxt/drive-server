@@ -780,9 +780,9 @@ module.exports = (Router, Service, Logger, App) => {
     const fileIdInBucket = req.params.fileid
 
     Service.Files.Delete(user, bucketId, fileIdInBucket)
-      .then((result) => {
+      .then(result => {
         res.status(200).json({ deleted: true })
-      }).catch((err) => {
+      }).catch(err => {
         Logger.error(err.stack);
         res.status(500).json({ error: err.message })
       })

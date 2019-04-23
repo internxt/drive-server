@@ -94,12 +94,16 @@ module.exports = (Model, App) => {
             if (isDestroyed) {
               resolve('File deleted')
             } else {
-              throw new Error('Cannot delete file')
+              reject('Cannot delete file')
             }
           } else {
-            throw new Error('File not found')
+            reject('File not found')
           }
-        }).catch((err) => {
+        }).catch(async (err) => {
+          if (err.message == 'Resource not found') {
+            var file = await Model.file.findOne({ where: { fileId }});
+            await file.destroy();
+          }
           reject(err)
         })
     })
