@@ -3,7 +3,6 @@ const express = require('express')
 const Logger = require('../../lib/logger')
 const Config = require('../index')
 const Database = require('./database')
-const Civic = require('./auth')
 
 /**
  * Instance of Server application
@@ -20,7 +19,6 @@ const Server = function(config) {
   this.logger = Logger(this.config.get('logger'))
   this.express = express()
   this.router = express.Router()
-  this.civic = Civic(this.config)
   this.instance = null
   this.database = null
   this.models = null
