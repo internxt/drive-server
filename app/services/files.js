@@ -108,14 +108,14 @@ module.exports = (Model, App) => {
   const UpdateMetadata = async (fileId, metadata) => {
     let result = null;
     // If metadata is passed, update file fields
-    if (metadata.fileName) {
+    if (metadata.itemName) {
       // Get file to update metadata
       const file = await Model.file.findOne({ where: { fileId } });
 
       const newMeta = {}
-      if (metadata.folderName) {
+      if (metadata.itemName) {
         // Check if exists file with new name
-        const cryptoFileName = App.services.Crypt.encryptName(metadata.fileName);
+        const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName);
         const exists = await Model.file.findOne({
           where: { folder_id: file.folder_id, name: cryptoFileName }
         });
