@@ -823,7 +823,7 @@ module.exports = (Router, Service, Logger, App) => {
     const fileId = req.params.id;
     const metadata = req.body.metadata;
 
-    Service.File.UpdateMetadata(fileId, metadata)
+    Service.Files.UpdateMetadata(fileId, metadata)
       .then((result) => {
         res.status(200).json(result);
       }).catch((error) => {
