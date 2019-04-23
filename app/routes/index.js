@@ -114,7 +114,9 @@ module.exports = (Router, Service, Logger, App) => {
             userId: userData.userId,
             mnemonic: userData.mnemonic,
             root_folder_id: userData.root_folder_id,
-            storeMnemonic: userData.storeMnemonic
+            storeMnemonic: userData.storeMnemonic,
+            name: userData.name,
+            lastname: userData.lastname
           },
           token
         });
