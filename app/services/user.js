@@ -206,6 +206,52 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ResetPassword = (email) => {
+    return new Promise((resolve, reject) => {
+      Model.user.findOne({ where: { email: email } })
+        .then(user => {
+          const crypto = require('crypto-js');
+          const password = crypto.SHA256(user.userId).toString();
+          const auth = new Buffer(user.email + ':' + password).toString('base64');
+
+          axios.patch(App.config.get('STORJ_BRIDGE') + '/users/' + email, {
+            headers: {
+              'Authorization': 'Basic ' + auth,
+              'Content-Type': 'application/json'
+            }
+          })
+            .then(res => {
+              resolve(res);
+            })
+            .catch(err => {
+              console.error(err.response.data);
+              reject(err);
+            });
+
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  }
+
+  const ConfirmResetPassword = (email, token, newPassword) => {
+    return new Promise((resolve, reject) => {
+      axios.post(App.config.get('STORJ_BRIDGE') + '/resets/' + token, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          password: newPassword
+        })
+      }).then(res => {
+        resolve(res);
+      }).catch(err => {
+        reject(err);
+      });
+    });
+  }
+
   const Store2FA = (user, key) => {
     return new Promise((resolve, reject) => {
       Model.users.update({ secret_2FA: key }, { where: { email: user } }).then(result => {
@@ -226,6 +272,41 @@ module.exports = (Model, App) => {
     });
   }
 
+  const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic) => {
+    return new Promise((resolve, reject) => {
+      FindUserByEmail(user).then(userData => {
+        console.log('Found on database');
+        let storedPassword = userData.password.toString();
+        if (storedPassword != currentPassword) {
+          console.log('Invalid password');
+          reject({ error: 'Invalid password' });
+        } else {
+          console.log('Valid password');
+          
+          resolve();
+
+          
+          Model.users.update({
+            password: newPassword,
+            mnemonic: mnemonic,
+            hKey: newSalt
+          }, { where: { email: user }})
+          .then(res => {
+            console.log('Updated', res);
+            resolve();
+          }).catch(err => {
+            console.log('error updating', err);
+            reject({ error: 'Error updating info' });
+          });
+
+          
+        }
+      }).catch(err => {
+        reject({ error: 'Internal server error' });
+      });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -241,6 +322,7 @@ module.exports = (Model, App) => {
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,
-    Delete2FA
+    Delete2FA,
+    UpdatePasswordMnemonic
   }
 }

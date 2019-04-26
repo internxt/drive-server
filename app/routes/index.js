@@ -11,7 +11,7 @@ const qrcode = require('qrcode')
  */
 const passportAuth = passport.authenticate('jwt', {
   session: false
-})
+});
 
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/api-docs.json', function (req, res) {
@@ -89,8 +89,8 @@ module.exports = (Router, Service, Logger, App) => {
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
-      
-      
+
+
       // 2-Factor Auth. Verification
       const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
       var tfa_result = true;
@@ -109,6 +109,15 @@ module.exports = (Router, Service, Logger, App) => {
       } else if (pass == userData.password && tfa_result) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+
+        const token2 = jwt.sign({
+          email: userData.email,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id
+        }, App.config.get('secrets').JWT, {
+            expiresIn: '1d'
+          });
+
         res.status(200).json({
           user: {
             userId: userData.userId,
@@ -118,7 +127,8 @@ module.exports = (Router, Service, Logger, App) => {
             name: userData.name,
             lastname: userData.lastname
           },
-          token
+          token,
+          token2
         });
       } else {
         // Wrong password
@@ -130,7 +140,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-    /**
+  /**
    * Gets a new 2FA code
    * Only auth. users can generate a new code.
    * Prevent 2FA users from getting a new code.
@@ -164,7 +174,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({ error: 'User already has 2FA' });
       } else {
         // Check 2FA
-        let isValid =  speakeasy.totp.verifyDelta({
+        let isValid = speakeasy.totp.verifyDelta({
           secret: req.body.key,
           token: req.body.code,
           encoding: 'base32',
@@ -173,12 +183,12 @@ module.exports = (Router, Service, Logger, App) => {
 
         if (isValid) {
           Service.User.Store2FA(user, req.body.key)
-          .then(result => {
-            res.status(200).send({ message: 'ok' });
-          })
-          .catch(err => {
-            res.status(500).send({ error: 'Error storing configuration' });
-          })
+            .then(result => {
+              res.status(200).send({ message: 'ok' });
+            })
+            .catch(err => {
+              res.status(500).send({ error: 'Error storing configuration' });
+            })
         } else {
           res.status(500).send({ error: 'Code is not valid' });
         }
@@ -188,7 +198,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.delete('/tfa', function(req, res) {
+  Router.delete('/tfa', function (req, res) {
     let user = GetUserFromJwtToken(req.headers.authorization);
 
     Service.User.FindUserByEmail(user).then(userData => {
@@ -196,7 +206,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({ error: 'Your account does not have 2FA activated.' });
       } else {
         // Check 2FA confirmation is valid
-        let isValid =  speakeasy.totp.verifyDelta({
+        let isValid = speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
           token: req.body.code,
           encoding: 'base32',
@@ -521,12 +531,12 @@ module.exports = (Router, Service, Logger, App) => {
     const metadata = req.body.metadata;
 
     Service.Folder.UpdateMetadata(folderId, metadata)
-    .then((result) => {
-      res.status(200).json(result);
-    }).catch((error) => {
-      Logger.error(`Error updating metadata from folder ${req.params.id} : ${error}`)
-      res.status(500).json(error.message)
-    })
+      .then((result) => {
+        res.status(200).json(result);
+      }).catch((error) => {
+        Logger.error(`Error updating metadata from folder ${req.params.id} : ${error}`)
+        res.status(500).json(error.message)
+      })
   });
 
   /**
@@ -845,8 +855,46 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
+  /**
+   * Change X Cloud password.
+   */
+  Router.patch('/user/password', passportAuth, (req, res) => {
+    let user = GetUserFromJwtToken(req.headers.authorization);
+
+    let currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
+    let newPassword = App.services.Crypt.decryptText(req.body.newPassword);
+    let newSalt = App.services.Crypt.decryptText(req.body.newSalt);
+    let mnemonic = req.body.mnemonic;
+
+    console.log('Update Password and Mnemonic');
+
+    Service.User.UpdatePasswordMnemonic(user, currentPassword, newPassword, newSalt, mnemonic)
+    .then(result => {
+      console.log('Res OK');
+      res.status(200).send({});
+    }).catch(err => {
+      console.log('Res FAIL');
+      console.log(err);
+      res.status(500).send(err); 
+    });
+  });
+
+  /**
+   * Request password change
+   */
+  Router.patch('/user/reset', (req, res) => {
+
+  });
+
+  /**
+   * Confirm password reset
+   */
+  Router.post('/user/reset', (req, res) => {
+
+  });
+
   function GetUserFromJwtToken(token) {
-    return jwt.decode(token.split(" ")[1], App.config.get('secrets').JWT);
+    return jwt.decode(token.split(' ')[1], App.config.get('secrets').JWT);
   }
 
   return Router
