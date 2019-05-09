@@ -65,7 +65,7 @@ module.exports = (Model, App) => {
         as: 'descendents',
         hierarchy: true,
         include: [
-          { 
+          {
             model: Model.icon,
             as: 'icon'
           }
@@ -76,15 +76,10 @@ module.exports = (Model, App) => {
         as: 'files'
       },
       {
-        model: Model.users,
-        as: 'user',
-        where: { email }
-      },
-      { 
         model: Model.icon,
         as: 'icon'
       }
-    ]
+      ]
     });
 
     // Null result implies empty folder.
@@ -101,7 +96,7 @@ module.exports = (Model, App) => {
     return result
   }
 
-  const UpdateMetadata = async (folderId ,metadata) => {
+  const UpdateMetadata = async (folderId, metadata) => {
     let result = null;
     // If icon or color is passed, update folder fields
     if (metadata.itemName || metadata.color || metadata.icon) {
