@@ -38,6 +38,7 @@ module.exports = (Router, Service, Logger, App) => {
    */
 
   Router.post('/login', function (req, res) {
+    req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
       res.status(400).send({ error: 'No email address specified' });
       return;
