@@ -2,9 +2,14 @@
 
 module.exports = (sequelize, DataTypes) => {
 
-    const share = sequelize.define('shares',
+    const Share = sequelize.define('shares',
         {
-            id: DataTypes.STRING,
+            id: {
+                type: DataTypes.INTEGER,
+                primaryKey: true,
+                allowNull: false,
+                autoIncrement: true
+            },
             token: DataTypes.DECIMAL(10, 2),
             user: DataTypes.INTEGER,
             file: DataTypes.STRING,
@@ -15,9 +20,9 @@ module.exports = (sequelize, DataTypes) => {
         });
 
 
-    share.associate = function (models) {
+    Share.associate = function (models) {
         // associations can be defined here
     };
 
-    return share;
+    return Share;
 };
