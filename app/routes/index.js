@@ -870,14 +870,14 @@ module.exports = (Router, Service, Logger, App) => {
     console.log('Update Password and Mnemonic');
 
     Service.User.UpdatePasswordMnemonic(user, currentPassword, newPassword, newSalt, mnemonic)
-    .then(result => {
-      console.log('Res OK');
-      res.status(200).send({});
-    }).catch(err => {
-      console.log('Res FAIL');
-      console.log(err);
-      res.status(500).send(err); 
-    });
+      .then(result => {
+        console.log('Res OK');
+        res.status(200).send({});
+      }).catch(err => {
+        console.log('Res FAIL');
+        console.log(err);
+        res.status(500).send(err);
+      });
   });
 
   /**
@@ -891,6 +891,68 @@ module.exports = (Router, Service, Logger, App) => {
    * Confirm password reset
    */
   Router.post('/user/reset', (req, res) => {
+
+  });
+
+  Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
+    const user = GetUserFromJwtToken(req.headers.authorization);
+    Service.Share.GenerateToken(user, req.params.id, req.headers['internxt-mnemonic'])
+      .then(result => {
+        res.status(200).send(result);
+      })
+      .catch(err => {
+        console.log("Error:", err);
+        res.status(404).send(err.error ? err.error : { error: 'Internal Server Error' });
+      });
+  });
+
+  Router.get('/storage/share/:token', async (req, res) => {
+
+    Service.Share.FindOne(req.params.token).then(result => {
+
+
+      Service.User.FindUserByEmail(result.user)
+        .then(userData => {
+
+          const fileIdInBucket = result.file;
+          userData.mnemonic = result.mnemonic;
+
+          Service.Files.Download(userData, fileIdInBucket)
+            .then(({ filestream, mimetype, downloadFile }) => {
+              filePath = downloadFile;
+              const fileName = downloadFile.split('/')[2];
+              const extSeparatorPos = fileName.lastIndexOf('.')
+              const fileNameNoExt = fileName.slice(0, extSeparatorPos)
+              const fileExt = fileName.slice(extSeparatorPos + 1);
+              const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt);
+
+              res.setHeader('Content-type', mimetype);
+              res.set('x-file-name', `${decryptedFileName}.${fileExt}`);
+
+              filestream.pipe(res)
+              fs.unlink(filePath, (error) => {
+                if (error) throw error;
+              });
+
+            }).catch(({ message }) => {
+              if (message === 'Bridge rate limit error') {
+                res.status(402).json({ message })
+                return;
+              }
+              res.status(500).json({ message })
+            })
+
+
+
+        }).catch(err => {
+          console.error(err);
+          res.status(500).send({ error: 'User not found' });
+        });
+
+    }).catch(err => {
+      console.error("Error", err);
+      res.status(500).send({ error: 'Invalid token' });
+    });
 
   });
 
