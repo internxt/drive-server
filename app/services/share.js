@@ -10,6 +10,7 @@ module.exports = (Model, App) => {
                 }
             }).then(result => {
                 if (result) {
+                    result.destroy();
                     resolve(result.dataValues);
                 } else {
                     reject('Not valid token');
