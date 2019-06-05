@@ -99,7 +99,7 @@ module.exports = (Model, App) => {
   const UpdateMetadata = async (folderId, metadata) => {
     let result = null;
     // If icon or color is passed, update folder fields
-    if (metadata.itemName || metadata.color || metadata.icon) {
+    if (metadata.itemName || metadata.color || (typeof metadata.icon === 'number' && metadata.icon >= 0)) {
       // Get folder to update metadata
       const folder = await Model.folder.findOne({ where: { id: folderId } });
 
