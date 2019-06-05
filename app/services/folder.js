@@ -116,7 +116,7 @@ module.exports = (Model, App) => {
         }
       }
       if (metadata.color) newMeta.color = metadata.color;
-      if (metadata.icon) newMeta.icon_id = metadata.icon;
+      if (typeof metadata.icon === 'number' && metadata.icon >= 0) newMeta.icon_id = metadata.icon;
 
       result = await folder.update(newMeta);
     }
