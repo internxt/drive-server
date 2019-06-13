@@ -630,7 +630,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(201).json(result)
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
-        if (err === 'Bridge rate limit error') {
+        if (err.includes('Bridge rate limit error')) {
           res.status(402).json({ message: err })
           return;
         }

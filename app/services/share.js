@@ -40,7 +40,7 @@ module.exports = (Model, App) => {
             }
 
             // Generate a new token
-            var newToken = crypto.randomBytes(100).toString('hex');
+            var newToken = crypto.randomBytes(5).toString('hex');
 
             Model.shares.findOne({
                 where: {
