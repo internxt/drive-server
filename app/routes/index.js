@@ -1,10 +1,10 @@
 const jwt = require('jsonwebtoken');
 const passport = require('passport')
 const fs = require('fs');
-const upload = require('./../middleware/multer')
-const swaggerSpec = require('./../../config/initializers/swagger')
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode')
+const upload = require('./../middleware/multer')
+const swaggerSpec = require('./../../config/initializers/swagger')
 
 /**
  * JWT
@@ -94,7 +94,7 @@ module.exports = (Router, Service, Logger, App) => {
 
       // 2-Factor Auth. Verification
       const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
-      var tfa_result = true;
+      let tfa_result = true;
 
       if (needsTfa) {
         tfa_result = speakeasy.totp.verifyDelta({
@@ -116,8 +116,8 @@ module.exports = (Router, Service, Logger, App) => {
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id
         }, App.config.get('secrets').JWT, {
-            expiresIn: '1d'
-          });
+          expiresIn: '1d'
+        });
 
         res.status(200).json({
           user: {
@@ -147,35 +147,35 @@ module.exports = (Router, Service, Logger, App) => {
    * Prevent 2FA users from getting a new code.
    */
   Router.get('/tfa', passportAuth, function (req, res) {
-    let user = GetUserFromJwtToken(req.headers.authorization);
-    Service.User.FindUserByEmail(user).then(async userData => {
+    const user = GetUserFromJwtToken(req.headers.authorization);
+    Service.User.FindUserByEmail(user).then(async (userData) => {
       if (!userData) {
         res.status(500).send({ error: 'User does not exists' });
       } else if (userData.secret_2FA) {
         res.status(500).send({ error: 'User has already 2FA' });
       } else {
-        let secret = speakeasy.generateSecret({ length: 10 });
-        let url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
-        var bidi = await qrcode.toDataURL(url);
+        const secret = speakeasy.generateSecret({ length: 10 });
+        const url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
+        const bidi = await qrcode.toDataURL(url);
         res.status(200).send({
           code: secret.base32,
           qr: bidi
         });
       }
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send({ error: 'Server error' });
     });
   });
 
   Router.put('/tfa', passportAuth, function (req, res) {
-    let user = GetUserFromJwtToken(req.headers.authorization);
+    const user = GetUserFromJwtToken(req.headers.authorization);
 
-    Service.User.FindUserByEmail(user).then(userData => {
+    Service.User.FindUserByEmail(user).then((userData) => {
       if (userData.secret_2FA) {
         res.status(500).send({ error: 'User already has 2FA' });
       } else {
         // Check 2FA
-        let isValid = speakeasy.totp.verifyDelta({
+        const isValid = speakeasy.totp.verifyDelta({
           secret: req.body.key,
           token: req.body.code,
           encoding: 'base32',
@@ -184,30 +184,30 @@ module.exports = (Router, Service, Logger, App) => {
 
         if (isValid) {
           Service.User.Store2FA(user, req.body.key)
-            .then(result => {
+            .then((result) => {
               res.status(200).send({ message: 'ok' });
             })
-            .catch(err => {
+            .catch((err) => {
               res.status(500).send({ error: 'Error storing configuration' });
             })
         } else {
           res.status(500).send({ error: 'Code is not valid' });
         }
       }
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send({ error: 'Internal server error' });
     });
   });
 
   Router.delete('/tfa', function (req, res) {
-    let user = GetUserFromJwtToken(req.headers.authorization);
+    const user = GetUserFromJwtToken(req.headers.authorization);
 
-    Service.User.FindUserByEmail(user).then(userData => {
+    Service.User.FindUserByEmail(user).then((userData) => {
       if (!userData.secret_2FA) {
         res.status(500).send({ error: 'Your account does not have 2FA activated.' });
       } else {
         // Check 2FA confirmation is valid
-        let isValid = speakeasy.totp.verifyDelta({
+        const isValid = speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
           token: req.body.code,
           encoding: 'base32',
@@ -222,17 +222,16 @@ module.exports = (Router, Service, Logger, App) => {
         } else if (!isValid) {
           res.status(500).send({ error: 'Invalid 2FA code. Please, use an updated code.' });
         } else {
-          Service.User.Delete2FA(user).then(result => {
+          Service.User.Delete2FA(user).then((result) => {
             res.status(200).send({ message: 'ok' });
-          }).catch(err => {
+          }).catch((err) => {
             res.status(500).send({ error: 'Server error deactivating user 2FA. Try again later.' });
           });
         }
       }
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send();
     })
-
   })
 
   /**
@@ -272,8 +271,7 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(err.message + '\n' + err.stack);
         res.send(err.message);
       })
-    }
-    else {
+    } else {
       res.status(400).send({ message: 'You must provide registration data' });
     }
   });
@@ -318,24 +316,23 @@ module.exports = (Router, Service, Logger, App) => {
     const axios = require('axios');
     const crypto = require('crypto')
 
-    var fullToken = req.body.token;
+    const fullToken = req.body.token;
 
-    var fullTokenJson = JSON.parse(fullToken);
-    var user = fullTokenJson.email;
-    var planToSubscribe = req.body.plan;
+    const fullTokenJson = JSON.parse(fullToken);
+    const user = fullTokenJson.email;
+    const planToSubscribe = req.body.plan;
 
 
-    Service.User.FindUserByEmail(user).then(userData => {
-
+    Service.User.FindUserByEmail(user).then((userData) => {
       console.log('USER FOUND', userData);
 
-      let pwd = userData.userId;
-      let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
-      let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+      const pwd = userData.userId;
+      const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+      const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
       console.log('CREDENTIAL: ', credential);
 
-      let endpoint = App.config.get('STORJ_BRIDGE') + '/subscription';
+      const endpoint = App.config.get('STORJ_BRIDGE') + '/subscription';
 
       console.log(endpoint);
 
@@ -348,93 +345,82 @@ module.exports = (Router, Service, Logger, App) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + credential
+            Authorization: 'Basic ' + credential
           }
-        }).then(data => {
-          console.log('AXIOS REQUEST: ', data);
-          console.log(data);
-          res.status(200).send({ message: 'Purchased OK' });
-        }).catch(err => {
-          if (err.response.data.error) {
-            res.status(400).send({ message: err.response.data.error });
-          }
-          else {
-            res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
-          }
-        });
-
-    }).catch(err => {
+        }).then((data) => {
+        console.log('AXIOS REQUEST: ', data);
+        console.log(data);
+        res.status(200).send({ message: 'Purchased OK' });
+      }).catch((err) => {
+        if (err.response.data.error) {
+          res.status(400).send({ message: err.response.data.error });
+        } else {
+          res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
+        }
+      });
+    }).catch((err) => {
       console.log(err);
       res.status(400).send({ message: 'Error purchasing: User not found' });
     });
-
   });
 
 
   Router.post('/plans', function (req, res) {
-    let x = Service.Plan.ListAll().then(data => {
+    const x = Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);
-    }).catch(e => {
+    }).catch((e) => {
       res.status(400).json({ message: 'Error retrieving list of plans' });
     });
   });
 
   Router.post('/usage', function (req, res) {
-
     const axios = require('axios');
     const crypto = require('crypto')
 
     Service.User.FindUserByEmail(req.body.email)
-      .then(userData => {
+      .then((userData) => {
+        const pwd = userData.userId;
+        const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
 
-        let pwd = userData.userId;
-        let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
-
-        let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+        const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
         axios.get(App.config.get('STORJ_BRIDGE') + '/usage', {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + credential
+            Authorization: 'Basic ' + credential
           }
-        }).then(data => {
+        }).then((data) => {
           res.status(200).send(data.data);
-
-        }).catch(err => {
+        }).catch((err) => {
           res.status(400).send({ result: 'Error retrieving bridge information' });
-
         });
-
-      }).catch(err => {
+      }).catch((err) => {
         res.status(400).send({ result: 'Error retrieving user info' });
       });
   });
 
   Router.post('/limit', function (req, res) {
-
     const axios = require('axios');
     const crypto = require('crypto')
 
     Service.User.FindUserByEmail(req.body.email)
-      .then(userData => {
+      .then((userData) => {
+        const pwd = userData.userId;
+        const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
 
-        let pwd = userData.userId;
-        let pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
-
-        let credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+        const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
         axios.get(App.config.get('STORJ_BRIDGE') + '/limit', {
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + credential
+            Authorization: 'Basic ' + credential
           }
-        }).then(data => {
+        }).then((data) => {
           res.status(200).send(data.data);
-        }).catch(err => {
+        }).catch((err) => {
           res.status(400).send({ result: 'Error retrieving bridge information' });
         });
-
-      }).catch(err => {
+      }).catch((err) => {
         res.status(400).send({ result: 'Error retrieving user info' });
       });
   });
@@ -791,16 +777,16 @@ module.exports = (Router, Service, Logger, App) => {
     const fileIdInBucket = req.params.fileid
 
     Service.Files.Delete(user, bucketId, fileIdInBucket)
-      .then(result => {
+      .then((result) => {
         res.status(200).json({ deleted: true })
-      }).catch(err => {
+      }).catch((err) => {
         Logger.error(err.stack);
         res.status(500).json({ error: err.message })
       })
   })
 
   Router.get('/user/isactivated', passportAuth, function (req, res) {
-    let user = GetUserFromJwtToken(req.headers.authorization);
+    const user = GetUserFromJwtToken(req.headers.authorization);
     Service.Storj.IsUserActivated(user).then((response) => {
       if (response.data) {
         res.status(200).send({ activated: response.data.activated })
@@ -836,20 +822,20 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/deactivate', passportAuth, function (req, res) {
-    let user = GetUserFromJwtToken(req.headers.authorization);
-    Service.User.DeactivateUser(user).then(bridgeRes => {
+    const user = GetUserFromJwtToken(req.headers.authorization);
+    Service.User.DeactivateUser(user).then((bridgeRes) => {
       res.status(200).send({ error: null, message: 'User deactivated' });
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send({ error: err.message });
     });
   });
 
   Router.get('/confirmDeactivation/:token', (req, res) => {
-    let token = req.params.token;
+    const token = req.params.token;
 
-    Service.User.ConfirmDeactivateUser(token).then(resConfirm => {
+    Service.User.ConfirmDeactivateUser(token).then((resConfirm) => {
       res.status(resConfirm.status).send(req.data);
-    }).catch(err => {
+    }).catch((err) => {
       console.log('Deactivation request to Server failed');
       console.log(err);
       res.status(400).send({ error: err.message });
@@ -860,20 +846,20 @@ module.exports = (Router, Service, Logger, App) => {
    * Change X Cloud password.
    */
   Router.patch('/user/password', passportAuth, (req, res) => {
-    let user = GetUserFromJwtToken(req.headers.authorization);
+    const user = GetUserFromJwtToken(req.headers.authorization);
 
-    let currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
-    let newPassword = App.services.Crypt.decryptText(req.body.newPassword);
-    let newSalt = App.services.Crypt.decryptText(req.body.newSalt);
-    let mnemonic = req.body.mnemonic;
+    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
+    const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
+    const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
+    const mnemonic = req.body.mnemonic;
 
     console.log('Update Password and Mnemonic');
 
     Service.User.UpdatePasswordMnemonic(user, currentPassword, newPassword, newSalt, mnemonic)
-      .then(result => {
+      .then((result) => {
         console.log('Res OK');
         res.status(200).send({});
-      }).catch(err => {
+      }).catch((err) => {
         console.log('Res FAIL');
         console.log(err);
         res.status(500).send(err);
@@ -897,23 +883,19 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = GetUserFromJwtToken(req.headers.authorization);
     Service.Share.GenerateToken(user, req.params.id, req.headers['internxt-mnemonic'])
-      .then(result => {
+      .then((result) => {
         res.status(200).send(result);
       })
-      .catch(err => {
-        console.log("Error:", err);
+      .catch((err) => {
+        console.log('Error:', err);
         res.status(404).send(err.error ? err.error : { error: 'Internal Server Error' });
       });
   });
 
   Router.get('/storage/share/:token', async (req, res) => {
-
-    Service.Share.FindOne(req.params.token).then(result => {
-
-
+    Service.Share.FindOne(req.params.token).then((result) => {
       Service.User.FindUserByEmail(result.user)
-        .then(userData => {
-
+        .then((userData) => {
           const fileIdInBucket = result.file;
           userData.mnemonic = result.mnemonic;
 
@@ -933,7 +915,6 @@ module.exports = (Router, Service, Logger, App) => {
               fs.unlink(filePath, (error) => {
                 if (error) throw error;
               });
-
             }).catch(({ message }) => {
               if (message === 'Bridge rate limit error') {
                 res.status(402).json({ message })
@@ -941,19 +922,14 @@ module.exports = (Router, Service, Logger, App) => {
               }
               res.status(500).json({ message })
             })
-
-
-
-        }).catch(err => {
+        }).catch((err) => {
           console.error(err);
           res.status(500).send({ error: 'User not found' });
         });
-
-    }).catch(err => {
-      console.error("Error", err);
+    }).catch((err) => {
+      console.error('Error', err);
       res.status(500).send({ error: 'Invalid token' });
     });
-
   });
 
   function GetUserFromJwtToken(token) {

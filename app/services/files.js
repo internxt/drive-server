@@ -4,7 +4,7 @@ module.exports = (Model, App) => {
   const CreateFile = (file) => {
     return new Promise(async (resolve, reject) => {
       Model.folder.findOne({ where: { bucket: file.folder_id } })
-        .then(folder => {
+        .then((folder) => {
           // Attention: bucketId is the fileId.
           Model.file.create({
             bucketId: file.fileId,
@@ -14,12 +14,12 @@ module.exports = (Model, App) => {
             folder_id: folder.id,
             fileId: file.fileId,
             bucket: file.folder_id
-          }).then(creation => {
+          }).then((creation) => {
             resolve(creation);
-          }).catch(err => {
+          }).catch((err) => {
             reject('Unable to create file in database');
           });
-        }).catch(err => {
+        }).catch((err) => {
           reject('Cannot find bucket ' + file.folder_id);
         });
     })
@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = fileName.slice(0, extSeparatorPos)
 
-        App.logger.info(`Encrypting file name`)
+        App.logger.info('Encrypting file name')
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
         const exists = await Model.file.findOne({ where: { name: encryptedFileName, folder_id: folderId } })
@@ -44,7 +44,7 @@ module.exports = (Model, App) => {
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
 
-        App.logger.info(`Uploading file to network`)
+        App.logger.info('Uploading file to network')
         App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
             const addedFile = await Model.file.create({
@@ -101,7 +101,7 @@ module.exports = (Model, App) => {
           }
         }).catch(async (err) => {
           if (err.message == 'Resource not found') {
-            var file = await Model.file.findOne({ where: { fileId }});
+            const file = await Model.file.findOne({ where: { fileId } });
             await file.destroy();
           }
           reject(err)

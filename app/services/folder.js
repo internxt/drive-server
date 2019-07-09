@@ -57,7 +57,6 @@ module.exports = (Model, App) => {
 
 
   const GetContent = async (folderId, email) => {
-
     const result = await Model.folder.find({
       where: { id: folderId },
       include: [{

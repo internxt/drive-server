@@ -162,32 +162,28 @@ module.exports = (Model, App) => {
 
   const DeactivateUser = (email) => {
     return new Promise((resolve, reject) => {
-
-      Model.users.findOne({ where: { email: email } }).then(user => {
-
+      Model.users.findOne({ where: { email } }).then((user) => {
         const crypto = require('crypto-js');
         const password = crypto.SHA256(user.userId).toString();
-        const auth = new Buffer(user.email + ':' + password).toString('base64');
+        const auth = Buffer.from(user.email + ':' + password).toString('base64');
 
         axios.delete(App.config.get('STORJ_BRIDGE') + '/users/' + email,
           {
             headers: {
-              'Authorization': 'Basic ' + auth,
+              Authorization: 'Basic ' + auth,
               'Content-Type': 'application/json'
             }
           })
-          .then(data => {
+          .then((data) => {
             resolve(data);
           })
-          .catch(err => {
+          .catch((err) => {
             console.log(err.response.data);
             reject(err);
           });
-
-      }).catch(err => {
+      }).catch((err) => {
         reject(err);
       });
-
     });
   }
 
@@ -198,38 +194,37 @@ module.exports = (Model, App) => {
           headers: {
             'Content-Type': 'application/json'
           }
-        }).then(res => {
-          resolve(res);
-        }).catch(err => {
-          reject(err);
-        });
+        }).then((res) => {
+        resolve(res);
+      }).catch((err) => {
+        reject(err);
+      });
     });
   }
 
   const ResetPassword = (email) => {
     return new Promise((resolve, reject) => {
-      Model.user.findOne({ where: { email: email } })
-        .then(user => {
+      Model.user.findOne({ where: { email } })
+        .then((user) => {
           const crypto = require('crypto-js');
           const password = crypto.SHA256(user.userId).toString();
-          const auth = new Buffer(user.email + ':' + password).toString('base64');
+          const auth = Buffer.from(user.email + ':' + password).toString('base64');
 
           axios.patch(App.config.get('STORJ_BRIDGE') + '/users/' + email, {
             headers: {
-              'Authorization': 'Basic ' + auth,
+              Authorization: 'Basic ' + auth,
               'Content-Type': 'application/json'
             }
           })
-            .then(res => {
+            .then((res) => {
               resolve(res);
             })
-            .catch(err => {
+            .catch((err) => {
               console.error(err.response.data);
               reject(err);
             });
-
         })
-        .catch(err => {
+        .catch((err) => {
           reject(err);
         });
     });
@@ -244,9 +239,9 @@ module.exports = (Model, App) => {
         body: JSON.stringify({
           password: newPassword
         })
-      }).then(res => {
+      }).then((res) => {
         resolve(res);
-      }).catch(err => {
+      }).catch((err) => {
         reject(err);
       });
     });
@@ -254,9 +249,9 @@ module.exports = (Model, App) => {
 
   const Store2FA = (user, key) => {
     return new Promise((resolve, reject) => {
-      Model.users.update({ secret_2FA: key }, { where: { email: user } }).then(result => {
+      Model.users.update({ secret_2FA: key }, { where: { email: user } }).then((result) => {
         resolve()
-      }).catch(err => {
+      }).catch((err) => {
         reject();
       });
     });
@@ -264,9 +259,9 @@ module.exports = (Model, App) => {
 
   const Delete2FA = (user) => {
     return new Promise((resolve, reject) => {
-      Model.users.update({ secret_2FA: null }, { where: { email: user } }).then(result => {
+      Model.users.update({ secret_2FA: null }, { where: { email: user } }).then((result) => {
         resolve()
-      }).catch(err => {
+      }).catch((err) => {
         reject();
       });
     });
@@ -274,34 +269,32 @@ module.exports = (Model, App) => {
 
   const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic) => {
     return new Promise((resolve, reject) => {
-      FindUserByEmail(user).then(userData => {
+      FindUserByEmail(user).then((userData) => {
         console.log('Found on database');
-        let storedPassword = userData.password.toString();
+        const storedPassword = userData.password.toString();
         if (storedPassword != currentPassword) {
           console.log('Invalid password');
           reject({ error: 'Invalid password' });
         } else {
           console.log('Valid password');
-          
+
           resolve();
 
-          
+
           Model.users.update({
             password: newPassword,
-            mnemonic: mnemonic,
+            mnemonic,
             hKey: newSalt
-          }, { where: { email: user }})
-          .then(res => {
-            console.log('Updated', res);
-            resolve();
-          }).catch(err => {
-            console.log('error updating', err);
-            reject({ error: 'Error updating info' });
-          });
-
-          
+          }, { where: { email: user } })
+            .then((res) => {
+              console.log('Updated', res);
+              resolve();
+            }).catch((err) => {
+              console.log('error updating', err);
+              reject({ error: 'Error updating info' });
+            });
         }
-      }).catch(err => {
+      }).catch((err) => {
         reject({ error: 'Internal server error' });
       });
     });

@@ -1,4 +1,4 @@
-'use strict';
+
 module.exports = (sequelize, DataTypes) => {
   const subscription = sequelize.define('subscription', {
     user: {
@@ -14,11 +14,11 @@ module.exports = (sequelize, DataTypes) => {
     expiration: DataTypes.DATE,
     is_active: DataTypes.BOOLEAN
   }, {
-      timestamps: false
-    });
+    timestamps: false
+  });
   subscription.associate = function (models) {
-    //subscription.hasOne(models.User);
-    //subscription.hasOne(models.plan);
+    // subscription.hasOne(models.User);
+    // subscription.hasOne(models.plan);
   };
   return subscription;
 };
