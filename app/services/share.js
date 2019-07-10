@@ -1,12 +1,13 @@
 const crypto = require('crypto');
+const sequelize = require('sequelize');
+
+const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
   const FindOne = (token) => {
     return new Promise((resolve, reject) => {
       Model.shares.findOne({
-        where: {
-          token
-        }
+        where: { token: { [Op.eq]: token } }
       }).then((result) => {
         if (result) {
           result.destroy();
@@ -30,7 +31,7 @@ module.exports = (Model, App) => {
       }
 
       // Check if file exists
-      const fileExists = await Model.file.findOne({ where: { fileId: fileIdInBucket } });
+      const fileExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });
 
       if (!fileExists) {
         reject('File not found');
@@ -41,10 +42,7 @@ module.exports = (Model, App) => {
       const newToken = crypto.randomBytes(5).toString('hex');
 
       Model.shares.findOne({
-        where: {
-          file: fileIdInBucket,
-          user
-        }
+        where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } }
       }).then((tokenData) => {
         if (tokenData) {
           // Update token
@@ -54,7 +52,7 @@ module.exports = (Model, App) => {
               mnemonic
             },
             {
-              where: { id: tokenData.id }
+              where: { id: { [Op.eq]: tokenData.id } }
             }
           );
           resolve({ token: newToken });

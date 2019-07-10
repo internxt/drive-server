@@ -1,3 +1,7 @@
+const sequelize = require('sequelize');
+
+const Op = sequelize.Op;
+
 module.exports = (Model, App) => {
   const ListAll = () => {
     return new Promise(async (resolve, reject) => {
@@ -15,9 +19,7 @@ module.exports = (Model, App) => {
       try {
         const result = await Model.plans.findOne({
           raw: true,
-          where: {
-            stripe_plan_id: stripeCode
-          }
+          where: { stripe_plan_id: { [Op.eq]: stripeCode } }
         });
         resolve(result);
       } catch (error) {

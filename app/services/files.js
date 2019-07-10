@@ -1,9 +1,12 @@
 const fs = require('fs');
+const sequelize = require('sequelize');
+
+const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
   const CreateFile = (file) => {
     return new Promise(async (resolve, reject) => {
-      Model.folder.findOne({ where: { bucket: file.folder_id } })
+      Model.folder.findOne({ where: { bucket: { [Op.eq]: file.folder_id } } })
         .then((folder) => {
           // Attention: bucketId is the fileId.
           Model.file.create({
@@ -30,7 +33,7 @@ module.exports = (Model, App) => {
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         App.logger.info(`Starting file upload: ${fileName}`)
-        const folder = await Model.folder.findOne({ where: { id: folderId } })
+        const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
         App.logger.info(`Found upload folder: ${folder.name}`)
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = fileName.slice(0, extSeparatorPos)
@@ -38,7 +41,7 @@ module.exports = (Model, App) => {
         App.logger.info('Encrypting file name')
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
-        const exists = await Model.file.findOne({ where: { name: encryptedFileName, folder_id: folderId } })
+        const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } })
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1);
 
@@ -71,7 +74,7 @@ module.exports = (Model, App) => {
   const Download = (user, fileId) => {
     return new Promise(async (resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
-      const file = await Model.file.find({ where: { fileId } })
+      const file = await Model.file.find({ where: { fileId: { [Op.eq]: fileId } } })
       App.services.Storj.ResolveFile(user, file)
         .then((result) => {
           resolve(result)
@@ -88,7 +91,7 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       App.services.Storj.DeleteFile(user, bucket, fileId)
         .then(async (result) => {
-          const file = await Model.file.findOne({ where: { fileId } })
+          const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } })
           if (file) {
             const isDestroyed = await file.destroy()
             if (isDestroyed) {
@@ -101,7 +104,7 @@ module.exports = (Model, App) => {
           }
         }).catch(async (err) => {
           if (err.message == 'Resource not found') {
-            const file = await Model.file.findOne({ where: { fileId } });
+            const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
             await file.destroy();
           }
           reject(err)
@@ -114,14 +117,14 @@ module.exports = (Model, App) => {
     // If metadata is passed, update file fields
     if (metadata.itemName) {
       // Get file to update metadata
-      const file = await Model.file.findOne({ where: { fileId } });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
       const newMeta = {}
       if (metadata.itemName) {
         // Check if exists file with new name
         const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName);
         const exists = await Model.file.findOne({
-          where: { folder_id: file.folder_id, name: cryptoFileName }
+          where: { folder_id: { [Op.eq]: file.folder_id }, name: { [Op.eq]: cryptoFileName } }
         });
         if (exists) throw new Error('File with this name exists')
         else {
@@ -137,11 +140,11 @@ module.exports = (Model, App) => {
 
   const MoveFile = (fileId, destination) => {
     return new Promise(async (resolve, reject) => {
-      const file = await Model.file.findOne({ where: { fileId } });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
       if (!file) {
         reject(new Error('File not found'));
       } else {
-        file.update({ folder_id: parseInt(destination) })
+        file.update({ folder_id: parseInt(destination, 0) })
           .then(resolve());
       }
     })

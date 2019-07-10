@@ -1,8 +1,8 @@
-'use strict';
+
 
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.addColumn('users', 'hKey', 
+    return queryInterface.addColumn('users', 'hKey',
       {
         type: Sequelize.STRING,
         allowNull: false
@@ -10,6 +10,6 @@ module.exports = {
   },
 
   down: (queryInterface, Sequelize) => {
-    return queryInterface.removeColumn('users','hKey');
+    return queryInterface.removeColumn('users', 'hKey');
   }
 };

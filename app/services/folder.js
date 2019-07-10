@@ -9,7 +9,7 @@ module.exports = (Model, App) => {
       try {
         const cryptoFolderName = App.services.Crypt.encryptName(folderName);
         const exists = await Model.folder.findOne({
-          where: { parentId: parentFolderId, name: cryptoFolderName }
+          where: { parentId: { [Op.eq]: parentFolderId }, name: { [Op.eq]: cryptoFolderName } }
         })
         if (exists) throw new Error('Folder with same name already exists')
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
@@ -30,7 +30,7 @@ module.exports = (Model, App) => {
 
   const Delete = (user, folderId) => {
     return new Promise(async (resolve, reject) => {
-      const folder = await Model.folder.findOne({ where: { id: folderId } })
+      const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
@@ -58,7 +58,7 @@ module.exports = (Model, App) => {
 
   const GetContent = async (folderId, email) => {
     const result = await Model.folder.find({
-      where: { id: folderId },
+      where: { id: { [Op.eq]: folderId } },
       include: [{
         model: Model.folder,
         as: 'descendents',
@@ -100,14 +100,14 @@ module.exports = (Model, App) => {
     // If icon or color is passed, update folder fields
     if (metadata.itemName || metadata.color || (typeof metadata.icon === 'number' && metadata.icon >= 0)) {
       // Get folder to update metadata
-      const folder = await Model.folder.findOne({ where: { id: folderId } });
+      const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } });
 
       const newMeta = {}
       if (metadata.itemName) {
         // Check if exists folder with new name
         const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName);
         const exists = await Model.folder.findOne({
-          where: { parentId: folder.parentId, name: cryptoFolderName }
+          where: { parentId: { [Op.eq]: folder.parentId }, name: { [Op.eq]: cryptoFolderName } }
         });
         if (exists) throw new Error('Folder with this name exists')
         else {

@@ -1,4 +1,7 @@
 const axios = require('axios')
+const sequelize = require('sequelize');
+
+const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
   const logger = App.logger;
@@ -15,7 +18,7 @@ module.exports = (Model, App) => {
 
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
-        where: { email: user.email },
+        where: { email: { [Op.eq]: user.email } },
         defaults: {
           name: user.name,
           lastname: user.lastname,
@@ -60,7 +63,7 @@ module.exports = (Model, App) => {
 
   const InitializeUser = (user) => {
     return Model.users.sequelize.transaction(function (t) {
-      return Model.users.findOne({ where: { email: user.email } })
+      return Model.users.findOne({ where: { email: { [Op.eq]: user.email } } })
         .then(async (userData) => {
           const bcryptId = userData.userId;
 
@@ -96,7 +99,7 @@ module.exports = (Model, App) => {
 
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => {
-    return Model.users.findOne({ where: { email } })
+    return Model.users.findOne({ where: { email: { [Op.eq]: email } } })
       .then((userData) => {
         if (userData) { return userData.update({ storeMnemonic: option }); }
         throw new Error('User not found')
@@ -106,12 +109,12 @@ module.exports = (Model, App) => {
       })
   }
 
-  const GetUserById = id => Model.users.findOne({ where: { id } })
+  const GetUserById = id => Model.users.findOne({ where: { id: { [Op.eq]: id } } })
     .then((response) => {
       return response.dataValues
     })
 
-  const FindUserByEmail = email => Model.users.findOne({ where: { email } })
+  const FindUserByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } })
     .then((userData) => {
       if (userData) {
         const user = userData.dataValues;
@@ -121,7 +124,7 @@ module.exports = (Model, App) => {
       throw new Error('User not found');
     })
 
-  const FindUserObjByEmail = email => Model.users.findOne({ where: { email } })
+  const FindUserObjByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } })
     .then((userData) => {
       if (userData) {
         return userData;
@@ -139,7 +142,7 @@ module.exports = (Model, App) => {
       try {
         const user = await Model.users.update(
           { mnemonic },
-          { where: { email: userEmail }, validate: true }
+          { where: { email: { [Op.eq]: userEmail } }, validate: true }
         );
         return user
       } catch (errorResponse) {
@@ -162,7 +165,7 @@ module.exports = (Model, App) => {
 
   const DeactivateUser = (email) => {
     return new Promise((resolve, reject) => {
-      Model.users.findOne({ where: { email } }).then((user) => {
+      Model.users.findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
         const crypto = require('crypto-js');
         const password = crypto.SHA256(user.userId).toString();
         const auth = Buffer.from(user.email + ':' + password).toString('base64');
@@ -204,7 +207,7 @@ module.exports = (Model, App) => {
 
   const ResetPassword = (email) => {
     return new Promise((resolve, reject) => {
-      Model.user.findOne({ where: { email } })
+      Model.user.findOne({ where: { email: { [Op.eq]: email } } })
         .then((user) => {
           const crypto = require('crypto-js');
           const password = crypto.SHA256(user.userId).toString();
@@ -249,7 +252,7 @@ module.exports = (Model, App) => {
 
   const Store2FA = (user, key) => {
     return new Promise((resolve, reject) => {
-      Model.users.update({ secret_2FA: key }, { where: { email: user } }).then((result) => {
+      Model.users.update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } }).then((result) => {
         resolve()
       }).catch((err) => {
         reject();
@@ -259,7 +262,7 @@ module.exports = (Model, App) => {
 
   const Delete2FA = (user) => {
     return new Promise((resolve, reject) => {
-      Model.users.update({ secret_2FA: null }, { where: { email: user } }).then((result) => {
+      Model.users.update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } }).then((result) => {
         resolve()
       }).catch((err) => {
         reject();
@@ -285,7 +288,7 @@ module.exports = (Model, App) => {
             password: newPassword,
             mnemonic,
             hKey: newSalt
-          }, { where: { email: user } })
+          }, { where: { email: { [Op.eq]: user } } })
             .then((res) => {
               console.log('Updated', res);
               resolve();
