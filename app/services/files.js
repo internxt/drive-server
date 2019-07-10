@@ -74,7 +74,7 @@ module.exports = (Model, App) => {
   const Download = (user, fileId) => {
     return new Promise(async (resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
-      const file = await Model.file.find({ where: { fileId: { [Op.eq]: fileId } } })
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } })
       App.services.Storj.ResolveFile(user, file)
         .then((result) => {
           resolve(result)
