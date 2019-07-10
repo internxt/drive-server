@@ -18,7 +18,7 @@ module.exports = (Model, App) => {
 
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOrCreate({
-        where: { email: { [Op.eq]: user.email } },
+        where: { email: user.email },
         defaults: {
           name: user.name,
           lastname: user.lastname,
