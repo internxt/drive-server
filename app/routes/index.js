@@ -86,18 +86,23 @@ module.exports = (Router, Service, Logger, App) => {
    */
 
   Router.post('/access', function (req, res) {
+    const MAX_LOGIN_FAIL_ATTEMPTS = 3;
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
+      if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+        res.status(500).send({ error: 'Max loggin attempts, your account has been blocked' });
+        return;
+      }
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
 
 
       // 2-Factor Auth. Verification
       const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
-      let tfa_result = true;
+      let tfaResult = true;
 
       if (needsTfa) {
-        tfa_result = speakeasy.totp.verifyDelta({
+        tfaResult = speakeasy.totp.verifyDelta({
           secret: userData.secret_2FA,
           token: req.body.tfa,
           encoding: 'base32',
@@ -105,9 +110,9 @@ module.exports = (Router, Service, Logger, App) => {
         });
       }
 
-      if (!tfa_result) {
+      if (!tfaResult) {
         res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass == userData.password && tfa_result) {
+      } else if (pass == userData.password && tfaResult) {
         // Successfull login
         const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
 
@@ -119,6 +124,7 @@ module.exports = (Router, Service, Logger, App) => {
           expiresIn: '1d'
         });
 
+        Service.User.LoginFailed(req.body.email, false);
         res.status(200).json({
           user: {
             userId: userData.userId,
@@ -133,6 +139,9 @@ module.exports = (Router, Service, Logger, App) => {
         });
       } else {
         // Wrong password
+        if (pass !== userData.password) {
+          Service.User.LoginFailed(req.body.email, true);
+        }
         res.status(400).json({ error: 'Wrong email/password' });
       }
     }).catch((err) => {

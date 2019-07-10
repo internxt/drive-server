@@ -303,6 +303,21 @@ module.exports = (Model, App) => {
     });
   }
 
+  const LoginFailed = (user, loginFailed) => {
+    return new Promise((resolve, reject) => {
+      Model.users.update({
+        errorLoginCount: loginFailed ? sequelize.literal('errorLoginCount + 1') : 0
+      }, {
+        where: { email: user }
+      }).then((res) => {
+        resolve();
+      })
+        .catch((err) => {
+          reject(err)
+        });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -319,6 +334,7 @@ module.exports = (Model, App) => {
     ConfirmDeactivateUser,
     Store2FA,
     Delete2FA,
-    UpdatePasswordMnemonic
+    UpdatePasswordMnemonic,
+    LoginFailed
   }
 }
