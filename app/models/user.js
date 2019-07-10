@@ -7,20 +7,20 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true
     },
     userId: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     lastname: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     email: {
       type: DataTypes.STRING,
       allowNull: false
     },
     password: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     mnemonic: {
       type: DataTypes.STRING
@@ -38,7 +38,7 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     isFreeTier: {
-      type: DataTypes.BOOLEAN,
+      type: DataTypes.BOOLEAN
     },
     isCreated: {
       type: DataTypes.VIRTUAL
@@ -48,7 +48,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     secret_2FA: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
+    },
+    errorLoginCount: {
+      type: DataTypes.INTEGER
     }
   },
   {
