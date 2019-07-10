@@ -90,7 +90,7 @@ module.exports = (Router, Service, Logger, App) => {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({ error: 'Max loggin attempts, your account has been blocked' });
+        res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
         return;
       }
       // Process user data and answer API call
