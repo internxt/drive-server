@@ -33,7 +33,10 @@ module.exports = (Model, App) => {
       const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
-        const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
+        try {
+          const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
+        } catch (error) {
+        }
         const isFolderDeleted = await folder.destroy()
         Model.folder.rebuildHierarchy()
         resolve(isFolderDeleted)

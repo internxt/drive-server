@@ -103,7 +103,7 @@ module.exports = (Model, App) => {
             reject('File not found')
           }
         }).catch(async (err) => {
-          if (err.message == 'Resource not found') {
+          if (err.message.includes('Resource not found')) {
             const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
             await file.destroy();
           }
