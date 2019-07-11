@@ -318,6 +318,20 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ResendActivationEmail = (user) => {
+    return new Promise((resolve, reject) => {
+      console.log(`Post to ${process.env.STORJ_BRIDGE}/activations`);
+      axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
+        email: user
+      }).then(res => {
+        console.log("RESPONSE: ", res);
+        resolve();
+      }).catch(err => {
+        reject(err);
+      });
+    });
+  }
+
 
   return {
     Name: 'User',
@@ -335,6 +349,7 @@ module.exports = (Model, App) => {
     Store2FA,
     Delete2FA,
     UpdatePasswordMnemonic,
-    LoginFailed
+    LoginFailed,
+    ResendActivationEmail
   }
 }

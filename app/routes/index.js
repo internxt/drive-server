@@ -121,8 +121,8 @@ module.exports = (Router, Service, Logger, App) => {
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id
         }, App.config.get('secrets').JWT, {
-          expiresIn: '1d'
-        });
+            expiresIn: '1d'
+          });
 
         Service.User.LoginFailed(req.body.email, false);
         res.status(200).json({
@@ -357,16 +357,16 @@ module.exports = (Router, Service, Logger, App) => {
             Authorization: 'Basic ' + credential
           }
         }).then((data) => {
-        console.log('AXIOS REQUEST: ', data);
-        console.log(data);
-        res.status(200).send({ message: 'Purchased OK' });
-      }).catch((err) => {
-        if (err.response.data.error) {
-          res.status(400).send({ message: err.response.data.error });
-        } else {
-          res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
-        }
-      });
+          console.log('AXIOS REQUEST: ', data);
+          console.log(data);
+          res.status(200).send({ message: 'Purchased OK' });
+        }).catch((err) => {
+          if (err.response.data.error) {
+            res.status(400).send({ message: err.response.data.error });
+          } else {
+            res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
+          }
+        });
     }).catch((err) => {
       console.log(err);
       res.status(400).send({ message: 'Error purchasing: User not found' });
@@ -875,20 +875,6 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  /**
-   * Request password change
-   */
-  Router.patch('/user/reset', (req, res) => {
-
-  });
-
-  /**
-   * Confirm password reset
-   */
-  Router.post('/user/reset', (req, res) => {
-
-  });
-
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = GetUserFromJwtToken(req.headers.authorization);
     Service.Share.GenerateToken(user, req.params.id, req.headers['internxt-mnemonic'])
@@ -940,6 +926,15 @@ module.exports = (Router, Service, Logger, App) => {
       res.status(500).send({ error: 'Invalid token' });
     });
   });
+
+  Router.get('/user/resend/:email', (req, res) => {
+    Service.User.ResendActivationEmail(req.params.email).then(result => {
+      console.log(result);
+      res.status(200).send({ message: 'ok' });
+    }).catch(err => {
+      res.status(500).send({ error: err.response.data && err.response.data.error ? err.response.data.error : 'Internal server error' });
+    });
+  })
 
   function GetUserFromJwtToken(token) {
     return jwt.decode(token.split(' ')[1], App.config.get('secrets').JWT);
