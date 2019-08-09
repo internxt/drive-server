@@ -7,7 +7,6 @@ const path = require('path')
 const express = require('express')
 
 module.exports = (App, Config) => {
-
   // enables cors
   App.express.use(cors({
     allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'civicToken', 'method'],

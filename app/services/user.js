@@ -323,10 +323,10 @@ module.exports = (Model, App) => {
       console.log(`Post to ${process.env.STORJ_BRIDGE}/activations`);
       axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
         email: user
-      }).then(res => {
-        console.log("RESPONSE: ", res);
+      }).then((res) => {
+        console.log('RESPONSE: ', res);
         resolve();
-      }).catch(err => {
+      }).catch((err) => {
         reject(err);
       });
     });

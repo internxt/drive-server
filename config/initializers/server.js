@@ -35,9 +35,10 @@ const Server = function(config) {
  */
 Server.prototype.start = function(callback) {
   const port = this.config.get('server:port')
-  this.logger.info(`Starting Server on port ${port}`)
-  this.instance = this.express.listen(port, callback)
-  this.initDatabase()
+  this.logger.info(`Starting Server on port ${port}`);
+  this.logger.info(`Environment: "${process.env.NODE_ENV}"`);
+  this.instance = this.express.listen(port, callback);
+  this.initDatabase();
 
   process.on('SIGINT', this.handleSIGINT.bind(this))
   process.on('exit', this.handleExit.bind(this))
@@ -52,8 +53,8 @@ Server.prototype.start = function(callback) {
  * @private
  */
 Server.prototype.handleuncaughtException = function(err) {
-  this.logger.info('an unhandled exception occurred: %s', err.stack)
-  process.exit(1)
+  this.logger.info('Unhandled exception: %s\n%s', err.message, err.stack);
+  process.exit(1);
 }
 
 /**
@@ -61,7 +62,7 @@ Server.prototype.handleuncaughtException = function(err) {
  * @private
  */
 Server.prototype.handleExit = function() {
-  this.logger.info('Server is shutting down')
+  this.logger.info('Server is shutting down');
 }
 
 /**
@@ -69,10 +70,10 @@ Server.prototype.handleExit = function() {
  * @private
  */
 Server.prototype.handleSIGINT = function() {
-  this.logger.info('Server received shutdown request, waiting for pending requests')
+  this.logger.info('Server received shutdown request, waiting for pending requests');
   this.instance.close(function() {
-    this.logger.info('Finished all requests')
-    process.exitCode = 0
+    this.logger.info('Finished all requests');
+    process.exitCode = 0;
   })
 }
 
@@ -81,12 +82,12 @@ Server.prototype.handleSIGINT = function() {
  * @private
  */
 Server.prototype.initDatabase = function() {
-  this.logger.info('Connecting to database')
-  this.database = Database(this.config.get('database'), this.logger)
+  this.logger.info('Connecting to database');
+  this.database = Database(this.config.get('database'), this.logger);
 }
 
 Server.prototype.initModels = function(Models) {
-  this.logger.info('Initializing Models')
+  this.logger.info('Initializing Models');
   this.models = Models(this.database, this)
   this.logger.info('Models OK')
 }

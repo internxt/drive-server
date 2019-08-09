@@ -11,7 +11,7 @@ module.exports = (Model, App) => {
 
   function pwdToHex(pwd) {
     try {
-      return crypto.createHash('sha256').update(pwd).digest('hex')
+      return crypto.createHash('sha256').update(pwd).digest('hex');
     } catch (error) {
       logger.error(error);
       return null;
@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
 
   function IdToBcrypt(id) {
     try {
-      return bcrypt.hashSync(id.toString(), 8)
+      return bcrypt.hashSync(id.toString(), 8);
     } catch (error) {
       logger.error(error);
       return null;
@@ -34,8 +34,8 @@ module.exports = (Model, App) => {
         bridgeUser: email,
         bridgePass: password,
         encryptionKey: mnemonic,
-        logLevel: 4
-      })
+        logLevel: 3
+      });
     } catch (error) {
       logger.error('(getEnvironment) ' + error);
       return null;
@@ -78,7 +78,7 @@ module.exports = (Model, App) => {
     try {
       const storj = getEnvironment(email, password, mnemonic);
       return new Promise((resolve, reject) => {
-        storj.createBucket(bucketName, function(err, res) {
+        storj.createBucket(bucketName, function (err, res) {
           if (err) {
             logger.error('(storj.createBucket): ' + err);
             reject(err.message)
@@ -95,7 +95,7 @@ module.exports = (Model, App) => {
   const DeleteBucket = (user, bucketId) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic)
     return new Promise((resolve, reject) => {
-      storj.deleteBucket(bucketId, function(err, result) {
+      storj.deleteBucket(bucketId, function (err, result) {
         if (err) reject(err)
         resolve(result)
       })
@@ -140,35 +140,34 @@ module.exports = (Model, App) => {
 
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
-      App.logger.info(`Resolving file ${file.name}`)
+      App.logger.info(`Resolving file ${file.name}...`)
 
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          App.logger.info('progress:', progress);
+          App.logger.info('progressito:', progress);
         },
         finishedCallback: (err) => {
           if (err) {
-            App.logger.error('Error resolving file:', err)
+            App.logger.error('Error resolving file:', err);
             reject(err)
-            return err
-          }
-          const mimetype = mime.getType(downloadFile);
-          const filestream = fs.createReadStream(downloadFile);
+          } else {
+            const mimetype = mime.getType(downloadFile);
+            const filestream = fs.createReadStream(downloadFile);
 
-          App.logger.info('File resolved!')
-          resolve({ filestream, mimetype, downloadFile })
-          storj.destroy();
-          return state
+            App.logger.info('File resolved!')
+            resolve({ filestream, mimetype, downloadFile })
+            storj.destroy();
+          }
         }
-      })
-    })
+      });
+    });
   }
 
   const DeleteFile = (user, bucketId, file) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
-      storj.deleteFile(bucketId, file, function(err, result) {
+      storj.deleteFile(bucketId, file, function (err, result) {
         if (err) {
           App.logger.error(err)
           reject(err)
@@ -181,7 +180,7 @@ module.exports = (Model, App) => {
   const ListBucketFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
-      storj.listFiles(bucketId, function(err, result) {
+      storj.listFiles(bucketId, function (err, result) {
         if (err) reject(err)
         resolve(result)
       })

@@ -15,12 +15,12 @@ const Config = function() {
   //   2. Environment variables
   //   3. A file located at 'path/to/config.json'
   // Throw if required config is missing
-  require('dotenv').load()
+  require('dotenv').config();
   nconf.argv()
   nconf.env()
   nconf.required(['NODE_ENV'])
   nconf.use('conf', { type: 'literal', store: require(`./environments/${nconf.get('NODE_ENV')}.js`).data })
-  nconf.required(['server:port'])
+  nconf.required(['server:port']);
 
   this.nconf = nconf
 
