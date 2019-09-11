@@ -9,7 +9,7 @@ exports.data = {
     password: process.env.RDS_PASSWORD
   },
   secrets: {
-    JWT: 'asdf1234',
+    JWT: process.env.JWT_SECRET || 'asdf1234',
     CRYPTO: 'asdf1234',
     CAPTCHA: process.env.CAPTCHA_SECRET,
     CRYPTO_SECRET: process.env.CRYPTO_SECRET,

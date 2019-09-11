@@ -108,9 +108,8 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.storeFile(bucketId, filePath, {
         filename: fileName,
-        progressCallback(progress, downloadedBytes, totalBytes) {
-          App.logger.info('progress:', progress);
-          App.logger.info('totalBytes:', totalBytes);
+        progressCallback(progress, uploadedBytes, totalBytes) {
+          App.logger.info('Upload Progress: %s/%s (%s)', uploadedBytes, totalBytes, progress);
           size = totalBytes;
         },
         finishedCallback(err, fileId) {
@@ -145,7 +144,7 @@ module.exports = (Model, App) => {
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          App.logger.info('progressito:', progress);
+          App.logger.info('Download file progress: %s/%s (%s)', downloadedBytes, totalBytes, progress);
         },
         finishedCallback: (err) => {
           if (err) {

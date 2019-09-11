@@ -5,6 +5,7 @@ const speakeasy = require('speakeasy');
 const qrcode = require('qrcode')
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
+const async = require('async');
 
 /**
  * JWT
@@ -121,7 +122,7 @@ module.exports = (Router, Service, Logger, App) => {
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id
         }, App.config.get('secrets').JWT, {
-          expiresIn: '1d'
+          expiresIn: '14d'
         });
 
         Service.User.LoginFailed(req.body.email, false);
@@ -134,8 +135,7 @@ module.exports = (Router, Service, Logger, App) => {
             name: userData.name,
             lastname: userData.lastname
           },
-          token,
-          token2
+          token
         });
       } else {
         // Wrong password
@@ -357,16 +357,16 @@ module.exports = (Router, Service, Logger, App) => {
             Authorization: 'Basic ' + credential
           }
         }).then((data) => {
-        console.log('AXIOS REQUEST: ', data);
-        console.log(data);
-        res.status(200).send({ message: 'Purchased OK' });
-      }).catch((err) => {
-        if (err.response.data.error) {
-          res.status(400).send({ message: err.response.data.error });
-        } else {
-          res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
-        }
-      });
+          console.log('AXIOS REQUEST: ', data);
+          console.log(data);
+          res.status(200).send({ message: 'Purchased OK' });
+        }).catch((err) => {
+          if (err.response.data.error) {
+            res.status(400).send({ message: err.response.data.error });
+          } else {
+            res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
+          }
+        });
     }).catch((err) => {
       console.log(err);
       res.status(400).send({ message: 'Error purchasing: User not found' });
@@ -936,9 +936,152 @@ module.exports = (Router, Service, Logger, App) => {
     });
   })
 
+  /**
+   * Should create a new Stripe Session token.
+   * Stripe Session is neccesary to perform a new payment
+   */
+  Router.post('/stripe/session', passportAuth, (req, res) => {
+    const stripe = require('stripe')(process.env.STRIPE_SK);
+    console.log(process.env.STRIPE_SK);
+    const user = GetUserFromJwtToken(req.headers.authorization);
+    const planToSubscribe = req.body.plan;
+
+    async.waterfall([
+      (next) => {
+        // Retrieve the customer by email, to check if already exists
+        stripe.customers.list({
+          limit: 1, email: user
+        }, (err, customers) => {
+          next(err, customers.data[0]);
+        });
+      },
+      (customer, next) => {
+        if (!customer) {
+          // The customer does not exists
+          // Procede to the subscription
+          console.debug('Customer does not exists, won\'t check any subcription');
+          next(null, undefined);
+        } else {
+          // Get subscriptions
+          const subscriptions = customer.subscriptions.data;
+          if (subscriptions.length === 0) {
+            console.log('Customer exists, but doesn\'t have a subscription');
+            next(null, { customer, subscription: null });
+          } else {
+            console.log('Customer already has a subscription');
+            const subscription = subscriptions[0];
+            next(null, { customer, subscription });
+          }
+        }
+      },
+      (payload, next) => {
+        if (!payload) {
+          console.debug('Customer does not exists');
+          next(null, {});
+        } else {
+          const { customer, subscription } = payload;
+          console.debug('Payload', subscription);
+
+          if (subscription) {
+            // Delete subscription (must be improved in the future)
+            stripe.subscriptions.del(subscription.id, (err, result) => {
+              next(err, customer);
+            });
+            //next(Error('Already subscribed'));
+          } else {
+            next(null, customer);
+          }
+        }
+      },
+      (customer, next) => {
+        // Open session
+        const customer_id = customer !== null ? customer.id || null : null;
+        console.log('Customer', customer_id);
+
+        const session_params = {
+          payment_method_types: ['card'],
+          success_url: 'https://cloud.internxt.com/',
+          cancel_url: 'https://cloud.internxt.com/',
+          subscription_data: { items: [{ plan: req.body.plan }] },
+          customer_email: user,
+          customer: customer_id,
+          billing_address_collection: 'required'
+        };
+
+        if (session_params.customer) {
+          delete session_params.customer_email;
+        } else {
+          delete session_params.customer;
+        }
+
+
+        stripe.checkout.sessions.create(session_params).then(result => {
+          next(null, result);
+        }).catch(err => { next(err); });
+
+      }
+    ], (err, result) => {
+      console.log(result);
+      if (err) {
+        console.log('Error', err.message);
+        res.status(500).send({ error: err.message });
+      } else {
+        console.log('Correcto', result);
+        res.status(200).send(result);
+      }
+    })
+  });
+
+  /**
+   * Retrieve products listed in STRIPE.
+   * Products must be inserted on stripe using the dashboard with the required metadata.
+   * Required metadata: 
+   */
+  Router.get('/stripe/products', (req, res) => {
+    const stripe = require('stripe')(process.env.STRIPE_SK);
+    stripe.products.list({}, (err, products) => {
+      if (err) {
+        res.status(500).send({ error: err });
+      } else {
+        const productsMin = products.data.filter(p => !(!p.metadata.size_bytes)).map(p => {
+          return { id: p.id, name: p.name, metadata: p.metadata };
+        }).sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
+        res.status(200).send(productsMin);
+      }
+    });
+  });
+
+  /**
+   * Get available plans from a given product.
+   */
+  Router.post('/stripe/plans', (req, res) => {
+    const stripe = require('stripe')(process.env.STRIPE_SK);
+    const stripeProduct = req.body.product;
+
+    stripe.plans.list({
+      product: stripeProduct
+    }, (err, plans) => {
+      if (err) {
+        res.status(500).send({ error: err.message });
+      } else {
+        const plansMin = plans.data.map(p => {
+          return {
+            id: p.id,
+            price: p.amount,
+            name: p.nickname,
+            interval: p.interval,
+            interval_count: p.interval_count
+          }
+        }).sort((a, b) => a.price * 1 - b.price * 1);
+        res.status(200).send(plansMin);
+      }
+    });
+
+  });
+
   function GetUserFromJwtToken(token) {
     return jwt.decode(token.split(' ')[1], App.config.get('secrets').JWT);
   }
 
-  return Router
+  return Router;
 }

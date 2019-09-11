@@ -1,6 +1,5 @@
 const axios = require('axios')
 const sequelize = require('sequelize');
-
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
@@ -156,7 +155,6 @@ module.exports = (Model, App) => {
   const resolveCaptcha = (token) => {
     const secret = App.config.get('secrets').CAPTCHA
     const responseToken = token
-
     return axios.post(
       `https://www.google.com/recaptcha/api/siteverify?secret=${secret}&response=${responseToken}`
     ).then(response => response.data)
@@ -194,14 +192,12 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       axios.get(App.config.get('STORJ_BRIDGE') + '/deactivationStripe/' + token,
         {
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: { 'Content-Type': 'application/json' }
         }).then((res) => {
-        resolve(res);
-      }).catch((err) => {
-        reject(err);
-      });
+          resolve(res);
+        }).catch((err) => {
+          reject(err);
+        });
     });
   }
 
