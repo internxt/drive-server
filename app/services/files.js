@@ -32,13 +32,15 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
-        App.logger.info(`Starting file upload: ${fileName}`)
-        const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
-        App.logger.info(`Found upload folder: ${folder.name}`)
-        const extSeparatorPos = fileName.lastIndexOf('.')
-        const fileNameNoExt = fileName.slice(0, extSeparatorPos)
 
-        App.logger.info('Encrypting file name')
+        App.logger.info(`Starting file upload: ${fileName}`)
+
+        const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
+        
+        // Separate filename from extension
+        const extSeparatorPos = fileName.lastIndexOf('.')
+        const fileNameNoExt = extSeparatorPos > 0 ? fileName.slice(0, extSeparatorPos) : fileName;
+
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
         const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } })
