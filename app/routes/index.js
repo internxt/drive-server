@@ -41,8 +41,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/login', function (req, res) {
     req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
-      res.status(400).send({ error: 'No email address specified' });
-      return;
+      return res.status(400).send({ error: 'No email address specified' });
     }
     // Call user service to find user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
@@ -63,7 +62,7 @@ module.exports = (Router, Service, Logger, App) => {
         });
       }
     }).catch((err) => {
-      Logger.error(err.message + '\n' + err.stack);
+      Logger.error(err + ': ' + req.body.email);
       res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
     })
   });
@@ -320,59 +319,6 @@ module.exports = (Router, Service, Logger, App) => {
         res.send(err.message);
       })
   });
-
-  Router.post('/buy', function (req, res) {
-    const axios = require('axios');
-    const crypto = require('crypto')
-
-    const fullToken = req.body.token;
-
-    const fullTokenJson = JSON.parse(fullToken);
-    const user = fullTokenJson.email;
-    const planToSubscribe = req.body.plan;
-
-
-    Service.User.FindUserByEmail(user).then((userData) => {
-      console.log('USER FOUND', userData);
-
-      const pwd = userData.userId;
-      const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
-      const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
-
-      console.log('CREDENTIAL: ', credential);
-
-      const endpoint = App.config.get('STORJ_BRIDGE') + '/subscription';
-
-      console.log(endpoint);
-
-
-      axios.post(App.config.get('STORJ_BRIDGE') + '/subscription',
-        {
-          plan_id: planToSubscribe,
-          token: fullToken
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + credential
-          }
-        }).then((data) => {
-          console.log('AXIOS REQUEST: ', data);
-          console.log(data);
-          res.status(200).send({ message: 'Purchased OK' });
-        }).catch((err) => {
-          if (err.response.data.error) {
-            res.status(400).send({ message: err.response.data.error });
-          } else {
-            res.status(400).send({ message: 'Purchase failed: Connection error on bridge' });
-          }
-        });
-    }).catch((err) => {
-      console.log(err);
-      res.status(400).send({ message: 'Error purchasing: User not found' });
-    });
-  });
-
 
   Router.post('/plans', function (req, res) {
     const x = Service.Plan.ListAll().then((data) => {

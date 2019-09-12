@@ -101,7 +101,7 @@ module.exports = (Model, App) => {
     return Model.users.findOne({ where: { email: { [Op.eq]: email } } })
       .then((userData) => {
         if (userData) { return userData.update({ storeMnemonic: option }); }
-        throw new Error('User not found')
+        throw new Error('UpdateStorageOption: User not found')
       }).catch((error) => {
         logger.error(error.stack);
         throw new Error(error);
@@ -113,22 +113,28 @@ module.exports = (Model, App) => {
       return response.dataValues
     })
 
-  const FindUserByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } })
-    .then((userData) => {
-      if (userData) {
-        const user = userData.dataValues;
-        if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-        return user;
-      }
-      throw new Error('User not found');
-    })
+  const FindUserByEmail = email => {
+    return new Promise((resolve, reject) => {
+      Model.users.findOne({ where: { email: { [Op.eq]: email } } })
+        .then((userData) => {
+          if (userData) {
+            const user = userData.dataValues;
+            if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
+            resolve(user);
+          } else {
+            reject('User not found on X Cloud database');
+          }
+        }).catch(err => reject(err));
+    });
+  }
+
 
   const FindUserObjByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } })
     .then((userData) => {
       if (userData) {
         return userData;
       }
-      throw new Error('User not found');
+      throw new Error('FindUserObjByEmail: User not found');
     })
 
   const GetUsersRootFolder = id => Model.users.findAll({
