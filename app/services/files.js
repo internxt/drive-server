@@ -35,7 +35,8 @@ module.exports = (Model, App) => {
 
         App.logger.info(`Starting file upload: ${fileName}`)
 
-        const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
+        const rootFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: user.root_folder_id } } });
+        const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } });
         
         // Separate filename from extension
         const extSeparatorPos = fileName.lastIndexOf('.')
@@ -43,6 +44,7 @@ module.exports = (Model, App) => {
 
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
+        // Check if file already exists. This is useless due to random name encryption
         const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } })
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1);
@@ -50,10 +52,10 @@ module.exports = (Model, App) => {
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
 
         App.logger.info('Uploading file to network')
-        App.services.Storj.StoreFile(user, folder.bucket, encryptedFileNameWithExt, filePath)
+        App.services.Storj.StoreFile(user, rootFolder.bucket, encryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
             const addedFile = await Model.file.create({
-              name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, bucket: folder.bucket, size
+              name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, bucket: rootFolder.bucket, size
             })
             const result = await folder.addFile(addedFile)
             resolve(addedFile)
