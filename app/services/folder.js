@@ -2,8 +2,9 @@ const _ = require('lodash')
 const Secret = require('crypto-js');
 
 module.exports = (Model, App) => {
-  const Op = App.database.Sequelize.Op
-  const logger = App.logger;
+  const FileService = require('./files')(Model, App);
+  const Op = App.database.Sequelize.Op;
+
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -13,12 +14,12 @@ module.exports = (Model, App) => {
         })
         if (exists) throw new Error('Folder with same name already exists')
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
-        const bucket = await App.services.Storj
-          .CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
+        /*
+        const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+        */
         const xCloudFolder = await user.createFolder({
           name: cryptoFolderName,
-          bucket: bucket.id,
+          bucket: null,
           parentId: parentFolderId || null
         })
         resolve(xCloudFolder)
@@ -34,16 +35,42 @@ module.exports = (Model, App) => {
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         try {
-          const isBucketDeleted = await App.services.Storj.DeleteBucket(user, folder.bucket)
-        } catch (error) {
+          // Delete bucket if exists
+          await App.services.Storj.DeleteBucket(user, folder.bucket);
+        } catch (error) { }
+
+        const folderRecursive = await GetContent(folderId, user.email);
+
+        async function iterateChildren(children) {
+          console.log(children);
+          for (var i = 0; i < children.length; i++) {
+            console.log('Deleting files from ' + children[i].id);
+            await DeleteFiles(user, children[i].id);
+            if (children[i].children.length > 0) {
+              console.log('Iterate ' + children[i]);
+              iterateChildren(children[i]);
+            }
+          }
         }
-        const isFolderDeleted = await folder.destroy()
-        Model.folder.rebuildHierarchy()
+
+        //iterateChildren(folderRecursive.children);
+        //await DeleteFiles(user, folderRecursive);
+
+        const isFolderDeleted = await folder.destroy();
+        Model.folder.rebuildHierarchy();
         resolve(isFolderDeleted)
       } catch (error) {
         reject(error)
       }
     });
+  }
+
+  async function DeleteFiles(user, folderId) {
+    const files = await Model.file.findAll({ where: { folder_id: { [Op.eq]: folderId } } });
+    for (var i = 0; i < files.length; i++) {
+      console.log('Deleting ' + files[i].fileId);
+      await FileService.Delete(user, files[i].bucket, files[i].fileId);
+    }
   }
 
   const GetTree = () => { }

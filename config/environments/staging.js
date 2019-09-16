@@ -12,7 +12,7 @@ exports.data = {
     JWT: process.env.JWT_SECRET || 'asdf1234',
     CRYPTO: 'asdf1234',
     CAPTCHA: process.env.CAPTCHA_SECRET,
-    CRYPTO_SECRET: process.env.CRYPTO_SECRET,
+    CRYPTO_SECRET: process.env.CRYPTO_SECRET || 'ASDFGHJKL1234567',
     STRIPE_SK: process.env.STRIPE_SK
   },
   logger: {
