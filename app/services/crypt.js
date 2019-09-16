@@ -3,7 +3,50 @@ const Secret = require('crypto-js');
 module.exports = (Model, App) => {
   const logger = App.logger;
 
-  function decryptName(cipherText) {
+  function encryptName(name, salt) {
+    if (!salt) {
+      // If no salt, somewhere is trying to use legacy encryption
+      return probabilisticEncryption(name);
+    } else {
+      // If salt is provided, use new deterministic encryption
+      return deterministicEncryption(name, salt);
+    }
+  }
+
+  function decryptName(cipherText, salt) {
+    if (!salt) {
+      // If no salt, something is trying to use legacy decryption
+      return probabilisticDecryption(cipherText);
+    } else {
+      // If salt is provided, we could have 2 scenarios
+
+      // 1. The cipherText is truly encripted with salt in a deterministic way
+      const decrypted = deterministicDecryption(cipherText, salt);
+
+      if (!decrypted) {
+        // 2. The deterministic algorithm failed although salt were provided.
+        // So, the cipherText is encrypted in a probabilistic way.
+
+        return probabilisticDecryption(cipherText);
+      } else {
+        return decrypted;
+      }
+    }
+  }
+
+  function probabilisticEncryption(content) {
+    try {
+      const b64 = Secret.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
+      const e64 = Secret.enc.Base64.parse(b64);
+      const eHex = e64.toString(Secret.enc.Hex);
+      return eHex;
+    } catch (error) {
+      logger.error(`(probabilisticEncryption): ${error}`);
+      return null;
+    }
+  }
+
+  function probabilisticDecryption(cipherText) {
     try {
       const reb64 = Secret.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(Secret.enc.Base64);
@@ -11,65 +54,49 @@ module.exports = (Model, App) => {
       const plain = decrypt.toString(Secret.enc.Utf8);
       return plain;
     } catch (error) {
-      logger.error(`(decryptName): ${error}`);
-      return null;
-    }
-  }
-
-  function encryptName(name) {
-    try {
-      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO_SECRET).toString();
-      const e64 = Secret.enc.Base64.parse(b64);
-      const eHex = e64.toString(Secret.enc.Hex);
-      return eHex;
-    } catch (error) {
-      logger.error(`(encryptName): ${error}`);
+      logger.error(`(probabilisticDecryption): ${error}`);
       return null;
     }
   }
 
   function deterministicEncryption(content, salt) {
-    const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
-    const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+    try {
+      const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
 
-    const encrypt = Secret.AES.encrypt(content, key, { iv: iv }).toString();
-    const b64 = Secret.enc.Base64.parse(encrypt);
-    const eHex = b64.toString(Secret.enc.Hex);
-    return eHex;
+      const encrypt = Secret.AES.encrypt(content, key, { iv: iv }).toString();
+      const b64 = Secret.enc.Base64.parse(encrypt);
+      const eHex = b64.toString(Secret.enc.Hex);
+      return eHex;
+    } catch (e) {
+      return null;
+    }
   }
 
   function deterministicDecryption(cipherText, salt) {
-    const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
-    const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+    try {
+      const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
 
-    const reb64 = Secret.enc.Hex.parse(cipherText);
-    const bytes = reb64.toString(Secret.enc.Base64);
-    const decrypt = Secret.AES.decrypt(bytes, key, { iv: iv });
-    const plain = decrypt.toString(Secret.enc.Utf8);
+      const reb64 = Secret.enc.Hex.parse(cipherText);
+      const bytes = reb64.toString(Secret.enc.Base64);
+      const decrypt = Secret.AES.decrypt(bytes, key, { iv: iv });
+      const plain = decrypt.toString(Secret.enc.Utf8);
 
-    return plain;
+      return plain;
+    } catch (e) {
+      return null;
+    }
   }
 
   // AES Plain text decryption method
-  function decryptText(encryptedText) {
-    try {
-      const reb = Secret.enc.Hex.parse(encryptedText);
-      const bytes = Secret.AES.decrypt(reb.toString(Secret.enc.Base64), process.env.CRYPTO_SECRET);
-      return bytes.toString(Secret.enc.Utf8);
-    } catch (error) {
-      throw new Error(error);
-    }
+  function decryptText(encryptedText, salt) {
+    return decryptName(encryptedText, salt);
   }
 
   // AES Plain text encryption method
-  function encryptText(textToEncrypt) {
-    try {
-      const bytes = Secret.AES.encrypt(textToEncrypt, process.env.CRYPTO_SECRET).toString();
-      const text64 = Secret.enc.Base64.parse(bytes);
-      return text64.toString(Secret.enc.Hex);
-    } catch (error) {
-      throw new Error(error);
-    }
+  function encryptText(textToEncrypt, salt) {
+    return encryptName(textToEncrypt, salt);
   }
 
   // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
@@ -95,6 +122,8 @@ module.exports = (Model, App) => {
     encryptText,
     deterministicEncryption,
     deterministicDecryption,
+    probabilisticEncryption,
+    probabilisticDecryption,
     passToHash
   }
 }
