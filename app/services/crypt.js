@@ -15,9 +15,10 @@ module.exports = (Model, App) => {
       return null;
     }
   }
+
   function encryptName(name) {
     try {
-      const b64 = Secret.AES.encrypt(name, process.env.CRYPTO_SECRET).toString();
+      const b64 = Secret.AES.encrypt(name, App.config.get('secrets').CRYPTO_SECRET).toString();
       const e64 = Secret.enc.Base64.parse(b64);
       const eHex = e64.toString(Secret.enc.Hex);
       return eHex;
@@ -25,6 +26,28 @@ module.exports = (Model, App) => {
       logger.error(`(encryptName): ${error}`);
       return null;
     }
+  }
+
+  function deterministicEncryption(content, salt) {
+    const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+    const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+
+    const encrypt = Secret.AES.encrypt(content, key, { iv: iv }).toString();
+    const b64 = Secret.enc.Base64.parse(encrypt);
+    const eHex = b64.toString(Secret.enc.Hex);
+    return eHex;
+  }
+
+  function deterministicDecryption(cipherText, salt) {
+    const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+    const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+
+    const reb64 = Secret.enc.Hex.parse(cipherText);
+    const bytes = reb64.toString(Secret.enc.Base64);
+    const decrypt = Secret.AES.decrypt(bytes, key, { iv: iv });
+    const plain = decrypt.toString(Secret.enc.Utf8);
+
+    return plain;
   }
 
   // AES Plain text decryption method
@@ -70,6 +93,8 @@ module.exports = (Model, App) => {
     encryptName,
     decryptText,
     encryptText,
+    deterministicEncryption,
+    deterministicDecryption,
     passToHash
   }
 }
