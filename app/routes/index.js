@@ -841,17 +841,16 @@ module.exports = (Router, Service, Logger, App) => {
           userData.mnemonic = result.mnemonic;
 
           Service.Files.Download(userData, fileIdInBucket)
-            .then(({ filestream, mimetype, downloadFile }) => {
+            .then(({ filestream, mimetype, downloadFile, folderId }) => {
               filePath = downloadFile;
               const fileName = downloadFile.split('/')[2];
               const extSeparatorPos = fileName.lastIndexOf('.')
               const fileNameNoExt = fileName.slice(0, extSeparatorPos)
               const fileExt = fileName.slice(extSeparatorPos + 1);
-              const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt);
-
-              console.log(decryptedFileName);
+              const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
 
               res.setHeader('Content-type', mimetype);
+              res.setHeader('Content-disposition', `attachment; filename=${decryptedFileName}.${fileExt}`);
               res.set('x-file-name', `${decryptedFileName}.${fileExt}`);
 
               filestream.pipe(res)
