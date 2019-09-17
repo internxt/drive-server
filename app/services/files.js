@@ -147,7 +147,7 @@ module.exports = (Model, App) => {
     return result;
   }
 
-  const MoveFile = (fileId, destination) => {
+  const MoveFile = (user, fileId, destination, replace = false) => {
     return new Promise(async (resolve, reject) => {
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
       if (!file) {
@@ -163,16 +163,20 @@ module.exports = (Model, App) => {
           }
         });
 
-        if (exists) {
+        if (exists && !replace) {
           reject(Error('Destination contains a file with the same name'));
         } else {
+          if (exists) {
+            await Delete(user, exists.bucket, exists.fileId);
+            console.log('Delete destination file');
+          }
           console.log('File renamed in database from %s to %s', file.name, destinationName);
 
           file.update({
             folder_id: parseInt(destination, 0),
             name: App.services.Crypt.encryptName(originalName, destination)
-          })
-            .then(resolve());
+          }).then(resolve());
+
         }
       }
     })

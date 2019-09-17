@@ -709,23 +709,27 @@ module.exports = (Router, Service, Logger, App) => {
    *     responses:
    *       200:
    *         description: File moved successfully
-   *       400:
-   *         description: Bad request. File or original folder not exists.
+   *       501:
+   *         description: File with same name exists in folder destination.
    */
   Router.post('/storage/moveFile', passportAuth, function (req, res) {
     const fileId = req.body.fileId;
     const destination = req.body.destination;
-    Service.Files.MoveFile(fileId, destination)
+    const replace = req.body.overwritte === true;
+    const user = req.user;
+
+    Service.Files.MoveFile(user, fileId, destination, replace)
       .then(() => {
         res.status(200).json({ moved: true });
       }).catch((error) => {
-        Logger.error(`Error moving file (${fileId}): ${error.message}`);
-        res.status(400).json({ message: error.message });
+        if (error.message && error.message.includes('same name')) {
+          res.status(501).json({ message: error.message });
+        }
       })
   })
 
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
-    const user = req.user
+    const user = req.user;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const bucketId = req.params.bucketid
