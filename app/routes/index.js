@@ -507,8 +507,8 @@ module.exports = (Router, Service, Logger, App) => {
       .then((result) => {
         res.status(201).json(result)
       }).catch((err) => {
-        Logger.error(err.message + '\n' + err.stack);
-        res.status(500).json(err)
+        Logger.warn(err);
+        res.status(500).json({ error: err.message })
       });
   })
 

@@ -4,6 +4,7 @@ const sequelize = require('sequelize');
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
+
   const CreateFile = (file) => {
     return new Promise(async (resolve, reject) => {
       Model.folder.findOne({ where: { bucket: { [Op.eq]: file.folder_id } } })
@@ -37,22 +38,25 @@ module.exports = (Model, App) => {
 
         const rootFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: user.root_folder_id } } });
         const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } });
-        
+
         // Separate filename from extension
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = extSeparatorPos > 0 ? fileName.slice(0, extSeparatorPos) : fileName;
 
-        const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
+        const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt, folderId);
+        const originalEncryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
-        // Check if file already exists. This is useless due to random name encryption
-        const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } })
+        // Check if file already exists.
+        const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } });
+
         if (exists) throw new Error('File with same name already exists in this folder')
         const fileExt = fileName.slice(extSeparatorPos + 1);
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
+        const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`
 
         App.logger.info('Uploading file to network')
-        App.services.Storj.StoreFile(user, rootFolder.bucket, encryptedFileNameWithExt, filePath)
+        App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
             const addedFile = await Model.file.create({
               name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, bucket: rootFolder.bucket, size
@@ -85,8 +89,9 @@ module.exports = (Model, App) => {
         }).catch((err) => {
           if (err.message === 'File already exists') {
             resolve({ file: { name: `${file.name}.${file.type}` } })
+          } else {
+            reject(err)
           }
-          reject(err)
         });
     });
   }
@@ -126,7 +131,7 @@ module.exports = (Model, App) => {
       const newMeta = {}
       if (metadata.itemName) {
         // Check if exists file with new name
-        const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName);
+        const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName, file.folder_id);
         const exists = await Model.file.findOne({
           where: { folder_id: { [Op.eq]: file.folder_id }, name: { [Op.eq]: cryptoFileName } }
         });
@@ -148,8 +153,27 @@ module.exports = (Model, App) => {
       if (!file) {
         reject(new Error('File not found'));
       } else {
-        file.update({ folder_id: parseInt(destination, 0) })
-          .then(resolve());
+        const originalName = App.services.Crypt.decryptName(file.name, file.folder_id);
+        const destinationName = App.services.Crypt.encryptName(originalName, destination);
+
+        const exists = await Model.file.findOne({
+          where: {
+            name: { [Op.eq]: destinationName },
+            folder_id: { [Op.eq]: destination }
+          }
+        });
+
+        if (exists) {
+          reject(Error('Destination contains a file with the same name'));
+        } else {
+          console.log('File renamed in database from %s to %s', file.name, destinationName);
+
+          file.update({
+            folder_id: parseInt(destination, 0),
+            name: App.services.Crypt.encryptName(originalName, destination)
+          })
+            .then(resolve());
+        }
       }
     })
   }

@@ -8,23 +8,29 @@ module.exports = (Model, App) => {
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
-        const cryptoFolderName = App.services.Crypt.encryptName(folderName);
+        if (user.mnemonic === 'null') { throw Error('Your mnemonic is invalid'); }
+
+        const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
+
         const exists = await Model.folder.findOne({
           where: { parentId: { [Op.eq]: parentFolderId }, name: { [Op.eq]: cryptoFolderName } }
-        })
-        if (exists) throw new Error('Folder with same name already exists')
-        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
-        /*
-        const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-        */
+        });
+
+        if (exists) {
+          throw Error('Folder with the same name already exists');
+        }
+
+        // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+
         const xCloudFolder = await user.createFolder({
           name: cryptoFolderName,
           bucket: null,
           parentId: parentFolderId || null
-        })
-        resolve(xCloudFolder)
+        });
+
+        resolve(xCloudFolder);
       } catch (error) {
-        reject(error.message)
+        reject(error);
       }
     });
   }
@@ -79,7 +85,7 @@ module.exports = (Model, App) => {
 
   const mapChildrenNames = (folder = []) => {
     return folder.map((child) => {
-      child.name = App.services.Crypt.decryptName(child.name)
+      child.name = App.services.Crypt.decryptName(child.name, child.parentId);
       child.children = mapChildrenNames(child.children)
       return child;
     });
@@ -115,10 +121,10 @@ module.exports = (Model, App) => {
     // TODO: Should send an error to be handled and showed on website.
 
     if (result != null) {
-      result.name = App.services.Crypt.decryptName(result.name);
+      result.name = App.services.Crypt.decryptName(result.name, result.parentId);
       result.children = mapChildrenNames(result.children)
       result.files = result.files.map((file) => {
-        file.name = `${App.services.Crypt.decryptName(file.name)}`;
+        file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`;
         return file;
       })
     }
@@ -135,7 +141,7 @@ module.exports = (Model, App) => {
       const newMeta = {}
       if (metadata.itemName) {
         // Check if exists folder with new name
-        const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName);
+        const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
         const exists = await Model.folder.findOne({
           where: { parentId: { [Op.eq]: folder.parentId }, name: { [Op.eq]: cryptoFolderName } }
         });

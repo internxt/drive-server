@@ -80,9 +80,7 @@ module.exports = (Model, App) => {
           logger.info('User init | root folder created')
 
           // Update user register with root folder Id
-          await userData.update({
-            root_folder_id: rootFolder.id
-          }, { transaction: t });
+          await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
 
           // Set decrypted mnemonic to returning object
           const updatedUser = userData;
