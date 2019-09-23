@@ -103,14 +103,13 @@ module.exports = (Model, App) => {
   }
 
   const StoreFile = (user, bucketId, fileName, filePath) => {
-    let size;
     return new Promise((resolve, reject) => {
+      const actualFileSize = fs.lstatSync(filePath).size;
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.storeFile(bucketId, filePath, {
         filename: fileName,
         progressCallback(progress, uploadedBytes, totalBytes) {
           App.logger.info('Upload Progress: %s/%s (%s)', uploadedBytes, totalBytes, progress);
-          size = totalBytes;
         },
         finishedCallback(err, fileId) {
           if (err) {
@@ -119,7 +118,7 @@ module.exports = (Model, App) => {
           }
           App.logger.info('File complete:', fileId);
           storj.destroy();
-          resolve({ fileId, size })
+          resolve({ fileId, size: actualFileSize })
         }
       });
     });
