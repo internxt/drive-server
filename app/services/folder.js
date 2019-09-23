@@ -38,29 +38,29 @@ module.exports = (Model, App) => {
   const Delete = (user, folderId) => {
     return new Promise(async (resolve, reject) => {
       const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
+
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         try {
-          // Delete bucket if exists
+          // Delete bucket if exists from legacy code
           await App.services.Storj.DeleteBucket(user, folder.bucket);
-        } catch (error) { }
-
-        const folderRecursive = await GetContent(folderId, user.email);
-
-        async function iterateChildren(children) {
-          console.log(children);
-          for (var i = 0; i < children.length; i++) {
-            console.log('Deleting files from ' + children[i].id);
-            await DeleteFiles(user, children[i].id);
-            if (children[i].children.length > 0) {
-              console.log('Iterate ' + children[i]);
-              iterateChildren(children[i]);
-            }
-          }
+        } catch (error) {
+          // If bucket bot exists an error will be thrown, we ignore it.
         }
 
-        //iterateChildren(folderRecursive.children);
-        //await DeleteFiles(user, folderRecursive);
+        async function AddFolderFilesAndCallMeMaybeWithSubfolders(pk, email) {
+          const FilesInFolder = await Model.file.findAll({ where: { folder_id: pk } });
+
+          FilesInFolder.forEach(async file => {
+            console.log('Recursive delete file %s (%s)', file.id, user.email);
+            await FileService.Delete(user, file.bucket, file.fileId);
+          });
+
+          const SubFolders = await Model.folder.findAll({ where: { parentId: pk } });
+          SubFolders.forEach(async folder => await AddFolderFilesAndCallMeMaybeWithSubfolders(folder.id, email));
+        }
+
+        AddFolderFilesAndCallMeMaybeWithSubfolders(folderId, user.email);
 
         const isFolderDeleted = await folder.destroy();
         Model.folder.rebuildHierarchy();
@@ -69,14 +69,6 @@ module.exports = (Model, App) => {
         reject(error)
       }
     });
-  }
-
-  async function DeleteFiles(user, folderId) {
-    const files = await Model.file.findAll({ where: { folder_id: { [Op.eq]: folderId } } });
-    for (var i = 0; i < files.length; i++) {
-      console.log('Deleting ' + files[i].fileId);
-      await FileService.Delete(user, files[i].bucket, files[i].fileId);
-    }
   }
 
   const GetTree = () => { }
