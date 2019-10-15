@@ -46,11 +46,18 @@ module.exports = (Model, App) => {
         const encryptedFileName = App.services.Crypt.encryptName(fileNameNoExt, folderId);
         const originalEncryptedFileName = App.services.Crypt.encryptName(fileNameNoExt);
 
+        const fileExt = fileName.slice(extSeparatorPos + 1);
+
         // Check if file already exists.
-        const exists = await Model.file.findOne({ where: { name: { [Op.eq]: encryptedFileName }, folder_id: { [Op.eq]: folderId } } });
+        const exists = await Model.file.findOne({
+          where: {
+            name: { [Op.eq]: encryptedFileName },
+            folder_id: { [Op.eq]: folderId },
+            type: { [Op.eq]: fileExt }
+          }
+        });
 
         if (exists) throw new Error('File with same name already exists in this folder')
-        const fileExt = fileName.slice(extSeparatorPos + 1);
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`
@@ -133,7 +140,11 @@ module.exports = (Model, App) => {
         // Check if exists file with new name
         const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName, file.folder_id);
         const exists = await Model.file.findOne({
-          where: { folder_id: { [Op.eq]: file.folder_id }, name: { [Op.eq]: cryptoFileName } }
+          where: {
+            folder_id: { [Op.eq]: file.folder_id },
+            name: { [Op.eq]: cryptoFileName },
+            type: { [Op.eq]: file.type }
+          }
         });
         if (exists) throw new Error('File with this name exists')
         else {
@@ -159,7 +170,8 @@ module.exports = (Model, App) => {
         const exists = await Model.file.findOne({
           where: {
             name: { [Op.eq]: destinationName },
-            folder_id: { [Op.eq]: destination }
+            folder_id: { [Op.eq]: destination },
+            type: { [Op.eq]: file.type }
           }
         });
 
