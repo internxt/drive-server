@@ -607,6 +607,15 @@ module.exports = (Router, Service, Logger, App) => {
       })
   })
 
+  Router.get('/storage/tree', passportAuth, function (req, res) {
+    const user = req.user;
+    Service.Folder.GetTree(user).then(result => {
+      res.status(200).send(result)
+    }).catch(err => {
+      res.status(500).send({ error: err.message })
+    })
+  });
+
 
   /**
    * @swagger
@@ -947,13 +956,15 @@ module.exports = (Router, Service, Logger, App) => {
       (customer, next) => {
         // Open session
         const customer_id = customer !== null ? customer.id || null : null;
-        console.log('Customer', customer_id);
 
         const session_params = {
           payment_method_types: ['card'],
           success_url: 'https://cloud.internxt.com/',
           cancel_url: 'https://cloud.internxt.com/',
-          subscription_data: { items: [{ plan: req.body.plan }] },
+          subscription_data: {
+            items: [{ plan: req.body.plan }],
+            trial_period_days: 30
+          },
           customer_email: user,
           customer: customer_id,
           billing_address_collection: 'required'
@@ -964,7 +975,6 @@ module.exports = (Router, Service, Logger, App) => {
         } else {
           delete session_params.customer;
         }
-
 
         stripe.checkout.sessions.create(session_params).then(result => {
           next(null, result);

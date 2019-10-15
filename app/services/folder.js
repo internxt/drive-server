@@ -71,7 +71,33 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GetTree = () => { }
+  const GetTree = (user) => {
+    const username = user.email;
+
+    return new Promise(async (resolve, reject) => {
+
+      const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
+
+      const rootFolder = await Model.folder.findOne({
+        where: { id: { [Op.eq]: userObject.root_folder_id } },
+        include: [{
+          model: Model.folder,
+          as: 'descendents',
+          hierarchy: true,
+          include: [{
+            model: Model.file,
+            as: 'files'
+          }]
+        },
+        {
+          model: Model.file,
+          as: 'files'
+        }]
+      });
+
+      resolve(rootFolder)
+    });
+  }
 
   const GetParent = (folder) => { }
 
