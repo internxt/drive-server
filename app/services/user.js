@@ -34,7 +34,7 @@ module.exports = (Model, App) => {
           const bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
-          logger.info('User Service | created brigde user')
+          logger.info('User Service | created brigde user: %s', userResult.email)
 
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
@@ -68,7 +68,7 @@ module.exports = (Model, App) => {
 
           const rootBucket = await App.services.Storj
             .CreateBucket(userData.email, bcryptId, user.mnemonic)
-          logger.info('User init | root bucket created')
+          logger.info('User init | root bucket created for %s', userData.email)
 
           const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
           logger.info('User init | root folder name: ' + rootFolderName)
@@ -132,7 +132,7 @@ module.exports = (Model, App) => {
       if (userData) {
         return userData;
       }
-      throw new Error('FindUserObjByEmail: User not found');
+      throw new Error('FindUserObjByEmail: User not found (%s)', email);
     })
 
   const GetUsersRootFolder = id => Model.users.findAll({
