@@ -1,4 +1,4 @@
-const Secret = require('crypto-js');
+const CryptoJS = require('crypto-js');
 
 module.exports = (Model, App) => {
   const logger = App.logger;
@@ -36,9 +36,9 @@ module.exports = (Model, App) => {
 
   function probabilisticEncryption(content) {
     try {
-      const b64 = Secret.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
-      const e64 = Secret.enc.Base64.parse(b64);
-      const eHex = e64.toString(Secret.enc.Hex);
+      const b64 = CryptoJS.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
+      const e64 = CryptoJS.enc.Base64.parse(b64);
+      const eHex = e64.toString(CryptoJS.enc.Hex);
       return eHex;
     } catch (error) {
       logger.error(`(probabilisticEncryption): ${error}`);
@@ -48,10 +48,10 @@ module.exports = (Model, App) => {
 
   function probabilisticDecryption(cipherText) {
     try {
-      const reb64 = Secret.enc.Hex.parse(cipherText);
-      const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
-      const plain = decrypt.toString(Secret.enc.Utf8);
+      const reb64 = CryptoJS.enc.Hex.parse(cipherText);
+      const bytes = reb64.toString(CryptoJS.enc.Base64);
+      const decrypt = CryptoJS.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
+      const plain = decrypt.toString(CryptoJS.enc.Utf8);
       return plain;
     } catch (error) {
       logger.error(`(probabilisticDecryption): ${error}`);
@@ -61,12 +61,12 @@ module.exports = (Model, App) => {
 
   function deterministicEncryption(content, salt) {
     try {
-      const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
-      const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
-      const encrypt = Secret.AES.encrypt(content, key, { iv: iv }).toString();
-      const b64 = Secret.enc.Base64.parse(encrypt);
-      const eHex = b64.toString(Secret.enc.Hex);
+      const encrypt = CryptoJS.AES.encrypt(content, key, { iv: iv }).toString();
+      const b64 = CryptoJS.enc.Base64.parse(encrypt);
+      const eHex = b64.toString(CryptoJS.enc.Hex);
       return eHex;
     } catch (e) {
       return null;
@@ -75,13 +75,13 @@ module.exports = (Model, App) => {
 
   function deterministicDecryption(cipherText, salt) {
     try {
-      const key = Secret.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
-      const iv = salt ? Secret.enc.Hex.parse(salt.toString()) : key;
+      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
-      const reb64 = Secret.enc.Hex.parse(cipherText);
-      const bytes = reb64.toString(Secret.enc.Base64);
-      const decrypt = Secret.AES.decrypt(bytes, key, { iv: iv });
-      const plain = decrypt.toString(Secret.enc.Utf8);
+      const reb64 = CryptoJS.enc.Hex.parse(cipherText);
+      const bytes = reb64.toString(CryptoJS.enc.Base64);
+      const decrypt = CryptoJS.AES.decrypt(bytes, key, { iv: iv });
+      const plain = decrypt.toString(CryptoJS.enc.Utf8);
 
       return plain;
     } catch (e) {
@@ -102,8 +102,8 @@ module.exports = (Model, App) => {
   // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
   function passToHash(passObject) {
     try {
-      const salt = passObject.salt ? Secret.enc.Hex.parse(passObject.salt.toString()) : Secret.lib.WordArray.random(128 / 8);
-      const hash = Secret.PBKDF2(passObject.password, salt, { keySize: 256 / 32, iterations: 10000 });
+      const salt = passObject.salt ? CryptoJS.enc.Hex.parse(passObject.salt.toString()) : CryptoJS.lib.WordArray.random(128 / 8);
+      const hash = CryptoJS.PBKDF2(passObject.password, salt, { keySize: 256 / 32, iterations: 10000 });
       const hashedObjetc = {
         salt: salt.toString(),
         hash: hash.toString()
@@ -112,6 +112,10 @@ module.exports = (Model, App) => {
     } catch (error) {
       throw new Error(error);
     }
+  }
+
+  function hashSha256(text) {
+    return CryptoJS.SHA256(text).toString();
   }
 
   return {
@@ -124,6 +128,7 @@ module.exports = (Model, App) => {
     deterministicDecryption,
     probabilisticEncryption,
     probabilisticDecryption,
-    passToHash
+    passToHash,
+    hashSha256
   }
 }
