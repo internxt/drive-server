@@ -1,5 +1,6 @@
 const fs = require('fs');
 const sequelize = require('sequelize');
+const axios = require('axios');
 
 const Op = sequelize.Op;
 
@@ -205,6 +206,27 @@ module.exports = (Model, App) => {
     })
   }
 
+  const GetFileInfo = (user, fileId) => {
+    return new Promise(async (resolve, reject) => {
+      const file = await Model.file.findOne({ where: { id: { [Op.eq]: fileId } } });
+      if (!file) {
+        return reject(Error('File not found'));
+      }
+      const password = App.services.Crypt.hashSha256(user.userId);
+
+      axios.get(`${process.env.STORJ_BRIDGE}/buckets/${file.bucket}/files/${file.fileId}/info`, {
+        auth: {
+          username: user.email,
+          password: password
+        }
+      }).then(result => {
+        resolve(result.data);
+      }).catch(err => {
+        reject(err)
+      });
+    });
+  }
+
   return {
     Name: 'Files',
     Upload,
@@ -213,6 +235,7 @@ module.exports = (Model, App) => {
     Download,
     UpdateMetadata,
     MoveFile,
-    ListAllFiles
+    ListAllFiles,
+    GetFileInfo
   }
 }
