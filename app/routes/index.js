@@ -125,6 +125,8 @@ module.exports = (Router, Service, Logger, App) => {
         });
 
         Service.User.LoginFailed(req.body.email, false);
+
+        // console.log(userData)
         res.status(200).json({
           user: {
             userId: userData.userId,
@@ -503,6 +505,8 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user
     user.mnemonic = req.headers['internxt-mnemonic'];
 
+    // console.log('Create folder %s, parent id: %s', folderName, parentFolderId)
+
     Service.Folder.Create(user, folderName, parentFolderId)
       .then((result) => {
         res.status(201).json(result)
@@ -533,6 +537,7 @@ module.exports = (Router, Service, Logger, App) => {
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const folderId = req.params.id
+    // console.log('Delete folder: %s', folderId)
 
     Service.Folder.Delete(user, folderId)
       .then((result) => {
@@ -737,12 +742,23 @@ module.exports = (Router, Service, Logger, App) => {
       })
   })
 
+  Router.get('/storage/file/:fileid/info', passportAuth, function (req, res) {
+    const user = req.user;
+    Service.Files.GetFileInfo(user, req.params.fileid).then(result => {
+      console.log(result)
+      res.status(200).send(result);
+    }).catch(err => {
+      res.status(500).send({ error: err.message });
+    });
+  })
+
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
     const user = req.user;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const bucketId = req.params.bucketid
     const fileIdInBucket = req.params.fileid
+    // console.log('Delete file: %s in %s', fileIdInBucket, bucketId)
 
     Service.Files.Delete(user, bucketId, fileIdInBucket)
       .then((result) => {
@@ -944,10 +960,12 @@ module.exports = (Router, Service, Logger, App) => {
 
           if (subscription) {
             // Delete subscription (must be improved in the future)
+            /*
             stripe.subscriptions.del(subscription.id, (err, result) => {
               next(err, customer);
             });
-            //next(Error('Already subscribed'));
+            */
+            next(Error('Already subscribed'));
           } else {
             next(null, customer);
           }

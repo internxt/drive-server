@@ -8,23 +8,31 @@ module.exports = (Model, App) => {
 
   const CreateFile = (file) => {
     return new Promise(async (resolve, reject) => {
-      Model.folder.findOne({ where: { bucket: { [Op.eq]: file.folder_id } } })
+      Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id } } })
         .then((folder) => {
+
+          // console.log('Create Entry, filname decrypted', App.services.Crypt.decryptName(file.name, file.folder_id))
           // Attention: bucketId is the fileId.
-          Model.file.create({
-            bucketId: file.fileId,
+          const fileInfo = {
+            bucketId: file.file_id,
             name: file.name,
             type: file.type,
             size: file.size,
             folder_id: folder.id,
-            fileId: file.fileId,
-            bucket: file.folder_id
-          }).then((creation) => {
+            fileId: file.file_id,
+            bucket: file.bucket
+          }
+
+          Model.file.create(fileInfo).then((creation) => {
+            // console.log('New entry created')
             resolve(creation);
           }).catch((err) => {
+            console.log('Error creating entry', err)
             reject('Unable to create file in database');
           });
+
         }).catch((err) => {
+          console.log('Other error', err)
           reject('Cannot find bucket ' + file.folder_id);
         });
     })
@@ -122,9 +130,11 @@ module.exports = (Model, App) => {
         }).catch(async (err) => {
           if (err.message.includes('Resource not found')) {
             const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
-            await file.destroy();
+            file && await file.destroy();
+            resolve()
+          } else {
+            reject(err)
           }
-          reject(err)
         })
     })
   }

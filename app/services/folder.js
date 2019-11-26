@@ -39,6 +39,11 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
 
+      if (!folder) {
+        console.error('Folder does not exists')
+        return resolve(true)
+      }
+
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
         try {
