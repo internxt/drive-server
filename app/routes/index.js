@@ -5,7 +5,8 @@ const speakeasy = require('speakeasy');
 const qrcode = require('qrcode')
 const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
-const async = require('async');
+const async = require('async')
+const useragent = require('useragent')
 
 /**
  * JWT
@@ -614,6 +615,20 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/storage/tree', passportAuth, function (req, res) {
     const user = req.user;
+    const agent = useragent.parse(req.headers['user-agent']);
+
+    if (agent && agent.family === 'Electron') {
+      Service.Statistics.Insert({
+        name: 'X Cloud Desktop',
+        user: user.email,
+        userAgent: agent.source
+      }).then(() => {
+
+      }).catch(err => {
+        console.log('Error creating statistics:', err)
+      })
+    }
+
     Service.Folder.GetTree(user).then(result => {
       res.status(200).send(result)
     }).catch(err => {
