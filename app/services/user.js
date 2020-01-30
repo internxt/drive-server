@@ -1,9 +1,38 @@
 const axios = require('axios')
 const sequelize = require('sequelize');
 const Op = sequelize.Op;
+const async = require('async');
 
 module.exports = (Model, App) => {
   const logger = App.logger;
+
+  const RegisterNewUser = (user) => {
+    // Check data
+    if (!user.email || !user.password || !user.salt || !user.mnemonic) {
+      throw new Error('Inssuficient registration data');
+    }
+
+    // Decrypt password
+    const userPass = App.services.Crypt.decryptText(user.password);
+    const userSalt = App.services.Crypt.decryptText(user.salt);
+
+    const t = Model.users.sequelize.transaction();
+
+    try {
+
+      Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(result => {
+        console.log('Result', result)
+      }).catch(err => {
+        console.log('Error', err)
+      })
+
+    } catch (e) {
+
+    }
+
+
+
+  }
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -194,14 +223,44 @@ module.exports = (Model, App) => {
 
   const ConfirmDeactivateUser = (token) => {
     return new Promise((resolve, reject) => {
-      axios.get(App.config.get('STORJ_BRIDGE') + '/deactivationStripe/' + token,
-        {
-          headers: { 'Content-Type': 'application/json' }
-        }).then((res) => {
-          resolve(res);
-        }).catch((err) => {
-          reject(err);
-        });
+
+      async.waterfall([
+        (next) => {
+          axios.get(App.config.get('STORJ_BRIDGE') + '/deactivationStripe/' + token,
+            {
+              headers: { 'Content-Type': 'application/json' }
+            }).then((res) => {
+              console.log('User deleted from bridge');
+              next(null, res);
+            }).catch((err) => {
+              console.log('Error user deleted from bridge');
+              next(err);
+            });
+        },
+        (data, next) => {
+          const userEmail = data.data.email
+          Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } })
+            .then((user) => {
+              console.log('User found on sql');
+              user.destroy().then(result => {
+                console.log('User deleted on sql');
+                 next(null, data)
+              }).catch(err => {
+                console.log('Error deleting user on sql');
+                next(err)
+              });
+            })
+            .catch(err => {
+              next(err);
+            })
+        }
+      ], (err, result) => {
+        if (err) {
+          console.log('Error waterfall', err);
+          reject(err)
+        }
+        else { resolve(result) }
+      })
     });
   }
 
@@ -320,11 +379,9 @@ module.exports = (Model, App) => {
 
   const ResendActivationEmail = (user) => {
     return new Promise((resolve, reject) => {
-      console.log(`Post to ${process.env.STORJ_BRIDGE}/activations`);
       axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
         email: user
       }).then((res) => {
-        console.log('RESPONSE: ', res);
         resolve();
       }).catch((err) => {
         reject(err);
