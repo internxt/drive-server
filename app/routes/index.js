@@ -7,6 +7,7 @@ const upload = require('./../middleware/multer')
 const swaggerSpec = require('./../../config/initializers/swagger')
 const async = require('async')
 const useragent = require('useragent')
+const bip39 = require('bip39')
 
 /**
  * JWT
@@ -658,6 +659,9 @@ module.exports = (Router, Service, Logger, App) => {
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const fileIdInBucket = req.params.id
+    if (fileIdInBucket === 'null') {
+      return res.status(500).send({ message: 'Missing file id' })
+    }
     let filePath;
 
     Service.Files.Download(user, fileIdInBucket)
@@ -669,18 +673,21 @@ module.exports = (Router, Service, Logger, App) => {
         const fileExt = fileName.slice(extSeparatorPos + 1);
         const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
 
+        const decryptedFileName_b64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
+
         res.setHeader('Content-type', mimetype);
-        res.set('x-file-name', `${decryptedFileName}.${fileExt}`);
+        res.set('x-file-name', decryptedFileName_b64);
         filestream.pipe(res)
         fs.unlink(filePath, (error) => {
           if (error) throw error;
         });
-      }).catch(({ message }) => {
-        if (message === 'Bridge rate limit error') {
-          res.status(402).json({ message })
+      }).catch((err) => {
+        if (err.message === 'Bridge rate limit error') {
+          res.status(402).json({ message: err.message })
           return;
         }
-        res.status(500).json({ message })
+        res.status(500).json({ message: err.message })
+        console.log(err)
       })
   })
 
@@ -894,8 +901,12 @@ module.exports = (Router, Service, Logger, App) => {
               const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
 
               res.setHeader('Content-type', mimetype);
-              res.setHeader('Content-disposition', `attachment; filename=${decryptedFileName}.${fileExt}`);
-              res.set('x-file-name', `${decryptedFileName}.${fileExt}`);
+
+              const decryptedFileName_b64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
+              const encodedFileName = encodeURI(`${decryptedFileName}.${fileExt}`)
+              res.setHeader('Content-disposition', `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`);
+
+              res.set('x-file-name', decryptedFileName_b64);
 
               filestream.pipe(res)
               fs.unlink(filePath, (error) => {
@@ -932,10 +943,15 @@ module.exports = (Router, Service, Logger, App) => {
    * Stripe Session is neccesary to perform a new payment
    */
   Router.post('/stripe/session', passportAuth, (req, res) => {
-    const stripe = require('stripe')(process.env.STRIPE_SK);
-    console.log(process.env.STRIPE_SK);
-    const user = GetUserFromJwtToken(req.headers.authorization);
     const planToSubscribe = req.body.plan;
+
+    let stripe = require('stripe')(process.env.STRIPE_SK);
+
+    if (req.body.test) {
+      stripe = require('stripe')(process.env.STRIPE_SK_TEST);
+    }
+    
+    const user = GetUserFromJwtToken(req.headers.authorization);
 
     async.waterfall([
       (next) => {
@@ -1032,7 +1048,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Required metadata: 
    */
   Router.get('/stripe/products', (req, res) => {
-    const stripe = require('stripe')(process.env.STRIPE_SK);
+    const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
     stripe.products.list({}, (err, products) => {
       if (err) {
         res.status(500).send({ error: err });
@@ -1049,7 +1065,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Get available plans from a given product.
    */
   Router.post('/stripe/plans', (req, res) => {
-    const stripe = require('stripe')(process.env.STRIPE_SK);
+    const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
     const stripeProduct = req.body.product;
 
     stripe.plans.list({
@@ -1072,6 +1088,12 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
   });
+
+  Router.get('/bits', (req, res) => {
+    const newBits = bip39.generateMnemonic(256)
+    const eNewBits = App.services.Crypt.encryptText(newBits)
+    res.status(200).send({ bits: eNewBits })
+  })
 
   function GetUserFromJwtToken(token) {
     return jwt.decode(token.split(' ')[1], App.config.get('secrets').JWT);
