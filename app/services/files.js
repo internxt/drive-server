@@ -1,6 +1,7 @@
 const fs = require('fs');
 const sequelize = require('sequelize');
 const axios = require('axios');
+const SanitizeFilename = require('sanitize-filename')
 
 const Op = sequelize.Op;
 
@@ -43,6 +44,12 @@ module.exports = (Model, App) => {
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
+        const sanitizedFilename = SanitizeFilename(fileName)
+
+        if (fileName !== sanitizedFilename) {
+          throw Error('Cannot upload, invalid file name')
+        }
+
         App.logger.info(`Starting file upload: ${fileName}`)
 
         const rootFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: user.root_folder_id } } });
@@ -74,6 +81,9 @@ module.exports = (Model, App) => {
         App.logger.info('Uploading file to network')
         App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
+            if (!fileId) {
+              return reject('Missing file id')
+            }
             const addedFile = await Model.file.create({
               name: encryptedFileName, type: fileExt, fileId, bucketId: fileId, bucket: rootFolder.bucket, size
             })

@@ -1,5 +1,6 @@
 const _ = require('lodash')
 const Secret = require('crypto-js');
+const SanitizeFilename = require('sanitize-filename')
 
 module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
@@ -8,6 +9,12 @@ module.exports = (Model, App) => {
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
+        const sanitizedFoldername = SanitizeFilename(folderName)
+
+        if (sanitizedFoldername !== folderName) {
+          throw Error('Invalid folder name')
+        }
+        
         if (user.mnemonic === 'null') { throw Error('Your mnemonic is invalid'); }
 
         const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
