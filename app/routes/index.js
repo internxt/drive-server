@@ -4,6 +4,8 @@ const qrcode = require('qrcode')
 const async = require('async')
 const useragent = require('useragent')
 const bip39 = require('bip39')
+const axios = require('axios');
+const crypto = require('crypto')
 const swaggerSpec = require('../../config/initializers/swagger')
 const upload = require('../middleware/multer')
 const passport = require('../middleware/passport')
@@ -81,7 +83,6 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-
   Router.post('/access', function (req, res) {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
     // Call user service to find or create user
@@ -145,24 +146,24 @@ module.exports = (Router, Service, Logger, App) => {
    * Prevent 2FA users from getting a new code.
    */
   Router.get('/tfa', passportAuth, function (req, res) {
-    const user = req.user.email
-    Service.User.FindUserByEmail(user).then(async (userData) => {
-      if (!userData) {
-        res.status(500).send({ error: 'User does not exists' });
-      } else if (userData.secret_2FA) {
-        res.status(500).send({ error: 'User has already 2FA' });
-      } else {
-        const secret = speakeasy.generateSecret({ length: 10 });
-        const url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
-        const bidi = await qrcode.toDataURL(url);
+    const userData = req.user
+    if (!userData) {
+      res.status(500).send({ error: 'User does not exists' });
+    } else if (userData.secret_2FA) {
+      res.status(500).send({ error: 'User has already 2FA' });
+    } else {
+      const secret = speakeasy.generateSecret({ length: 10 });
+      const url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
+      qrcode.toDataURL(url).then(bidi => {
         res.status(200).send({
           code: secret.base32,
           qr: bidi
         });
-      }
-    }).catch((err) => {
-      res.status(500).send({ error: 'Server error' });
-    });
+      }).catch(err => {
+        console.error(err)
+        res.status(500).send({ error: 'Server error' });
+      })
+    }
   });
 
   Router.put('/tfa', passportAuth, function (req, res) {
@@ -345,8 +346,6 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.post('/limit', function (req, res) {
-    const axios = require('axios');
-    const crypto = require('crypto')
 
     Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
@@ -427,7 +426,7 @@ module.exports = (Router, Service, Logger, App) => {
   */
   Router.get('/storage/folder/:id', passportAuth, function (req, res) {
     const folderId = req.params.id;
-    Service.Folder.GetContent(folderId, req.user.dataValues.email)
+    Service.Folder.GetContent(folderId, req.user)
       .then((result) => {
         res.status(200).json(result)
       }).catch((err) => {
