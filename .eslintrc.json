@@ -9,10 +9,11 @@
         "prefer-destructuring": 0,
         "import/no-dynamic-require": 0,
         "prefer-arrow-callback": 0,
-        "no-unused-vars": 1,
+        "no-unused-vars": 0,
         "arrow-body-style": 0,
         "prefer-template": 0,
-        "eqeqeq": 0,
-        "max-len": 0
+        "eqeqeq": 2,
+        "max-len": 0,
+        "no-console": 0
     }
 }

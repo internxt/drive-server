@@ -41,7 +41,8 @@
     "dev": "./node_modules/.bin/nodemon app.js",
     "test": "./node_modules/.bin/mocha test/**/*.js",
     "migrate": "sequelize db:migrate",
-    "eslint": "eslint ./lib/**/*.js ./app/**/*.js"
+    "lint": "eslint ./lib/**/*.js ./app/**/*.js",
+    "lint:fix": "eslint ./lib/**/*.js ./app/**/*.js --fix"
   },
   "devDependencies": {
     "axios-debug-log": "^0.4.0",

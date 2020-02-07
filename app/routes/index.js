@@ -3,11 +3,11 @@ const passport = require('passport')
 const fs = require('fs');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode')
-const upload = require('./../middleware/multer')
-const swaggerSpec = require('./../../config/initializers/swagger')
 const async = require('async')
 const useragent = require('useragent')
 const bip39 = require('bip39')
+const swaggerSpec = require('./../../config/initializers/swagger')
+const upload = require('./../middleware/multer')
 
 /**
  * JWT
@@ -625,14 +625,14 @@ module.exports = (Router, Service, Logger, App) => {
         userAgent: agent.source
       }).then(() => {
 
-      }).catch(err => {
+      }).catch((err) => {
         console.log('Error creating statistics:', err)
       })
     }
 
-    Service.Folder.GetTree(user).then(result => {
+    Service.Folder.GetTree(user).then((result) => {
       res.status(200).send(result)
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send({ error: err.message })
     })
   });
@@ -665,7 +665,9 @@ module.exports = (Router, Service, Logger, App) => {
     let filePath;
 
     Service.Files.Download(user, fileIdInBucket)
-      .then(({ filestream, mimetype, downloadFile, folderId }) => {
+      .then(({
+        filestream, mimetype, downloadFile, folderId
+      }) => {
         filePath = downloadFile;
         const fileName = downloadFile.split('/')[2];
         const extSeparatorPos = fileName.lastIndexOf('.')
@@ -766,10 +768,10 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/storage/file/:fileid/info', passportAuth, function (req, res) {
     const user = req.user;
-    Service.Files.GetFileInfo(user, req.params.fileid).then(result => {
+    Service.Files.GetFileInfo(user, req.params.fileid).then((result) => {
       console.log(result)
       res.status(200).send(result);
-    }).catch(err => {
+    }).catch((err) => {
       res.status(500).send({ error: err.message });
     });
   })
@@ -892,7 +894,9 @@ module.exports = (Router, Service, Logger, App) => {
           userData.mnemonic = result.mnemonic;
 
           Service.Files.Download(userData, fileIdInBucket)
-            .then(({ filestream, mimetype, downloadFile, folderId }) => {
+            .then(({
+              filestream, mimetype, downloadFile, folderId
+            }) => {
               filePath = downloadFile;
               const fileName = downloadFile.split('/')[2];
               const extSeparatorPos = fileName.lastIndexOf('.')
@@ -950,7 +954,7 @@ module.exports = (Router, Service, Logger, App) => {
     if (req.body.test) {
       stripe = require('stripe')(process.env.STRIPE_SK_TEST);
     }
-    
+
     const user = GetUserFromJwtToken(req.headers.authorization);
 
     async.waterfall([
@@ -1025,10 +1029,9 @@ module.exports = (Router, Service, Logger, App) => {
           delete session_params.customer;
         }
 
-        stripe.checkout.sessions.create(session_params).then(result => {
+        stripe.checkout.sessions.create(session_params).then((result) => {
           next(null, result);
-        }).catch(err => { next(err); });
-
+        }).catch((err) => { next(err); });
       }
     ], (err, result) => {
       console.log(result);
@@ -1045,7 +1048,7 @@ module.exports = (Router, Service, Logger, App) => {
   /**
    * Retrieve products listed in STRIPE.
    * Products must be inserted on stripe using the dashboard with the required metadata.
-   * Required metadata: 
+   * Required metadata:
    */
   Router.get('/stripe/products', (req, res) => {
     const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
@@ -1053,7 +1056,7 @@ module.exports = (Router, Service, Logger, App) => {
       if (err) {
         res.status(500).send({ error: err });
       } else {
-        const productsMin = products.data.filter(p => !(!p.metadata.size_bytes)).map(p => {
+        const productsMin = products.data.filter(p => !(!p.metadata.size_bytes)).map((p) => {
           return { id: p.id, name: p.name, metadata: p.metadata };
         }).sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
         res.status(200).send(productsMin);
@@ -1074,7 +1077,7 @@ module.exports = (Router, Service, Logger, App) => {
       if (err) {
         res.status(500).send({ error: err.message });
       } else {
-        const plansMin = plans.data.map(p => {
+        const plansMin = plans.data.map((p) => {
           return {
             id: p.id,
             price: p.amount,
@@ -1086,7 +1089,6 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).send(plansMin);
       }
     });
-
   });
 
   Router.get('/bits', (req, res) => {

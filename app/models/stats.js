@@ -1,25 +1,24 @@
 module.exports = (sequelize, DataTypes) => {
-    const Statistics = sequelize.define('statistics', {
-      id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        allowNull: false,
-        autoIncrement: true
-      },
-      name: {
-        type: DataTypes.STRING
-      },
-      user: {
-        type: DataTypes.STRING
-      },
-      userAgent: {
-        type: DataTypes.STRING
-      }
+  const Statistics = sequelize.define('statistics', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      allowNull: false,
+      autoIncrement: true
     },
-    {
-      timestamps: true,
-      underscored: true,
-    })
-    return Statistics
+    name: {
+      type: DataTypes.STRING
+    },
+    user: {
+      type: DataTypes.STRING
+    },
+    userAgent: {
+      type: DataTypes.STRING
+    }
+  },
+  {
+    timestamps: true,
+    underscored: true,
+  })
+  return Statistics
 }
-  

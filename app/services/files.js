@@ -6,12 +6,10 @@ const SanitizeFilename = require('sanitize-filename')
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
-
   const CreateFile = (file) => {
     return new Promise(async (resolve, reject) => {
       Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id } } })
         .then((folder) => {
-
           // console.log('Create Entry, filname decrypted', App.services.Crypt.decryptName(file.name, file.folder_id))
           // Attention: bucketId is the fileId.
           const fileInfo = {
@@ -31,7 +29,6 @@ module.exports = (Model, App) => {
             console.log('Error creating entry', err)
             reject('Unable to create file in database');
           });
-
         }).catch((err) => {
           console.log('Other error', err)
           reject('Cannot find bucket ' + file.folder_id);
@@ -209,7 +206,6 @@ module.exports = (Model, App) => {
             folder_id: parseInt(destination, 0),
             name: App.services.Crypt.encryptName(originalName, destination)
           }).then(resolve());
-
         }
       }
     })
@@ -237,11 +233,11 @@ module.exports = (Model, App) => {
       axios.get(`${process.env.STORJ_BRIDGE}/buckets/${file.bucket}/files/${file.fileId}/info`, {
         auth: {
           username: user.email,
-          password: password
+          password
         }
-      }).then(result => {
+      }).then((result) => {
         resolve(result.data);
-      }).catch(err => {
+      }).catch((err) => {
         reject(err)
       });
     });

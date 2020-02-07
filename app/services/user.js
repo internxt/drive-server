@@ -1,5 +1,6 @@
 const axios = require('axios')
 const sequelize = require('sequelize');
+
 const Op = sequelize.Op;
 const async = require('async');
 
@@ -19,19 +20,14 @@ module.exports = (Model, App) => {
     const t = Model.users.sequelize.transaction();
 
     try {
-
-      Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(result => {
+      Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then((result) => {
         console.log('Result', result)
-      }).catch(err => {
+      }).catch((err) => {
         console.log('Error', err)
       })
-
     } catch (e) {
 
     }
-
-
-
   }
 
   const FindOrCreate = (user) => {
@@ -140,7 +136,7 @@ module.exports = (Model, App) => {
       return response.dataValues
     })
 
-  const FindUserByEmail = email => {
+  const FindUserByEmail = (email) => {
     return new Promise((resolve, reject) => {
       Model.users.findOne({ where: { email: { [Op.eq]: email } } })
         .then((userData) => {
@@ -223,34 +219,33 @@ module.exports = (Model, App) => {
 
   const ConfirmDeactivateUser = (token) => {
     return new Promise((resolve, reject) => {
-
       async.waterfall([
         (next) => {
           axios.get(App.config.get('STORJ_BRIDGE') + '/deactivationStripe/' + token,
             {
               headers: { 'Content-Type': 'application/json' }
             }).then((res) => {
-              console.log('User deleted from bridge');
-              next(null, res);
-            }).catch((err) => {
-              console.log('Error user deleted from bridge');
-              next(err);
-            });
+            console.log('User deleted from bridge');
+            next(null, res);
+          }).catch((err) => {
+            console.log('Error user deleted from bridge');
+            next(err);
+          });
         },
         (data, next) => {
           const userEmail = data.data.email
           Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } })
             .then((user) => {
               console.log('User found on sql');
-              user.destroy().then(result => {
+              user.destroy().then((result) => {
                 console.log('User deleted on sql');
-                 next(null, data)
-              }).catch(err => {
+                next(null, data)
+              }).catch((err) => {
                 console.log('Error deleting user on sql');
                 next(err)
               });
             })
-            .catch(err => {
+            .catch((err) => {
               next(err);
             })
         }
@@ -258,8 +253,7 @@ module.exports = (Model, App) => {
         if (err) {
           console.log('Error waterfall', err);
           reject(err)
-        }
-        else { resolve(result) }
+        } else { resolve(result) }
       })
     });
   }

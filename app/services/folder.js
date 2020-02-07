@@ -14,7 +14,7 @@ module.exports = (Model, App) => {
         if (sanitizedFoldername !== folderName) {
           throw Error('Invalid folder name')
         }
-        
+
         if (user.mnemonic === 'null') { throw Error('Your mnemonic is invalid'); }
 
         const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
@@ -63,7 +63,7 @@ module.exports = (Model, App) => {
         async function AddFolderFilesAndCallMeMaybeWithSubfolders(pk, email) {
           const FilesInFolder = await Model.file.findAll({ where: { folder_id: pk } });
 
-          FilesInFolder.forEach(async file => {
+          FilesInFolder.forEach(async (file) => {
             console.log('Recursive delete file %s (%s)', file.id, user.email);
             await FileService.Delete(user, file.bucket, file.fileId);
           });
@@ -87,7 +87,6 @@ module.exports = (Model, App) => {
     const username = user.email;
 
     return new Promise(async (resolve, reject) => {
-
       const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
 
       const rootFolder = await Model.folder.findOne({
