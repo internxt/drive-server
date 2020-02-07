@@ -12,8 +12,10 @@
         "no-unused-vars": 0,
         "arrow-body-style": 0,
         "prefer-template": 0,
-        "eqeqeq": 2,
+        "eqeqeq": 1,
         "max-len": 0,
-        "no-console": 0
+        "no-console": 0,
+        "no-param-reassign": 0,
+        "prefer-promise-reject-errors": 0
     }
 }

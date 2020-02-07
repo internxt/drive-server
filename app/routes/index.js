@@ -1,22 +1,17 @@
-const jwt = require('jsonwebtoken');
-const passport = require('passport')
 const fs = require('fs');
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode')
 const async = require('async')
 const useragent = require('useragent')
 const bip39 = require('bip39')
-const swaggerSpec = require('./../../config/initializers/swagger')
-const upload = require('./../middleware/multer')
+const swaggerSpec = require('../../config/initializers/swagger')
+const upload = require('../middleware/multer')
+const passport = require('../middleware/passport')
 
-/**
- * JWT
- */
-const passportAuth = passport.authenticate('jwt', {
-  session: false
-});
+const passportAuth = passport.passportAuth
 
 module.exports = (Router, Service, Logger, App) => {
+
   Router.get('/api-docs.json', function (req, res) {
     res.setHeader('Content-Type', 'application/json')
     res.send(swaggerSpec)
@@ -116,19 +111,10 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(400).send({ error: 'Wrong 2-factor auth code' });
       } else if (pass == userData.password && tfaResult) {
         // Successfull login
-        const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
-
-        const token2 = jwt.sign({
-          email: userData.email,
-          mnemonic: userData.mnemonic,
-          root_folder_id: userData.root_folder_id
-        }, App.config.get('secrets').JWT, {
-          expiresIn: '14d'
-        });
+        const token = passport.Sign(userData.email, App.config.get('secrets').JWT)
 
         Service.User.LoginFailed(req.body.email, false);
 
-        // console.log(userData)
         res.status(200).json({
           user: {
             userId: userData.userId,
@@ -159,7 +145,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Prevent 2FA users from getting a new code.
    */
   Router.get('/tfa', passportAuth, function (req, res) {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
     Service.User.FindUserByEmail(user).then(async (userData) => {
       if (!userData) {
         res.status(500).send({ error: 'User does not exists' });
@@ -180,7 +166,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.put('/tfa', passportAuth, function (req, res) {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
 
     Service.User.FindUserByEmail(user).then((userData) => {
       if (userData.secret_2FA) {
@@ -212,7 +198,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.delete('/tfa', function (req, res) {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
 
     Service.User.FindUserByEmail(user).then((userData) => {
       if (!userData.secret_2FA) {
@@ -507,8 +493,6 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user
     user.mnemonic = req.headers['internxt-mnemonic'];
 
-    // console.log('Create folder %s, parent id: %s', folderName, parentFolderId)
-
     Service.Folder.Create(user, folderName, parentFolderId)
       .then((result) => {
         res.status(201).json(result)
@@ -539,7 +523,6 @@ module.exports = (Router, Service, Logger, App) => {
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const folderId = req.params.id
-    // console.log('Delete folder: %s', folderId)
 
     Service.Folder.Delete(user, folderId)
       .then((result) => {
@@ -782,7 +765,6 @@ module.exports = (Router, Service, Logger, App) => {
     user.mnemonic = req.headers['internxt-mnemonic'];
     const bucketId = req.params.bucketid
     const fileIdInBucket = req.params.fileid
-    // console.log('Delete file: %s in %s', fileIdInBucket, bucketId)
 
     Service.Files.Delete(user, bucketId, fileIdInBucket)
       .then((result) => {
@@ -794,7 +776,8 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.get('/user/isactivated', passportAuth, function (req, res) {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
+
     Service.Storj.IsUserActivated(user).then((response) => {
       if (response.data) {
         res.status(200).send({ activated: response.data.activated })
@@ -830,7 +813,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/deactivate', passportAuth, function (req, res) {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
     Service.User.DeactivateUser(user).then((bridgeRes) => {
       res.status(200).send({ error: null, message: 'User deactivated' });
     }).catch((err) => {
@@ -854,7 +837,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Change X Cloud password.
    */
   Router.patch('/user/password', passportAuth, (req, res) => {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
 
     const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
@@ -875,7 +858,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
     Service.Share.GenerateToken(user, req.params.id, req.headers['internxt-mnemonic'])
       .then((result) => {
         res.status(200).send(result);
@@ -955,7 +938,7 @@ module.exports = (Router, Service, Logger, App) => {
       stripe = require('stripe')(process.env.STRIPE_SK_TEST);
     }
 
-    const user = GetUserFromJwtToken(req.headers.authorization);
+    const user = req.user.email
 
     async.waterfall([
       (next) => {
@@ -1096,10 +1079,6 @@ module.exports = (Router, Service, Logger, App) => {
     const eNewBits = App.services.Crypt.encryptText(newBits)
     res.status(200).send({ bits: eNewBits })
   })
-
-  function GetUserFromJwtToken(token) {
-    return jwt.decode(token.split(' ')[1], App.config.get('secrets').JWT);
-  }
 
   return Router;
 }

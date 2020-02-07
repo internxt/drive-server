@@ -1,5 +1,4 @@
 const sequelize = require('sequelize');
-
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
@@ -28,26 +27,9 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GetUserUsage = (user) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        fetch('https://api.internxt.com/usage', {
-
-        }).then((result) => {
-          resolve(result);
-        }).catch((error) => {
-          reject(error);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
   return {
     Name: 'Plan',
     ListAll,
-    FindPlanByStripeCode,
-    GetUserUsage
+    FindPlanByStripeCode
   }
 }
