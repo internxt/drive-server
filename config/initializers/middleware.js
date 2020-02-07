@@ -32,8 +32,25 @@ module.exports = (App, Config) => {
    * Once JWT is granted, this middleware resolves the user info
    */
   Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
-    App.services.User.FindUserObjByEmail(payload)
-      .then((user) => done(null, user)).catch(done)
+
+    /* Temporal compatibility with old JWT
+     * BEGIN
+     */
+    const COMPATIBILITY = true
+    let email = payload
+    if (typeof payload === 'object') {
+      email = payload.email
+    } else if (!COMPATIBILITY) {
+      return done(new Error('Old JWT not supported'))
+    }
+    /* END
+     * After JWT migration, the email will be payload.email
+     * and delete this block + uncomment next line
+     */
+
+    // const email = payload.email
+
+    App.services.User.FindUserObjByEmail(email).then((user) => done(null, user)).catch(done)
   }))
 
   /**
