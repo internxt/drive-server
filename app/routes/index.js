@@ -6,6 +6,7 @@ const useragent = require('useragent')
 const bip39 = require('bip39')
 const axios = require('axios');
 const crypto = require('crypto')
+
 const swaggerSpec = require('../../config/initializers/swagger')
 const upload = require('../middleware/multer')
 const passport = require('../middleware/passport')
@@ -36,7 +37,6 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-
   Router.post('/login', function (req, res) {
     req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
@@ -85,15 +85,16 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/access', function (req, res) {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
+
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then((userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
         res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
         return;
       }
+
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
-
 
       // 2-Factor Auth. Verification
       const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
@@ -198,7 +199,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.delete('/tfa', function (req, res) {
+  Router.delete('/tfa', passportAuth, function (req, res) {
     const user = req.user.email
 
     Service.User.FindUserByEmail(user).then((userData) => {
@@ -259,7 +260,7 @@ module.exports = (Router, Service, Logger, App) => {
         // Process user data and answer API call
         if (userData.isCreated) {
           // Successfull register
-          const token = jwt.sign(userData.email, App.config.get('secrets').JWT);
+          const token = passport.Sign(userData.email, App.config.get('secrets').JWT)
           const user = { email: userData.email }
           res.status(200).send({ token, user });
         } else {
@@ -311,7 +312,7 @@ module.exports = (Router, Service, Logger, App) => {
       })
   });
 
-  Router.post('/plans', function (req, res) {
+  Router.get('/plans', passportAuth, function (req, res) {
     const x = Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);
     }).catch((e) => {
@@ -319,57 +320,49 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.post('/usage', function (req, res) {
-    const axios = require('axios');
-    const crypto = require('crypto')
+  Router.get('/usage', passportAuth, function (req, res) {
+    const userData = req.user
 
-    Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
-        const pwd = userData.userId;
-        const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+    const pwd = userData.userId;
+    const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
 
-        const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+    const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
-        axios.get(App.config.get('STORJ_BRIDGE') + '/usage', {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + credential
-          }
-        }).then((data) => {
-          res.status(200).send(data.data);
-        }).catch((err) => {
-          res.status(400).send({ result: 'Error retrieving bridge information' });
-        });
-      }).catch((err) => {
-        res.status(400).send({ result: 'Error retrieving user info' });
-      });
+    axios.get(App.config.get('STORJ_BRIDGE') + '/usage', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Basic ' + credential
+      }
+    }).then((data) => {
+      res.status(200).send(data.data);
+    }).catch((err) => {
+      res.status(400).send({ result: 'Error retrieving bridge information' });
+    });
   });
 
-  Router.post('/limit', function (req, res) {
+  // TODO
+  Router.get('/limit', passportAuth, function (req, res) {
 
-    Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
-        const pwd = userData.userId;
-        const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+    const userData = req.user
 
-        const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+    const pwd = userData.userId;
+    const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
 
-        axios.get(App.config.get('STORJ_BRIDGE') + '/limit', {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: 'Basic ' + credential
-          }
-        }).then((data) => {
-          res.status(200).send(data.data);
-        }).catch((err) => {
-          res.status(400).send({ result: 'Error retrieving bridge information' });
-        });
-      }).catch((err) => {
-        res.status(400).send({ result: 'Error retrieving user info' });
-      });
+    const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
+
+    axios.get(App.config.get('STORJ_BRIDGE') + '/limit', {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Basic ' + credential
+      }
+    }).then((data) => {
+      res.status(200).send(data.data);
+    }).catch((err) => {
+      res.status(400).send({ result: 'Error retrieving bridge information' });
+    });
   });
 
-  Router.put('/auth/mnemonic', function (req, res) {
+  Router.put('/auth/mnemonic', passportAuth, function (req, res) {
     const {
       body: { email, mnemonic },
     } = req;
@@ -383,30 +376,6 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(400).json({ message, code: 400 });
       });
   })
-
-  /**
-   * @swagger
-   * /user/:id:
-   *   post:
-   *     description: Get user.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of user
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-  */
-  Router.get('/users/:id', passportAuth, function (req, res) {
-    Service.User.GetUserById(req.params.id).then(function (foundUser) {
-      res.send(foundUser);
-    }).catch((err) => {
-      Logger.error(err.message + '\n' + err.stack);
-      res.status(500).json(err)
-    });
-  });
 
   /**
    * @swagger
@@ -428,7 +397,11 @@ module.exports = (Router, Service, Logger, App) => {
     const folderId = req.params.id;
     Service.Folder.GetContent(folderId, req.user)
       .then((result) => {
-        res.status(200).json(result)
+        if (result == null) {
+          res.status(500).send({ error: 'Not your folder' })
+        } else {
+          res.status(200).json(result)
+        }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
         res.status(500).json(err)
@@ -789,28 +762,6 @@ module.exports = (Router, Service, Logger, App) => {
     })
   })
 
-  Router.post('/user/storeOption', passportAuth, function (req, res) {
-    Service.User.UpdateStorageOption(req.body.email, req.body.option).then((response) => {
-      res.status(200).json({ mnemonic: response.mnemonic })
-    }).catch((error) => {
-      res.status(500).json({ error: error.message })
-    })
-  })
-
-  Router.get('/captcha/:token', function (req, res) {
-    Service.User.resolveCaptcha(req.params.token)
-      .then((response) => {
-        res.status(200).json(response);
-      }).catch((error) => {
-        Logger.error(error.stack);
-        res.status(500);
-      })
-  })
-
-  Router.get('/storage/file/search', function (req, res) {
-    // TODO
-  });
-
   Router.get('/deactivate', passportAuth, function (req, res) {
     const user = req.user.email
     Service.User.DeactivateUser(user).then((bridgeRes) => {
@@ -843,14 +794,10 @@ module.exports = (Router, Service, Logger, App) => {
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const mnemonic = req.body.mnemonic;
 
-    console.log('Update Password and Mnemonic');
-
     Service.User.UpdatePasswordMnemonic(user, currentPassword, newPassword, newSalt, mnemonic)
       .then((result) => {
-        console.log('Res OK');
         res.status(200).send({});
       }).catch((err) => {
-        console.log('Res FAIL');
         console.log(err);
         res.status(500).send(err);
       });
@@ -1032,7 +979,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Products must be inserted on stripe using the dashboard with the required metadata.
    * Required metadata:
    */
-  Router.get('/stripe/products', (req, res) => {
+  Router.get('/stripe/products', passportAuth, (req, res) => {
     const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
     stripe.products.list({}, (err, products) => {
       if (err) {
@@ -1048,8 +995,9 @@ module.exports = (Router, Service, Logger, App) => {
 
   /**
    * Get available plans from a given product.
+   * TODO: cache plans to avoid repetitive api calls
    */
-  Router.post('/stripe/plans', (req, res) => {
+  Router.post('/stripe/plans', passportAuth, (req, res) => {
     const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
     const stripeProduct = req.body.product;
 
