@@ -1,5 +1,4 @@
 const _ = require('lodash')
-const Secret = require('crypto-js');
 const SanitizeFilename = require('sanitize-filename')
 
 module.exports = (Model, App) => {
@@ -9,6 +8,17 @@ module.exports = (Model, App) => {
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
+        // parent folder is yours?
+        const existsParentFolder = await Model.folder.findOne({
+          where: { id: { [Op.eq]: parentFolderId }, user_id: { [Op.eq]: user.id } }
+        });
+
+        if (!existsParentFolder) {
+          console.warn('Parent folder is not yours')
+          throw Error('Parent folder is not yours')
+        }
+
+        // Prevent strange folder names from being created
         const sanitizedFoldername = SanitizeFilename(folderName)
 
         if (sanitizedFoldername !== folderName) {
@@ -33,9 +43,9 @@ module.exports = (Model, App) => {
           name: cryptoFolderName,
           bucket: null,
           parentId: parentFolderId || null
-        });
+        })
 
-        resolve(xCloudFolder);
+        resolve('New folder id is', xCloudFolder.id);
       } catch (error) {
         reject(error);
       }
@@ -122,10 +132,11 @@ module.exports = (Model, App) => {
 
 
   const GetContent = async (folderId, user) => {
+    console.log('Get content of folder', folderId)
     const result = await Model.folder.findOne({
       where: {
-          id: { [Op.eq]: folderId },
-          user_id: user.id
+        id: { [Op.eq]: folderId },
+        user_id: user.id
       },
       include: [{
         model: Model.folder,

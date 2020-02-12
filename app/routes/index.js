@@ -303,7 +303,7 @@ module.exports = (Router, Service, Logger, App) => {
           const user = { email: userData.email, mnemonic: userData.mnemonic, root_folder_id: userData.root_folder_id }
           res.status(200).send({ user });
         } else {
-          // User initialization unsuccessfull
+          // User initialization unsuccessful
           res.status(400).send({ message: "Your account can't be initialized" });
         }
       }).catch((err) => {
@@ -334,7 +334,7 @@ module.exports = (Router, Service, Logger, App) => {
         Authorization: 'Basic ' + credential
       }
     }).then((data) => {
-      res.status(200).send(data.data);
+      res.status(200).send(data.data ? data.data : { total: 0 });
     }).catch((err) => {
       res.status(400).send({ result: 'Error retrieving bridge information' });
     });
@@ -398,7 +398,7 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Folder.GetContent(folderId, req.user)
       .then((result) => {
         if (result == null) {
-          res.status(500).send({ error: 'Not your folder' })
+          res.status(500).send([])
         } else {
           res.status(200).json(result)
         }
@@ -459,9 +459,12 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Array of folder items
   */
-  Router.post('/storage/folder', passportAuth, async function (req, res) {
+  Router.post('/storage/folder', passportAuth, function (req, res) {
+
+    console.log('create folder body', req.body)
     const folderName = req.body.folderName
     const parentFolderId = req.body.parentFolderId
+
     const user = req.user
     user.mnemonic = req.headers['internxt-mnemonic'];
 

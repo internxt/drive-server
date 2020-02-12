@@ -89,20 +89,21 @@ module.exports = (Model, App) => {
     return Model.users.sequelize.transaction(function (t) {
       return Model.users.findOne({ where: { email: { [Op.eq]: user.email } } })
         .then(async (userData) => {
-          const bcryptId = userData.userId;
-
+          if (userData.root_folder_id) {
+            userData.mnemonic = user.mnemonic
+            return userData;
+          }
           const rootBucket = await App.services.Storj
-            .CreateBucket(userData.email, bcryptId, user.mnemonic)
-          logger.info('User init | root bucket created for %s', userData.email)
+            .CreateBucket(userData.email, userData.userId, user.mnemonic)
+          logger.info('User init | root bucket created %s', rootBucket.name)
 
-          const rootFolderName = await App.services.Crypt.encryptName(`${userData.email}_root`)
-          logger.info('User init | root folder name: ' + rootFolderName)
+          const rootFolderName = await App.services.Crypt.encryptName(`${rootBucket.name}`)
 
           const rootFolder = await userData.createFolder({
             name: rootFolderName,
             bucket: rootBucket.id
           })
-          logger.info('User init | root folder created')
+          logger.info('User init | root folder created, mysql id:', rootFolder.id)
 
           // Update user register with root folder Id
           await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
@@ -336,7 +337,6 @@ module.exports = (Model, App) => {
 
           resolve();
 
-
           Model.users.update({
             password: newPassword,
             mnemonic,
@@ -351,6 +351,7 @@ module.exports = (Model, App) => {
             });
         }
       }).catch((err) => {
+        console.error(err)
         reject({ error: 'Internal server error' });
       });
     });

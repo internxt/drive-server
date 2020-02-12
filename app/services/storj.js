@@ -74,7 +74,7 @@ module.exports = (Model, App) => {
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
-    const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${email}_ROOT`
+    const bucketName = name ? `${email}_${name}_${shortid.generate()}` : `${shortid.generate()}_${email}_ROOT`
     try {
       const storj = getEnvironment(email, password, mnemonic);
       return new Promise((resolve, reject) => {
