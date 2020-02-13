@@ -41,6 +41,7 @@
     "dev": "./node_modules/.bin/nodemon app.js",
     "test": "./node_modules/.bin/mocha test/**/*.js",
     "migrate": "sequelize db:migrate",
+    "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./lib/**/*.js ./app/**/*.js",
     "lint:fix": "eslint ./lib/**/*.js ./app/**/*.js --fix"
   },
