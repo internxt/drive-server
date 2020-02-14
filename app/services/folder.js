@@ -162,7 +162,7 @@ module.exports = (Model, App) => {
     // Null result implies empty folder.
     // TODO: Should send an error to be handled and showed on website.
 
-    if (result != null) {
+    if (result !== null) {
       result.name = App.services.Crypt.decryptName(result.name, result.parentId);
       result.children = mapChildrenNames(result.children)
       result.files = result.files.map((file) => {

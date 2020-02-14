@@ -226,12 +226,12 @@ module.exports = (Model, App) => {
             {
               headers: { 'Content-Type': 'application/json' }
             }).then((res) => {
-            console.log('User deleted from bridge');
-            next(null, res);
-          }).catch((err) => {
-            console.log('Error user deleted from bridge');
-            next(err);
-          });
+              console.log('User deleted from bridge');
+              next(null, res);
+            }).catch((err) => {
+              console.log('Error user deleted from bridge');
+              next(err);
+            });
         },
         (data, next) => {
           const userEmail = data.data.email
@@ -329,7 +329,7 @@ module.exports = (Model, App) => {
       FindUserByEmail(user).then((userData) => {
         console.log('Found on database');
         const storedPassword = userData.password.toString();
-        if (storedPassword != currentPassword) {
+        if (storedPassword !== currentPassword) {
           console.log('Invalid password');
           reject({ error: 'Invalid password' });
         } else {

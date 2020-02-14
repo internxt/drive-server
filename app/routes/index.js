@@ -53,7 +53,7 @@ module.exports = (Router, Service, Logger, App) => {
             res.status(400).send({ error: 'User is not activated' });
           } else {
             const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-            const required_2FA = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+            const required_2FA = userData.secret_2FA !== undefined && userData.secret_2FA.length > 0;
             res.status(200).send({ sKey: encSalt, tfa: required_2FA })
           }
         }).catch((err) => {
@@ -97,7 +97,7 @@ module.exports = (Router, Service, Logger, App) => {
       const pass = App.services.Crypt.decryptText(req.body.password);
 
       // 2-Factor Auth. Verification
-      const needsTfa = userData.secret_2FA != undefined && userData.secret_2FA.length > 0;
+      const needsTfa = userData.secret_2FA !== undefined && userData.secret_2FA.length > 0;
       let tfaResult = true;
 
       if (needsTfa) {
@@ -217,7 +217,7 @@ module.exports = (Router, Service, Logger, App) => {
         // Check user password is valid
         const decryptedPass = App.services.Crypt.decryptText(req.body.pass);
 
-        if (userData.password.toString() != decryptedPass) {
+        if (userData.password.toString() !== decryptedPass) {
           res.status(500).send({ error: 'Invalid password' });
         } else if (!isValid) {
           res.status(500).send({ error: 'Invalid 2FA code. Please, use an updated code.' });
