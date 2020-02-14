@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true
     },
     userId: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING(60)
     },
     name: {
       type: DataTypes.STRING
@@ -53,18 +53,16 @@ module.exports = (sequelize, DataTypes) => {
     errorLoginCount: {
       type: DataTypes.INTEGER
     }
-  },
-  {
+  }, {
     timestamps: true,
     underscored: true,
-  },
-  {
+  }, {
     defaultScope: {
       attributes: { exclude: ['userId'] }
     }
   })
 
-  User.associate = function(models) {
+  User.associate = function (models) {
     User.hasMany(models.folder);
   }
 

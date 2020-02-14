@@ -7,10 +7,10 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true
     },
     fileId: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING(24)
     },
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     type: {
       type: DataTypes.STRING
@@ -19,22 +19,22 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER
     },
     bucket: {
-      type: DataTypes.INTEGER
+      type: DataTypes.STRING(24)
     },
     folder_id: {
       type: DataTypes.INTEGER
     }
-  }, {
-    timestamps: true,
-    underscored: true,
-    indexes: [
-      { name: 'name', fields: ['name'] }
-    ]
-  })
+  },
+    {
+      timestamps: true,
+      underscored: true,
+      indexes: [{ name: 'name', fields: ['name'] }]
+    }
+  );
 
   file.associate = function (models) {
-    file.belongsTo(models.folder)
-  }
+    file.belongsTo(models.folder);
+  };
 
-  return file
-}
+  return file;
+};

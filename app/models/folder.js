@@ -11,10 +11,10 @@ module.exports = (sequelize, DataTypes) => {
       hierarchy: true
     },
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.STRING
     },
     bucket: {
-      type: DataTypes.STRING
+      type: DataTypes.STRING(24)
     },
     user_id: {
       type: DataTypes.INTEGER,
@@ -34,20 +34,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING
     }
   },
-  {
-    timestamps: true,
-    underscored: true,
-    indexes: [
-      { name: 'name', fields: ['name'] }
-    ]
-  })
+    {
+      timestamps: true,
+      underscored: true,
+      indexes: [{ name: 'name', fields: ['name'] }]
+    }
+  );
 
-  folder.associate = function(models) {
-    folder.hasOne(models.folder_metadata)
-    folder.hasMany(models.file)
-    folder.belongsTo(models.users)
-    folder.belongsTo(models.icon)
-  }
+  folder.associate = function (models) {
+    folder.hasOne(models.folder_metadata);
+    folder.hasMany(models.file);
+    folder.belongsTo(models.users);
+    folder.belongsTo(models.icon);
+  };
 
-  return folder
-}
+  return folder;
+};

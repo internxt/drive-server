@@ -1,28 +1,29 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.createTable('icons', {
-        id: {
-          type: Sequelize.INTEGER,
-          primaryKey: true,
-          allowNull: false,
-          autoIncrement: true
-        },
-        name: {
-          type: Sequelize.STRING
-        }
-      }),
-      queryInterface.addColumn('folders', 'icon_id', {
+    return queryInterface.createTable('icons', {
+      id: {
         type: Sequelize.INTEGER,
-        references: {
-          model: 'icons',
-          key: 'id'
-        }
-      }),
-      queryInterface.addColumn('folders', 'color', {
+        primaryKey: true,
+        allowNull: false,
+        autoIncrement: true
+      },
+      name: {
         type: Sequelize.STRING
-      })
-    ]);
+      }
+    }).then(() => {
+      return Promise.all([
+        queryInterface.addColumn('folders', 'icon_id', {
+          type: Sequelize.INTEGER,
+          references: {
+            model: 'icons',
+            key: 'id'
+          }
+        }),
+        queryInterface.addColumn('folders', 'color', {
+          type: Sequelize.STRING
+        })
+      ]);
+    });
   },
 
   down: (queryInterface, Sequelize) => {
