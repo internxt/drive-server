@@ -13,7 +13,7 @@ module.exports = (Model, App) => {
     try {
       return crypto.createHash('sha256').update(pwd).digest('hex');
     } catch (error) {
-      logger.error(error);
+      logger.error('[CRYPTO sha256] ' + error);
       return null;
     }
   }
@@ -22,7 +22,7 @@ module.exports = (Model, App) => {
     try {
       return bcrypt.hashSync(id.toString(), 8);
     } catch (error) {
-      logger.error(error);
+      logger.error('[BCRYPTJS] ', error);
       return null;
     }
   }
@@ -37,7 +37,7 @@ module.exports = (Model, App) => {
         logLevel: 3
       });
     } catch (error) {
-      logger.error('(getEnvironment) ' + error);
+      logger.error('[NODE-LIB getEnvironment] ' + error);
       return null;
     }
   }
@@ -67,10 +67,7 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json', email } };
 
     // Do api call
-    return axios.get(
-      `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params
-    );
+    return axios.get(`${App.config.get('STORJ_BRIDGE')}/users/isactivated`, params);
   }
 
   const CreateBucket = (email, password, mnemonic, name) => {
@@ -80,14 +77,14 @@ module.exports = (Model, App) => {
       return new Promise((resolve, reject) => {
         storj.createBucket(bucketName, function (err, res) {
           if (err) {
-            logger.error('(storj.createBucket): ' + err);
+            logger.error('[NODE-LIB createBucket]: ' + err);
             reject(err.message)
           }
           resolve(res)
         })
       })
     } catch (error) {
-      logger.error('(CreateBucket) ' + error);
+      logger.error('[NODE-LIB createBucket] ', error);
       return null;
     }
   }
@@ -109,14 +106,14 @@ module.exports = (Model, App) => {
       storj.storeFile(bucketId, filePath, {
         filename: fileName,
         progressCallback(progress, uploadedBytes, totalBytes) {
-          App.logger.info('Upload Progress: %s/%s (%s)', uploadedBytes, totalBytes, progress);
+          App.logger.info('[NODE-LIB storeFile] Upload Progress: %s/%s (%s)', uploadedBytes, totalBytes, progress);
         },
         finishedCallback(err, fileId) {
           if (err) {
-            App.logger.info(err);
+            App.logger.error('[NODE-LIB storeFile] ', err);
             reject(err)
           }
-          App.logger.info('File complete:', fileId);
+          App.logger.info('[NODE-LIB storeFile] File complete:', fileId);
           storj.destroy();
           resolve({ fileId, size: actualFileSize })
         }
@@ -143,17 +140,17 @@ module.exports = (Model, App) => {
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          App.logger.info('Download file progress: %s/%s (%s)', downloadedBytes, totalBytes, progress);
+          App.logger.info('[NODE-LIB] Download file progress: %s/%s (%s)', downloadedBytes, totalBytes, progress);
         },
         finishedCallback: (err) => {
           if (err) {
-            App.logger.error('Error resolving file:', err);
+            App.logger.error('[NODE-LIB] Error resolving file: ', err);
             reject(err)
           } else {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            App.logger.info('File resolved!')
+            App.logger.info('[NODE-LIB] File resolved!')
             resolve({ filestream, mimetype, downloadFile })
             storj.destroy();
           }
@@ -167,7 +164,7 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.deleteFile(bucketId, file, function (err, result) {
         if (err) {
-          App.logger.error(err)
+          App.logger.error('[NODE-LIB deleteFile] ', err)
           reject(err)
         }
         resolve(result)

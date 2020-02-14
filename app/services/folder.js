@@ -132,7 +132,6 @@ module.exports = (Model, App) => {
 
 
   const GetContent = async (folderId, user) => {
-    console.log('Get content of folder', folderId)
     const result = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },

@@ -460,8 +460,6 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Array of folder items
   */
   Router.post('/storage/folder', passportAuth, function (req, res) {
-
-    console.log('create folder body', req.body)
     const folderName = req.body.folderName
     const parentFolderId = req.body.parentFolderId
 
@@ -643,8 +641,7 @@ module.exports = (Router, Service, Logger, App) => {
         });
       }).catch((err) => {
         if (err.message === 'Bridge rate limit error') {
-          res.status(402).json({ message: err.message })
-          return;
+          return res.status(402).json({ message: err.message })
         }
         res.status(500).json({ message: err.message })
         console.log(err)
@@ -735,9 +732,16 @@ module.exports = (Router, Service, Logger, App) => {
   })
 
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
+
+    if (req.params.bucketid === 'null') {
+      return res.status(500).json({ error: 'No bucket ID provided' })
+    }
+
+    if (req.params.fileid === 'null') {
+      return res.status(500).json({ error: 'No file ID provided' })
+    }
+
     const user = req.user;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
     const bucketId = req.params.bucketid
     const fileIdInBucket = req.params.fileid
 
@@ -813,7 +817,6 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).send(result);
       })
       .catch((err) => {
-        console.log('Error:', err);
         res.status(404).send(err.error ? err.error : { error: 'Internal Server Error' });
       });
   });
