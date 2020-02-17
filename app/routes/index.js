@@ -732,8 +732,10 @@ module.exports = (Router, Service, Logger, App) => {
     });
   })
 
+  /*
+   * Delete file by bucket id and bucketentry id
+   */
   Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, function (req, res) {
-
     if (req.params.bucketid === 'null') {
       return res.status(500).json({ error: 'No bucket ID provided' })
     }
@@ -747,10 +749,23 @@ module.exports = (Router, Service, Logger, App) => {
     const fileIdInBucket = req.params.fileid
 
     Service.Files.Delete(user, bucketId, fileIdInBucket)
-      .then((result) => {
+      .then(() => {
         res.status(200).json({ deleted: true })
       }).catch((err) => {
         Logger.error(err.stack);
+        res.status(500).json({ error: err.message })
+      })
+  })
+
+  /*
+   * Delete file by database ids
+   */
+  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
+    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
+      .then(() => {
+        res.status(200).json({ deleted: true })
+      }).catch(err => {
+        console.error('Error deleting file:', err.message)
         res.status(500).json({ error: err.message })
       })
   })

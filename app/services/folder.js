@@ -85,7 +85,7 @@ module.exports = (Model, App) => {
         AddFolderFilesAndCallMeMaybeWithSubfolders(folderId, user.email);
 
         const isFolderDeleted = await folder.destroy();
-        Model.folder.rebuildHierarchy();
+        await Model.folder.rebuildHierarchy();
         resolve(isFolderDeleted)
       } catch (error) {
         reject(error)

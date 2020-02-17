@@ -49,6 +49,8 @@ module.exports = (Model, App) => {
         const rootFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: user.root_folder_id } } });
         const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } });
 
+        if (!rootFolder.bucket) return reject('Missing file bucket')
+
         // Separate filename from extension
         const extSeparatorPos = fileName.lastIndexOf('.')
         const fileNameNoExt = extSeparatorPos > 0 ? fileName.slice(0, extSeparatorPos) : fileName;
@@ -71,13 +73,11 @@ module.exports = (Model, App) => {
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`
-
         App.logger.info('Uploading file to network')
         App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
-            if (!fileId) {
-              return reject('Missing file id')
-            }
+            if (!fileId) return reject('Missing file id')
+            if (!size) return reject('Missing file size')
             const addedFile = await Model.file.create({
               name: encryptedFileName,
               type: fileExt,
@@ -144,6 +144,29 @@ module.exports = (Model, App) => {
             reject(err)
           }
         })
+    })
+  }
+
+  const DeleteFile = (user, folderid, fileid) => {
+    console.log('Delete2 (%s, %s)', folderid, fileid)
+    return new Promise((resolve, reject) => {
+      Model.file.findOne({ where: { id: fileid, folder_id: folderid } }).then(fileObj => {
+        if (!fileObj) {
+          reject(new Error('Folder not found'))
+        }
+        else {
+          console.log(fileObj)
+          App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
+            fileObj.destroy().then(resolve).catch(reject)
+          }).catch(err => {
+            console.error('Error deleting file from bridge:', err.message)
+            reject(err)
+          })
+        }
+      }).catch(err => {
+        console.error('Failed to find folder on database:', err.message)
+        reject(err)
+      })
     })
   }
 
@@ -249,6 +272,7 @@ module.exports = (Model, App) => {
     Upload,
     CreateFile,
     Delete,
+    DeleteFile,
     Download,
     UpdateMetadata,
     MoveFile,

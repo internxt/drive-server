@@ -24,13 +24,11 @@ module.exports = (sequelize, DataTypes) => {
     folder_id: {
       type: DataTypes.INTEGER
     }
-  },
-    {
-      timestamps: true,
-      underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }]
-    }
-  );
+  }, {
+    timestamps: true,
+    underscored: true,
+    indexes: [{ name: 'name', fields: ['name'] }]
+  });
 
   file.associate = function (models) {
     file.belongsTo(models.folder);
