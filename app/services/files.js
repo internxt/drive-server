@@ -173,7 +173,6 @@ module.exports = (Model, App) => {
     if (metadata.itemName) {
       // Get file to update metadata
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
-
       const newMeta = {}
       if (metadata.itemName) {
         // Check if exists file with new name

@@ -14,7 +14,6 @@ const passport = require('../middleware/passport')
 const passportAuth = passport.passportAuth
 
 module.exports = (Router, Service, Logger, App) => {
-
   Router.get('/api-docs.json', function (req, res) {
     res.setHeader('Content-Type', 'application/json')
     res.send(swaggerSpec)
@@ -53,8 +52,8 @@ module.exports = (Router, Service, Logger, App) => {
             res.status(400).send({ error: 'User is not activated' });
           } else {
             const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-            const required_2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-            res.status(200).send({ sKey: encSalt, tfa: required_2FA })
+            const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+            res.status(200).send({ sKey: encSalt, tfa: required2FA })
           }
         }).catch((err) => {
           console.error(err)
@@ -112,7 +111,7 @@ module.exports = (Router, Service, Logger, App) => {
 
       if (!tfaResult) {
         res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass == userData.password && tfaResult) {
+      } else if (pass === userData.password && tfaResult) {
         // Successfull login
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT)
 
@@ -156,12 +155,12 @@ module.exports = (Router, Service, Logger, App) => {
     } else {
       const secret = speakeasy.generateSecret({ length: 10 });
       const url = speakeasy.otpauthURL({ secret: secret.ascii, label: 'Internxt' });
-      qrcode.toDataURL(url).then(bidi => {
+      qrcode.toDataURL(url).then((bidi) => {
         res.status(200).send({
           code: secret.base32,
           qr: bidi
         });
-      }).catch(err => {
+      }).catch((err) => {
         console.error(err)
         res.status(500).send({ error: 'Server error' });
       })
@@ -343,7 +342,6 @@ module.exports = (Router, Service, Logger, App) => {
 
   // TODO
   Router.get('/limit', passportAuth, function (req, res) {
-
     const userData = req.user
 
     const pwd = userData.userId;
@@ -634,10 +632,10 @@ module.exports = (Router, Service, Logger, App) => {
         const fileExt = fileName.slice(extSeparatorPos + 1);
         const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
 
-        const decryptedFileName_b64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
+        const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
 
         res.setHeader('Content-type', mimetype);
-        res.set('x-file-name', decryptedFileName_b64);
+        res.set('x-file-name', decryptedFileNameB64);
         filestream.pipe(res)
         fs.unlink(filePath, (error) => {
           if (error) throw error;
@@ -758,7 +756,7 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
       .then(() => {
         res.status(200).json({ deleted: true })
-      }).catch(err => {
+      }).catch((err) => {
         console.error('Error deleting file:', err.message)
         res.status(500).json({ error: err.message })
       })
@@ -842,7 +840,6 @@ module.exports = (Router, Service, Logger, App) => {
             .then(({
               filestream, mimetype, downloadFile, folderId
             }) => {
-              filePath = downloadFile;
               const fileName = downloadFile.split('/')[2];
               const extSeparatorPos = fileName.lastIndexOf('.')
               const fileNameNoExt = fileName.slice(0, extSeparatorPos)
@@ -851,14 +848,14 @@ module.exports = (Router, Service, Logger, App) => {
 
               res.setHeader('Content-type', mimetype);
 
-              const decryptedFileName_b64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
+              const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
               const encodedFileName = encodeURI(`${decryptedFileName}.${fileExt}`)
               res.setHeader('Content-disposition', `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`);
 
-              res.set('x-file-name', decryptedFileName_b64);
+              res.set('x-file-name', decryptedFileNameB64);
 
               filestream.pipe(res)
-              fs.unlink(filePath, (error) => {
+              fs.unlink(downloadFile, (error) => {
                 if (error) throw error;
               });
             }).catch(({ message }) => {
@@ -953,9 +950,9 @@ module.exports = (Router, Service, Logger, App) => {
       },
       (customer, next) => {
         // Open session
-        const customer_id = customer !== null ? customer.id || null : null;
+        const customerId = customer !== null ? customer.id || null : null;
 
-        const session_params = {
+        const sessionParams = {
           payment_method_types: ['card'],
           success_url: 'https://cloud.internxt.com/',
           cancel_url: 'https://cloud.internxt.com/',
@@ -964,17 +961,17 @@ module.exports = (Router, Service, Logger, App) => {
             trial_period_days: 30
           },
           customer_email: user,
-          customer: customer_id,
+          customer: customerId,
           billing_address_collection: 'required'
         };
 
-        if (session_params.customer) {
-          delete session_params.customer_email;
+        if (sessionParams.customer) {
+          delete sessionParams.customer_email;
         } else {
-          delete session_params.customer;
+          delete sessionParams.customer;
         }
 
-        stripe.checkout.sessions.create(session_params).then((result) => {
+        stripe.checkout.sessions.create(sessionParams).then((result) => {
           next(null, result);
         }).catch((err) => { next(err); });
       }
@@ -1041,39 +1038,6 @@ module.exports = (Router, Service, Logger, App) => {
     const newBits = bip39.generateMnemonic(256)
     const eNewBits = App.services.Crypt.encryptText(newBits)
     res.status(200).send({ bits: eNewBits })
-  })
-
-  Router.get('/bin', passportAuth, (req, res) => {
-    const user = req.user
-    user.mnemonic = req.headers['internxt-mnemonic']
-
-    let missingFilesResult = []
-
-    async.waterfall([
-      next => Service.Storj.ListBuckets(req.user).then((results) => next(null, results)).catch(next),
-      (buckets, next) => {
-        async.eachSeries(buckets, (bucket, nextBucket) => {
-          Service.Storj.ListBucketFiles(user, bucket.id).then((bucketEntries) => nextBucket(null, bucketEntries)).catch(nextBucket)
-        }, (err, results) => {
-          if (err) return next(err)
-        })
-      }
-    ], (err, result) => {
-
-    })
-
-    Service.Storj.ListBucketFiles(user, bucket.id).then((bucketEntries) => {
-      async.eachSeries(bucketEntries, (bucketEntry, nextBucket) => {
-        console.log('BucketEntry', bucketEntry)
-        Service.Files.BucketEntryExists(bucketEntry.id).then(exists => {
-          console.log('Exists', exists)
-          if (!exists) { missingFilesResult.push(bucketEntry) }
-          nextBucket()
-        }).catch(nextBucket)
-      }, (err) => {
-        if (err) { reject(err) }
-      })
-    }).catch(next)
   })
 
   return Router;
