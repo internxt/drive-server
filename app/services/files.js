@@ -1,7 +1,7 @@
 const fs = require('fs');
 const sequelize = require('sequelize');
-const axios = require('axios');
 const SanitizeFilename = require('sanitize-filename')
+const async = require('async')
 
 const Op = sequelize.Op;
 
@@ -167,31 +167,51 @@ module.exports = (Model, App) => {
     })
   }
 
-  const UpdateMetadata = async (fileId, metadata) => {
-    let result = null;
-    // If metadata is passed, update file fields
-    if (metadata.itemName) {
-      // Get file to update metadata
-      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+  const UpdateMetadata = async (user, fileId, metadata) => {
+    return new Promise((resolve, reject) => {
       const newMeta = {}
-      if (metadata.itemName) {
-        // Check if exists file with new name
-        const cryptoFileName = App.services.Crypt.encryptName(metadata.itemName, file.folder_id);
-        const exists = await Model.file.findOne({
-          where: {
-            folder_id: { [Op.eq]: file.folder_id },
-            name: { [Op.eq]: cryptoFileName },
-            type: { [Op.eq]: file.type }
+
+      async.waterfall([
+        (next) => {
+          // Find the file in database
+          Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } }).then(file => next(null, file)).catch(next)
+        },
+        (file, next) => {
+          Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id }, user_id: { [Op.eq]: user.id } } }).then((folder) => {
+            if (!folder) { next(Error('Update Metadata Error: Not your file')) }
+            else { next(null, { folder, file }) }
+          }).catch(next)
+        },
+        ({ folder, file }, next) => {
+          // Check if there is a file with the same name
+
+          // If no name, empty string (only extension filename)
+          const cryptoFileName = metadata.itemName ? App.services.Crypt.encryptName(metadata.itemName, file.folder_id) : '';
+
+          Model.file.findOne({
+            where: {
+              folder_id: { [Op.eq]: file.folder_id },
+              name: { [Op.eq]: cryptoFileName },
+              type: { [Op.eq]: file.type }
+            }
+          }).then((duplicateFile) => {
+            if (duplicateFile) { next(Error('File with this name exists')) }
+            else { newMeta.name = cryptoFileName }
+            next(null, file)
+          }).catch(next)
+        },
+        (file, next) => {
+          if (newMeta.name !== file.name) {
+            file.update(newMeta).then(update => next(null, update)).catch(next)
+          } else {
+            next()
           }
-        });
-        if (exists) throw new Error('File with this name exists')
-        else { newMeta.name = cryptoFileName }
-      }
-
-      result = await file.update(newMeta);
-    }
-
-    return result;
+        }
+      ], (err, result) => {
+        if (err) { reject(err) }
+        else { resolve(result) }
+      })
+    })
   }
 
   const MoveFile = (user, fileId, destination, replace = false) => {

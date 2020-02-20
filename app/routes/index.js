@@ -53,6 +53,7 @@ module.exports = (Router, Service, Logger, App) => {
           } else {
             const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
             const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+            console.log('Login OK')
             res.status(200).send({ sKey: encSalt, tfa: required2FA })
           }
         }).catch((err) => {
@@ -111,7 +112,7 @@ module.exports = (Router, Service, Logger, App) => {
 
       if (!tfaResult) {
         res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass === userData.password && tfaResult) {
+      } else if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT)
 
@@ -130,7 +131,7 @@ module.exports = (Router, Service, Logger, App) => {
         });
       } else {
         // Wrong password
-        if (pass !== userData.password) {
+        if (pass !== userData.password.toString()) {
           Service.User.LoginFailed(req.body.email, true);
         }
         res.status(400).json({ error: 'Wrong email/password' });
@@ -430,12 +431,11 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Error updating folder
   */
   Router.post('/storage/folder/:folderid/meta', passportAuth, function (req, res) {
+    const user = req.user
     const folderId = req.params.folderid;
     const metadata = req.body.metadata;
 
-    console.log('Folder metadata', metadata)
-
-    Service.Folder.UpdateMetadata(folderId, metadata)
+    Service.Folder.UpdateMetadata(user, folderId, metadata)
       .then((result) => {
         res.status(200).json(result);
       }).catch((err) => {
@@ -672,12 +672,11 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Error updating file
   */
   Router.post('/storage/file/:fileid/meta', passportAuth, function (req, res) {
+    const user = req.user
     const fileId = req.params.fileid;
     const metadata = req.body.metadata;
 
-    console.log('File metadata', metadata)
-
-    Service.Files.UpdateMetadata(fileId, metadata)
+    Service.Files.UpdateMetadata(user, fileId, metadata)
       .then((result) => {
         res.status(200).json(result);
       }).catch((err) => {

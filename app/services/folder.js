@@ -70,6 +70,7 @@ module.exports = (Model, App) => {
           // If bucket bot exists an error will be thrown, we ignore it.
         }
 
+        // eslint-disable-next-line no-inner-declarations
         async function AddFolderFilesAndCallMeMaybeWithSubfolders(pk, email) {
           const FilesInFolder = await Model.file.findAll({ where: { folder_id: pk } });
 
@@ -79,10 +80,11 @@ module.exports = (Model, App) => {
           });
 
           const SubFolders = await Model.folder.findAll({ where: { parentId: pk } });
-          SubFolders.forEach(async folder => await AddFolderFilesAndCallMeMaybeWithSubfolders(folder.id, email));
+          // eslint-disable-next-line no-return-await
+          SubFolders.forEach(async folderResult => await AddFolderFilesAndCallMeMaybeWithSubfolders(folderResult.id, email));
         }
 
-        AddFolderFilesAndCallMeMaybeWithSubfolders(folderId, user.email);
+        await AddFolderFilesAndCallMeMaybeWithSubfolders(folderId, user.email);
 
         const isFolderDeleted = await folder.destroy();
         await Model.folder.rebuildHierarchy();
@@ -173,7 +175,7 @@ module.exports = (Model, App) => {
     return result
   }
 
-  const UpdateMetadata = async (folderId, metadata) => {
+  const UpdateMetadata = async (user, folderId, metadata) => {
     let result = null;
     // If icon or color is passed, update folder fields
     if (metadata.itemName || metadata.color || (typeof metadata.icon === 'number' && metadata.icon >= 0)) {
