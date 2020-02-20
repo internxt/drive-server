@@ -431,16 +431,18 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating folder
   */
-  Router.post('/storage/folder/:id/meta', passportAuth, function (req, res) {
-    const folderId = req.params.id;
+  Router.post('/storage/folder/:folderid/meta', passportAuth, function (req, res) {
+    const folderId = req.params.folderid;
     const metadata = req.body.metadata;
+
+    console.log('Folder metadata', metadata)
 
     Service.Folder.UpdateMetadata(folderId, metadata)
       .then((result) => {
         res.status(200).json(result);
-      }).catch((error) => {
-        Logger.error(`Error updating metadata from folder ${req.params.id} : ${error}`)
-        res.status(500).json(error.message)
+      }).catch((err) => {
+        Logger.error(`Error updating metadata from folder ${folderId} : ${err}`)
+        res.status(500).json(err.message)
       })
   });
 
@@ -671,16 +673,18 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating file
   */
-  Router.post('/storage/file/:id/meta', passportAuth, function (req, res) {
-    const fileId = req.params.id;
+  Router.post('/storage/file/:fileid/meta', passportAuth, function (req, res) {
+    const fileId = req.params.fileid;
     const metadata = req.body.metadata;
+
+    console.log('File metadata', metadata)
 
     Service.Files.UpdateMetadata(fileId, metadata)
       .then((result) => {
         res.status(200).json(result);
-      }).catch((error) => {
-        Logger.error(`Error updating metadata from file ${req.params.id} : ${error}`)
-        res.status(500).json(error.message)
+      }).catch((err) => {
+        Logger.error(`Error updating metadata from file ${fileId} : ${err}`)
+        res.status(500).json(err.message)
       })
   });
 
@@ -1047,6 +1051,39 @@ module.exports = (Router, Service, Logger, App) => {
     const newBits = bip39.generateMnemonic(256)
     const eNewBits = App.services.Crypt.encryptText(newBits)
     res.status(200).send({ bits: eNewBits })
+  })
+
+  Router.get('/bin', passportAuth, (req, res) => {
+    const user = req.user
+    user.mnemonic = req.headers['internxt-mnemonic']
+
+    let missingFilesResult = []
+
+    async.waterfall([
+      next => Service.Storj.ListBuckets(req.user).then((results) => next(null, results)).catch(next),
+      (buckets, next) => {
+        async.eachSeries(buckets, (bucket, nextBucket) => {
+          Service.Storj.ListBucketFiles(user, bucket.id).then((bucketEntries) => nextBucket(null, bucketEntries)).catch(nextBucket)
+        }, (err, results) => {
+          if (err) return next(err)
+        })
+      }
+    ], (err, result) => {
+
+    })
+
+    Service.Storj.ListBucketFiles(user, bucket.id).then((bucketEntries) => {
+      async.eachSeries(bucketEntries, (bucketEntry, nextBucket) => {
+        console.log('BucketEntry', bucketEntry)
+        Service.Files.BucketEntryExists(bucketEntry.id).then(exists => {
+          console.log('Exists', exists)
+          if (!exists) { missingFilesResult.push(bucketEntry) }
+          nextBucket()
+        }).catch(nextBucket)
+      }, (err) => {
+        if (err) { reject(err) }
+      })
+    }).catch(next)
   })
 
   return Router;

@@ -129,16 +129,14 @@ module.exports = (Model, App) => {
             const isDestroyed = await file.destroy()
             if (isDestroyed) {
               resolve('File deleted')
-            } else {
-              reject('Cannot delete file')
-            }
+            } else { reject('Cannot delete file') }
           } else {
             reject('File not found')
           }
         }).catch(async (err) => {
           if (err.message.includes('Resource not found')) {
             const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
-            file && await file.destroy();
+            if (file) { await file.destroy(); }
             resolve()
           } else {
             reject(err)
@@ -150,20 +148,20 @@ module.exports = (Model, App) => {
   const DeleteFile = (user, folderid, fileid) => {
     console.log('Delete2 (%s, %s)', folderid, fileid)
     return new Promise((resolve, reject) => {
-      Model.file.findOne({ where: { id: fileid, folder_id: folderid } }).then(fileObj => {
+      Model.file.findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
         if (!fileObj) {
           reject(new Error('Folder not found'))
-        }
-        else {
-          console.log(fileObj)
+        } else if (fileObj.fileId) {
           App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
             fileObj.destroy().then(resolve).catch(reject)
-          }).catch(err => {
+          }).catch((err) => {
             console.error('Error deleting file from bridge:', err.message)
             reject(err)
           })
+        } else {
+          fileObj.destroy().then(resolve).catch(reject)
         }
-      }).catch(err => {
+      }).catch((err) => {
         console.error('Failed to find folder on database:', err.message)
         reject(err)
       })

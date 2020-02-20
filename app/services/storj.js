@@ -172,6 +172,16 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ListBuckets = (user) => {
+    return new Promise((resolve, reject) => {
+      const storj = getEnvironment(user.email, user.userId, user.mnemonic)
+      storj.getBuckets((err, result) => {
+        if (err) { reject(err) }
+        else { resolve(result) }
+      })
+    })
+  }
+
   const ListBucketFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
@@ -191,6 +201,7 @@ module.exports = (Model, App) => {
     StoreFile,
     ResolveFile,
     DeleteFile,
+    ListBuckets,
     ListBucketFiles,
     IsUserActivated
   }
