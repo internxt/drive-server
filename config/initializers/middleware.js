@@ -32,7 +32,6 @@ module.exports = (App, Config) => {
    * Once JWT is granted, this middleware resolves the user info
    */
   Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
-
     /* Temporal compatibility with old JWT
      * BEGIN
      */
@@ -50,7 +49,7 @@ module.exports = (App, Config) => {
 
     // const email = payload.email
 
-    App.services.User.FindUserObjByEmail(email).then((user) => done(null, user)).catch(done)
+    App.services.User.FindUserObjByEmail(email).then(user => done(null, user)).catch(done)
   }))
 
   /**

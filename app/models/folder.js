@@ -33,13 +33,11 @@ module.exports = (sequelize, DataTypes) => {
     color: {
       type: DataTypes.STRING
     }
-  },
-    {
-      timestamps: true,
-      underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }]
-    }
-  );
+  }, {
+    timestamps: true,
+    underscored: true,
+    indexes: [{ name: 'name', fields: ['name'] }]
+  });
 
   folder.associate = function (models) {
     folder.hasOne(models.folder_metadata);

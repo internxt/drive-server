@@ -58,8 +58,7 @@ module.exports = (Model, App) => {
       `${App.config.get('STORJ_BRIDGE')}/users`,
       data,
       params
-    ).then(response => response)
-      .catch(error => error);
+    ).then(response => response).catch(error => error);
   }
 
   const IsUserActivated = (email) => {
@@ -79,8 +78,7 @@ module.exports = (Model, App) => {
           if (err) {
             logger.error('[NODE-LIB createBucket]: ' + err);
             reject(err.message)
-          }
-          resolve(res)
+          } else { resolve(res) }
         })
       })
     } catch (error) {
@@ -93,8 +91,7 @@ module.exports = (Model, App) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic)
     return new Promise((resolve, reject) => {
       storj.deleteBucket(bucketId, function (err, result) {
-        if (err) reject(err)
-        resolve(result)
+        if (err) { reject(err) } else { resolve(result) }
       })
     })
   }
@@ -112,10 +109,11 @@ module.exports = (Model, App) => {
           if (err) {
             App.logger.error('[NODE-LIB storeFile] ', err);
             reject(err)
+          } else {
+            App.logger.info('[NODE-LIB storeFile] File complete:', fileId);
+            storj.destroy();
+            resolve({ fileId, size: actualFileSize })
           }
-          App.logger.info('[NODE-LIB storeFile] File complete:', fileId);
-          storj.destroy();
-          resolve({ fileId, size: actualFileSize })
         }
       });
     });
@@ -166,8 +164,7 @@ module.exports = (Model, App) => {
         if (err) {
           App.logger.error('[NODE-LIB deleteFile] ', err)
           reject(err)
-        }
-        resolve(result)
+        } else { resolve(result) }
       })
     });
   }
@@ -176,8 +173,7 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.getBuckets((err, result) => {
-        if (err) { reject(err) }
-        else { resolve(result) }
+        if (err) { reject(err) } else { resolve(result) }
       })
     })
   }
@@ -186,8 +182,7 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
       storj.listFiles(bucketId, function (err, result) {
-        if (err) reject(err)
-        resolve(result)
+        if (err) { reject(err) } else { resolve(result) }
       })
     });
   }

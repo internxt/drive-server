@@ -1,9 +1,9 @@
 {
-  "extends": "airbnb-base",
+  "extends": ["airbnb-base", "prettier"],
   "rules": {
     "semi": 0,
     "func-names": 0,
-    "space-before-function-paren": 0,
+    "space-before-function-paren": "off",
     "global-require": 0,
     "comma-dangle": 0,
     "prefer-destructuring": 0,

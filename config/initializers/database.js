@@ -5,7 +5,8 @@ module.exports = (config, Logger) => {
   const instance = new Sequelize(
     config.name,
     config.user,
-    config.password, {
+    config.password,
+    {
       host: config.host,
       dialect: 'mysql',
       operatorsAliases: false,
@@ -15,7 +16,7 @@ module.exports = (config, Logger) => {
 
   instance.authenticate()
     .then(() => Logger.info('Connected to database'))
-    .catch(err => Logger.info(err))
+    .catch(err => Logger.error(err))
 
   return {
     instance,

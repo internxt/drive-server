@@ -12,8 +12,7 @@ module.exports = (sequelize, DataTypes) => {
     mnemonic: DataTypes.STRING
   }, {
     timestamps: false
-  }
-  );
+  });
 
   Share.associate = function (models) {
     // associations can be defined here

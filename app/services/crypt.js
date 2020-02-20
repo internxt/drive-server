@@ -3,29 +3,6 @@ const CryptoJS = require('crypto-js');
 module.exports = (Model, App) => {
   const logger = App.logger;
 
-  function encryptName(name, salt) {
-    return salt ? deterministicEncryption(name, salt) : probabilisticEncryption(name)
-  }
-
-  function decryptName(cipherText, salt) {
-    if (!salt) {
-      // If no salt, something is trying to use legacy decryption
-      return probabilisticDecryption(cipherText);
-    }
-    // If salt is provided, we could have 2 scenarios
-
-    // 1. The cipherText is truly encripted with salt in a deterministic way
-    const decrypted = deterministicDecryption(cipherText, salt);
-
-    if (!decrypted) {
-      // 2. The deterministic algorithm failed although salt were provided.
-      // So, the cipherText is encrypted in a probabilistic way.
-
-      return probabilisticDecryption(cipherText);
-    }
-    return decrypted;
-  }
-
   function probabilisticEncryption(content) {
     try {
       const b64 = CryptoJS.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
@@ -79,6 +56,29 @@ module.exports = (Model, App) => {
     } catch (e) {
       return null;
     }
+  }
+
+  function encryptName(name, salt) {
+    return salt ? deterministicEncryption(name, salt) : probabilisticEncryption(name)
+  }
+
+  function decryptName(cipherText, salt) {
+    if (!salt) {
+      // If no salt, something is trying to use legacy decryption
+      return probabilisticDecryption(cipherText);
+    }
+    // If salt is provided, we could have 2 scenarios
+
+    // 1. The cipherText is truly encripted with salt in a deterministic way
+    const decrypted = deterministicDecryption(cipherText, salt);
+
+    if (!decrypted) {
+      // 2. The deterministic algorithm failed although salt were provided.
+      // So, the cipherText is encrypted in a probabilistic way.
+
+      return probabilisticDecryption(cipherText);
+    }
+    return decrypted;
   }
 
   // AES Plain text decryption method

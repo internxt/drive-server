@@ -12,8 +12,7 @@ module.exports = (sequelize, DataTypes) => {
     icon: {
       type: DataTypes.STRING
     }
-  },
-  {
+  }, {
     timestamps: false,
     underscored: true,
   })
