@@ -76,8 +76,8 @@ module.exports = (Model, App) => {
         App.logger.info('Uploading file to network')
         App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath)
           .then(async ({ fileId, size }) => {
-            if (!fileId) return reject('Missing file id')
-            if (!size) return reject('Missing file size')
+            if (!fileId) return reject(Error('Missing file id'))
+            if (!size) return reject(Error('Missing file size'))
             const addedFile = await Model.file.create({
               name: encryptedFileName,
               type: fileExt,
@@ -146,7 +146,6 @@ module.exports = (Model, App) => {
   }
 
   const DeleteFile = (user, folderid, fileid) => {
-    console.log('Delete2 (%s, %s)', folderid, fileid)
     return new Promise((resolve, reject) => {
       Model.file.findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
         if (!fileObj) {
@@ -187,9 +186,7 @@ module.exports = (Model, App) => {
           }
         });
         if (exists) throw new Error('File with this name exists')
-        else {
-          newMeta.name = cryptoFileName;
-        }
+        else { newMeta.name = cryptoFileName }
       }
 
       result = await file.update(newMeta);
@@ -244,27 +241,6 @@ module.exports = (Model, App) => {
     })
   }
 
-  const GetFileInfo = (user, fileId) => {
-    return new Promise(async (resolve, reject) => {
-      const file = await Model.file.findOne({ where: { id: { [Op.eq]: fileId } } });
-      if (!file) {
-        return reject(Error('File not found'));
-      }
-      const password = App.services.Crypt.hashSha256(user.userId);
-
-      axios.get(`${process.env.STORJ_BRIDGE}/buckets/${file.bucket}/files/${file.fileId}/info`, {
-        auth: {
-          username: user.email,
-          password
-        }
-      }).then((result) => {
-        resolve(result.data);
-      }).catch((err) => {
-        reject(err)
-      });
-    });
-  }
-
   return {
     Name: 'Files',
     Upload,
@@ -274,7 +250,6 @@ module.exports = (Model, App) => {
     Download,
     UpdateMetadata,
     MoveFile,
-    ListAllFiles,
-    GetFileInfo
+    ListAllFiles
   }
 }

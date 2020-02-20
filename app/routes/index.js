@@ -726,16 +726,6 @@ module.exports = (Router, Service, Logger, App) => {
       })
   })
 
-  Router.get('/storage/file/:fileid/info', passportAuth, function (req, res) {
-    const user = req.user;
-    Service.Files.GetFileInfo(user, req.params.fileid).then((result) => {
-      console.log(result)
-      res.status(200).send(result);
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
-  })
-
   /*
    * Delete file by bucket id and bucketentry id
    */
