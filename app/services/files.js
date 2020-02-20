@@ -6,10 +6,17 @@ const async = require('async')
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
-  const CreateFile = (file) => {
+  const CreateFile = (user, file) => {
     return new Promise(async (resolve, reject) => {
-      Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id } } })
+      if (!file.fileId || !file.bucket || !file.size || !file.folder_id) {
+        return reject(Error('Invalid metadata for new file'))
+      }
+      Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id }, user_id: { [Op.eq]: user.id } } })
         .then((folder) => {
+          if (!folder) {
+            return reject(Error('Folder not found / Is not your folder'))
+          }
+
           const fileInfo = {
             name: file.name,
             type: file.type,
@@ -20,7 +27,6 @@ module.exports = (Model, App) => {
           }
 
           Model.file.create(fileInfo).then((creation) => {
-            // console.log('New entry created')
             resolve(creation);
           }).catch((err) => {
             console.log('Error creating entry', err)
@@ -238,7 +244,6 @@ module.exports = (Model, App) => {
             await Delete(user, exists.bucket, exists.fileId);
             console.log('Delete destination file');
           }
-          console.log('File renamed in database from %s to %s', file.name, destinationName);
 
           file.update({
             folder_id: parseInt(destination, 0),

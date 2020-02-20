@@ -562,8 +562,9 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Bad request. Any data is not passed on request.
    */
   Router.post('/storage/file', passportAuth, async function (req, res) {
+    const user = req.user
     const file = req.body.file;
-    Service.Files.CreateFile(file)
+    Service.Files.CreateFile(user, file)
       .then((result) => {
         res.status(200).json(result);
       }).catch((error) => {
