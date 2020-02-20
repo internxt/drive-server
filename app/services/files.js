@@ -167,7 +167,7 @@ module.exports = (Model, App) => {
     })
   }
 
-  const UpdateMetadata = async (user, fileId, metadata) => {
+  const UpdateMetadata = (user, fileId, metadata) => {
     return new Promise((resolve, reject) => {
       const newMeta = {}
 
@@ -178,16 +178,14 @@ module.exports = (Model, App) => {
         },
         (file, next) => {
           Model.folder.findOne({ where: { id: { [Op.eq]: file.folder_id }, user_id: { [Op.eq]: user.id } } }).then((folder) => {
-            if (!folder) { next(Error('Update Metadata Error: Not your file')) }
-            else { next(null, { folder, file }) }
+            if (!folder) { next(Error('Update Metadata Error: Not your file')) } else { next(null, file) }
           }).catch(next)
         },
-        ({ folder, file }, next) => {
-          // Check if there is a file with the same name
-
+        (file, next) => {
           // If no name, empty string (only extension filename)
           const cryptoFileName = metadata.itemName ? App.services.Crypt.encryptName(metadata.itemName, file.folder_id) : '';
 
+          // Check if there is a file with the same name
           Model.file.findOne({
             where: {
               folder_id: { [Op.eq]: file.folder_id },
@@ -195,8 +193,11 @@ module.exports = (Model, App) => {
               type: { [Op.eq]: file.type }
             }
           }).then((duplicateFile) => {
-            if (duplicateFile) { next(Error('File with this name exists')) }
-            else { newMeta.name = cryptoFileName }
+            if (duplicateFile) {
+              next(Error('File with this name exists'))
+            } else {
+              newMeta.name = cryptoFileName
+            }
             next(null, file)
           }).catch(next)
         },
@@ -208,8 +209,7 @@ module.exports = (Model, App) => {
           }
         }
       ], (err, result) => {
-        if (err) { reject(err) }
-        else { resolve(result) }
+        if (err) { reject(err) } else { resolve(result) }
       })
     })
   }

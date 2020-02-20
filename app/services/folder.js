@@ -1,9 +1,12 @@
 const _ = require('lodash')
 const SanitizeFilename = require('sanitize-filename')
+const sequelize = require('sequelize');
+const async = require('async')
+
+const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
-  const Op = App.database.Sequelize.Op;
 
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
@@ -175,32 +178,66 @@ module.exports = (Model, App) => {
     return result
   }
 
-  const UpdateMetadata = async (user, folderId, metadata) => {
-    let result = null;
-    // If icon or color is passed, update folder fields
-    if (metadata.itemName || metadata.color || (typeof metadata.icon === 'number' && metadata.icon >= 0)) {
-      // Get folder to update metadata
-      const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } });
-
+  const UpdateMetadata = (user, folderId, metadata) => {
+    return new Promise((resolve, reject) => {
       const newMeta = {}
-      if (metadata.itemName) {
-        // Check if exists folder with new name
-        const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
-        const exists = await Model.folder.findOne({
-          where: { parentId: { [Op.eq]: folder.parentId }, name: { [Op.eq]: cryptoFolderName } }
-        });
-        if (exists) throw new Error('Folder with this name exists')
-        else {
-          newMeta.name = cryptoFolderName;
+
+      async.waterfall([
+        (next) => {
+          // Is there something to change?
+          if (!metadata.itemName && !metadata.icon && !metadata.color) {
+            next(Error('Nothing to change'))
+          } else {
+            next()
+          }
+        },
+        (next) => {
+          // Get the target folder from database
+          Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
+            .then(result => next(null, result))
+            .catch(next)
+        },
+        (folder, next) => {
+          // Check if user is the owner of that folder
+          if (folder.user_id !== user.id) {
+            next(Error('Update Folder Metadata: This is not your folder'))
+          } else {
+            next(null, folder)
+          }
+        },
+        (folder, next) => {
+          // Check if the new folder name already exists
+          if (metadata.itemName) {
+            const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
+
+            Model.folder.findOne({
+              where: { parentId: { [Op.eq]: folder.parentId }, name: { [Op.eq]: cryptoFolderName } }
+            }).then((isDuplicated) => {
+              if (isDuplicated) {
+                next(Error('Folder with this name exists'))
+              } else {
+                newMeta.name = cryptoFolderName
+                next(null, folder)
+              }
+            }).catch(next)
+          } else {
+            next(null, folder)
+          }
+        },
+        (folder, next) => {
+          // Set optional changes
+          if (metadata.color) { newMeta.color = metadata.color }
+          if (typeof metadata.icon === 'number' && metadata.icon >= 0) { newMeta.icon_id = metadata.icon }
+          next(null, folder)
+        },
+        (folder, next) => {
+          // Perform the update
+          folder.update(newMeta).then(result => next(null, result)).catch(next)
         }
-      }
-      if (metadata.color) newMeta.color = metadata.color;
-      if (typeof metadata.icon === 'number' && metadata.icon >= 0) newMeta.icon_id = metadata.icon;
-
-      result = await folder.update(newMeta);
-    }
-
-    return result;
+      ], (err, result) => {
+        if (err) { reject(err) } else { resolve(result) }
+      })
+    })
   }
 
   return {
