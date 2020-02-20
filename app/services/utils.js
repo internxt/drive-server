@@ -26,9 +26,16 @@ module.exports = (Model, App) => {
     return isValidDatabaseId
   }
 
+  const FileNameParts = (filename) => {
+    const pattern = /^(\.?.*?\.?)(\.([^.]*))?$/
+    const matches = filename.match(pattern)
+    return { name: matches[1], ext: matches[3] ? matches[3] : null }
+  }
+
   return {
     Name: 'Utils',
     IsBucketId,
-    IsDatabaseId
+    IsDatabaseId,
+    FileNameParts
   };
 };
