@@ -1,7 +1,7 @@
 const CryptoJS = require('crypto-js');
 
 module.exports = (Model, App) => {
-  const logger = App.logger;
+  const log = App.logger;
 
   function probabilisticEncryption(content) {
     try {
@@ -10,7 +10,7 @@ module.exports = (Model, App) => {
       const eHex = e64.toString(CryptoJS.enc.Hex);
       return eHex;
     } catch (error) {
-      logger.error(`(probabilisticEncryption): ${error}`);
+      log.error(`(probabilisticEncryption): ${error}`);
       return null;
     }
   }
@@ -23,7 +23,7 @@ module.exports = (Model, App) => {
       const plain = decrypt.toString(CryptoJS.enc.Utf8);
       return plain;
     } catch (error) {
-      logger.error(`(probabilisticDecryption): ${error}`);
+      log.error(`(probabilisticDecryption): ${error}`);
       return null;
     }
   }

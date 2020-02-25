@@ -5,7 +5,7 @@ const basename = path.basename(__filename)
 
 module.exports = (Model, App) => {
   const services = {}
-  const Logger = App.logger
+  const log = App.logger
   try {
     fs
       .readdirSync(__dirname)
@@ -14,10 +14,10 @@ module.exports = (Model, App) => {
         const service = require(path.join(__dirname, file))(Model, App)
         services[service.Name] = service
       })
-    Logger.info('Services loaded')
+    log.info('Services loaded')
     return services
   } catch (error) {
-    Logger.error(error)
+    log.error(error)
     throw new Error(error)
   }
 }

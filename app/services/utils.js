@@ -1,5 +1,5 @@
 module.exports = (Model, App) => {
-  const logger = App.logger;
+  const log = App.logger;
 
   const IsBucketId = (targetId) => {
     const bucketIdPattern = /^[a-z0-9]{24}$/

@@ -6,6 +6,8 @@ const async = require('async')
 const Op = sequelize.Op
 
 module.exports = (Model, App) => {
+  const log = App.logger;
+
   const CreateFile = (user, file) => {
     return new Promise(async (resolve, reject) => {
       if (!file.fileId || !file.bucket || !file.size || !file.folder_id) {
@@ -54,7 +56,7 @@ module.exports = (Model, App) => {
           throw Error('Cannot upload, invalid file name')
         }
 
-        App.logger.info(`Starting file upload: ${fileName}`)
+        log.info(`Starting file upload: ${fileName}`)
 
         const rootFolder = await Model.folder.findOne({
           where: { id: { [Op.eq]: user.root_folder_id } }
@@ -94,7 +96,7 @@ module.exports = (Model, App) => {
 
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`
-        App.logger.info('Uploading file to network')
+        log.info('Uploading file to network')
         App.services.Storj.StoreFile(
           user,
           rootFolder.bucket,
@@ -113,11 +115,11 @@ module.exports = (Model, App) => {
           const result = await folder.addFile(addedFile)
           resolve(addedFile)
         }).catch((err) => {
-          App.logger.error(err.message)
+          log.error(err.message)
           reject(err.message)
         })
       } catch (err) {
-        App.logger.error(err.message)
+        log.error(err.message)
         reject(err.message)
       } finally {
         fs.unlink(filePath, (error) => {
@@ -229,21 +231,18 @@ module.exports = (Model, App) => {
               .catch(next)
           },
           (file, next) => {
-            Model.folder
-              .findOne({
-                where: {
-                  id: { [Op.eq]: file.folder_id },
-                  user_id: { [Op.eq]: user.id }
-                }
-              })
-              .then((folder) => {
-                if (!folder) {
-                  next(Error('Update Metadata Error: Not your file'))
-                } else {
-                  next(null, file)
-                }
-              })
-              .catch(next)
+            Model.folder.findOne({
+              where: {
+                id: { [Op.eq]: file.folder_id },
+                user_id: { [Op.eq]: user.id }
+              }
+            }).then((folder) => {
+              if (!folder) {
+                next(Error('Update Metadata Error: Not your file'))
+              } else {
+                next(null, file)
+              }
+            }).catch(next)
           },
           (file, next) => {
             // If no name, empty string (only extension filename)
@@ -262,23 +261,18 @@ module.exports = (Model, App) => {
                   name: { [Op.eq]: cryptoFileName },
                   type: { [Op.eq]: file.type }
                 }
-              })
-              .then((duplicateFile) => {
+              }).then((duplicateFile) => {
                 if (duplicateFile) {
                   next(Error('File with this name exists'))
                 } else {
                   newMeta.name = cryptoFileName
                 }
                 next(null, file)
-              })
-              .catch(next)
+              }).catch(next)
           },
           (file, next) => {
             if (newMeta.name !== file.name) {
-              file
-                .update(newMeta)
-                .then((update) => next(null, update))
-                .catch(next)
+              file.update(newMeta).then((update) => next(null, update)).catch(next)
             } else {
               next()
             }
@@ -328,12 +322,10 @@ module.exports = (Model, App) => {
             console.log('Delete destination file')
           }
 
-          file
-            .update({
-              folder_id: parseInt(destination, 0),
-              name: App.services.Crypt.encryptName(originalName, destination)
-            })
-            .then(resolve())
+          file.update({
+            folder_id: parseInt(destination, 0),
+            name: App.services.Crypt.encryptName(originalName, destination)
+          }).then(resolve())
         }
       }
     })

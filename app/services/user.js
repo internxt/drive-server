@@ -5,7 +5,7 @@ const Op = sequelize.Op;
 const async = require('async');
 
 module.exports = (Model, App) => {
-  const logger = App.logger;
+  const log = App.logger;
 
   const RegisterNewUser = (user) => {
     // Check data
@@ -59,7 +59,7 @@ module.exports = (Model, App) => {
           const bridgeUser = await App.services.Storj
             .RegisterBridgeUser(userResult.email, bcryptId)
           if (!bridgeUser.data) { throw new Error('Error creating bridge user') }
-          logger.info('User Service | created brigde user: %s', userResult.email)
+          log.info('User Service | created brigde user: %s', userResult.email)
 
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
@@ -76,9 +76,9 @@ module.exports = (Model, App) => {
       }).catch((err) => {
         if (err.response) {
           // This happens when email is registered in bridge
-          logger.error(err.response.data);
+          log.error(err.response.data);
         } else {
-          logger.error(err.stack);
+          log.error(err.stack);
         }
         throw new Error(err)
       })
@@ -95,7 +95,7 @@ module.exports = (Model, App) => {
           }
           const rootBucket = await App.services.Storj
             .CreateBucket(userData.email, userData.userId, user.mnemonic)
-          logger.info('User init | root bucket created %s', rootBucket.name)
+          log.info('User init | root bucket created %s', rootBucket.name)
 
           const rootFolderName = await App.services.Crypt.encryptName(`${rootBucket.name}`)
 
@@ -103,7 +103,7 @@ module.exports = (Model, App) => {
             name: rootFolderName,
             bucket: rootBucket.id
           })
-          logger.info('User init | root folder created, mysql id:', rootFolder.id)
+          log.info('User init | root folder created, mysql id:', rootFolder.id)
 
           // Update user register with root folder Id
           await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
@@ -114,7 +114,7 @@ module.exports = (Model, App) => {
 
           return updatedUser
         }).catch((error) => {
-          logger.error(error.stack);
+          log.error(error.stack);
           throw new Error(error);
         })
     })
@@ -127,7 +127,7 @@ module.exports = (Model, App) => {
         if (userData) { return userData.update({ storeMnemonic: option }); }
         throw new Error('UpdateStorageOption: User not found')
       }).catch((error) => {
-        logger.error(error.stack);
+        log.error(error.stack);
         throw new Error(error);
       })
   }
@@ -180,15 +180,6 @@ module.exports = (Model, App) => {
     } else {
       return null;
     }
-  }
-
-  const resolveCaptcha = (token) => {
-    const secret = App.config.get('secrets').CAPTCHA
-    const responseToken = token
-    return axios.post(
-      `https://www.google.com/recaptcha/api/siteverify?secret=${secret}&response=${responseToken}`
-    ).then(response => response.data)
-      .catch(error => error);
   }
 
   const DeactivateUser = (email) => {
@@ -395,7 +386,6 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     InitializeUser,
     GetUsersRootFolder,
-    resolveCaptcha,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,

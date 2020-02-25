@@ -1,5 +1,4 @@
 const axios = require('axios');
-const crypto = require('crypto')
 const passport = require('../middleware/passport')
 const passportAuth = passport.passportAuth
 
@@ -8,7 +7,7 @@ module.exports = (Router, Service, Logger, App) => {
     const userData = req.user
 
     const pwd = userData.userId;
-    const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+    const pwdHash = Service.Crypt.hashSha256(pwd);
 
     const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
@@ -29,7 +28,7 @@ module.exports = (Router, Service, Logger, App) => {
     const userData = req.user
 
     const pwd = userData.userId;
-    const pwdHash = crypto.createHash('sha256').update(pwd).digest('hex');
+    const pwdHash = Service.Crypt.hashSha256(pwd);
 
     const credential = Buffer.from(userData.email + ':' + pwdHash).toString('base64');
 
