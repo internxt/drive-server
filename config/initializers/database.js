@@ -9,7 +9,7 @@ module.exports = (config, Logger) => {
     {
       host: config.host,
       dialect: 'mysql',
-      operatorsAliases: false,
+      operatorsAliases: 0,
       logging: Logger.sql
     }
   )
