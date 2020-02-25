@@ -26,7 +26,7 @@
     "passport-local": "^1.0.0",
     "qrcode": "^1.4.4",
     "sanitize-filename": "^1.6.3",
-    "sequelize": "^4.44.3",
+    "sequelize": "^5.15.1",
     "sequelize-hierarchy": "^2.0.4",
     "shortid": "^2.2.15",
     "speakeasy": "^2.0.0",
