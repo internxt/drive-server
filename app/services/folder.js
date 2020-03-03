@@ -48,7 +48,7 @@ module.exports = (Model, App) => {
           parentId: parentFolderId || null
         })
 
-        resolve('New folder id is', xCloudFolder.id);
+        resolve(xCloudFolder);
       } catch (error) {
         reject(error);
       }
