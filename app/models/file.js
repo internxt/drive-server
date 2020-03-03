@@ -23,6 +23,12 @@ module.exports = (sequelize, DataTypes) => {
     },
     folder_id: {
       type: DataTypes.INTEGER
+    },
+    created_at: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return this.getDataValue('createdAt')
+      }
     }
   }, {
     timestamps: true,

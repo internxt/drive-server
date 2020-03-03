@@ -193,7 +193,7 @@ module.exports = (Router, Service, Logger, App) => {
         }
       }).catch((err) => {
         Logger.error(err.message + '\n' + err.stack);
-        res.send(err.message);
+        res.status(500).send({ message: err.message });
       })
     } else {
       res.status(400).send({ message: 'You must provide registration data' });

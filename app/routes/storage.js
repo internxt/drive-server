@@ -173,7 +173,7 @@ module.exports = (Router, Service, Logger, App) => {
    * @swagger
    * /storage/file:
    *   post:
-   *     description: Create file on DB for local upload
+   *     description: Create file entry on DB for an existing bucketentry
    *     produces:
    *       - application/json
    *     parameters:
@@ -193,6 +193,7 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {
+      Logger.error(error)
       res.status(400).json({ message: error.message });
     })
   })

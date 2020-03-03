@@ -54,9 +54,7 @@ module.exports = (Model, App) => {
     }
 
     // Do api call
-    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params)
-      .then(response => response)
-      .catch(error => error);
+    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then(response => response).catch(error => error);
   }
 
   const IsUserActivated = (email) => {
@@ -161,8 +159,10 @@ module.exports = (Model, App) => {
       storj.deleteFile(bucketId, file, function (err, result) {
         if (err) {
           log.error('[NODE-LIB deleteFile]', err)
-          reject(err)
-        } else { resolve(result) }
+          reject(Error(err))
+        } else {
+          resolve(result)
+        }
       })
     });
   }
