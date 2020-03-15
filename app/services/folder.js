@@ -240,6 +240,12 @@ module.exports = (Model, App) => {
     })
   }
 
+  const GetBucketList = (user) => {
+    return new Promise((resolve, reject) => {
+      App.services.Storj.ListBuckets(user).then(resolve).catch(reject)
+    })
+  }
+
   return {
     Name: 'Folder',
     Create,
@@ -247,6 +253,7 @@ module.exports = (Model, App) => {
     GetTree,
     GetParent,
     GetContent,
-    UpdateMetadata
+    UpdateMetadata,
+    GetBucketList
   }
 }
