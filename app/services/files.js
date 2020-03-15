@@ -18,9 +18,21 @@ module.exports = (Model, App) => {
           id: { [Op.eq]: file.folder_id },
           user_id: { [Op.eq]: user.id }
         }
-      }).then((folder) => {
+      }).then(async (folder) => {
         if (!folder) {
           return reject(Error('Folder not found / Is not your folder'))
+        }
+
+        const fileExists = await Model.file.findOne({
+          where: {
+            name: { [Op.eq]: file.name },
+            folder_id: { [Op.eq]: folder.id },
+            type: { [Op.eq]: file.type }
+          }
+        })
+
+        if (fileExists) {
+          return reject(Error('File entry already exists'))
         }
 
         const fileInfo = {
