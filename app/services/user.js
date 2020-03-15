@@ -154,7 +154,7 @@ module.exports = (Model, App) => {
     if (userData) {
       return userData;
     }
-    throw new Error('FindUserObjByEmail: User not found (%s)', email);
+    throw new Error('FindUserObjByEmail: User not found (' + email + ')');
   })
 
   const GetUsersRootFolder = id => Model.users.findAll({
@@ -311,7 +311,7 @@ module.exports = (Model, App) => {
   const LoginFailed = (user, loginFailed) => {
     return new Promise((resolve, reject) => {
       Model.users.update({
-        errorLoginCount: loginFailed ? sequelize.literal('errorLoginCount + 1') : 0
+        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
       }, { where: { email: user } }).then((res) => { resolve() }).catch(reject);
     });
   }

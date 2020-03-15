@@ -31,7 +31,7 @@
     "shortid": "^2.2.15",
     "speakeasy": "^2.0.0",
     "storj": "github:internxt/node-lib",
-    "stripe": "^8.22.0",
+    "stripe": "^8.29.0",
     "swagger-jsdoc": "^3.5.0",
     "useragent": "^2.3.0",
     "winston": "^3.2.1"
@@ -52,7 +52,7 @@
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.20.1",
     "jest": "^25.1.0",
-    "mocha": "^7.0.1",
+    "mocha": "^7.1.0",
     "nodemon": "^2.0.2",
     "sequelize-cli": "^5.5.1",
     "supertest": "^4.0.2"
