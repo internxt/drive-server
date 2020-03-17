@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING
     },
     size: {
-      type: DataTypes.INTEGER
+      type: DataTypes.BIGINT.UNSIGNED
     },
     bucket: {
       type: DataTypes.STRING(24)
