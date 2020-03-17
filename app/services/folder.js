@@ -246,7 +246,7 @@ module.exports = (Model, App) => {
     })
   }
 
-  const MoveFolder = (user, folderId, destination) => {
+  const MoveFolder = (user, folderId, destination, replace = false) => {
     return new Promise(async (resolve, reject) => {
       const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
       const destinationFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: destination } } })
@@ -258,6 +258,17 @@ module.exports = (Model, App) => {
 
       const originalName = App.services.Crypt.decryptName(folder.name, folder.parentId)
       const destinationName = App.services.Crypt.encryptName(originalName, destination)
+
+      const exists = await Model.folder.findOne({
+        where: {
+          name: { [Op.eq]: destinationName },
+          parent_id: { [Op.eq]: destination }
+        }
+      })
+
+      if (exists && !replace) {
+        return reject(Error('Destination contains a folder with the same name'))
+      }
 
       try {
         if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
