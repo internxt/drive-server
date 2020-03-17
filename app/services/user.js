@@ -150,12 +150,7 @@ module.exports = (Model, App) => {
   }
 
 
-  const FindUserObjByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
-    if (userData) {
-      return userData;
-    }
-    throw new Error('FindUserObjByEmail: User not found (' + email + ')');
-  })
+  const FindUserObjByEmail = email => Model.users.findOne({ where: { email: { [Op.eq]: email } } })
 
   const GetUsersRootFolder = id => Model.users.findAll({
     include: [Model.folder]
