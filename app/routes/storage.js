@@ -169,6 +169,43 @@ module.exports = (Router, Service, Logger, App) => {
     })
   })
 
+    /**
+   * @swagger
+   * /storage/moveFolder:
+   *   post:
+   *     description: Move folder on cloud DB from one folder to other
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: folderId
+   *         description: folder id
+   *         in: body
+   *         required: true
+   *       - name: destination
+   *         description: destination folder
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Folder moved successfully
+   *       501:
+   *         description: Folder with same name exists in folder destination.
+   */
+  Router.post('/storage/moveFolder', passportAuth, function (req, res) {
+    const folderId = req.body.folderId;
+    const destination = req.body.destination;
+    const replace = req.body.overwritte === true;
+    const user = req.user;
+    
+    Service.Folder.MoveFolder(user, folderId, destination, replace).then(() => {
+      res.status(200).json({ moved: true });
+    }).catch((error) => {
+      if (error.message && error.message.includes('same name')) {
+        res.status(501).json({ message: error.message });
+      }
+    })
+  })
+
   /**
    * @swagger
    * /storage/file:
