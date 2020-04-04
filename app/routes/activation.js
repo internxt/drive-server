@@ -26,6 +26,13 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
+  Router.get('/reset/:email', function (req, res) {
+    const user = req.params.email.toLowerCase()
+    Service.User.DeactivateUser(user)
+      .then(() => { res.status(200).send() })
+      .catch(() => { res.status(200).send() });
+  });
+
   Router.get('/confirmDeactivation/:token', (req, res) => {
     const token = req.params.token;
 

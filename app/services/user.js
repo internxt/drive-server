@@ -187,7 +187,7 @@ module.exports = (Model, App) => {
         }).then((data) => {
           resolve(data);
         }).catch((err) => {
-          console.log(err.response.data);
+          log.warn(err.response.data);
           reject(err);
         });
       }).catch(reject);
