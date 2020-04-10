@@ -2,6 +2,9 @@ const _ = require('lodash')
 const SanitizeFilename = require('sanitize-filename')
 const sequelize = require('sequelize');
 const async = require('async')
+const fs = require('fs');
+const stat = require('fs').statSync;
+const AdmZip = require('adm-zip');
 
 const Op = sequelize.Op;
 
@@ -56,86 +59,165 @@ module.exports = (Model, App) => {
   }
 
   const Delete = (user, folderId) => {
-    console.info('User %s requested to delete folder %s', user.email, folderId)
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
 
-      async.waterfall([
-        next => {
-          // Mnemonic is needed to use the CLI
-          if (user.mnemonic === 'null') { next(new Error('Your mnemonic is invalid')) } else { next() }
-        },
-        next => {
-          // Check if user is the owner if the folder
-          Model.folder.findOne({ where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } } }).then(result => next(null, result)).catch(() => next('Folder does not exists'))
-        },
-        (folder, next) => {
-          // Check if folder is the root folder
-          console.log(folder.id)
-          if (folder.id === user.root_folder_id) {
-            next(new Error('Cannot delete root folder'))
-          } else {
-            next(null, folder)
-          }
-        },
-        (folder, next) => {
-          // If folder has bucket id, is a legacy folder. Just delete that bucket.
-          if (folder.bucket) {
-            App.services.Storj.DeleteBucket(user, folder.bucket).then(() => next(null, folder)).catch(err => reject(err))
-          }
-          else {
-            next(null, folder)
-          }
-        },
-        (folder, next) => {
-          // Delete all the files in the folder
-          Model.file.findAll({ where: { folder_id: folder.id } }).then(files => {
-            async.eachSeries(files, (file, nextFile) => {
-              FileService.Delete(user, file.bucket, file.fileId).then(() => {
-                console.log('Deleted file %s', file.fileId)
-                nextFile()
-              }).catch(err => {
-                console.log('Error deleting file %s', err)
-                nextFile(err)
-              })
-            }, (err) => next(err, folder))            
-          }).catch(next)
-        },
-        (folder, next) => {
-          // Find all subfolders and repeat
-          Model.folder.findAll({ where: { parentId: folder.id } }).then(subFolders => {
-            async.eachSeries(subFolders, (subFolder, nextSubFolder) => {
-              console.log(subFolder.id)
-              Delete(user, subFolder.id).then(() => {
-                console.log('Deleted folder %s', subFolder.id)
-                nextSubFolder()
-              }).catch(nextSubFolder)
-            }, (err) => {
-              next(err, folder)
-            })
-          }).catch(next)
-        },
-        (folder, next) => {
-          // Delete folder itself
-          folder.destroy().then(() => next()).catch(err => next(err))
+      if (!folder) {
+        console.error('Folder does not exists')
+        return resolve(true)
+      }
+
+      try {
+        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+        try {
+          // Delete bucket if exists from legacy code
+          await App.services.Storj.DeleteBucket(user, folder.bucket);
+        } catch (error) {
+          // If bucket bot exists an error will be thrown, we ignore it.
         }
-      ], (err) => {
-        if (err) {
-          reject(new Error(err))
-        } else {
-          resolve()
+
+        // eslint-disable-next-line no-inner-declarations
+        async function AddFolderFilesAndCallMeMaybeWithSubfolders(pk, email) {
+          const FilesInFolder = await Model.file.findAll({ where: { folder_id: pk } });
+
+          FilesInFolder.forEach(async (file) => {
+            console.log('Recursive delete file %s (%s)', file.id, user.email);
+            await FileService.Delete(user, file.bucket, file.fileId);
+          });
+
+          const SubFolders = await Model.folder.findAll({ where: { parentId: pk } });
+          // eslint-disable-next-line no-return-await
+          SubFolders.forEach(async folderResult => await AddFolderFilesAndCallMeMaybeWithSubfolders(folderResult.id, email));
         }
-      })
+
+        await AddFolderFilesAndCallMeMaybeWithSubfolders(folderId, user.email);
+
+        const isFolderDeleted = await folder.destroy();
+        await Model.folder.rebuildHierarchy();
+        resolve(isFolderDeleted)
+      } catch (error) {
+        reject(error)
+      }
     });
   }
 
-  const GetTree = (user) => {
+  const CreateZip = (zipFileName, pathNames = []) => {
+      const zip = new AdmZip();
+
+      pathNames.forEach(path => {
+          const p = stat(path);
+
+          if (p.isFile()) {
+              zip.addLocalFile(path);
+          } else if (p.isDirectory()) {
+              let zipInternalPath = path.split('/')[2];
+              zip.addLocalFolder(path, zipInternalPath);
+          }
+      });
+
+      zip.writeZip(zipFileName);
+  }
+
+  const Download = (tree, userData) => {
+    return new Promise(async (resolve, reject) => {
+
+      function traverseChildren(children, path = rootPath) {
+        children.forEach(child => {
+          const subFolder = App.services.Crypt.decryptName(child.name, child.parentId);
+
+          fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
+            if (err) throw err;
+          });
+
+          if (child.files && child.files.length > 0) {
+            traverseFile(child.files, `${path}/${subFolder}`);
+          }
+  
+          if (child.children && child.children.length > 0) {
+            traverseChildren(child.children, `${path}/${subFolder}`);
+          }
+        });
+      }
+  
+      function traverseFile(files, path = rootPath) {
+        files.forEach(file => {
+          listFilesToDownload.push({
+            id: file.fileId,
+            path: path
+          });
+        });
+      }
+
+      const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
+      const rootPath = `./downloads/${tree.id}/${rootFolder}`;
+      var listFilesToDownload = [];
+      
+      fs.mkdir(rootPath, { recursive: true }, (err) => {
+        if (err) throw err;
+      });
+
+      if (tree.files && tree.files.length > 0) {
+        traverseFile(tree.files);
+      }
+  
+      if (tree.children && tree.children.length > 0) {
+        traverseChildren(tree.children);
+      }
+
+      async.eachSeries(listFilesToDownload, (file, next) => {
+        FileService.DownloadFolderFile(userData, file.id, file.path).then(() => {
+            next();
+          }).catch((err) => {
+            next(err);
+          })
+      }, (err) => {
+        err ? reject(err) : resolve();
+      });
+
+    });
+  }
+
+  const GetTreeSize = (tree) => {
+    let treeSize = 0;
+
+    function getChildrenSize(children) {
+      children.forEach(child => {
+        if (child.files && child.files.length > 0) {
+          getFileSize(child.files);
+        }
+
+        if (child.children && child.children.length > 0) {
+          getChildrenSize(child.children);
+        }
+      });
+    }
+
+    function getFileSize(files) {
+      files.forEach(file => {
+        treeSize += file.size;
+      });
+    }
+
+    if (tree.files && tree.files.length > 0) {
+      getFileSize(tree.files);
+    }
+
+    if (tree.children && tree.children.length > 0) {
+      getChildrenSize(tree.children);
+    }
+
+    return treeSize;
+  }
+
+  const GetTree = (user, rootFolderId = null) => {
     const username = user.email;
 
     return new Promise(async (resolve, reject) => {
       const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
+      rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
 
       const rootFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: userObject.root_folder_id } },
+        where: { id: { [Op.eq]: rootFolderId } },
         include: [{
           model: Model.folder,
           as: 'descendents',
@@ -280,7 +362,7 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
       const destinationFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: destination } } })
-
+      
       if (!folder || !destinationFolder) {
         console.error('Folder does not exists')
         return resolve(true)
@@ -311,7 +393,7 @@ module.exports = (Model, App) => {
           resolve(true);
         }).catch((err) => {
           reject(err);
-        });
+        }); 
       } catch (error) {
         reject(error);
       }
@@ -323,10 +405,13 @@ module.exports = (Model, App) => {
     Create,
     Delete,
     GetTree,
+    GetTreeSize,
     GetParent,
     GetContent,
     UpdateMetadata,
     GetBucketList,
-    MoveFolder
+    MoveFolder,
+    Download,
+    CreateZip
   }
 }

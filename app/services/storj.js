@@ -8,6 +8,7 @@ const mime = require('mime');
 
 module.exports = (Model, App) => {
   const log = App.logger;
+  const CryptService = require('./crypt')(Model, App);
 
   function pwdToHex(pwd) {
     try {
@@ -153,6 +154,45 @@ module.exports = (Model, App) => {
     });
   }
 
+  const ResolveFolderFile = (user, file, path = './downloads') => {
+    const downloadDir = path;
+    const decryptedFileName = CryptService.decryptName(file.name, file.folder_id);
+    const downloadFile = `${downloadDir}/${decryptedFileName}.${file.type}`;
+
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir);
+    }
+
+    if (fs.existsSync(downloadFile)) {
+      fs.unlinkSync(downloadFile);
+    }
+
+    return new Promise((resolve, reject) => {
+      const storj = getEnvironment(user.email, user.userId, user.mnemonic)
+      log.info(`Resolving file ${file.name}...`)
+
+      // Storj call
+      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
+        progressCallback: (progress, downloadedBytes, totalBytes) => {
+          log.info('[NODE-LIB] Download file progress: %s/%s (%s)', downloadedBytes, totalBytes, progress);
+        },
+        finishedCallback: (err) => {
+          if (err) {
+            log.error('[NODE-LIB] Error resolving file:', err);
+            reject(err)
+          } else {
+            const mimetype = mime.getType(downloadFile);
+            const filestream = fs.createReadStream(downloadFile);
+
+            log.info('[NODE-LIB] File resolved!')
+            resolve({ filestream, mimetype, downloadFile })
+            storj.destroy();
+          }
+        }
+      });
+    });
+  }
+
   const DeleteFile = (user, bucketId, file) => {
     return new Promise((resolve, reject) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic)
@@ -196,6 +236,7 @@ module.exports = (Model, App) => {
     DeleteFile,
     ListBuckets,
     ListBucketFiles,
-    IsUserActivated
+    IsUserActivated,
+    ResolveFolderFile
   }
 }
