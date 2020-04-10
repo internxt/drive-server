@@ -436,6 +436,10 @@ module.exports = (Router, Service, Logger, App) => {
                 , function () { console.log('Folder removed after send zip'); });
 
             }).catch((err) => {
+              if (fs.existsSync(`./downloads/${tree.id}`)) {
+                rimraf(`./downloads/${tree.id}`
+                , function () { console.log('Folder removed after fail folder download'); });
+              }
               console.log(err);
               res.status(402).json({ error: 'Error downloading folder' });
             });
