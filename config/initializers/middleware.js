@@ -57,7 +57,12 @@ module.exports = (App, Config) => {
    * Prints in console the used endpoints in real time.
    */
   App.express.use(function (req, res, next) {
-    App.logger.info(`[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl}`)
+    if (req.hostname === 'cloud.internxt.com') {
+      App.logger.warn(`[${req.method}${req.headers.authorization ? ` w/AUTH` : ''}] ${req.originalUrl}`)
+    } else {
+      App.logger.info(`[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl}`)
+    }
+
     next()
   })
 }
