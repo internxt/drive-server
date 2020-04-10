@@ -3,6 +3,8 @@ const upload = require('../middleware/multer')
 
 const passport = require('../middleware/passport')
 const passportAuth = passport.passportAuth
+var rimraf = require("rimraf");
+
 
 module.exports = (Router, Service, Logger, App) => {
 
@@ -396,7 +398,13 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email
-    Service.Share.GenerateToken(user, req.params.id, req.headers['internxt-mnemonic']).then((result) => {
+
+    Service.Share.GenerateToken(
+      user, 
+      req.params.id, 
+      req.headers['internxt-mnemonic'], 
+      req.body.isFolder
+    ).then((result) => {
       res.status(200).send(result);
     }).catch((err) => {
       res.status(404).send(err.error ? err.error : { error: 'Internal Server Error' });
@@ -409,32 +417,65 @@ module.exports = (Router, Service, Logger, App) => {
         const fileIdInBucket = result.file;
         userData.mnemonic = result.mnemonic;
 
-        Service.Files.Download(userData, fileIdInBucket).then(({ filestream, mimetype, downloadFile, folderId }) => {
-          const fileName = downloadFile.split('/')[2];
-          const extSeparatorPos = fileName.lastIndexOf('.')
-          const fileNameNoExt = fileName.slice(0, extSeparatorPos)
-          const fileExt = fileName.slice(extSeparatorPos + 1);
-          const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
+        Service.Folder.GetTree({email: result.user}, result.file).then((tree) => {
+          const maxAcceptableSize = 209715200; // 200MB
+          const treeSize = Service.Folder.GetTreeSize(tree);
+          
+          if (treeSize <= maxAcceptableSize) {
+            Service.Folder.Download(tree, userData).then(() => {
+              const folderName = App.services.Crypt.decryptName(tree.name, tree.parentId);
 
-          res.setHeader('Content-type', mimetype);
+              Service.Folder.CreateZip(
+                `./downloads/${tree.id}/${folderName}.zip`,
+                [`downloads/${tree.id}/${folderName}`]
+              );
 
-          const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
-          const encodedFileName = encodeURI(`${decryptedFileName}.${fileExt}`)
-          res.setHeader('Content-disposition', `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`);
+              res.download(`./downloads/${tree.id}/${folderName}.zip`);
 
-          res.set('x-file-name', decryptedFileNameB64);
+              rimraf(`./downloads/${tree.id}`
+                , function () { console.log('Folder removed after send zip'); });
 
-          filestream.pipe(res)
-          fs.unlink(downloadFile, (error) => {
-            if (error) throw error;
-          });
-        }).catch(({ message }) => {
-          if (message === 'Bridge rate limit error') {
-            res.status(402).json({ message })
-            return;
+            }).catch((err) => {
+              if (fs.existsSync(`./downloads/${tree.id}`)) {
+                rimraf(`./downloads/${tree.id}`
+                , function () { console.log('Folder removed after fail folder download'); });
+              }
+              console.log(err);
+              res.status(402).json({ error: 'Error downloading folder' });
+            });
+          } else {
+            res.status(402).json({ error: 'Folder too large' });
           }
-          res.status(500).json({ message })
+          
+        }).catch((__err) => {
+          Service.Files.Download(userData, fileIdInBucket).then(({ filestream, mimetype, downloadFile, folderId }) => {
+            const fileName = downloadFile.split('/')[2];
+            const extSeparatorPos = fileName.lastIndexOf('.')
+            const fileNameNoExt = fileName.slice(0, extSeparatorPos)
+            const fileExt = fileName.slice(extSeparatorPos + 1);
+            const decryptedFileName = App.services.Crypt.decryptName(fileNameNoExt, folderId);
+  
+            res.setHeader('Content-type', mimetype);
+  
+            const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}.${fileExt}`).toString('base64')
+            const encodedFileName = encodeURI(`${decryptedFileName}.${fileExt}`)
+
+            res.setHeader('Content-disposition', `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`);
+            res.set('x-file-name', decryptedFileNameB64);
+  
+            filestream.pipe(res)
+            fs.unlink(downloadFile, (error) => {
+              if (error) throw error;
+            });
+          }).catch(({ message }) => {
+            if (message === 'Bridge rate limit error') {
+              res.status(402).json({ message })
+              return;
+            }
+            res.status(500).json({ message })
+          })
         })
+        
       }).catch((err) => {
         console.error(err);
         res.status(500).send({ error: 'User not found' });

@@ -163,6 +163,27 @@ module.exports = (Model, App) => {
     })
   }
 
+  const DownloadFolderFile = (user, fileId, path) => {
+    return new Promise((resolve, reject) => {
+      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid')
+
+      Model.file.findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
+        if (!file) {
+          throw Error('File not found on database, please refresh')
+        }
+        App.services.Storj.ResolveFolderFile(user, file, path).then((result) => {
+          resolve({ ...result, folderId: file.folder_id })
+        }).catch((err) => {
+          if (err.message === 'File already exists') {
+            resolve({ file: { name: `${file.name}.${file.type}` } })
+          } else {
+            reject(err)
+          }
+        })
+      }).catch(reject)
+    })
+  }
+
   const Delete = (user, bucket, fileId) => {
     return new Promise((resolve, reject) => {
       App.services.Storj.DeleteFile(user, bucket, fileId).then(async (result) => {
@@ -326,6 +347,7 @@ module.exports = (Model, App) => {
     Download,
     UpdateMetadata,
     MoveFile,
-    ListAllFiles
+    ListAllFiles,
+    DownloadFolderFile
   }
 }

@@ -2,6 +2,9 @@ const _ = require('lodash')
 const SanitizeFilename = require('sanitize-filename')
 const sequelize = require('sequelize');
 const async = require('async')
+const fs = require('fs');
+const stat = require('fs').statSync;
+const AdmZip = require('adm-zip');
 
 const Op = sequelize.Op;
 
@@ -128,14 +131,123 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GetTree = (user) => {
+  const CreateZip = (zipFileName, pathNames = []) => {
+      const zip = new AdmZip();
+
+      pathNames.forEach(path => {
+          const p = stat(path);
+
+          if (p.isFile()) {
+              zip.addLocalFile(path);
+          } else if (p.isDirectory()) {
+              let zipInternalPath = path.split('/')[2];
+              zip.addLocalFolder(path, zipInternalPath);
+          }
+      });
+
+      zip.writeZip(zipFileName);
+  }
+
+  const Download = (tree, userData) => {
+    return new Promise(async (resolve, reject) => {
+
+      function traverseChildren(children, path = rootPath) {
+        children.forEach(child => {
+          const subFolder = App.services.Crypt.decryptName(child.name, child.parentId);
+
+          fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
+            if (err) throw err;
+          });
+
+          if (child.files && child.files.length > 0) {
+            traverseFile(child.files, `${path}/${subFolder}`);
+          }
+  
+          if (child.children && child.children.length > 0) {
+            traverseChildren(child.children, `${path}/${subFolder}`);
+          }
+        });
+      }
+  
+      function traverseFile(files, path = rootPath) {
+        files.forEach(file => {
+          listFilesToDownload.push({
+            id: file.fileId,
+            path: path
+          });
+        });
+      }
+
+      const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
+      const rootPath = `./downloads/${tree.id}/${rootFolder}`;
+      var listFilesToDownload = [];
+      
+      fs.mkdir(rootPath, { recursive: true }, (err) => {
+        if (err) throw err;
+      });
+
+      if (tree.files && tree.files.length > 0) {
+        traverseFile(tree.files);
+      }
+  
+      if (tree.children && tree.children.length > 0) {
+        traverseChildren(tree.children);
+      }
+
+      async.eachSeries(listFilesToDownload, (file, next) => {
+        FileService.DownloadFolderFile(userData, file.id, file.path).then(() => {
+            next();
+          }).catch((err) => {
+            next(err);
+          })
+      }, (err) => {
+        err ? reject(err) : resolve();
+      });
+
+    });
+  }
+
+  const GetTreeSize = (tree) => {
+    let treeSize = 0;
+
+    function getChildrenSize(children) {
+      children.forEach(child => {
+        if (child.files && child.files.length > 0) {
+          getFileSize(child.files);
+        }
+
+        if (child.children && child.children.length > 0) {
+          getChildrenSize(child.children);
+        }
+      });
+    }
+
+    function getFileSize(files) {
+      files.forEach(file => {
+        treeSize += file.size;
+      });
+    }
+
+    if (tree.files && tree.files.length > 0) {
+      getFileSize(tree.files);
+    }
+
+    if (tree.children && tree.children.length > 0) {
+      getChildrenSize(tree.children);
+    }
+
+    return treeSize;
+  }
+
+  const GetTree = (user, rootFolderId = null) => {
     const username = user.email;
 
     return new Promise(async (resolve, reject) => {
       const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
+      rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
 
       const rootFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: userObject.root_folder_id } },
+        where: { id: { [Op.eq]: rootFolderId } },
         include: [{
           model: Model.folder,
           as: 'descendents',
@@ -323,10 +435,13 @@ module.exports = (Model, App) => {
     Create,
     Delete,
     GetTree,
+    GetTreeSize,
     GetParent,
     GetContent,
     UpdateMetadata,
     GetBucketList,
-    MoveFolder
+    MoveFolder,
+    Download,
+    CreateZip
   }
 }

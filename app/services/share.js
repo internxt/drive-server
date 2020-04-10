@@ -22,7 +22,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GenerateToken = (user, fileIdInBucket, mnemonic) => {
+  const GenerateToken = (user, fileIdInBucket, mnemonic, isFolder = false) => {
     return new Promise(async (resolve, reject) => {
       // Required mnemonic
       if (!mnemonic) {
@@ -30,10 +30,17 @@ module.exports = (Model, App) => {
         return;
       }
 
-      // Check if file exists
-      const fileExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });
+      let itemExists = null;
 
-      if (!fileExists) {
+      if (isFolder == 'false') {
+        // Check if file exists
+        itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });  
+      } else {
+        //Check if folder exists
+        itemExists = await Model.folder.findOne({ where: { id: { [Op.eq]: fileIdInBucket } } });
+      }
+
+      if (!itemExists) {
         reject('File not found');
         return;
       }
