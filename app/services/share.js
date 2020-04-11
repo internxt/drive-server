@@ -1,8 +1,5 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
-// const axios = require('axios');
-// // import Kutt from "kutt";
-// const Kutt = require('kutt');
 const fetch = require('node-fetch');
 
 const Op = sequelize.Op;
