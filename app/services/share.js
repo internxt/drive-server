@@ -1,5 +1,9 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
+// const axios = require('axios');
+// // import Kutt from "kutt";
+// const Kutt = require('kutt');
+const fetch = require('node-fetch');
 
 const Op = sequelize.Op;
 
@@ -18,6 +22,39 @@ module.exports = (Model, App) => {
       }).catch((err) => {
         console.error(err);
         reject('Error querying database');
+      });
+    });
+  }
+
+  const GenerateShortLink = (user, url) => {
+    return new Promise(async (resolve, reject) => { 
+      if (!user || !url) {
+        reject({message: 'Required parameters are missing'});
+        return;
+      }
+
+      const segmentedUrl = url.split('/');
+      const token = segmentedUrl[segmentedUrl.length - 1];
+     
+      Model.shares.findAll({
+        where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
+      }).then((shareInstanceDB) => {
+        if (shareInstanceDB) {
+            
+          fetch(`${process.env.SHORTER_API_URL}`, {
+                method: 'POST',
+                headers: {
+                    'x-api-key': `${process.env.SHORTER_API_KEY}`,
+                    'Content-type': "application/json"
+                },
+                body: JSON.stringify({ 'target': `${url}`, 'reuse': 'false' })
+            }).then(res => res.json()).then(resolve).catch(reject);
+        
+        } else {
+          reject({message: 'url requested not valid'});
+        }
+      }).catch((err) => {
+        reject({message: 'Error accesing to db'});
       });
     });
   }
@@ -85,6 +122,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Share',
     FindOne,
-    GenerateToken
+    GenerateToken,
+    GenerateShortLink
   }
 }

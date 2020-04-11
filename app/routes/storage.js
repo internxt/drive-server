@@ -396,6 +396,17 @@ module.exports = (Router, Service, Logger, App) => {
     })
   })
 
+  Router.post('/storage/shortLink', passportAuth, (req, res) => {
+    const user = req.user.email;
+    const url  = req.body.url;
+
+    Service.Share.GenerateShortLink(user, url).then((shortLink) => {
+      res.status(200).json(shortLink)
+    }).catch((err) => {
+      res.status(500).json({ error: err.message })
+    });
+  });
+
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email
 
