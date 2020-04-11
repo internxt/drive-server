@@ -32,12 +32,12 @@ module.exports = (Model, App) => {
 
       let itemExists = null;
 
-      if (isFolder == 'false') {
-        // Check if file exists
-        itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });  
-      } else {
+      if (isFolder === 'true') {
         //Check if folder exists
         itemExists = await Model.folder.findOne({ where: { id: { [Op.eq]: fileIdInBucket } } });
+      } else {
+        // Check if file exists
+        itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });
       }
 
       if (!itemExists) {
