@@ -32,11 +32,11 @@ module.exports = (Model, App) => {
 
       const segmentedUrl = url.split('/');
       const token = segmentedUrl[segmentedUrl.length - 1];
-     
+
       Model.shares.findAll({
         where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
       }).then((shareInstanceDB) => {
-        if (shareInstanceDB) {
+        if (shareInstanceDB && shareInstanceDB.length > 0) {
             
           fetch(`${process.env.SHORTER_API_URL}`, {
                 method: 'POST',
