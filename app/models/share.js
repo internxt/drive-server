@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
     mnemonic: DataTypes.STRING,
     isFolder: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true
+      defaultValue: false
     }
   }, {
     timestamps: false
