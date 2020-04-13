@@ -426,39 +426,49 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Share.FindOne(req.params.token).then((result) => {
       Service.User.FindUserByEmail(result.user).then((userData) => {
         const fileIdInBucket = result.file;
+        const isFolder = result.is_folder;
+
         userData.mnemonic = result.mnemonic;
 
-        Service.Folder.GetTree({email: result.user}, result.file).then((tree) => {
-          const maxAcceptableSize = 209715200; // 200MB
-          const treeSize = Service.Folder.GetTreeSize(tree);
-          
-          if (treeSize <= maxAcceptableSize) {
-            Service.Folder.Download(tree, userData).then(() => {
-              const folderName = App.services.Crypt.decryptName(tree.name, tree.parentId);
-
-              Service.Folder.CreateZip(
-                `./downloads/${tree.id}/${folderName}.zip`,
-                [`downloads/${tree.id}/${folderName}`]
-              );
-
-              res.download(`./downloads/${tree.id}/${folderName}.zip`);
-
-              rimraf(`./downloads/${tree.id}`
-                , function () { console.log('Folder removed after send zip'); });
-
-            }).catch((err) => {
-              if (fs.existsSync(`./downloads/${tree.id}`)) {
+        if (isFolder) {
+          Service.Folder.GetTree({email: result.user}, result.file).then((tree) => {
+            const maxAcceptableSize = 209715200; // 200MB
+            const treeSize = Service.Folder.GetTreeSize(tree);
+            
+            if (treeSize <= maxAcceptableSize) {
+              Service.Folder.Download(tree, userData).then(() => {
+                const folderName = App.services.Crypt.decryptName(tree.name, tree.parentId);
+  
+                Service.Folder.CreateZip(
+                  `./downloads/${tree.id}/${folderName}.zip`,
+                  [`downloads/${tree.id}/${folderName}`]
+                );
+  
+                res.download(`./downloads/${tree.id}/${folderName}.zip`);
+  
                 rimraf(`./downloads/${tree.id}`
-                , function () { console.log('Folder removed after fail folder download'); });
-              }
-              console.log(err);
-              res.status(402).json({ error: 'Error downloading folder' });
-            });
-          } else {
-            res.status(402).json({ error: 'Folder too large' });
-          }
-          
-        }).catch((__err) => {
+                  , function () { console.log('Folder removed after send zip'); });
+  
+              }).catch((err) => {
+                if (fs.existsSync(`./downloads/${tree.id}`)) {
+                  rimraf(`./downloads/${tree.id}`
+                  , function () { console.log('Folder removed after fail folder download'); });
+                }
+
+                res.status(402).json({ error: 'Error downloading folder' });
+              });
+            } else {
+              res.status(402).json({ error: 'Folder too large' });
+            }
+            
+          }).catch((err) => {
+            if (fs.existsSync(`./downloads/${tree.id}`)) {
+              rimraf(`./downloads/${tree.id}`
+              , function () { console.log('Folder removed after fail folder download'); });
+            }
+            res.status(402).json({ error: 'Error downloading folder' });
+          })
+        } else {
           Service.Files.Download(userData, fileIdInBucket).then(({ filestream, mimetype, downloadFile, folderId }) => {
             const fileName = downloadFile.split('/')[2];
             const extSeparatorPos = fileName.lastIndexOf('.')
@@ -485,7 +495,7 @@ module.exports = (Router, Service, Logger, App) => {
             }
             res.status(500).json({ message })
           })
-        })
+        }
         
       }).catch((err) => {
         console.error(err);

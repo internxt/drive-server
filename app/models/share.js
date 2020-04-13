@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     user: DataTypes.INTEGER,
     file: DataTypes.STRING(24),
     mnemonic: DataTypes.STRING,
-    isFolder: {
+    is_folder: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     }

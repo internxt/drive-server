@@ -90,7 +90,8 @@ module.exports = (Model, App) => {
           Model.shares.update(
             {
               token: newToken,
-              mnemonic
+              mnemonic,
+              is_folder: isFolder
             },
             {
               where: { id: { [Op.eq]: tokenData.id } }
@@ -102,7 +103,8 @@ module.exports = (Model, App) => {
             token: newToken,
             mnemonic,
             file: fileIdInBucket,
-            user
+            user,
+            is_folder: isFolder
           }).then((ok) => {
             resolve({ token: newToken });
           }).catch((err) => {
