@@ -9,7 +9,11 @@ module.exports = (sequelize, DataTypes) => {
     token: DataTypes.DECIMAL(10, 2),
     user: DataTypes.INTEGER,
     file: DataTypes.STRING(24),
-    mnemonic: DataTypes.STRING
+    mnemonic: DataTypes.STRING,
+    isFolder: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    }
   }, {
     timestamps: false
   });
