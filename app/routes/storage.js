@@ -418,7 +418,7 @@ module.exports = (Router, Service, Logger, App) => {
     ).then((result) => {
       res.status(200).send(result);
     }).catch((err) => {
-      res.status(404).send(err.error ? err.error : { error: 'Internal Server Error' });
+      res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
     });
   });
 

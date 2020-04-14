@@ -5,6 +5,8 @@ const fetch = require('node-fetch');
 const Op = sequelize.Op;
 
 module.exports = (Model, App) => {
+  const FolderService = require('./folder')(Model, App);
+
   const FindOne = (token) => {
     return new Promise((resolve, reject) => {
       Model.shares.findOne({
@@ -77,6 +79,30 @@ module.exports = (Model, App) => {
       if (!itemExists) {
         reject('File not found');
         return;
+      } else {
+        const maxAcceptableSize = 209715200; // 200MB
+
+        if (isFolder === 'true')  {
+          const tree = await FolderService.GetTree({email: user}, fileIdInBucket);
+
+          if (tree) {
+            const treeSize = await FolderService.GetTreeSize(tree);
+
+            if (treeSize > maxAcceptableSize) {
+                reject({error: 'File too large'});
+                return;      
+            }
+          } else {
+            reject();
+            return;
+          }
+
+        } else {
+          if (itemExists.size > maxAcceptableSize) {
+            reject({error: 'File too large'});
+            return;
+          }
+        }
       }
 
       // Generate a new token

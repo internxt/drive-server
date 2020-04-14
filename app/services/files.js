@@ -149,7 +149,10 @@ module.exports = (Model, App) => {
       Model.file.findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
         if (!file) {
           throw Error('File not found on database, please refresh')
+        } else if (file.size > 209715200) { // 200MB
+          throw Error('File too large')
         }
+
         App.services.Storj.ResolveFile(user, file).then((result) => {
           resolve({ ...result, folderId: file.folder_id })
         }).catch((err) => {
