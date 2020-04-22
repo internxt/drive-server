@@ -13,7 +13,20 @@ module.exports = (Model, App) => {
         where: { token: { [Op.eq]: token } }
       }).then((result) => {
         if (result) {
-          result.destroy();
+
+          if (result.views == 1) {
+            result.destroy();
+          } else {
+            Model.shares.update(
+              {
+                views: result.views - 1
+              },
+              {
+                where: { id: { [Op.eq]: result.id } }
+              }
+            );
+          }
+
           resolve(result.dataValues);
         } else {
           reject('Not valid token');
@@ -34,19 +47,25 @@ module.exports = (Model, App) => {
 
       const segmentedUrl = url.split('/');
       const token = segmentedUrl[segmentedUrl.length - 1];
+      
 
       Model.shares.findAll({
         where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
       }).then((shareInstanceDB) => {
         if (shareInstanceDB && shareInstanceDB.length > 0) {
-            
+          let reuse = 'false';
+
+          if (shareInstanceDB[0].views > 1 && shareInstanceDB[0].views < 10) {
+            reuse = 'true';
+          }
+
           fetch(`${process.env.SHORTER_API_URL}`, {
                 method: 'POST',
                 headers: {
                     'x-api-key': `${process.env.SHORTER_API_KEY}`,
                     'Content-type': "application/json"
                 },
-                body: JSON.stringify({ 'target': `${url}`, 'reuse': 'false' })
+                body: JSON.stringify({ 'target': `${url}`, 'reuse': reuse })
             }).then(res => res.json()).then(resolve).catch(reject);
         
         } else {
@@ -58,7 +77,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const GenerateToken = (user, fileIdInBucket, mnemonic, isFolder = false) => {
+  const GenerateToken = (user, fileIdInBucket, mnemonic, isFolder = false, views = 1) => {
     return new Promise(async (resolve, reject) => {
       // Required mnemonic
       if (!mnemonic) {
@@ -117,7 +136,8 @@ module.exports = (Model, App) => {
             {
               token: newToken,
               mnemonic,
-              is_folder: isFolder
+              is_folder: isFolder,
+              views: views
             },
             {
               where: { id: { [Op.eq]: tokenData.id } }
@@ -130,7 +150,8 @@ module.exports = (Model, App) => {
             mnemonic,
             file: fileIdInBucket,
             user,
-            is_folder: isFolder
+            is_folder: isFolder,
+            views: views
           }).then((ok) => {
             resolve({ token: newToken });
           }).catch((err) => {

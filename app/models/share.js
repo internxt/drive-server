@@ -13,6 +13,10 @@ module.exports = (sequelize, DataTypes) => {
     is_folder: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    views: {
+      type: DataTypes.INTEGER,
+      defaultValue: 1
     }
   }, {
     timestamps: false

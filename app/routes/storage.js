@@ -411,10 +411,11 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user.email
 
     Service.Share.GenerateToken(
-      user, 
-      req.params.id, 
-      req.headers['internxt-mnemonic'], 
-      req.body.isFolder
+      user,
+      req.params.id,
+      req.headers['internxt-mnemonic'],
+      req.body.isFolder,
+      req.body.views
     ).then((result) => {
       res.status(200).send(result);
     }).catch((err) => {
