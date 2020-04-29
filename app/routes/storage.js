@@ -444,7 +444,8 @@ module.exports = (Router, Service, Logger, App) => {
                   `./downloads/${tree.id}/${folderName}.zip`,
                   [`downloads/${tree.id}/${folderName}`]
                 );
-  
+
+                res.set('x-file-name', `${folderName}.zip`);
                 res.download(`./downloads/${tree.id}/${folderName}.zip`);
   
                 rimraf(`./downloads/${tree.id}`
