@@ -27,7 +27,7 @@ module.exports = (Model, App) => {
         // Prevent strange folder names from being created
         const sanitizedFoldername = SanitizeFilename(folderName)
 
-        if (sanitizedFoldername !== folderName) {
+        if (folderName === "" || sanitizedFoldername !== folderName) {
           throw Error('Invalid folder name')
         }
 
