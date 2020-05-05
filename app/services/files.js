@@ -10,8 +10,8 @@ module.exports = (Model, App) => {
 
   const CreateFile = (user, file) => {
     return new Promise(async (resolve, reject) => {
-      if (!file.fileId || !file.bucket || !file.size || !file.folder_id) {
-        return reject(Error('Invalid metadata for new file'))
+      if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
+        return reject(new Error('Invalid metadata for new file'))
       }
       Model.folder.findOne({
         where: {
@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
         }
       }).then(async (folder) => {
         if (!folder) {
-          return reject(Error('Folder not found / Is not your folder'))
+          return reject(new Error('Folder not found / Is not your folder'))
         }
 
         const fileExists = await Model.file.findOne({
@@ -32,7 +32,7 @@ module.exports = (Model, App) => {
         })
 
         if (fileExists) {
-          return reject(Error('File entry already exists'))
+          return reject(new Error('File entry already exists'))
         }
 
         const fileInfo = {
@@ -42,6 +42,10 @@ module.exports = (Model, App) => {
           folder_id: folder.id,
           fileId: file.file_id,
           bucket: file.bucket
+        }
+
+        if (file.date) {
+          fileInfo.createdAt = file.date
         }
 
         Model.file.create(fileInfo).then(resolve)
