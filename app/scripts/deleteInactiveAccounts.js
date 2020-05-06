@@ -42,6 +42,7 @@ const deleteRootBucket = (user, bucketId) => {
             reject(err)
         }
 
+        console.log(`Removing root bucket for user: ${user.email}`);
         storj.deleteBucket(bucketId, function (err, result) {
             if (err) { 
                 console.error(err);
