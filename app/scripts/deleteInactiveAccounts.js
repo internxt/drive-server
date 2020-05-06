@@ -28,6 +28,18 @@ const getBucket = (folderId) => {
     });
 }
 
+const updateUser = (emailUser) => {
+    console.log(`Removing root_folder_id ${emailUser}`);
+
+    return new Promise((resolve, reject) => {
+        User.update({
+            root_folder_id: null
+        }, { where: { email: emailUser } })
+        .then((res) => { resolve() })
+        .catch(reject);
+    });
+}
+
 const deleteRootBucket = (user, bucketId) => {    
     return new Promise((resolve, reject) => {
         try {
@@ -49,7 +61,7 @@ const deleteRootBucket = (user, bucketId) => {
                 reject(err)
             } else { 
                 console.log(result);
-                resolve(result) 
+                updateUser(user.email).then(res => resolve(res)).catch(reject);
             }
         });
     });
