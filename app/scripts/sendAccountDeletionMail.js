@@ -71,10 +71,17 @@ const getInactiveAccountsForAYear = () => {
 
 const updateUser = (emailUser) => {
     console.log(`Updating is_email_activity_sended to ${emailUser}`);
+
+    var yearAgo = new Date();
+    yearAgo.setMonth(yearAgo.getMonth() - 12);
+
     return new Promise((resolve, reject) => {
         User.update({
-            is_email_activity_sended: true
-        }, { where: { email: emailUser } }).then((res) => { resolve() }).catch(reject);
+            is_email_activity_sended: true,
+            updated_at: yearAgo
+        }, { where: { email: emailUser }, silent: true })
+        .then((res) => { resolve() })
+        .catch(reject);
     });
 }
 
