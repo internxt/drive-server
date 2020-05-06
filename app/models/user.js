@@ -52,6 +52,11 @@ module.exports = (sequelize, DataTypes) => {
     },
     errorLoginCount: {
       type: DataTypes.INTEGER
+    },
+    is_email_activity_sended: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: false
     }
   }, {
     timestamps: true,

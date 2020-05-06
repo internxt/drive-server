@@ -19,6 +19,8 @@ module.exports = (Router, Service, Logger, App) => {
       })
     }
 
+    Service.User.UpdateAccountActivity(user.email);
+
     Service.Folder.GetTree(user).then((result) => {
       res.status(200).send(result)
     }).catch((err) => {

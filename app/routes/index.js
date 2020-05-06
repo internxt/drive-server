@@ -132,6 +132,7 @@ module.exports = (Router, Service, Logger, App) => {
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT)
 
         Service.User.LoginFailed(req.body.email, false);
+        Service.User.UpdateAccountActivity(req.body.email);
 
         res.status(200).json({
           user: {

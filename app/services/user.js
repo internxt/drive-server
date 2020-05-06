@@ -319,6 +319,13 @@ module.exports = (Model, App) => {
     });
   }
 
+  const UpdateAccountActivity = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.users.update({
+        updated_at: new Date()
+      }, { where: { email: user } }).then((res) => { resolve() }).catch(reject);
+    });
+  }
 
   return {
     Name: 'User',
@@ -336,6 +343,7 @@ module.exports = (Model, App) => {
     Delete2FA,
     UpdatePasswordMnemonic,
     LoginFailed,
-    ResendActivationEmail
+    ResendActivationEmail,
+    UpdateAccountActivity
   }
 }
