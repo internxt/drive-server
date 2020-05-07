@@ -19,10 +19,10 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/stripe/session', passportAuth, (req, res) => {
     const planToSubscribe = req.body.plan;
 
-    let stripe = require('stripe')(process.env.STRIPE_SK);
+    let stripe = require('stripe')(process.env.STRIPE_SK, {apiVersion: '2020-03-02'});
 
     if (req.body.test) {
-      stripe = require('stripe')(process.env.STRIPE_SK_TEST);
+      stripe = require('stripe')(process.env.STRIPE_SK_TEST, {apiVersion: '2020-03-02'});
     }
 
     const user = req.user.email
@@ -120,7 +120,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Required metadata:
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
-    const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
+    const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK, {apiVersion: '2020-03-02'});
     stripe.products.list({}, (err, products) => {
       if (err) {
         res.status(500).send({ error: err });
@@ -138,7 +138,7 @@ module.exports = (Router, Service, Logger, App) => {
    * TODO: cache plans to avoid repetitive api calls
    */
   Router.post('/stripe/plans', passportAuth, (req, res) => {
-    const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK);
+    const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK, {apiVersion: '2020-03-02'});
     const stripeProduct = req.body.product;
 
     stripe.plans.list({
