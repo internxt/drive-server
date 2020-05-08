@@ -419,7 +419,7 @@ module.exports = (Model, App) => {
           parentId: destination,
           name: destinationName
         }).then(async (res) => {
-          await Model.folder.rebuildHierarchy();
+          // await Model.folder.rebuildHierarchy();
           resolve(true);
         }).catch((err) => {
           reject(err);
