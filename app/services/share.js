@@ -13,17 +13,13 @@ module.exports = (Model, App) => {
         where: { token: { [Op.eq]: token } }
       }).then((result) => {
         if (result) {
-
           if (result.views == 1) {
+            console.log('Token %s removed', token)
             result.destroy();
           } else {
             Model.shares.update(
-              {
-                views: result.views - 1
-              },
-              {
-                where: { id: { [Op.eq]: result.id } }
-              }
+              { views: result.views - 1 },
+              { where: { id: { [Op.eq]: result.id } } }
             );
           }
 
@@ -39,15 +35,15 @@ module.exports = (Model, App) => {
   }
 
   const GenerateShortLink = (user, url) => {
-    return new Promise(async (resolve, reject) => { 
+    return new Promise(async (resolve, reject) => {
       if (!user || !url) {
-        reject({message: 'Required parameters are missing'});
+        reject({ message: 'Required parameters are missing' });
         return;
       }
 
       const segmentedUrl = url.split('/');
       const token = segmentedUrl[segmentedUrl.length - 1];
-      
+
 
       Model.shares.findAll({
         where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
@@ -60,19 +56,19 @@ module.exports = (Model, App) => {
           }
 
           fetch(`${process.env.SHORTER_API_URL}`, {
-                method: 'POST',
-                headers: {
-                    'x-api-key': `${process.env.SHORTER_API_KEY}`,
-                    'Content-type': "application/json"
-                },
-                body: JSON.stringify({ 'target': `${url}`, 'reuse': reuse })
-            }).then(res => res.json()).then(resolve).catch(reject);
-        
+            method: 'POST',
+            headers: {
+              'x-api-key': `${process.env.SHORTER_API_KEY}`,
+              'Content-type': "application/json"
+            },
+            body: JSON.stringify({ 'target': `${url}`, 'reuse': reuse })
+          }).then(res => res.json()).then(resolve).catch(reject);
+
         } else {
-          reject({message: 'url requested not valid'});
+          reject({ message: 'url requested not valid' });
         }
       }).catch((err) => {
-        reject({message: 'Error accesing to db'});
+        reject({ message: 'Error accesing to db' });
       });
     });
   }
@@ -101,15 +97,15 @@ module.exports = (Model, App) => {
       } else {
         const maxAcceptableSize = 209715200; // 200MB
 
-        if (isFolder === 'true')  {
-          const tree = await FolderService.GetTree({email: user}, fileIdInBucket);
+        if (isFolder === 'true') {
+          const tree = await FolderService.GetTree({ email: user }, fileIdInBucket);
 
           if (tree) {
             const treeSize = await FolderService.GetTreeSize(tree);
 
             if (treeSize > maxAcceptableSize) {
-                reject({error: 'File too large'});
-                return;      
+              reject({ error: 'File too large' });
+              return;
             }
           } else {
             reject();
@@ -118,7 +114,7 @@ module.exports = (Model, App) => {
 
         } else {
           if (itemExists.size > maxAcceptableSize) {
-            reject({error: 'File too large'});
+            reject({ error: 'File too large' });
             return;
           }
         }

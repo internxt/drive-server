@@ -370,6 +370,8 @@ module.exports = (Model, App) => {
           // Set optional changes
           if (metadata.color) { newMeta.color = metadata.color }
           if (typeof metadata.icon === 'number' && metadata.icon >= 0) { newMeta.icon_id = metadata.icon }
+          if (metadata.icon === 'none') { newMeta.icon_id = null }
+          if (metadata.icon === 'none') { newMeta.icon_id = null }
           next(null, folder)
         },
         (folder, next) => {
