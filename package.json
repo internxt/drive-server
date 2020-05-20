@@ -34,8 +34,8 @@
     "shortid": "^2.2.15",
     "speakeasy": "^2.0.0",
     "storj": "github:internxt/node-lib",
-    "storj-service-mailer": "https://github.com/internxt/mailer",
-    "stripe": "^8.29.0",
+    "storj-service-mailer": "internxt/mailer",
+    "stripe": "8.49.0",
     "swagger-jsdoc": "^3.5.0",
     "useragent": "^2.3.0",
     "winston": "^3.2.1"

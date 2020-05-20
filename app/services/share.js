@@ -16,22 +16,15 @@ module.exports = (Model, App) => {
         })
         .then((result) => {
           if (result) {
-            if (result.views === 1) {
+            if (result.views == 1) {
+              console.log('Token %s removed', token);
               result.destroy();
             } else {
               Model.shares.update(
-                {
-                  views: result.views - 1,
-                },
-                {
-                  where: { id: { [Op.eq]: result.id } },
-                }
+                { views: result.views - 1 },
+                { where: { id: { [Op.eq]: result.id } } }
               );
             }
-
-            resolve(result.dataValues);
-          } else {
-            reject('Not valid token');
           }
         })
         .catch((err) => {

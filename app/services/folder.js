@@ -476,6 +476,29 @@ module.exports = (Model, App) => {
           } else {
             resolve(result);
           }
+        },
+        (folder, next) => {
+          // Set optional changes
+          if (metadata.color) {
+            newMeta.color = metadata.color;
+          }
+
+          if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
+            newMeta.icon_id = metadata.icon;
+          }
+
+          if (metadata.icon === 'none') {
+            newMeta.icon_id = null;
+          }
+
+          next(null, folder);
+        },
+        (folder, next) => {
+          // Perform the update
+          folder
+            .update(newMeta)
+            .then((result) => next(null, result))
+            .catch(next);
         }
       );
     });
