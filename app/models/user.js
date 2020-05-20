@@ -69,7 +69,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultScope: {
         attributes: { exclude: ['userId'] },
       },
-    },
+    }
   );
 
   User.associate = function (models) {

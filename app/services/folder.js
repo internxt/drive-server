@@ -40,7 +40,7 @@ module.exports = (Model, App) => {
 
         const cryptoFolderName = App.services.Crypt.encryptName(
           folderName,
-          parentFolderId,
+          parentFolderId
         );
 
         const exists = await Model.folder.findOne({
@@ -71,6 +71,7 @@ module.exports = (Model, App) => {
 
   const Delete = (user, folderId) => {
     console.info('User %s requested to delete folder %s', user.email, folderId);
+
     return new Promise((resolve, reject) => {
       async.waterfall(
         [
@@ -131,7 +132,7 @@ module.exports = (Model, App) => {
                         nextFile(err);
                       });
                   },
-                  (err) => next(err, folder),
+                  (err) => next(err, folder)
                 );
               })
               .catch(next);
@@ -154,7 +155,7 @@ module.exports = (Model, App) => {
                   },
                   (err) => {
                     next(err, folder);
-                  },
+                  }
                 );
               })
               .catch(next);
@@ -173,7 +174,7 @@ module.exports = (Model, App) => {
           } else {
             resolve();
           }
-        },
+        }
       );
     });
   };
@@ -199,7 +200,7 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       const rootFolder = App.services.Crypt.decryptName(
         tree.name,
-        tree.parentId,
+        tree.parentId
       );
       const rootPath = `./downloads/${tree.id}/${rootFolder}`;
       const listFilesToDownload = [];
@@ -217,7 +218,7 @@ module.exports = (Model, App) => {
         children.forEach((child) => {
           const subFolder = App.services.Crypt.decryptName(
             child.name,
-            child.parentId,
+            child.parentId
           );
 
           fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
@@ -259,7 +260,7 @@ module.exports = (Model, App) => {
         },
         (err) => {
           return err ? reject(err) : resolve();
-        },
+        }
       );
     });
   };
@@ -336,6 +337,7 @@ module.exports = (Model, App) => {
     return folder.map((child) => {
       child.name = App.services.Crypt.decryptName(child.name, child.parentId);
       child.children = mapChildrenNames(child.children);
+
       return child;
     });
   };
@@ -375,17 +377,19 @@ module.exports = (Model, App) => {
     if (result !== null) {
       result.name = App.services.Crypt.decryptName(
         result.name,
-        result.parentId,
+        result.parentId
       );
       result.children = mapChildrenNames(result.children);
       result.files = result.files.map((file) => {
         file.name = `${App.services.Crypt.decryptName(
           file.name,
-          file.folder_id,
+          file.folder_id
         )}`;
+
         return file;
       });
     }
+
     return result;
   };
 
@@ -423,7 +427,7 @@ module.exports = (Model, App) => {
             if (metadata.itemName) {
               const cryptoFolderName = App.services.Crypt.encryptName(
                 metadata.itemName,
-                folder.parentId,
+                folder.parentId
               );
 
               Model.folder
@@ -451,9 +455,11 @@ module.exports = (Model, App) => {
             if (metadata.color) {
               newMeta.color = metadata.color;
             }
+
             if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
               newMeta.icon_id = metadata.icon;
             }
+
             next(null, folder);
           },
           (folder, next) => {
@@ -470,7 +476,7 @@ module.exports = (Model, App) => {
           } else {
             resolve(result);
           }
-        },
+        }
       );
     });
   };
@@ -492,16 +498,17 @@ module.exports = (Model, App) => {
 
       if (!folder || !destinationFolder) {
         console.error('Folder does not exists');
+
         return resolve(true);
       }
 
       const originalName = App.services.Crypt.decryptName(
         folder.name,
-        folder.parentId,
+        folder.parentId
       );
       const destinationName = App.services.Crypt.encryptName(
         originalName,
-        destination,
+        destination
       );
 
       const exists = await Model.folder.findOne({
@@ -513,7 +520,7 @@ module.exports = (Model, App) => {
 
       if (exists && !replace) {
         return reject(
-          Error('Destination contains a folder with the same name'),
+          Error('Destination contains a folder with the same name')
         );
       }
 
@@ -521,7 +528,7 @@ module.exports = (Model, App) => {
         if (user.mnemonic === 'null')
           throw new Error('Your mnemonic is invalid');
 
-        folder
+        return folder
           .update({
             parentId: destination,
             name: destinationName,
@@ -534,7 +541,7 @@ module.exports = (Model, App) => {
             reject(err);
           });
       } catch (error) {
-        reject(error);
+        return reject(error);
       }
     });
   };

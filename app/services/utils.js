@@ -4,6 +4,7 @@ module.exports = (Model, App) => {
   const IsBucketId = (targetId) => {
     const bucketIdPattern = /^[a-z0-9]{24}$/;
     const isString = typeof targetId === 'string';
+
     return isString && !!bucketIdPattern.exec(targetId);
   };
 
@@ -29,6 +30,7 @@ module.exports = (Model, App) => {
   const FileNameParts = (filename) => {
     const pattern = /^(\.?.*?\.?)(\.([^.]*))?$/;
     const matches = filename.match(pattern);
+
     return { name: matches[1], ext: matches[3] ? matches[3] : null };
   };
 

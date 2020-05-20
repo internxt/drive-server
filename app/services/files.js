@@ -21,7 +21,8 @@ module.exports = (Model, App) => {
       ) {
         return reject(new Error('Invalid metadata for new file'));
       }
-      Model.folder
+
+      return Model.folder
         .findOne({
           where: {
             id: { [Op.eq]: file.folder_id },
@@ -58,7 +59,7 @@ module.exports = (Model, App) => {
             fileInfo.createdAt = file.date;
           }
 
-          Model.file
+          return Model.file
             .create(fileInfo)
             .then(resolve)
             .catch((err) => {
@@ -103,10 +104,10 @@ module.exports = (Model, App) => {
 
         const encryptedFileName = App.services.Crypt.encryptName(
           fileNameNoExt,
-          folderId,
+          folderId
         );
         const originalEncryptedFileName = App.services.Crypt.encryptName(
-          fileNameNoExt,
+          fileNameNoExt
         );
 
         const fileExt = fileName.slice(extSeparatorPos + 1);
@@ -126,15 +127,18 @@ module.exports = (Model, App) => {
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`;
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`;
         log.info('Uploading file to network');
-        App.services.Storj.StoreFile(
+
+        return App.services.Storj.StoreFile(
           user,
           rootFolder.bucket,
           originalEncryptedFileNameWithExt,
-          filePath,
+          filePath
         )
           .then(async ({ fileId, size }) => {
             if (!fileId) return reject(Error('Missing file id'));
+
             if (!size) return reject(Error('Missing file size'));
+
             const addedFile = await Model.file.create({
               name: encryptedFileName,
               type: fileExt,
@@ -143,7 +147,8 @@ module.exports = (Model, App) => {
               size,
             });
             const result = await folder.addFile(addedFile);
-            resolve(addedFile);
+
+            return resolve(addedFile);
           })
           .catch((err) => {
             log.error(err.message);
@@ -151,10 +156,12 @@ module.exports = (Model, App) => {
           });
       } catch (err) {
         log.error(err.message);
-        reject(err.message);
+
+        return reject(err.message);
       } finally {
         fs.unlink(filePath, (error) => {
           if (error) throw error;
+
           console.log(`Deleted:  ${filePath}`);
         });
       }
@@ -201,6 +208,7 @@ module.exports = (Model, App) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
           }
+
           App.services.Storj.ResolveFolderFile(user, file, path)
             .then((result) => {
               resolve({ ...result, folderId: file.folder_id });
@@ -243,6 +251,7 @@ module.exports = (Model, App) => {
             if (file) {
               await file.destroy();
             }
+
             resolve();
           } else {
             reject(err);
@@ -319,7 +328,7 @@ module.exports = (Model, App) => {
             const cryptoFileName = metadata.itemName
               ? App.services.Crypt.encryptName(
                   metadata.itemName,
-                  file.folder_id,
+                  file.folder_id
                 )
               : '';
 
@@ -338,6 +347,7 @@ module.exports = (Model, App) => {
                 } else {
                   newMeta.name = cryptoFileName;
                 }
+
                 next(null, file);
               })
               .catch(next);
@@ -359,7 +369,7 @@ module.exports = (Model, App) => {
           } else {
             resolve(result);
           }
-        },
+        }
       );
     });
   };
@@ -374,11 +384,11 @@ module.exports = (Model, App) => {
       } else {
         const originalName = App.services.Crypt.decryptName(
           file.name,
-          file.folder_id,
+          file.folder_id
         );
         const destinationName = App.services.Crypt.encryptName(
           originalName,
-          destination,
+          destination
         );
 
         const exists = await Model.file.findOne({

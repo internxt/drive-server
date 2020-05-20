@@ -16,7 +16,7 @@ module.exports = (Model, App) => {
         })
         .then((result) => {
           if (result) {
-            if (result.views == 1) {
+            if (result.views === 1) {
               result.destroy();
             } else {
               Model.shares.update(
@@ -25,7 +25,7 @@ module.exports = (Model, App) => {
                 },
                 {
                   where: { id: { [Op.eq]: result.id } },
-                },
+                }
               );
             }
 
@@ -45,6 +45,7 @@ module.exports = (Model, App) => {
     return new Promise(async (resolve, reject) => {
       if (!user || !url) {
         reject({ message: 'Required parameters are missing' });
+
         return;
       }
 
@@ -89,12 +90,13 @@ module.exports = (Model, App) => {
     fileIdInBucket,
     mnemonic,
     isFolder = false,
-    views = 1,
+    views = 1
   ) => {
     return new Promise(async (resolve, reject) => {
       // Required mnemonic
       if (!mnemonic) {
         reject('Mnemonic cannot be empty');
+
         return;
       }
 
@@ -114,14 +116,16 @@ module.exports = (Model, App) => {
 
       if (!itemExists) {
         reject('File not found');
+
         return;
       }
+
       const maxAcceptableSize = 209715200; // 200MB
 
       if (isFolder === 'true') {
         const tree = await FolderService.GetTree(
           { email: user },
-          fileIdInBucket,
+          fileIdInBucket
         );
 
         if (tree) {
@@ -129,14 +133,17 @@ module.exports = (Model, App) => {
 
           if (treeSize > maxAcceptableSize) {
             reject({ error: 'File too large' });
+
             return;
           }
         } else {
           reject();
+
           return;
         }
       } else if (itemExists.size > maxAcceptableSize) {
         reject({ error: 'File too large' });
+
         return;
       }
 
@@ -159,7 +166,7 @@ module.exports = (Model, App) => {
               },
               {
                 where: { id: { [Op.eq]: tokenData.id } },
-              },
+              }
             );
             resolve({ token: newToken });
           } else {

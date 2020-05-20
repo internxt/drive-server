@@ -1,8 +1,8 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
+const async = require('async');
 
 const { Op } = sequelize;
-const async = require('async');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -28,7 +28,9 @@ module.exports = (Model, App) => {
         .catch((err) => {
           console.log('Error', err);
         });
-    } catch (e) {}
+    } catch (e) {
+      log.error(e);
+    }
   };
 
   const FindOrCreate = (user) => {
@@ -62,12 +64,12 @@ module.exports = (Model, App) => {
           if (created) {
             // Create bridge pass using email (because id is unconsistent)
             const bcryptId = await App.services.Storj.IdToBcrypt(
-              userResult.email,
+              userResult.email
             );
 
             const bridgeUser = await App.services.Storj.RegisterBridgeUser(
               userResult.email,
-              bcryptId,
+              bcryptId
             );
 
             if (
@@ -77,24 +79,27 @@ module.exports = (Model, App) => {
             ) {
               throw Error(bridgeUser.response.data.error);
             }
+
             if (!bridgeUser.data) {
               throw new Error('Error creating bridge user');
             }
+
             log.info(
               'User Service | created brigde user: %s',
-              userResult.email,
+              userResult.email
             );
 
             const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
             // Store bcryptid on user register
             await userResult.update(
               { userId: bcryptId, isFreeTier: freeTier },
-              { transaction: t },
+              { transaction: t }
             );
 
             // Set created flag for Frontend management
             Object.assign(userResult, { isCreated: created });
           }
+
           // TODO: proveriti userId kao pass
           return userResult;
         })
@@ -105,6 +110,7 @@ module.exports = (Model, App) => {
           } else {
             log.error(err.stack);
           }
+
           throw new Error(err);
         });
     }); // end transaction
@@ -117,17 +123,19 @@ module.exports = (Model, App) => {
         .then(async (userData) => {
           if (userData.root_folder_id) {
             userData.mnemonic = user.mnemonic;
+
             return userData;
           }
+
           const rootBucket = await App.services.Storj.CreateBucket(
             userData.email,
             userData.userId,
-            user.mnemonic,
+            user.mnemonic
           );
           log.info('User init | root bucket created %s', rootBucket.name);
 
           const rootFolderName = await App.services.Crypt.encryptName(
-            `${rootBucket.name}`,
+            `${rootBucket.name}`
           );
 
           const rootFolder = await userData.createFolder({
@@ -139,7 +147,7 @@ module.exports = (Model, App) => {
           // Update user register with root folder Id
           await userData.update(
             { root_folder_id: rootFolder.id },
-            { transaction: t },
+            { transaction: t }
           );
 
           // Set decrypted mnemonic to returning object
@@ -163,6 +171,7 @@ module.exports = (Model, App) => {
         if (userData) {
           return userData.update({ storeMnemonic: option });
         }
+
         throw new Error('UpdateStorageOption: User not found');
       })
       .catch((error) => {
@@ -184,6 +193,7 @@ module.exports = (Model, App) => {
           if (userData) {
             const user = userData.dataValues;
             if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
+
             resolve(user);
           } else {
             reject('User not found on X Cloud database');
@@ -209,8 +219,9 @@ module.exports = (Model, App) => {
       try {
         const user = await Model.users.update(
           { mnemonic },
-          { where: { email: { [Op.eq]: userEmail } }, validate: true },
+          { where: { email: { [Op.eq]: userEmail } }, validate: true }
         );
+
         return user;
       } catch (errorResponse) {
         throw new Error(errorResponse);
@@ -228,7 +239,7 @@ module.exports = (Model, App) => {
           const crypto = require('crypto-js');
           const password = crypto.SHA256(user.userId).toString();
           const auth = Buffer.from(`${user.email}:${password}`).toString(
-            'base64',
+            'base64'
           );
 
           axios
@@ -260,7 +271,7 @@ module.exports = (Model, App) => {
                 `${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
                 {
                   headers: { 'Content-Type': 'application/json' },
-                },
+                }
               )
               .then((res) => {
                 console.log('User deleted from bridge');
@@ -298,7 +309,7 @@ module.exports = (Model, App) => {
           } else {
             resolve(result);
           }
-        },
+        }
       );
     });
   };
@@ -311,7 +322,7 @@ module.exports = (Model, App) => {
           const crypto = require('crypto-js');
           const password = crypto.SHA256(user.userId).toString();
           const auth = Buffer.from(`${user.email}:${password}`).toString(
-            'base64',
+            'base64'
           );
 
           axios
@@ -366,7 +377,7 @@ module.exports = (Model, App) => {
     currentPassword,
     newPassword,
     newSalt,
-    mnemonic,
+    mnemonic
   ) => {
     return new Promise((resolve, reject) => {
       FindUserByEmail(user)
@@ -388,7 +399,7 @@ module.exports = (Model, App) => {
                   mnemonic,
                   hKey: newSalt,
                 },
-                { where: { email: { [Op.eq]: user } } },
+                { where: { email: { [Op.eq]: user } } }
               )
               .then((res) => {
                 console.log('Updated', res);
@@ -416,7 +427,7 @@ module.exports = (Model, App) => {
               ? sequelize.literal('error_login_count + 1')
               : 0,
           },
-          { where: { email: user } },
+          { where: { email: user } }
         )
         .then((res) => {
           resolve();
@@ -443,7 +454,7 @@ module.exports = (Model, App) => {
           {
             updated_at: new Date(),
           },
-          { where: { email: user } },
+          { where: { email: user } }
         )
         .then((res) => {
           resolve();

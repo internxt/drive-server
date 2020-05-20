@@ -12,13 +12,14 @@ module.exports = (Model, App) => {
         (file) =>
           file.indexOf('.') !== 0 &&
           file !== basename &&
-          file.slice(-3) === '.js',
+          file.slice(-3) === '.js'
       )
       .forEach((file) => {
         const service = require(path.join(__dirname, file))(Model, App);
         services[service.Name] = service;
       });
     log.info('Services loaded');
+
     return services;
   } catch (error) {
     log.error(error);

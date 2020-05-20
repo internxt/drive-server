@@ -1,9 +1,11 @@
 {
   "parserOptions": {
-    "ecmaVersion": 2016,
+    "ecmaVersion": 2020,
     "sourceType": "script",
     "ecmaFeatures": {
-      "modules": false
+      "modules": false,
+      "globalReturn": true,
+      "experimentalObjectRestSpread": true
     }
   },
   "extends": [
@@ -69,7 +71,15 @@
     "no-param-reassign": 0,
     "global-require": 0,
     "no-async-promise-executor": 0,
-    "node/no-missing-require": 0
+    "node/no-missing-require": 0,
+    "node/no-extraneous-require": 0,
+    "comma-dangle": 0,
+    "newline-before-return": 1,
+    "padding-line-between-statements": [
+      2,
+      { "blankLine": "always", "prev": "*", "next": "return" },
+      { "blankLine": "always", "prev": "if", "next": "*" }
+    ]
   },
   "settings": {
     "import/resolver": {

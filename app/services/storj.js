@@ -16,6 +16,7 @@ module.exports = (Model, App) => {
       return crypto.createHash('sha256').update(pwd).digest('hex');
     } catch (error) {
       log.error('[CRYPTO sha256] ', error);
+
       return null;
     }
   }
@@ -25,6 +26,7 @@ module.exports = (Model, App) => {
       return bcrypt.hashSync(id.toString(), 8);
     } catch (error) {
       log.error('[BCRYPTJS]', error);
+
       return null;
     }
   }
@@ -40,6 +42,7 @@ module.exports = (Model, App) => {
       });
     } catch (error) {
       log.error('[NODE-LIB getEnvironment]', error);
+
       return null;
     }
   }
@@ -69,7 +72,7 @@ module.exports = (Model, App) => {
     // Do api call
     return axios.get(
       `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params,
+      params
     );
   };
 
@@ -79,6 +82,7 @@ module.exports = (Model, App) => {
       : `${shortid.generate()}_${email}_ROOT`;
     try {
       const storj = getEnvironment(email, password, mnemonic);
+
       return new Promise((resolve, reject) => {
         storj.createBucket(bucketName, function (err, res) {
           if (err) {
@@ -91,12 +95,14 @@ module.exports = (Model, App) => {
       });
     } catch (error) {
       log.error('[NODE-LIB createBucket]', error);
+
       return null;
     }
   };
 
   const DeleteBucket = (user, bucketId) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+
     return new Promise((resolve, reject) => {
       storj.deleteBucket(bucketId, function (err, result) {
         if (err) {
@@ -119,7 +125,7 @@ module.exports = (Model, App) => {
             '[NODE-LIB storeFile] Upload Progress: %s/%s (%s)',
             uploadedBytes,
             totalBytes,
-            progress,
+            progress
           );
         },
         finishedCallback(err, fileId) {
@@ -159,7 +165,7 @@ module.exports = (Model, App) => {
             '[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
-            progress,
+            progress
           );
         },
         finishedCallback: (err) => {
@@ -183,7 +189,7 @@ module.exports = (Model, App) => {
     const downloadDir = path;
     const decryptedFileName = CryptService.decryptName(
       file.name,
-      file.folder_id,
+      file.folder_id
     );
     const downloadFile = `${downloadDir}/${decryptedFileName}.${file.type}`;
 
@@ -206,7 +212,7 @@ module.exports = (Model, App) => {
             '[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
-            progress,
+            progress
           );
         },
         finishedCallback: (err) => {

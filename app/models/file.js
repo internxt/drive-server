@@ -37,7 +37,7 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
       underscored: true,
       indexes: [{ name: 'name', fields: ['name'] }],
-    },
+    }
   );
 
   file.associate = function (models) {

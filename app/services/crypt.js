@@ -7,13 +7,15 @@ module.exports = (Model, App) => {
     try {
       const b64 = CryptoJS.AES.encrypt(
         content,
-        App.config.get('secrets').CRYPTO_SECRET,
+        App.config.get('secrets').CRYPTO_SECRET
       ).toString();
       const e64 = CryptoJS.enc.Base64.parse(b64);
       const eHex = e64.toString(CryptoJS.enc.Hex);
+
       return eHex;
     } catch (error) {
       log.error(`(probabilisticEncryption): ${error}`);
+
       return null;
     }
   }
@@ -24,9 +26,11 @@ module.exports = (Model, App) => {
       const bytes = reb64.toString(CryptoJS.enc.Base64);
       const decrypt = CryptoJS.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
       const plain = decrypt.toString(CryptoJS.enc.Utf8);
+
       return plain;
     } catch (error) {
       log.error(`(probabilisticDecryption): ${error}`);
+
       return null;
     }
   }
@@ -34,13 +38,14 @@ module.exports = (Model, App) => {
   function deterministicEncryption(content, salt) {
     try {
       const key = CryptoJS.enc.Hex.parse(
-        App.config.get('secrets').CRYPTO_SECRET,
+        App.config.get('secrets').CRYPTO_SECRET
       );
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
       const encrypt = CryptoJS.AES.encrypt(content, key, { iv }).toString();
       const b64 = CryptoJS.enc.Base64.parse(encrypt);
       const eHex = b64.toString(CryptoJS.enc.Hex);
+
       return eHex;
     } catch (e) {
       return null;
@@ -50,7 +55,7 @@ module.exports = (Model, App) => {
   function deterministicDecryption(cipherText, salt) {
     try {
       const key = CryptoJS.enc.Hex.parse(
-        App.config.get('secrets').CRYPTO_SECRET,
+        App.config.get('secrets').CRYPTO_SECRET
       );
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
@@ -87,6 +92,7 @@ module.exports = (Model, App) => {
 
       return probabilisticDecryption(cipherText);
     }
+
     return decrypted;
   }
 
@@ -114,6 +120,7 @@ module.exports = (Model, App) => {
         salt: salt.toString(),
         hash: hash.toString(),
       };
+
       return hashedObjetc;
     } catch (error) {
       throw new Error(error);

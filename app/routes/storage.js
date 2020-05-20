@@ -1,10 +1,11 @@
 const fs = require('fs');
 
+const rimraf = require('rimraf');
+
 const upload = require('~middleware/multer');
 const passport = require('~middleware/passport');
 
 const { passportAuth } = passport;
-const rimraf = require('rimraf');
 
 module.exports = (Router, Service, Logger, App) => {
   /**
@@ -63,7 +64,7 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/storage/folder/:folderid/meta', passportAuth, function (
     req,
-    res,
+    res
   ) {
     const { user } = req;
     const folderId = req.params.folderid;
@@ -75,7 +76,7 @@ module.exports = (Router, Service, Logger, App) => {
       })
       .catch((err) => {
         Logger.error(
-          `Error updating metadata from folder ${folderId} : ${err}`,
+          `Error updating metadata from folder ${folderId} : ${err}`
         );
         res.status(500).json(err.message);
       });
@@ -181,11 +182,13 @@ module.exports = (Router, Service, Logger, App) => {
           Logger.error(`${err.message}\n${err.stack}`);
           if (err.includes('Bridge rate limit error')) {
             res.status(402).json({ message: err });
+
             return;
           }
+
           res.status(500).json({ message: err });
         });
-    },
+    }
   );
 
   /**
@@ -282,9 +285,10 @@ module.exports = (Router, Service, Logger, App) => {
     if (fileIdInBucket === 'null') {
       return res.status(500).send({ message: 'Missing file id' });
     }
+
     let filePath;
 
-    Service.Files.Download(user, fileIdInBucket)
+    return Service.Files.Download(user, fileIdInBucket)
       .then(({ filestream, mimetype, downloadFile, folderId }) => {
         filePath = downloadFile;
         const fileName = downloadFile.split('/')[2];
@@ -293,11 +297,11 @@ module.exports = (Router, Service, Logger, App) => {
         const fileExt = fileName.slice(extSeparatorPos + 1);
         const decryptedFileName = App.services.Crypt.decryptName(
           fileNameNoExt,
-          folderId,
+          folderId
         );
 
         const decryptedFileNameB64 = Buffer.from(
-          `${decryptedFileName}.${fileExt}`,
+          `${decryptedFileName}.${fileExt}`
         ).toString('base64');
 
         res.setHeader('Content-type', mimetype);
@@ -311,8 +315,10 @@ module.exports = (Router, Service, Logger, App) => {
         if (err.message === 'Bridge rate limit error') {
           return res.status(402).json({ message: err.message });
         }
-        res.status(500).json({ message: err.message });
+
         console.log(err);
+
+        return res.status(500).json({ message: err.message });
       });
   });
 
@@ -411,7 +417,7 @@ module.exports = (Router, Service, Logger, App) => {
       const bucketId = req.params.bucketid;
       const fileIdInBucket = req.params.fileid;
 
-      Service.Files.Delete(user, bucketId, fileIdInBucket)
+      return Service.Files.Delete(user, bucketId, fileIdInBucket)
         .then(() => {
           res.status(200).json({ deleted: true });
         })
@@ -419,7 +425,7 @@ module.exports = (Router, Service, Logger, App) => {
           Logger.error(err.stack);
           res.status(500).json({ error: err.message });
         });
-    },
+    }
   );
 
   /*
@@ -437,7 +443,7 @@ module.exports = (Router, Service, Logger, App) => {
           console.error('Error deleting file:', err.message);
           res.status(500).json({ error: err.message });
         });
-    },
+    }
   );
 
   Router.post('/storage/shortLink', passportAuth, (req, res) => {
@@ -461,7 +467,7 @@ module.exports = (Router, Service, Logger, App) => {
       req.params.id,
       req.headers['internxt-mnemonic'],
       req.body.isFolder,
-      req.body.views,
+      req.body.views
     )
       .then((result) => {
         res.status(200).send(result);
@@ -494,17 +500,17 @@ module.exports = (Router, Service, Logger, App) => {
                       .then(() => {
                         const folderName = App.services.Crypt.decryptName(
                           tree.name,
-                          tree.parentId,
+                          tree.parentId
                         );
 
                         Service.Folder.CreateZip(
                           `./downloads/${tree.id}/${folderName}.zip`,
-                          [`downloads/${tree.id}/${folderName}`],
+                          [`downloads/${tree.id}/${folderName}`]
                         );
 
                         res.set('x-file-name', `${folderName}.zip`);
                         res.download(
-                          `./downloads/${tree.id}/${folderName}.zip`,
+                          `./downloads/${tree.id}/${folderName}.zip`
                         );
 
                         rimraf(`./downloads/${tree.id}`, function () {
@@ -515,7 +521,7 @@ module.exports = (Router, Service, Logger, App) => {
                         if (fs.existsSync(`./downloads/${tree.id}`)) {
                           rimraf(`./downloads/${tree.id}`, function () {
                             console.log(
-                              'Folder removed after fail folder download',
+                              'Folder removed after fail folder download'
                             );
                           });
                         }
@@ -529,11 +535,11 @@ module.exports = (Router, Service, Logger, App) => {
                   }
                 })
                 .catch((err) => {
-                  if (fs.existsSync(`./downloads/${tree.id}`)) {
-                    rimraf(`./downloads/${tree.id}`, function () {
-                      console.log('Folder removed after fail folder download');
-                    });
-                  }
+                  // if (fs.existsSync(`./downloads/${tree.id}`)) {
+                  //   rimraf(`./downloads/${tree.id}`, function () {
+                  //     console.log('Folder removed after fail folder download');
+                  //   });
+                  // }
                   res.status(402).json({ error: 'Error downloading folder' });
                 });
             } else {
@@ -545,21 +551,21 @@ module.exports = (Router, Service, Logger, App) => {
                   const fileExt = fileName.slice(extSeparatorPos + 1);
                   const decryptedFileName = App.services.Crypt.decryptName(
                     fileNameNoExt,
-                    folderId,
+                    folderId
                   );
 
                   res.setHeader('Content-type', mimetype);
 
                   const decryptedFileNameB64 = Buffer.from(
-                    `${decryptedFileName}.${fileExt}`,
+                    `${decryptedFileName}.${fileExt}`
                   ).toString('base64');
                   const encodedFileName = encodeURI(
-                    `${decryptedFileName}.${fileExt}`,
+                    `${decryptedFileName}.${fileExt}`
                   );
 
                   res.setHeader(
                     'Content-disposition',
-                    `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`,
+                    `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`
                   );
                   res.set('x-file-name', decryptedFileNameB64);
 
@@ -571,8 +577,10 @@ module.exports = (Router, Service, Logger, App) => {
                 .catch(({ message }) => {
                   if (message === 'Bridge rate limit error') {
                     res.status(402).json({ message });
+
                     return;
                   }
+
                   res.status(500).json({ message });
                 });
             }

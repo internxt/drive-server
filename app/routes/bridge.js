@@ -12,7 +12,7 @@ module.exports = (Router, Service, Logger, App) => {
     const pwdHash = Service.Crypt.hashSha256(pwd);
 
     const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString(
-      'base64',
+      'base64'
     );
 
     axios
@@ -38,7 +38,7 @@ module.exports = (Router, Service, Logger, App) => {
     const pwdHash = Service.Crypt.hashSha256(pwd);
 
     const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString(
-      'base64',
+      'base64'
     );
 
     axios

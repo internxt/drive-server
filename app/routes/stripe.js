@@ -45,7 +45,7 @@ module.exports = (Router, Service, Logger, App) => {
             },
             (err, customers) => {
               next(err, customers.data[0]);
-            },
+            }
           );
         },
         (customer, next) => {
@@ -53,7 +53,7 @@ module.exports = (Router, Service, Logger, App) => {
             // The customer does not exists
             // Procede to the subscription
             console.debug(
-              "Customer does not exists, won't check any subcription",
+              "Customer does not exists, won't check any subcription"
             );
             next(null, undefined);
           } else {
@@ -131,7 +131,7 @@ module.exports = (Router, Service, Logger, App) => {
           console.log('Correcto', result);
           res.status(200).send(result);
         }
-      },
+      }
     );
   });
 
@@ -143,7 +143,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/stripe/products', passportAuth, (req, res) => {
     const stripe = require('stripe')(
       req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' },
+      { apiVersion: '2020-03-02' }
     );
     stripe.products.list({}, (err, products) => {
       if (err) {
@@ -167,7 +167,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/stripe/plans', passportAuth, (req, res) => {
     const stripe = require('stripe')(
       req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' },
+      { apiVersion: '2020-03-02' }
     );
     const stripeProduct = req.body.product;
 
@@ -192,7 +192,7 @@ module.exports = (Router, Service, Logger, App) => {
             .sort((a, b) => a.price * 1 - b.price * 1);
           res.status(200).send(plansMin);
         }
-      },
+      }
     );
   });
 };

@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       timestamps: false,
-    },
+    }
   );
 
   Share.associate = function (models) {

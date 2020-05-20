@@ -56,34 +56,35 @@ module.exports = (Router, Service, Logger, App) => {
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
     }
+
     // Call user service to find user
-    Service.User.FindUserByEmail(req.body.email)
+    return Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
         if (!userData) {
           // Wrong user
-          res.status(400).json({ error: 'Wrong email/password' });
-        } else {
-          Service.Storj.IsUserActivated(req.body.email)
-            .then((resActivation) => {
-              if (!resActivation.data.activated) {
-                res.status(400).send({ error: 'User is not activated' });
-              } else {
-                const encSalt = App.services.Crypt.encryptText(
-                  userData.hKey.toString(),
-                );
-                const required2FA =
-                  userData.secret_2FA && userData.secret_2FA.length > 0;
-                res.status(200).send({ sKey: encSalt, tfa: required2FA });
-              }
-            })
-            .catch((err) => {
-              console.error(err);
-              res.status(400).send({
-                error: 'User not found on Bridge database',
-                message: err.response ? err.response.data : err,
-              });
-            });
+          return res.status(400).json({ error: 'Wrong email/password' });
         }
+
+        return Service.Storj.IsUserActivated(req.body.email)
+          .then((resActivation) => {
+            if (!resActivation.data.activated) {
+              res.status(400).send({ error: 'User is not activated' });
+            } else {
+              const encSalt = App.services.Crypt.encryptText(
+                userData.hKey.toString()
+              );
+              const required2FA =
+                userData.secret_2FA && userData.secret_2FA.length > 0;
+              res.status(200).send({ sKey: encSalt, tfa: required2FA });
+            }
+          })
+          .catch((err) => {
+            console.error(err);
+            res.status(400).send({
+              error: 'User not found on Bridge database',
+              message: err.response ? err.response.data : err,
+            });
+          });
       })
       .catch((err) => {
         Logger.error(`${err}: ${req.body.email}`);
@@ -122,6 +123,7 @@ module.exports = (Router, Service, Logger, App) => {
             error:
               'Your account has been blocked for security reasons. Please reach out to us',
           });
+
           return;
         }
 
@@ -147,7 +149,7 @@ module.exports = (Router, Service, Logger, App) => {
           // Successfull login
           const token = passport.Sign(
             userData.email,
-            App.config.get('secrets').JWT,
+            App.config.get('secrets').JWT
           );
 
           Service.User.LoginFailed(req.body.email, false);
@@ -169,6 +171,7 @@ module.exports = (Router, Service, Logger, App) => {
           if (pass !== userData.password.toString()) {
             Service.User.LoginFailed(req.body.email, true);
           }
+
           res.status(400).json({ error: 'Wrong email/password' });
         }
       })
@@ -210,7 +213,7 @@ module.exports = (Router, Service, Logger, App) => {
             // Successfull register
             const token = passport.Sign(
               userData.email,
-              App.config.get('secrets').JWT,
+              App.config.get('secrets').JWT
             );
             const user = { email: userData.email };
             res.status(200).send({ token, user });
@@ -291,7 +294,7 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user.email;
 
     const currentPassword = App.services.Crypt.decryptText(
-      req.body.currentPassword,
+      req.body.currentPassword
     );
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
@@ -302,7 +305,7 @@ module.exports = (Router, Service, Logger, App) => {
       currentPassword,
       newPassword,
       newSalt,
-      mnemonic,
+      mnemonic
     )
       .then((result) => {
         res.status(200).send({});
