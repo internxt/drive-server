@@ -1,24 +1,90 @@
 {
-  "extends": ["airbnb-base", "prettier"],
+  "parserOptions": {
+    "ecmaVersion": 2016,
+    "sourceType": "script",
+    "ecmaFeatures": {
+      "modules": false
+    }
+  },
+  "extends": [
+    "airbnb-base",
+    "prettier",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:node/recommended"
+  ],
+  "plugins": ["prettier"],
+  "env": {
+    "node": true,
+    "commonjs": true,
+    "es6": true
+  },
+  // "rules": {
+  //   "semi": 0,
+  //   "func-names": 0,
+  //   "space-before-function-paren": "off",
+  //   "global-require": 0,
+  //   "comma-dangle": 0,
+  //   "prefer-destructuring": 0,
+  //   "import/no-dynamic-require": 0,
+  //   "prefer-arrow-callback": 0,
+  //   "no-unused-vars": 0,
+  //   "arrow-body-style": 0,
+  //   "prefer-template": 0,
+  //   "eqeqeq": 1,
+  //   "max-len": 0,
+  //   "no-console": 0,
+  //   "no-param-reassign": 0,
+  //   "prefer-promise-reject-errors": 0,
+  //   "object-shorthand": "off",
+  //   "consistent-return": "off",
+  //   "no-unused-expressions": "off"
+  // },
   "rules": {
-    "semi": 0,
-    "func-names": 0,
-    "space-before-function-paren": "off",
-    "global-require": 0,
-    "comma-dangle": 0,
-    "prefer-destructuring": 0,
-    "import/no-dynamic-require": 0,
-    "prefer-arrow-callback": 0,
-    "no-unused-vars": 0,
-    "arrow-body-style": 0,
-    "prefer-template": 0,
+    "prettier/prettier": "error",
+    "import/no-unresolved": ["error", { "commonjs": true, "amd": true }],
+    "import/named": "error",
+    "import/namespace": "error",
+    "import/default": "error",
+    "import/export": "error",
+    "import/no-named-as-default": "warn",
+    "import/no-named-as-default-member": "warn",
+    "import/order": ["error", { "newlines-between": "always" }],
+    "no-duplicate-imports": "error",
+    "import/no-duplicates": "error",
     "eqeqeq": 1,
-    "max-len": 0,
     "no-console": 0,
-    "no-param-reassign": 0,
+    "import/no-dynamic-require": 0,
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": false,
+        "optionalDependencies": false,
+        "peerDependencies": false
+      }
+    ],
+    "func-names": 0,
+    "no-unused-vars": 0,
     "prefer-promise-reject-errors": 0,
-    "object-shorthand": "off",
-    "consistent-return": "off",
-    "no-unused-expressions": "off"
+    "no-param-reassign": 0,
+    "global-require": 0,
+    "no-async-promise-executor": 0,
+    "node/no-missing-require": 0
+  },
+  "settings": {
+    "import/resolver": {
+      "alias": {
+        "extensions": [".js", ".jsx", ".json"],
+        "map": [
+          ["~services", "./app/services"],
+          ["~scripts", "./app/scripts"],
+          ["~routes", "./app/routes"],
+          ["~models", "./app/models"],
+          ["~middleware", "./app/middleware"],
+          ["~config", "./config"],
+          ["~", "./src"]
+        ]
+      }
+    }
   }
 }

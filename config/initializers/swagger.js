@@ -1,7 +1,8 @@
-const swaggerJSDoc = require('swagger-jsdoc')
-const path = require('path')
+const path = require('path');
 
-const routes = path.join(process.cwd(), 'app/routes/index.js')
+const swaggerJSDoc = require('swagger-jsdoc');
+
+const routes = path.join(process.cwd(), 'app/routes/index.js');
 
 const options = {
   swaggerDefinition: {
@@ -14,4 +15,4 @@ const options = {
 };
 
 // Initialize swagger-jsdoc -> returns validated swagger spec in json format
-module.exports = swaggerJSDoc(options)
+module.exports = swaggerJSDoc(options);

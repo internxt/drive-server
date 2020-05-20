@@ -1,0 +1,39 @@
+{
+  "include": ["./**/*"],
+  "compilerOptions": {
+    "checkJs": false,
+    "module": "commonJS",
+    "target": "esnext",
+    "baseUrl": "./",
+    "rootDir": ".",
+    "outDir": "./dist/",
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "removeComments": true,
+    "sourceMap": true,
+    "lib": ["es2018", "dom"],
+    "paths": {
+      "~services/*": ["app/services/*"],
+      "~scripts/*": ["app/scripts/*"],
+      "~routes/*": ["app/routes/*"],
+      "~models/*": ["app/models/*"],
+      "~middleware/*": ["app/middleware/*"],
+      "~config/*": ["config/*"],
+      "~/*": ["app/*"]
+    }
+  },
+  "exclude": [
+    "node_modules/**/*",
+    "dist/**/*",
+    "public/**/*",
+    "logs/**/*",
+    "uploads/**/*",
+    "test/**/*"
+  ]
+}
