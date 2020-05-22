@@ -79,7 +79,8 @@
       2,
       { "blankLine": "always", "prev": "*", "next": "return" },
       { "blankLine": "always", "prev": "if", "next": "*" }
-    ]
+    ],
+    "no-use-before-define": 0
   },
   "settings": {
     "import/resolver": {
