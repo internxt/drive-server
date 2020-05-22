@@ -155,7 +155,6 @@ module.exports = (Model, App) => {
               size,
             });
             const result = await folder.addFile(addedFile);
-            addedFile.name = newName.name || fileNameNoExt;
 
             return resolve(addedFile);
           })
