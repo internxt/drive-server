@@ -177,6 +177,8 @@ module.exports = (Model, App) => {
   };
 
   const Download = (user, fileId) => {
+    const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+
     return new Promise((resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
@@ -185,8 +187,8 @@ module.exports = (Model, App) => {
         .then((file) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
-          } else if (file.size > 209715200) {
-            // 200MB
+          } else if (file.size > maxAcceptableSize) {
+            // 300MB
             throw Error('File too large');
           }
 
@@ -335,9 +337,9 @@ module.exports = (Model, App) => {
             // If no name, empty string (only extension filename)
             const cryptoFileName = metadata.itemName
               ? App.services.Crypt.encryptName(
-                  metadata.itemName,
-                  file.folder_id
-                )
+                metadata.itemName,
+                file.folder_id
+              )
               : '';
 
             // Check if there is a file with the same name

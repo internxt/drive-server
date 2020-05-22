@@ -113,7 +113,7 @@ module.exports = (Model, App) => {
         return;
       }
 
-      const maxAcceptableSize = 209715200; // 200MB
+      const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
 
       if (isFolder === 'true') {
         const tree = await FolderService.GetTree(
