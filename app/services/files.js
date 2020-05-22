@@ -102,12 +102,9 @@ module.exports = (Model, App) => {
         const fileNameNoExt =
           extSeparatorPos > 0 ? fileName.slice(0, extSeparatorPos) : fileName;
 
-        const encryptedFileName = App.services.Crypt.encryptName(
+        let encryptedFileName = App.services.Crypt.encryptName(
           fileNameNoExt,
           folderId
-        );
-        const originalEncryptedFileName = App.services.Crypt.encryptName(
-          fileNameNoExt
         );
 
         const fileExt = fileName.slice(extSeparatorPos + 1);
@@ -121,9 +118,20 @@ module.exports = (Model, App) => {
           },
         });
 
-        if (exists)
-          throw new Error('File with same name already exists in this folder');
+        // Change name if exists
+        let originalEncryptedFileName;
+        let newName;
+        if (exists) {
+          newName = await GetNewMoveName(folderId, fileNameNoExt, fileExt);
+          encryptedFileName = newName.cryptedName;
+          originalEncryptedFileName = App.services.Crypt.encryptName(
+            newName.name
+          );
+        }
 
+        originalEncryptedFileName =
+          originalEncryptedFileName ||
+          App.services.Crypt.encryptName(fileNameNoExt);
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`;
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`;
         log.info('Uploading file to network');
@@ -147,6 +155,7 @@ module.exports = (Model, App) => {
               size,
             });
             const result = await folder.addFile(addedFile);
+            addedFile.name = newName.name || fileNameNoExt;
 
             return resolve(addedFile);
           })
@@ -374,49 +383,86 @@ module.exports = (Model, App) => {
     });
   };
 
-  const MoveFile = (user, fileId, destination, replace = false) => {
-    return new Promise(async (resolve, reject) => {
-      const file = await Model.file.findOne({
-        where: { fileId: { [Op.eq]: fileId } },
-      });
-      if (!file) {
-        reject(new Error('File not found'));
-      } else {
-        const originalName = App.services.Crypt.decryptName(
-          file.name,
-          file.folder_id
-        );
-        const destinationName = App.services.Crypt.encryptName(
-          originalName,
-          destination
-        );
+  const GetNewMoveName = async (destination, originalName, type) => {
+    let exists = true;
+    let i = 1;
+    let nextName;
+    let nextCryptedName;
+    while (exists) {
+      nextName = App.services.Utils.getNewMoveName(originalName, i);
+      nextCryptedName = App.services.Crypt.encryptName(
+        App.services.Utils.getNewMoveName(originalName, i),
+        destination
+      );
+      // eslint-disable-next-line no-await-in-loop
+      exists = !!(await Model.file.findOne({
+        where: {
+          folder_id: { [Op.eq]: destination },
+          name: { [Op.eq]: nextCryptedName },
+          type: { [Op.eq]: type },
+        },
+        raw: true,
+      }));
+      i += 1;
+    }
 
-        const exists = await Model.file.findOne({
-          where: {
-            name: { [Op.eq]: destinationName },
-            folder_id: { [Op.eq]: destination },
-            type: { [Op.eq]: file.type },
-          },
-        });
+    return { cryptedName: nextCryptedName, name: nextName };
+  };
 
-        if (exists && !replace) {
-          reject(Error('Destination contains a file with the same name'));
-        } else {
-          if (exists) {
-            await Delete(user, exists.bucket, exists.fileId);
-            console.log('Delete destination file');
-          }
-
-          file
-            .update({
-              folder_id: parseInt(destination, 0),
-              name: App.services.Crypt.encryptName(originalName, destination),
-            })
-            .then(resolve)
-            .catch(reject);
-        }
-      }
+  const MoveFile = async (user, fileId, destination) => {
+    const file = await Model.file.findOne({
+      where: { fileId: { [Op.eq]: fileId } },
     });
+    if (!file) {
+      throw new Error('File not found');
+    }
+
+    const originalName = App.services.Crypt.decryptName(
+      file.name,
+      file.folder_id
+    );
+    let destinationName = App.services.Crypt.encryptName(
+      originalName,
+      destination
+    );
+
+    const exists = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: destinationName },
+        folder_id: { [Op.eq]: destination },
+        type: { [Op.eq]: file.type },
+      },
+    });
+
+    // Change name if exists
+    if (exists) {
+      const newName = await GetNewMoveName(
+        destination,
+        originalName,
+        file.type
+      );
+      destinationName = newName.cryptedName;
+    }
+
+    // Move
+    const result = await file.update({
+      folder_id: parseInt(destination, 0),
+      name: destinationName,
+    });
+    // we don't want ecrypted name on front
+    file.setDataValue(
+      'name',
+      App.services.Crypt.decryptName(destinationName, destination)
+    );
+    file.setDataValue('folder_id', parseInt(destination, 0));
+    const response = {
+      result,
+      item: file,
+      destination,
+      moved: true,
+    };
+
+    return response;
   };
 
   const ListAllFiles = (user, bucketId) => {
@@ -435,6 +481,7 @@ module.exports = (Model, App) => {
     DeleteFile,
     Download,
     UpdateMetadata,
+    GetNewMoveName,
     MoveFile,
     ListAllFiles,
     DownloadFolderFile,

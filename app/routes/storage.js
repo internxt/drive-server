@@ -216,20 +216,16 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/moveFolder', passportAuth, function (req, res) {
     const { folderId } = req.body;
     const { destination } = req.body;
-    const replace = req.body.overwritte === true;
     const { user } = req;
 
-    Service.Folder.MoveFolder(user, folderId, destination, replace)
-      .then(() => {
-        res.status(200).json({ moved: true });
+    Service.Folder.MoveFolder(user, folderId, destination)
+      .then((result) => {
+        res.status(200).json(result);
       })
       .catch((error) => {
-        if (error.message && error.message.includes('same name')) {
-          res.status(501).json({ message: error.message });
-        }
+        res.status(500).json(error);
       });
   });
-
   /**
    * @swagger
    * /storage/file:
@@ -384,17 +380,14 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/moveFile', passportAuth, function (req, res) {
     const { fileId } = req.body;
     const { destination } = req.body;
-    const replace = req.body.overwritte === true;
     const { user } = req;
 
-    Service.Files.MoveFile(user, fileId, destination, replace)
-      .then(() => {
-        res.status(200).json({ moved: true });
+    Service.Files.MoveFile(user, fileId, destination)
+      .then((result) => {
+        res.status(200).json(result);
       })
       .catch((error) => {
-        if (error.message && error.message.includes('same name')) {
-          res.status(501).json({ message: error.message });
-        }
+        res.status(500).json(error);
       });
   });
 

@@ -1,3 +1,5 @@
+const getNewMoveName = (originalName, i) => `${originalName} (${i})`;
+
 module.exports = (Model, App) => {
   const log = App.logger;
 
@@ -39,5 +41,6 @@ module.exports = (Model, App) => {
     IsBucketId,
     IsDatabaseId,
     FileNameParts,
+    getNewMoveName,
   };
 };

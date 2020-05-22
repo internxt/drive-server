@@ -69,114 +69,47 @@ module.exports = (Model, App) => {
     });
   };
 
-  const Delete = (user, folderId) => {
+  const Delete = async (user, folderId) => {
     console.info('User %s requested to delete folder %s', user.email, folderId);
 
-    return new Promise((resolve, reject) => {
-      async.waterfall(
-        [
-          (next) => {
-            // Mnemonic is needed to use the CLI
-            if (user.mnemonic === 'null') {
-              next(new Error('Your mnemonic is invalid'));
-            } else {
-              next();
-            }
-          },
-          (next) => {
-            // Check if user is the owner if the folder
-            Model.folder
-              .findOne({
-                where: {
-                  id: { [Op.eq]: folderId },
-                  userId: { [Op.eq]: user.id },
-                },
-              })
-              .then((result) => next(null, result))
-              .catch(() => next('Folder does not exists'));
-          },
-          (folder, next) => {
-            // Check if folder is the root folder
-            console.log(folder.id);
-            if (folder.id === user.root_folder_id) {
-              next(new Error('Cannot delete root folder'));
-            } else {
-              next(null, folder);
-            }
-          },
-          (folder, next) => {
-            // If folder has bucket id, is a legacy folder. Just delete that bucket.
-            if (folder.bucket) {
-              App.services.Storj.DeleteBucket(user, folder.bucket)
-                .then(() => next(null, folder))
-                .catch((err) => reject(err));
-            } else {
-              next(null, folder);
-            }
-          },
-          (folder, next) => {
-            // Delete all the files in the folder
-            Model.file
-              .findAll({ where: { folder_id: folder.id } })
-              .then((files) => {
-                async.eachSeries(
-                  files,
-                  (file, nextFile) => {
-                    FileService.Delete(user, file.bucket, file.fileId)
-                      .then(() => {
-                        console.log('Deleted file %s', file.fileId);
-                        nextFile();
-                      })
-                      .catch((err) => {
-                        console.log('Error deleting file %s', err);
-                        nextFile(err);
-                      });
-                  },
-                  (err) => next(err, folder)
-                );
-              })
-              .catch(next);
-          },
-          (folder, next) => {
-            // Find all subfolders and repeat
-            Model.folder
-              .findAll({ where: { parentId: folder.id } })
-              .then((subFolders) => {
-                async.eachSeries(
-                  subFolders,
-                  (subFolder, nextSubFolder) => {
-                    console.log(subFolder.id);
-                    Delete(user, subFolder.id)
-                      .then(() => {
-                        console.log('Deleted folder %s', subFolder.id);
-                        nextSubFolder();
-                      })
-                      .catch(nextSubFolder);
-                  },
-                  (err) => {
-                    next(err, folder);
-                  }
-                );
-              })
-              .catch(next);
-          },
-          (folder, next) => {
-            // Delete folder itself
-            folder
-              .destroy()
-              .then(() => next())
-              .catch((err) => next(err));
-          },
-        ],
-        (err) => {
-          if (err) {
-            reject(new Error(err));
-          } else {
-            resolve();
-          }
-        }
-      );
+    if (user.mnemonic === 'null') {
+      return new Error('Your mnemonic is invalid');
+    }
+
+    const folder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } },
     });
+    if (!folder) {
+      return new Error('Folder does not exists');
+    }
+
+    console.log(folder.id);
+    if (folder.id === user.root_folder_id) {
+      return new Error('Cannot delete root folder');
+    }
+
+    if (folder.bucket) {
+      await App.services.Storj.DeleteBucket(user, folder.bucket);
+    }
+
+    // Delete all the files in the folder
+    // Find all subfolders and repeat
+    const folderFiles = await Model.file.findAll({
+      where: { folder_id: folder.id },
+    });
+    const folderFolders = await Model.folder.findAll({
+      where: { parentId: folder.id },
+    });
+    await Promise.all(
+      folderFiles
+        .map((file) => FileService.Delete(user, file.bucket, file.fileId))
+        .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id)))
+    );
+
+    // Destroy folder
+    const removed = await folder.destroy();
+
+    return removed;
   };
 
   const CreateZip = (zipFileName, pathNames = []) => {
@@ -330,8 +263,6 @@ module.exports = (Model, App) => {
       resolve(rootFolder);
     });
   };
-
-  const GetParent = (folder) => {};
 
   const mapChildrenNames = (folder = []) => {
     return folder.map((child) => {
@@ -510,73 +441,115 @@ module.exports = (Model, App) => {
     });
   };
 
-  const MoveFolder = (user, folderId, destination, replace = false) => {
-    return new Promise(async (resolve, reject) => {
-      const folder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: folderId } },
-      });
-      const destinationFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: destination } },
-      });
+  const GetChildren = async (user, folderId, options = {}) => {
+    const query = {
+      where: {
+        user_id: { [Op.eq]: user.id },
+        parent_id: { [Op.eq]: folderId },
+      },
+      raw: true,
+    };
 
-      if (!folder || !destinationFolder) {
-        console.error('Folder does not exists');
+    if (options.attributes) {
+      query.attributes = options.attributes;
+    }
 
-        return resolve(true);
-      }
+    return Model.folder.findAll(query);
+  };
 
-      const originalName = App.services.Crypt.decryptName(
-        folder.name,
-        folder.parentId
-      );
-      const destinationName = App.services.Crypt.encryptName(
-        originalName,
-        destination
-      );
-
-      const exists = await Model.folder.findOne({
+  const GetNewMoveName = async (
+    user,
+    destination,
+    originalName,
+    newFolder = false
+  ) => {
+    let exists = true;
+    let i = 1;
+    let nextName;
+    let nextCryptedName;
+    while (exists) {
+      nextName = App.services.Utils.getNewMoveName(originalName, i);
+      nextCryptedName = App.services.Crypt.encryptName(nextName, destination);
+      // eslint-disable-next-line no-await-in-loop
+      exists = !!(await Model.folder.findOne({
         where: {
-          name: { [Op.eq]: destinationName },
           parent_id: { [Op.eq]: destination },
+          name: { [Op.eq]: nextCryptedName },
+          user_id: { [Op.eq]: user.id },
         },
-      });
+        raw: true,
+      }));
+      i += 1;
+    }
 
-      if (exists && !replace) {
-        return reject(
-          Error('Destination contains a folder with the same name')
-        );
-      }
+    return { cryptedName: nextCryptedName, name: nextName };
+  };
 
-      try {
-        if (user.mnemonic === 'null')
-          throw new Error('Your mnemonic is invalid');
-
-        return folder
-          .update({
-            parentId: destination,
-            name: destinationName,
-          })
-          .then(async (res) => {
-            await Model.folder.rebuildHierarchy();
-            resolve(true);
-          })
-          .catch((err) => {
-            reject(err);
-          });
-      } catch (error) {
-        return reject(error);
-      }
+  const MoveFolder = async (user, folderId, destination) => {
+    const folder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: folderId } },
     });
+    const destinationFolder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: destination } },
+    });
+
+    if (!folder || !destinationFolder) {
+      throw new Error('Folder does not exists');
+    }
+
+    const originalName = App.services.Crypt.decryptName(
+      folder.name,
+      folder.parentId
+    );
+    let destinationName = App.services.Crypt.encryptName(
+      originalName,
+      destination
+    );
+    const exists = await Model.folder.findOne({
+      where: {
+        name: { [Op.eq]: destinationName },
+        parent_id: { [Op.eq]: destination },
+      },
+    });
+
+    if (exists) {
+      // Change folder origin name before move
+      const newName = await GetNewMoveName(user, destination, originalName);
+      destinationName = newName.cryptedName;
+    }
+
+    if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+
+    // Move
+    const result = await folder.update({
+      parentId: parseInt(destination, 0),
+      name: destinationName,
+    });
+    // we don't want ecrypted name on front
+    folder.setDataValue(
+      'name',
+      App.services.Crypt.decryptName(destinationName, destination)
+    );
+    folder.setDataValue('parentId', parseInt(destination, 0));
+    const response = {
+      result,
+      item: folder,
+      destination,
+      moved: true,
+    };
+
+    return response;
   };
 
   return {
     Name: 'Folder',
     Create,
     Delete,
+    GetChildren,
     GetTree,
     GetTreeSize,
-    GetParent,
     GetContent,
+    GetNewMoveName,
     UpdateMetadata,
     GetBucketList,
     MoveFolder,
