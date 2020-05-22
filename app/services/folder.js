@@ -1,12 +1,12 @@
-const _ = require('lodash')
-const SanitizeFilename = require('sanitize-filename')
-const sequelize = require('sequelize');
-const async = require('async')
 const fs = require('fs');
-const stat = require('fs').statSync;
+
+const _ = require('lodash');
+const SanitizeFilename = require('sanitize-filename');
+const sequelize = require('sequelize');
+const async = require('async');
 const AdmZip = require('adm-zip');
 
-const Op = sequelize.Op;
+const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
@@ -16,27 +16,38 @@ module.exports = (Model, App) => {
       try {
         // parent folder is yours?
         const existsParentFolder = await Model.folder.findOne({
-          where: { id: { [Op.eq]: parentFolderId }, user_id: { [Op.eq]: user.id } }
+          where: {
+            id: { [Op.eq]: parentFolderId },
+            user_id: { [Op.eq]: user.id },
+          },
         });
 
         if (!existsParentFolder) {
-          console.warn('Parent folder is not yours')
-          throw Error('Parent folder is not yours')
+          console.warn('Parent folder is not yours');
+          throw Error('Parent folder is not yours');
         }
 
         // Prevent strange folder names from being created
-        const sanitizedFoldername = SanitizeFilename(folderName)
+        const sanitizedFoldername = SanitizeFilename(folderName);
 
-        if (folderName === "" || sanitizedFoldername !== folderName) {
-          throw Error('Invalid folder name')
+        if (folderName === '' || sanitizedFoldername !== folderName) {
+          throw Error('Invalid folder name');
         }
 
-        if (user.mnemonic === 'null') { throw Error('Your mnemonic is invalid'); }
+        if (user.mnemonic === 'null') {
+          throw Error('Your mnemonic is invalid');
+        }
 
-        const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
+        const cryptoFolderName = App.services.Crypt.encryptName(
+          folderName,
+          parentFolderId
+        );
 
         const exists = await Model.folder.findOne({
-          where: { parentId: { [Op.eq]: parentFolderId }, name: { [Op.eq]: cryptoFolderName } }
+          where: {
+            parentId: { [Op.eq]: parentFolderId },
+            name: { [Op.eq]: cryptoFolderName },
+          },
         });
 
         if (exists) {
@@ -48,112 +59,100 @@ module.exports = (Model, App) => {
         const xCloudFolder = await user.createFolder({
           name: cryptoFolderName,
           bucket: null,
-          parentId: parentFolderId || null
-        })
+          parentId: parentFolderId || null,
+        });
 
         resolve(xCloudFolder);
       } catch (error) {
         reject(error);
       }
     });
-  }
+  };
 
-  const Delete = (user, folderId) => {
-    console.info('User %s requested to delete folder %s', user.email, folderId)
-    return new Promise((resolve, reject) => {
+  const Delete = async (user, folderId) => {
+    console.info('User %s requested to delete folder %s', user.email, folderId);
 
-      async.waterfall([
-        next => {
-          // Mnemonic is needed to use the CLI
-          if (user.mnemonic === 'null') { next(new Error('Your mnemonic is invalid')) } else { next() }
-        },
-        next => {
-          // Check if user is the owner if the folder
-          Model.folder.findOne({ where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } } }).then(result => next(null, result)).catch(() => next('Folder does not exists'))
-        },
-        (folder, next) => {
-          // Check if folder is the root folder
-          console.log(folder.id)
-          if (folder.id === user.root_folder_id) {
-            next(new Error('Cannot delete root folder'))
-          } else {
-            next(null, folder)
-          }
-        },
-        (folder, next) => {
-          // If folder has bucket id, is a legacy folder. Just delete that bucket.
-          if (folder.bucket) {
-            App.services.Storj.DeleteBucket(user, folder.bucket).then(() => next(null, folder)).catch(err => reject(err))
-          }
-          else {
-            next(null, folder)
-          }
-        },
-        (folder, next) => {
-          // Delete all the files in the folder
-          Model.file.findAll({ where: { folder_id: folder.id } }).then(files => {
-            async.eachSeries(files, (file, nextFile) => {
-              FileService.Delete(user, file.bucket, file.fileId).then(() => {
-                console.log('Deleted file %s', file.fileId)
-                nextFile()
-              }).catch(err => {
-                console.log('Error deleting file %s', err)
-                nextFile(err)
-              })
-            }, (err) => next(err, folder))            
-          }).catch(next)
-        },
-        (folder, next) => {
-          // Find all subfolders and repeat
-          Model.folder.findAll({ where: { parentId: folder.id } }).then(subFolders => {
-            async.eachSeries(subFolders, (subFolder, nextSubFolder) => {
-              console.log(subFolder.id)
-              Delete(user, subFolder.id).then(() => {
-                console.log('Deleted folder %s', subFolder.id)
-                nextSubFolder()
-              }).catch(nextSubFolder)
-            }, (err) => {
-              next(err, folder)
-            })
-          }).catch(next)
-        },
-        (folder, next) => {
-          // Delete folder itself
-          folder.destroy().then(() => next()).catch(err => next(err))
-        }
-      ], (err) => {
-        if (err) {
-          reject(new Error(err))
-        } else {
-          resolve()
-        }
-      })
+    if (user.mnemonic === 'null') {
+      return new Error('Your mnemonic is invalid');
+    }
+
+    const folder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } },
     });
-  }
+    if (!folder) {
+      return new Error('Folder does not exists');
+    }
+
+    console.log(folder.id);
+    if (folder.id === user.root_folder_id) {
+      return new Error('Cannot delete root folder');
+    }
+
+    if (folder.bucket) {
+      await App.services.Storj.DeleteBucket(user, folder.bucket);
+    }
+
+    // Delete all the files in the folder
+    // Find all subfolders and repeat
+    const folderFiles = await Model.file.findAll({
+      where: { folder_id: folder.id },
+    });
+    const folderFolders = await Model.folder.findAll({
+      where: { parentId: folder.id },
+    });
+    await Promise.all(
+      folderFiles
+        .map((file) => FileService.Delete(user, file.bucket, file.fileId))
+        .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id)))
+    );
+
+    // Destroy folder
+    const removed = await folder.destroy();
+
+    return removed;
+  };
 
   const CreateZip = (zipFileName, pathNames = []) => {
-      const zip = new AdmZip();
+    const zip = new AdmZip();
 
-      pathNames.forEach(path => {
-          const p = stat(path);
+    pathNames.forEach((path) => {
+      const p = fs.statSync(path);
 
-          if (p.isFile()) {
-              zip.addLocalFile(path);
-          } else if (p.isDirectory()) {
-              let zipInternalPath = path.split('/')[2];
-              zip.addLocalFolder(path, zipInternalPath);
-          }
-      });
+      if (p.isFile()) {
+        zip.addLocalFile(path);
+      } else if (p.isDirectory()) {
+        const zipInternalPath = path.split('/')[2];
+        zip.addLocalFolder(path, zipInternalPath);
+      }
+    });
 
-      zip.writeZip(zipFileName);
-  }
+    zip.writeZip(zipFileName);
+  };
 
   const Download = (tree, userData) => {
     return new Promise(async (resolve, reject) => {
+      const rootFolder = App.services.Crypt.decryptName(
+        tree.name,
+        tree.parentId
+      );
+      const rootPath = `./downloads/${tree.id}/${rootFolder}`;
+      const listFilesToDownload = [];
+
+      function traverseFile(files, path = rootPath) {
+        files.forEach((file) => {
+          listFilesToDownload.push({
+            id: file.fileId,
+            path,
+          });
+        });
+      }
 
       function traverseChildren(children, path = rootPath) {
-        children.forEach(child => {
-          const subFolder = App.services.Crypt.decryptName(child.name, child.parentId);
+        children.forEach((child) => {
+          const subFolder = App.services.Crypt.decryptName(
+            child.name,
+            child.parentId
+          );
 
           fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
             if (err) throw err;
@@ -162,26 +161,13 @@ module.exports = (Model, App) => {
           if (child.files && child.files.length > 0) {
             traverseFile(child.files, `${path}/${subFolder}`);
           }
-  
+
           if (child.children && child.children.length > 0) {
             traverseChildren(child.children, `${path}/${subFolder}`);
           }
         });
       }
-  
-      function traverseFile(files, path = rootPath) {
-        files.forEach(file => {
-          listFilesToDownload.push({
-            id: file.fileId,
-            path: path
-          });
-        });
-      }
 
-      const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
-      const rootPath = `./downloads/${tree.id}/${rootFolder}`;
-      var listFilesToDownload = [];
-      
       fs.mkdir(rootPath, { recursive: true }, (err) => {
         if (err) throw err;
       });
@@ -189,29 +175,40 @@ module.exports = (Model, App) => {
       if (tree.files && tree.files.length > 0) {
         traverseFile(tree.files);
       }
-  
+
       if (tree.children && tree.children.length > 0) {
         traverseChildren(tree.children);
       }
 
-      async.eachSeries(listFilesToDownload, (file, next) => {
-        FileService.DownloadFolderFile(userData, file.id, file.path).then(() => {
-            next();
-          }).catch((err) => {
-            next(err);
-          })
-      }, (err) => {
-        err ? reject(err) : resolve();
-      });
-
+      async.eachSeries(
+        listFilesToDownload,
+        (file, next) => {
+          FileService.DownloadFolderFile(userData, file.id, file.path)
+            .then(() => {
+              next();
+            })
+            .catch((err) => {
+              next(err);
+            });
+        },
+        (err) => {
+          return err ? reject(err) : resolve();
+        }
+      );
     });
-  }
+  };
 
   const GetTreeSize = (tree) => {
     let treeSize = 0;
 
+    function getFileSize(files) {
+      files.forEach((file) => {
+        treeSize += file.size;
+      });
+    }
+
     function getChildrenSize(children) {
-      children.forEach(child => {
+      children.forEach((child) => {
         if (child.files && child.files.length > 0) {
           getFileSize(child.files);
         }
@@ -219,12 +216,6 @@ module.exports = (Model, App) => {
         if (child.children && child.children.length > 0) {
           getChildrenSize(child.children);
         }
-      });
-    }
-
-    function getFileSize(files) {
-      files.forEach(file => {
-        treeSize += file.size;
       });
     }
 
@@ -237,213 +228,332 @@ module.exports = (Model, App) => {
     }
 
     return treeSize;
-  }
+  };
 
   const GetTree = (user, rootFolderId = null) => {
     const username = user.email;
 
     return new Promise(async (resolve, reject) => {
-      const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
+      const userObject = await Model.users.findOne({
+        where: { email: { [Op.eq]: username } },
+      });
       rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
 
       const rootFolder = await Model.folder.findOne({
         where: { id: { [Op.eq]: rootFolderId } },
-        include: [{
-          model: Model.folder,
-          as: 'descendents',
-          hierarchy: true,
-          include: [{
+        include: [
+          {
+            model: Model.folder,
+            as: 'descendents',
+            hierarchy: true,
+            include: [
+              {
+                model: Model.file,
+                as: 'files',
+              },
+            ],
+          },
+          {
             model: Model.file,
-            as: 'files'
-          }]
-        },
-        {
-          model: Model.file,
-          as: 'files'
-        }]
+            as: 'files',
+          },
+        ],
       });
 
-      resolve(rootFolder)
+      resolve(rootFolder);
     });
-  }
-
-  const GetParent = (folder) => { }
+  };
 
   const mapChildrenNames = (folder = []) => {
     return folder.map((child) => {
       child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-      child.children = mapChildrenNames(child.children)
+      child.children = mapChildrenNames(child.children);
+
       return child;
     });
-  }
-
+  };
 
   const GetContent = async (folderId, user) => {
     const result = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
-        user_id: user.id
+        user_id: user.id,
       },
-      include: [{
-        model: Model.folder,
-        as: 'descendents',
-        hierarchy: true,
-        include: [
-          {
-            model: Model.icon,
-            as: 'icon'
-          }
-        ]
-      },
-      {
-        model: Model.file,
-        as: 'files'
-      },
-      {
-        model: Model.icon,
-        as: 'icon'
-      }
-      ]
+      include: [
+        {
+          model: Model.folder,
+          as: 'descendents',
+          hierarchy: true,
+          include: [
+            {
+              model: Model.icon,
+              as: 'icon',
+            },
+          ],
+        },
+        {
+          model: Model.file,
+          as: 'files',
+        },
+        {
+          model: Model.icon,
+          as: 'icon',
+        },
+      ],
     });
 
     // Null result implies empty folder.
     // TODO: Should send an error to be handled and showed on website.
 
     if (result !== null) {
-      result.name = App.services.Crypt.decryptName(result.name, result.parentId);
-      result.children = mapChildrenNames(result.children)
+      result.name = App.services.Crypt.decryptName(
+        result.name,
+        result.parentId
+      );
+      result.children = mapChildrenNames(result.children);
       result.files = result.files.map((file) => {
-        file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`;
+        file.name = `${App.services.Crypt.decryptName(
+          file.name,
+          file.folder_id
+        )}`;
+
         return file;
-      })
+      });
     }
-    return result
-  }
+
+    return result;
+  };
 
   const UpdateMetadata = (user, folderId, metadata) => {
     return new Promise((resolve, reject) => {
-      const newMeta = {}
+      const newMeta = {};
 
-      async.waterfall([
-        (next) => {
-          // Is there something to change?
-          if (!metadata.itemName && !metadata.icon && !metadata.color) {
-            next(Error('Nothing to change'))
-          } else {
-            next()
-          }
-        },
-        (next) => {
-          // Get the target folder from database
-          Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
-            .then(result => next(null, result))
-            .catch(next)
-        },
-        (folder, next) => {
-          // Check if user is the owner of that folder
-          if (folder.user_id !== user.id) {
-            next(Error('Update Folder Metadata: This is not your folder'))
-          } else {
-            next(null, folder)
-          }
-        },
-        (folder, next) => {
-          // Check if the new folder name already exists
-          if (metadata.itemName) {
-            const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
+      async.waterfall(
+        [
+          (next) => {
+            // Is there something to change?
+            if (!metadata.itemName && !metadata.icon && !metadata.color) {
+              next(Error('Nothing to change'));
+            } else {
+              next();
+            }
+          },
+          (next) => {
+            // Get the target folder from database
+            Model.folder
+              .findOne({ where: { id: { [Op.eq]: folderId } } })
+              .then((result) => next(null, result))
+              .catch(next);
+          },
+          (folder, next) => {
+            // Check if user is the owner of that folder
+            if (folder.user_id !== user.id) {
+              next(Error('Update Folder Metadata: This is not your folder'));
+            } else {
+              next(null, folder);
+            }
+          },
+          (folder, next) => {
+            // Check if the new folder name already exists
+            if (metadata.itemName) {
+              const cryptoFolderName = App.services.Crypt.encryptName(
+                metadata.itemName,
+                folder.parentId
+              );
 
-            Model.folder.findOne({
-              where: { parentId: { [Op.eq]: folder.parentId }, name: { [Op.eq]: cryptoFolderName } }
-            }).then((isDuplicated) => {
-              if (isDuplicated) {
-                next(Error('Folder with this name exists'))
-              } else {
-                newMeta.name = cryptoFolderName
-                next(null, folder)
-              }
-            }).catch(next)
+              Model.folder
+                .findOne({
+                  where: {
+                    parentId: { [Op.eq]: folder.parentId },
+                    name: { [Op.eq]: cryptoFolderName },
+                  },
+                })
+                .then((isDuplicated) => {
+                  if (isDuplicated) {
+                    next(Error('Folder with this name exists'));
+                  } else {
+                    newMeta.name = cryptoFolderName;
+                    next(null, folder);
+                  }
+                })
+                .catch(next);
+            } else {
+              next(null, folder);
+            }
+          },
+          (folder, next) => {
+            // Set optional changes
+            if (metadata.color) {
+              newMeta.color = metadata.color;
+            }
+
+            if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
+              newMeta.icon_id = metadata.icon;
+            }
+
+            next(null, folder);
+          },
+          (folder, next) => {
+            // Perform the update
+            folder
+              .update(newMeta)
+              .then((result) => next(null, result))
+              .catch(next);
+          },
+        ],
+        (err, result) => {
+          if (err) {
+            reject(err);
           } else {
-            next(null, folder)
+            resolve(result);
           }
         },
         (folder, next) => {
           // Set optional changes
-          if (metadata.color) { newMeta.color = metadata.color }
-          if (typeof metadata.icon === 'number' && metadata.icon >= 0) { newMeta.icon_id = metadata.icon }
-          if (metadata.icon === 'none') { newMeta.icon_id = null }
+          if (metadata.color) {
+            newMeta.color = metadata.color;
+          }
 
-          next(null, folder)
+          if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
+            newMeta.icon_id = metadata.icon;
+          }
+
+          if (metadata.icon === 'none') {
+            newMeta.icon_id = null;
+          }
+
+          next(null, folder);
         },
         (folder, next) => {
           // Perform the update
-          folder.update(newMeta).then(result => next(null, result)).catch(next)
+          folder
+            .update(newMeta)
+            .then((result) => next(null, result))
+            .catch(next);
         }
-      ], (err, result) => {
-        if (err) { reject(err) } else { resolve(result) }
-      })
-    })
-  }
+      );
+    });
+  };
 
   const GetBucketList = (user) => {
     return new Promise((resolve, reject) => {
-      App.services.Storj.ListBuckets(user).then(resolve).catch(reject)
-    })
-  }
+      App.services.Storj.ListBuckets(user).then(resolve).catch(reject);
+    });
+  };
 
-  const MoveFolder = (user, folderId, destination, replace = false) => {
-    return new Promise(async (resolve, reject) => {
-      const folder = await Model.folder.findOne({ where: { id: { [Op.eq]: folderId } } })
-      const destinationFolder = await Model.folder.findOne({ where: { id: { [Op.eq]: destination } } })
+  const GetChildren = async (user, folderId, options = {}) => {
+    const query = {
+      where: {
+        user_id: { [Op.eq]: user.id },
+        parent_id: { [Op.eq]: folderId },
+      },
+      raw: true,
+    };
 
-      if (!folder || !destinationFolder) {
-        console.error('Folder does not exists')
-        return resolve(true)
-      }
+    if (options.attributes) {
+      query.attributes = options.attributes;
+    }
 
-      const originalName = App.services.Crypt.decryptName(folder.name, folder.parentId)
-      const destinationName = App.services.Crypt.encryptName(originalName, destination)
+    return Model.folder.findAll(query);
+  };
 
-      const exists = await Model.folder.findOne({
+  const GetNewMoveName = async (
+    user,
+    destination,
+    originalName,
+    newFolder = false
+  ) => {
+    let exists = true;
+    let i = 1;
+    let nextName;
+    let nextCryptedName;
+    while (exists) {
+      nextName = App.services.Utils.getNewMoveName(originalName, i);
+      nextCryptedName = App.services.Crypt.encryptName(nextName, destination);
+      // eslint-disable-next-line no-await-in-loop
+      exists = !!(await Model.folder.findOne({
         where: {
-          name: { [Op.eq]: destinationName },
-          parent_id: { [Op.eq]: destination }
-        }
-      })
+          parent_id: { [Op.eq]: destination },
+          name: { [Op.eq]: nextCryptedName },
+          user_id: { [Op.eq]: user.id },
+        },
+        raw: true,
+      }));
+      i += 1;
+    }
 
-      if (exists && !replace) {
-        return reject(Error('Destination contains a folder with the same name'))
-      }
+    return { cryptedName: nextCryptedName, name: nextName };
+  };
 
-      try {
-        if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+  const MoveFolder = async (user, folderId, destination) => {
+    const folder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: folderId } },
+    });
+    const destinationFolder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: destination } },
+    });
 
-        folder.update({
-          parentId: destination,
-          name: destinationName
-        }).then(async (res) => {
-          await Model.folder.rebuildHierarchy();
-          resolve(true);
-        }).catch((err) => {
-          reject(err);
-        });
-      } catch (error) {
-        reject(error);
-      }
-    })
-  }
+    if (!folder || !destinationFolder) {
+      throw new Error('Folder does not exists');
+    }
+
+    const originalName = App.services.Crypt.decryptName(
+      folder.name,
+      folder.parentId
+    );
+    let destinationName = App.services.Crypt.encryptName(
+      originalName,
+      destination
+    );
+    const exists = await Model.folder.findOne({
+      where: {
+        name: { [Op.eq]: destinationName },
+        parent_id: { [Op.eq]: destination },
+      },
+    });
+
+    if (exists) {
+      // Change folder origin name before move
+      const newName = await GetNewMoveName(user, destination, originalName);
+      destinationName = newName.cryptedName;
+    }
+
+    if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+
+    // Move
+    const result = await folder.update({
+      parentId: parseInt(destination, 0),
+      name: destinationName,
+    });
+    // we don't want ecrypted name on front
+    folder.setDataValue(
+      'name',
+      App.services.Crypt.decryptName(destinationName, destination)
+    );
+    folder.setDataValue('parentId', parseInt(destination, 0));
+    const response = {
+      result,
+      item: folder,
+      destination,
+      moved: true,
+    };
+
+    return response;
+  };
 
   return {
     Name: 'Folder',
     Create,
     Delete,
+    GetChildren,
     GetTree,
     GetTreeSize,
-    GetParent,
     GetContent,
+    GetNewMoveName,
     UpdateMetadata,
     GetBucketList,
     MoveFolder,
     Download,
-    CreateZip
-  }
-}
+    CreateZip,
+  };
+};

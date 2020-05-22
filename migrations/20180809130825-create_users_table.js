@@ -5,24 +5,24 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       userId: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       lastname: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       email: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: false,
       },
       password: {
         type: Sequelize.STRING,
-        allowNull: false
+        allowNull: false,
       },
       mnemonic: {
         type: Sequelize.STRING,
@@ -34,13 +34,13 @@ module.exports = {
         type: Sequelize.INTEGER,
         references: {
           model: 'folders',
-          key: 'id'
-        }
-      }
+          key: 'id',
+        },
+      },
     });
   },
 
   down: (queryInterface, Sequelize) => {
-    return queryInterface.dropTable('users')
-  }
+    return queryInterface.dropTable('users');
+  },
 };

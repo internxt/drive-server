@@ -3,8 +3,8 @@ const { describe, it } = require('mocha');
 const cryptService = require('../../app/services/crypt');
 const logger = require('../../lib/logger');
 
-const Config = require('../../config/index');
-const Server = require('../../config/initializers/server');
+const Config = require('~config/index');
+const Server = require('~config/initializers/server');
 
 const App = new Server(new Config());
 
@@ -60,8 +60,14 @@ describe('# Crypto tools', function () {
       const saltString = '123';
       const saltNumber = 123;
 
-      const encryptNameString = crypt.deterministicEncryption('name', saltString);
-      const encryptNameNumber = crypt.deterministicEncryption('name', saltNumber);
+      const encryptNameString = crypt.deterministicEncryption(
+        'name',
+        saltString,
+      );
+      const encryptNameNumber = crypt.deterministicEncryption(
+        'name',
+        saltNumber,
+      );
 
       expect(encryptNameString).equal(encryptNameNumber);
     });

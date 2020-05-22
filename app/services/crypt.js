@@ -5,12 +5,17 @@ module.exports = (Model, App) => {
 
   function probabilisticEncryption(content) {
     try {
-      const b64 = CryptoJS.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
+      const b64 = CryptoJS.AES.encrypt(
+        content,
+        App.config.get('secrets').CRYPTO_SECRET
+      ).toString();
       const e64 = CryptoJS.enc.Base64.parse(b64);
       const eHex = e64.toString(CryptoJS.enc.Hex);
+
       return eHex;
     } catch (error) {
       log.error(`(probabilisticEncryption): ${error}`);
+
       return null;
     }
   }
@@ -21,21 +26,26 @@ module.exports = (Model, App) => {
       const bytes = reb64.toString(CryptoJS.enc.Base64);
       const decrypt = CryptoJS.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
       const plain = decrypt.toString(CryptoJS.enc.Utf8);
+
       return plain;
     } catch (error) {
       log.error(`(probabilisticDecryption): ${error}`);
+
       return null;
     }
   }
 
   function deterministicEncryption(content, salt) {
     try {
-      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const key = CryptoJS.enc.Hex.parse(
+        App.config.get('secrets').CRYPTO_SECRET
+      );
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
       const encrypt = CryptoJS.AES.encrypt(content, key, { iv }).toString();
       const b64 = CryptoJS.enc.Base64.parse(encrypt);
       const eHex = b64.toString(CryptoJS.enc.Hex);
+
       return eHex;
     } catch (e) {
       return null;
@@ -44,7 +54,9 @@ module.exports = (Model, App) => {
 
   function deterministicDecryption(cipherText, salt) {
     try {
-      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
+      const key = CryptoJS.enc.Hex.parse(
+        App.config.get('secrets').CRYPTO_SECRET
+      );
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
       const reb64 = CryptoJS.enc.Hex.parse(cipherText);
@@ -59,7 +71,9 @@ module.exports = (Model, App) => {
   }
 
   function encryptName(name, salt) {
-    return salt ? deterministicEncryption(name, salt) : probabilisticEncryption(name)
+    return salt
+      ? deterministicEncryption(name, salt)
+      : probabilisticEncryption(name);
   }
 
   function decryptName(cipherText, salt) {
@@ -78,6 +92,7 @@ module.exports = (Model, App) => {
 
       return probabilisticDecryption(cipherText);
     }
+
     return decrypted;
   }
 
@@ -94,12 +109,18 @@ module.exports = (Model, App) => {
   // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
   function passToHash(passObject) {
     try {
-      const salt = passObject.salt ? CryptoJS.enc.Hex.parse(passObject.salt.toString()) : CryptoJS.lib.WordArray.random(128 / 8);
-      const hash = CryptoJS.PBKDF2(passObject.password, salt, { keySize: 256 / 32, iterations: 10000 });
+      const salt = passObject.salt
+        ? CryptoJS.enc.Hex.parse(passObject.salt.toString())
+        : CryptoJS.lib.WordArray.random(128 / 8);
+      const hash = CryptoJS.PBKDF2(passObject.password, salt, {
+        keySize: 256 / 32,
+        iterations: 10000,
+      });
       const hashedObjetc = {
         salt: salt.toString(),
-        hash: hash.toString()
-      }
+        hash: hash.toString(),
+      };
+
       return hashedObjetc;
     } catch (error) {
       throw new Error(error);
@@ -121,6 +142,6 @@ module.exports = (Model, App) => {
     probabilisticEncryption,
     probabilisticDecryption,
     passToHash,
-    hashSha256
-  }
-}
+    hashSha256,
+  };
+};

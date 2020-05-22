@@ -1,0 +1,28 @@
+{
+  "files.autoSave": "onFocusChange",
+  "eslint.alwaysShowStatus": true,
+  "editor.tabSize": 2,
+  "editor.formatOnType": true,
+  "editor.mouseWheelZoom": true,
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "editor.codeActionsOnSave": {
+    "prettier.eslintIntegration": true,
+    "source.fixAll.eslint": true,
+    "source.fixAll": true
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.formatOnSave": true
+  },
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "prettier.ignorePath": ".prettierignore",
+  "prettier.configPath": ".prettierrc",
+  "prettier.disableLanguages": ["json"],
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.validate": ["javascript", "typescript"],
+  "javascript.validate.enable": false,
+  "typescript.format.enable": false,
+  "typescript.validate.enable": false
+}

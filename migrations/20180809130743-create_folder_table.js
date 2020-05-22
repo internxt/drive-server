@@ -5,27 +5,27 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       parentId: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       bucket: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       user_id: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       hierarchy_level: {
-        type: Sequelize.INTEGER
-      }
+        type: Sequelize.INTEGER,
+      },
     });
   },
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('folders');
-  }
+  },
 };
