@@ -8,18 +8,18 @@
     "files.autoSave": "onFocusChange",
     "eslint.alwaysShowStatus": true,
     "editor.tabSize": 2,
-    "editor.formatOnType": true,
+    "editor.formatOnType": false,
     "editor.mouseWheelZoom": true,
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+    "editor.suggestSelection": "first",
+    "editor.largeFileOptimizations": true,
     "editor.codeActionsOnSave": {
       "prettier.eslintIntegration": true,
-      "source.fixAll.eslint": true,
-      "source.fixAll": true
+      "source.fixAll.eslint": true
     },
     "[javascript]": {
-      "editor.defaultFormatter": "dbaeumer.vscode-eslint",
-      "editor.formatOnSave": true
+      "editor.defaultFormatter": "dbaeumer.vscode-eslint"
     },
     "javascript.updateImportsOnFileMove.enabled": "always",
     "prettier.ignorePath": ".prettierignore",
