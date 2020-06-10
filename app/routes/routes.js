@@ -147,9 +147,11 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(400).send({ error: 'Wrong 2-factor auth code' });
         } else if (pass === userData.password.toString() && tfaResult) {
           // Successfull login
+          const internxtClient = req.headers['internxt-client'];
           const token = passport.Sign(
             userData.email,
-            App.config.get('secrets').JWT
+            App.config.get('secrets').JWT,
+            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
           );
 
           Service.User.LoginFailed(req.body.email, false);
