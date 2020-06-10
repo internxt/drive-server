@@ -25,6 +25,7 @@ module.exports = (Model, App) => {
                 { where: { id: { [Op.eq]: result.id } } }
               );
             }
+            resolve(result)
           }
         })
         .catch((err) => {
