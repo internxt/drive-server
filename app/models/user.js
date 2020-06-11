@@ -60,6 +60,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: false,
       },
+      referral: {
+        type: DataTypes.STRING,
+        allowNull: true
+      }
     },
     {
       timestamps: true,

@@ -57,6 +57,7 @@ module.exports = (Model, App) => {
             password: userPass,
             mnemonic: user.mnemonic,
             hKey: userSalt,
+            referral: user.referral
           },
           transaction: t,
         })
