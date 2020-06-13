@@ -26,6 +26,8 @@ module.exports = (Model, App) => {
               );
             }
             resolve(result)
+          } else {
+            reject('Token does not exists')
           }
         })
         .catch((err) => {

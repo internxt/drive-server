@@ -468,7 +468,7 @@ module.exports = (Model, App) => {
 
   const ListAllFiles = (user, bucketId) => {
     return new Promise((resolve, reject) => {
-      App.services.Storj.ListFiles(user, bucketId)
+      App.services.Storj.ListBucketFiles(user, bucketId)
         .then(resolve)
         .catch((err) => reject(err.message));
     });

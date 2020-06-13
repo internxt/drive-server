@@ -4,6 +4,7 @@ const rimraf = require('rimraf');
 
 const upload = require('~middleware/multer');
 const passport = require('~middleware/passport');
+const _ = require('lodash')
 
 const { passportAuth } = passport;
 
@@ -473,119 +474,119 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.FindOne(req.params.token)
-      .then((result) => {
-        Service.User.FindUserByEmail(result.user)
-          .then((userData) => {
-            const fileIdInBucket = result.file;
-            const isFolder = result.is_folder;
+    Service.Share.FindOne(req.params.token).then((result) => {
+      Service.User.FindUserByEmail(result.user)
+        .then((userData) => {
+          const fileIdInBucket = result.file;
+          const isFolder = result.is_folder;
 
-            userData.mnemonic = result.mnemonic;
+          userData.mnemonic = result.mnemonic;
 
-            if (isFolder) {
-              Service.Folder.GetTree({ email: result.user }, result.file)
-                .then((tree) => {
-                  const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
-                  const treeSize = Service.Folder.GetTreeSize(tree);
+          if (isFolder) {
+            Service.Folder.GetTree({ email: result.user }, result.file)
+              .then((tree) => {
+                const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+                const treeSize = Service.Folder.GetTreeSize(tree);
 
-                  if (treeSize <= maxAcceptableSize) {
-                    Service.Folder.Download(tree, userData)
-                      .then(() => {
-                        const folderName = App.services.Crypt.decryptName(
-                          tree.name,
-                          tree.parentId
-                        );
+                if (treeSize <= maxAcceptableSize) {
+                  Service.Folder.Download(tree, userData)
+                    .then(() => {
+                      const folderName = App.services.Crypt.decryptName(
+                        tree.name,
+                        tree.parentId
+                      );
 
-                        Service.Folder.CreateZip(
-                          `./downloads/${tree.id}/${folderName}.zip`,
-                          [`downloads/${tree.id}/${folderName}`]
-                        );
+                      Service.Folder.CreateZip(
+                        `./downloads/${tree.id}/${folderName}.zip`,
+                        [`downloads/${tree.id}/${folderName}`]
+                      );
 
-                        res.set('x-file-name', `${folderName}.zip`);
-                        res.download(
-                          `./downloads/${tree.id}/${folderName}.zip`
-                        );
+                      res.set('x-file-name', `${folderName}.zip`);
+                      res.download(
+                        `./downloads/${tree.id}/${folderName}.zip`
+                      );
 
-                        rimraf(`./downloads/${tree.id}`, function () {
-                          console.log('Folder removed after send zip');
-                        });
-                      })
-                      .catch((err) => {
-                        if (fs.existsSync(`./downloads/${tree.id}`)) {
-                          rimraf(`./downloads/${tree.id}`, function () {
-                            console.log(
-                              'Folder removed after fail folder download'
-                            );
-                          });
-                        }
-
-                        res
-                          .status(402)
-                          .json({ error: 'Error downloading folder' });
+                      rimraf(`./downloads/${tree.id}`, function () {
+                        console.log('Folder removed after send zip');
                       });
-                  } else {
-                    res.status(402).json({ error: 'Folder too large' });
-                  }
-                })
-                .catch((err) => {
-                  // if (fs.existsSync(`./downloads/${tree.id}`)) {
-                  //   rimraf(`./downloads/${tree.id}`, function () {
-                  //     console.log('Folder removed after fail folder download');
-                  //   });
-                  // }
-                  res.status(402).json({ error: 'Error downloading folder' });
+                    })
+                    .catch((err) => {
+                      if (fs.existsSync(`./downloads/${tree.id}`)) {
+                        rimraf(`./downloads/${tree.id}`, function () {
+                          console.log(
+                            'Folder removed after fail folder download'
+                          );
+                        });
+                      }
+
+                      res
+                        .status(402)
+                        .json({ error: 'Error downloading folder' });
+                    });
+                } else {
+                  res.status(402).json({ error: 'Folder too large' });
+                }
+              })
+              .catch((err) => {
+                // if (fs.existsSync(`./downloads/${tree.id}`)) {
+                //   rimraf(`./downloads/${tree.id}`, function () {
+                //     console.log('Folder removed after fail folder download');
+                //   });
+                // }
+                res.status(402).json({ error: 'Error downloading folder' });
+              });
+          } else {
+            Service.Files.Download(userData, fileIdInBucket)
+              .then(({ filestream, mimetype, downloadFile, folderId }) => {
+                const fileName = downloadFile.split('/')[2];
+                const extSeparatorPos = fileName.lastIndexOf('.');
+                const fileNameNoExt = fileName.slice(0, extSeparatorPos);
+                const fileExt = fileName.slice(extSeparatorPos + 1);
+                const decryptedFileName = App.services.Crypt.decryptName(
+                  fileNameNoExt,
+                  folderId
+                );
+
+                res.setHeader('Content-type', mimetype);
+
+                const decryptedFileNameB64 = Buffer.from(
+                  `${decryptedFileName}.${fileExt}`
+                ).toString('base64');
+                const encodedFileName = encodeURI(
+                  `${decryptedFileName}.${fileExt}`
+                );
+
+                res.setHeader(
+                  'Content-disposition',
+                  `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`
+                );
+                res.set('x-file-name', decryptedFileNameB64);
+
+                filestream.pipe(res);
+                fs.unlink(downloadFile, (error) => {
+                  if (error) throw error;
                 });
-            } else {
-              Service.Files.Download(userData, fileIdInBucket)
-                .then(({ filestream, mimetype, downloadFile, folderId }) => {
-                  const fileName = downloadFile.split('/')[2];
-                  const extSeparatorPos = fileName.lastIndexOf('.');
-                  const fileNameNoExt = fileName.slice(0, extSeparatorPos);
-                  const fileExt = fileName.slice(extSeparatorPos + 1);
-                  const decryptedFileName = App.services.Crypt.decryptName(
-                    fileNameNoExt,
-                    folderId
-                  );
+              })
+              .catch(({ message }) => {
+                if (message === 'Bridge rate limit error') {
+                  res.status(402).json({ message });
 
-                  res.setHeader('Content-type', mimetype);
+                  return;
+                }
 
-                  const decryptedFileNameB64 = Buffer.from(
-                    `${decryptedFileName}.${fileExt}`
-                  ).toString('base64');
-                  const encodedFileName = encodeURI(
-                    `${decryptedFileName}.${fileExt}`
-                  );
-
-                  res.setHeader(
-                    'Content-disposition',
-                    `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`
-                  );
-                  res.set('x-file-name', decryptedFileNameB64);
-
-                  filestream.pipe(res);
-                  fs.unlink(downloadFile, (error) => {
-                    if (error) throw error;
-                  });
-                })
-                .catch(({ message }) => {
-                  if (message === 'Bridge rate limit error') {
-                    res.status(402).json({ message });
-
-                    return;
-                  }
-
-                  res.status(500).json({ message });
-                });
-            }
-          })
-          .catch((err) => {
-            console.error(err);
-            res.status(500).send({ error: 'User not found' });
-          });
-      })
+                res.status(500).json({ message });
+              });
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          res.status(500).send({ error: 'User not found' });
+        });
+    })
       .catch((err) => {
         console.error('Error', err);
         res.status(500).send({ error: 'Invalid token' });
       });
   });
+
 };

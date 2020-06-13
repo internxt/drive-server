@@ -541,6 +541,17 @@ module.exports = (Model, App) => {
     return response;
   };
 
+  const GetBucket = (user, folder_id) => {
+    return new Promise((resolve, reject) => {
+      Model.folder.findOne({
+        where: {
+          id: { [Op.eq]: folder_id },
+          user_id: { [Op.eq]: user.id },
+        }
+      }).then(folder => { resolve(folder); }).catch(reject)
+    });
+  }
+
   return {
     Name: 'Folder',
     Create,
@@ -555,5 +566,6 @@ module.exports = (Model, App) => {
     MoveFolder,
     Download,
     CreateZip,
+    GetBucket
   };
 };
