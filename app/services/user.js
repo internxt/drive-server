@@ -4,6 +4,8 @@ const async = require('async');
 
 const { Op } = sequelize;
 
+const SYNC_KEEPALIVE_INTERVAL_MS = 30000;
+
 module.exports = (Model, App) => {
   const log = App.logger;
 
@@ -57,7 +59,7 @@ module.exports = (Model, App) => {
             password: userPass,
             mnemonic: user.mnemonic,
             hKey: userSalt,
-            referral: user.referral
+            referral: user.referral,
           },
           transaction: t,
         })
@@ -464,6 +466,60 @@ module.exports = (Model, App) => {
     });
   };
 
+  const getSyncDate = () => {
+    let syncDate = Date.now();
+    syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
+
+    return new Date(syncDate);
+  };
+
+  const hasUserSyncEnded = (sync) => {
+    if (!sync) {
+      return true;
+    }
+
+    const now = Date.now();
+    const syncTime = sync.getTime();
+
+    return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
+  };
+
+  const GetUserSync = async (user) => {
+    const userSyncDate = await Model.users.findOne({
+      where: { email: { [Op.eq]: user } },
+      attributes: ['syncDate'],
+      raw: true,
+    });
+
+    return userSyncDate.syncDate;
+  };
+
+  const UpdateUserSync = async (user, toNull) => {
+    let sync = null;
+    if (!toNull) {
+      sync = getSyncDate();
+    }
+
+    await Model.users.update(
+      {
+        syncDate: sync,
+      },
+      { where: { email: user } }
+    );
+
+    return sync;
+  };
+
+  const GetOrSetUserSync = async (user) => {
+    const currentSync = await GetUserSync(user);
+    const userSyncEnded = hasUserSyncEnded(currentSync);
+    if (!currentSync || userSyncEnded) {
+      await UpdateUserSync(user);
+    }
+
+    return !userSyncEnded;
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -482,5 +538,7 @@ module.exports = (Model, App) => {
     LoginFailed,
     ResendActivationEmail,
     UpdateAccountActivity,
+    GetOrSetUserSync,
+    UpdateUserSync,
   };
 };
