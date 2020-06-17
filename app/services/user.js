@@ -484,38 +484,52 @@ module.exports = (Model, App) => {
     return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
   };
 
-  const GetUserSync = async (user) => {
-    const userSyncDate = await Model.users.findOne({
+  const GetUserSync = async (user, t) => {
+    const opts = {
       where: { email: { [Op.eq]: user } },
       attributes: ['syncDate'],
       raw: true,
-    });
+    };
+    if (t) {
+      opts.lock = t.LOCK.UPDATE;
+      opts.transaction = t;
+    }
+
+    const userSyncDate = await Model.users.findOne(opts);
 
     return userSyncDate.syncDate;
   };
 
-  const UpdateUserSync = async (user, toNull) => {
+  const UpdateUserSync = async (user, toNull, t) => {
     let sync = null;
     if (!toNull) {
       sync = getSyncDate();
     }
 
-    await Model.users.update(
+    const opts = { where: { email: user } };
+    if (t) {
+      opts.transaction = t;
+    }
+
+    Model.users.update(
       {
         syncDate: sync,
       },
-      { where: { email: user } }
+      opts
     );
 
     return sync;
   };
 
   const GetOrSetUserSync = async (user) => {
-    const currentSync = await GetUserSync(user);
+    const t = Model.users.sequelize.transaction();
+    const currentSync = await GetUserSync(user, t);
     const userSyncEnded = hasUserSyncEnded(currentSync);
     if (!currentSync || userSyncEnded) {
-      await UpdateUserSync(user);
+      await UpdateUserSync(user, false, t);
     }
+
+    await t.commit();
 
     return !userSyncEnded;
   };
