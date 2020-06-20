@@ -32,6 +32,9 @@ module.exports = (sequelize, DataTypes) => {
           return this.getDataValue('createdAt');
         },
       },
+      encrypt_version: {
+        type: DataTypes.STRING
+      }
     },
     {
       timestamps: true,

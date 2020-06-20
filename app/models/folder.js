@@ -35,6 +35,9 @@ module.exports = (sequelize, DataTypes) => {
       color: {
         type: DataTypes.STRING,
       },
+      encrypt_version: {
+        type: DataTypes.STRING
+      }
     },
     {
       timestamps: true,
