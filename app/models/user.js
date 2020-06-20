@@ -62,8 +62,12 @@ module.exports = (sequelize, DataTypes) => {
       },
       referral: {
         type: DataTypes.STRING,
-        allowNull: true
-      }
+        allowNull: true,
+      },
+      syncDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
     },
     {
       timestamps: true,

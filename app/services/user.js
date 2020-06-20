@@ -4,6 +4,8 @@ const async = require('async');
 
 const { Op } = sequelize;
 
+const SYNC_KEEPALIVE_INTERVAL_MS = 30000;
+
 module.exports = (Model, App) => {
   const log = App.logger;
 
@@ -57,7 +59,7 @@ module.exports = (Model, App) => {
             password: userPass,
             mnemonic: user.mnemonic,
             hKey: userSalt,
-            referral: user.referral
+            referral: user.referral,
           },
           transaction: t,
         })
@@ -464,6 +466,74 @@ module.exports = (Model, App) => {
     });
   };
 
+  const getSyncDate = () => {
+    let syncDate = Date.now();
+    syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
+
+    return new Date(syncDate);
+  };
+
+  const hasUserSyncEnded = (sync) => {
+    if (!sync) {
+      return true;
+    }
+
+    const now = Date.now();
+    const syncTime = sync.getTime();
+
+    return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
+  };
+
+  const GetUserSync = async (user, t) => {
+    const opts = {
+      where: { email: { [Op.eq]: user } },
+      attributes: ['syncDate'],
+      raw: true,
+    };
+    if (t) {
+      opts.lock = t.LOCK.UPDATE;
+      opts.transaction = t;
+    }
+
+    const userSyncDate = await Model.users.findOne(opts);
+
+    return userSyncDate.syncDate;
+  };
+
+  const UpdateUserSync = async (user, toNull, t) => {
+    let sync = null;
+    if (!toNull) {
+      sync = getSyncDate();
+    }
+
+    const opts = { where: { email: user } };
+    if (t) {
+      opts.transaction = t;
+    }
+
+    Model.users.update(
+      {
+        syncDate: sync,
+      },
+      opts
+    );
+
+    return sync;
+  };
+
+  const GetOrSetUserSync = async (user) => {
+    const t = Model.users.sequelize.transaction();
+    const currentSync = await GetUserSync(user, t);
+    const userSyncEnded = hasUserSyncEnded(currentSync);
+    if (!currentSync || userSyncEnded) {
+      await UpdateUserSync(user, false, t);
+    }
+
+    await t.commit();
+
+    return !userSyncEnded;
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -482,5 +552,7 @@ module.exports = (Model, App) => {
     LoginFailed,
     ResendActivationEmail,
     UpdateAccountActivity,
+    GetOrSetUserSync,
+    UpdateUserSync,
   };
 };
