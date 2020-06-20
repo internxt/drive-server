@@ -294,7 +294,7 @@ module.exports = (Model, App) => {
                 user
                   .destroy()
                   .then((result) => {
-                    console.log('User deleted on sql');
+                    console.log('User deleted on sql', userEmail);
                     next(null, data);
                   })
                   .catch((err) => {
