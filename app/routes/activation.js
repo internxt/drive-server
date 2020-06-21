@@ -58,8 +58,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/user/resend/:email', (req, res) => {
     Service.User.ResendActivationEmail(req.params.email)
-      .then((result) => {
-        console.log(result);
+      .then(() => {
         res.status(200).send({ message: 'ok' });
       })
       .catch((err) => {
