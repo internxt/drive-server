@@ -587,4 +587,78 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
+  Router.post('/storage/sftp/list', passportAuth, (req, res) => {
+    let fs_path = req.body.path;
+
+    if (!fs_path) { return res.status(200).send({}) }
+
+    const replaced_path = fs_path.replace('\\', '/');
+    const normalized_path = path.normalize(replaced_path);
+    const splitted_path = normalized_path.split('/');
+    const filtered_path = splitted_path.filter(x => x !== '')
+
+    if (filtered_path.length === 0) {
+      return Service.Folder.GetContent(req.user.root_folder_id, req.user)
+        .then((result) => {
+          if (result == null) {
+            res.status(500).send([]);
+          } else {
+            res.status(200).json(result);
+          }
+        })
+        .catch((err) => {
+          Logger.error(`${err.message}\n${err.stack}`);
+          res.status(500).json(err);
+        });
+
+    } else {
+      console.log('Sub-folders request is under construction', filtered_path)
+
+      let position = 0;
+
+      const findFolder = (folders, targetName) => {
+        return new Promise((resolve, reject) => {
+          async.eachSeries(folders, (folder, nextFolder) => {
+            if (folder.name === targetName) { nextFolder('found', folder); }
+            else { nextFolder(); }
+          }, (err, folder) => {
+            if (err === 'found') { resolve(folder); }
+            else { reject(); }
+          })
+        });
+      }
+
+      const getSubFolders = (folderId) => {
+        return new Promise((resolve, reject) => {
+          Service.Folder.GetContent(folderId, req.user).then(result => {
+            resolve(result.children);
+          }).catch(err => {
+            reject(err);
+          })
+        });
+      }
+
+      const testUntil = (next) => {
+        next(null, position < filtered_path.length);
+      }
+
+      let currentFolderId = req.user.root_folder_id;
+
+      async.doDuring((err) => {
+        getSubFolders(currentFolderId).then(children => {
+          findFolder(folders, filtered_path[position]).then(result => {
+          }).catch(err => {
+
+          })
+        })
+      }, testUntil, (err) => {
+        if (err) {
+          res.status(500).send({ error: 'Folder does not exists' })
+        } else {
+
+        }
+      })
+
+    }
+  });
 };
