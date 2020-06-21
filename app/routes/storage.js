@@ -248,14 +248,12 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/file', passportAuth, function (req, res) {
     const { user } = req;
     const { file } = req.body;
-    Service.Files.CreateFile(user, file)
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((error) => {
-        Logger.error(error);
-        res.status(400).json({ message: error.message });
-      });
+    Service.Files.CreateFile(user, file).then((result) => {
+      res.status(200).json(result);
+    }).catch((error) => {
+      Logger.error(error);
+      res.status(400).json({ message: error.message });
+    });
   });
 
   /**
