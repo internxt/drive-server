@@ -11,6 +11,7 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
 
+  // Create folder entry, for web/mobile & desktop
   const Create = (user, folderName, parentFolderId) => {
     return new Promise(async (resolve, reject) => {
       try {
@@ -38,6 +39,7 @@ module.exports = (Model, App) => {
           throw Error('Your mnemonic is invalid');
         }
 
+        // Encrypt folder name, TODO: use versioning for encryption
         const cryptoFolderName = App.services.Crypt.encryptName(
           folderName,
           parentFolderId
@@ -51,9 +53,11 @@ module.exports = (Model, App) => {
         });
 
         if (exists) {
+          // TODO: If the folder already exists, return the folder data to make desktop incorporate new info to its database
           throw Error('Folder with the same name already exists');
         }
 
+        // Since we upload everything in the same bucket, this line is no longer needed
         // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
         const xCloudFolder = await user.createFolder({

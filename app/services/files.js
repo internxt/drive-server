@@ -53,6 +53,7 @@ module.exports = (Model, App) => {
             folder_id: folder.id,
             fileId: file.file_id,
             bucket: file.bucket,
+            encrypt_version: file.encrypt_version
           };
 
           if (file.date) {
