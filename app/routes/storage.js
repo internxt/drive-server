@@ -556,7 +556,7 @@ module.exports = (Router, Service, Logger, App) => {
 
                 res.setHeader(
                   'Content-disposition',
-                  `attachment; filename*=UTF-8''${encodedFileName}; filename=${encodedFileName}`
+                  `attachment; filename="${encodedFileName}"`
                 );
                 res.set('x-file-name', decryptedFileNameB64);
 
