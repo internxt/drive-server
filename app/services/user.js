@@ -469,7 +469,6 @@ module.exports = (Model, App) => {
   const getSyncDate = () => {
     let syncDate = Date.now();
     syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
-
     return new Date(syncDate);
   };
 
@@ -490,6 +489,7 @@ module.exports = (Model, App) => {
       attributes: ['syncDate'],
       raw: true,
     };
+
     if (t) {
       opts.lock = t.LOCK.UPDATE;
       opts.transaction = t;
@@ -500,6 +500,7 @@ module.exports = (Model, App) => {
     return userSyncDate.syncDate;
   };
 
+  // TODO: Check transaction is actually running
   const UpdateUserSync = async (user, toNull, t) => {
     let sync = null;
     if (!toNull) {
@@ -511,12 +512,7 @@ module.exports = (Model, App) => {
       opts.transaction = t;
     }
 
-    Model.users.update(
-      {
-        syncDate: sync,
-      },
-      opts
-    );
+    Model.users.update({ syncDate: sync }, opts);
 
     return sync;
   };
