@@ -4,8 +4,8 @@ const SanitizeFilename = require('sanitize-filename');
 const utilsService = require('../../app/services/utils');
 const logger = require('../../lib/logger');
 
-const Config = require('~config/index');
-const Server = require('~config/initializers/server');
+const Config = require('../../config/config');
+const Server = require('../../config/initializers/server');
 
 const App = new Server(new Config());
 const utils = utilsService(null, App);

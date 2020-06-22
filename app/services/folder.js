@@ -24,7 +24,6 @@ module.exports = (Model, App) => {
         });
 
         if (!existsParentFolder) {
-          console.warn('Parent folder is not yours');
           throw Error('Parent folder is not yours');
         }
 

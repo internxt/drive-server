@@ -1,14 +1,18 @@
+require('dotenv').config();
+
 const expect = require('chai').expect;
 const { describe, it } = require('mocha');
 const cryptService = require('../../app/services/crypt');
 const logger = require('../../lib/logger');
 
-const Config = require('~config/index');
-const Server = require('~config/initializers/server');
+const Config = require('../../config/config');
+const Server = require('../../config/initializers/server');
 
 const App = new Server(new Config());
 
 const crypt = cryptService(null, App);
+const AesUtil = require('../../lib/AesUtil')
+
 
 describe('# Crypto tools', function () {
   describe('random encription', function () {
@@ -118,4 +122,29 @@ describe('# Crypto tools', function () {
       expect(decryptName).equals(decryptText);
     });
   });
+
+  describe('# AES new encryption', function () {
+    it('should be deterministic', function () {
+      const encrypt1 = AesUtil.encrypt('TEST', 0)
+      const encrypt2 = AesUtil.encrypt('TEST', 0)
+      expect(encrypt1).to.be.equals(encrypt2)
+    })
+
+    it('should be able to generate random iv', function () {
+      const encrypt1 = AesUtil.encrypt('TEST', 0, true)
+      const encrypt2 = AesUtil.encrypt('TEST', 0, true)
+
+      const decrypt1 = AesUtil.decrypt(encrypt1, 0)
+      const decrypt2 = AesUtil.decrypt(encrypt2, 0)
+
+      expect(encrypt1).to.be.not.equals(encrypt2);
+      expect(decrypt1).to.be.equals(decrypt2);
+    })
+
+    it('should use AES as default encryption algorithm', function () {
+      const encrypt1 = AesUtil.encrypt('TEST', 0);
+      const encrypt2 = crypt.encryptName('TEST', 0);
+      expect(encrypt1).to.be.equals(encrypt2);
+    })
+  })
 });
