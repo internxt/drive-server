@@ -47,30 +47,4 @@ describe('# Utils', function () {
       expect(utils.IsDatabaseId(Number.MAX_SAFE_INTEGER)).to.be.true;
     });
   });
-
-  describe('# filename extensions', () => {
-    it('should validate multiple filename formats', () => {
-      let test;
-
-      test = utils.FileNameParts('filename.ext');
-      expect(test.name).to.be.equals('filename');
-      expect(test.ext).to.be.equals('ext');
-
-      test = utils.FileNameParts('.hidden');
-      expect(test.name).to.be.equals('.hidden');
-      expect(test.ext).to.be.null;
-
-      test = utils.FileNameParts('.hidden.');
-      expect(test.name).to.be.equals('.hidden.');
-      expect(test.ext).to.be.null;
-
-      test = utils.FileNameParts('hidden.');
-      expect(test.name).to.be.equals('hidden.');
-      expect(test.ext).to.be.null;
-
-      test = utils.FileNameParts('mul.ti.ple.ex.ten.sions');
-      expect(test.name).to.be.equals('mul.ti.ple.ex.ten');
-      expect(test.ext).to.be.equals('sions');
-    });
-  });
 });

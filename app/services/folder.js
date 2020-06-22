@@ -5,6 +5,7 @@ const SanitizeFilename = require('sanitize-filename');
 const sequelize = require('sequelize');
 const async = require('async');
 const AdmZip = require('adm-zip');
+const AesUtil = require('../../lib/AesUtil')
 
 const { Op } = sequelize;
 
@@ -376,6 +377,12 @@ module.exports = (Model, App) => {
                     next(Error('Folder with this name exists'));
                   } else {
                     newMeta.name = cryptoFolderName;
+                    try {
+                      AesUtil.decrypt(cryptoFolderName, folder.parentId)
+                      newMeta.encrypt_version = '03-aes'
+                    } catch (e) {
+
+                    }
                     next(null, folder);
                   }
                 })

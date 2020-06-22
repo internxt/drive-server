@@ -73,18 +73,20 @@ module.exports = (Model, App) => {
 
   function encryptName(name, salt) {
     if (salt) {
-      console.log('SHOULD TRY AES NEW ENCRYPTION')
+      const encryptedResult = AesUtil.encrypt(name, salt, salt ? false : true)
+      return encryptedResult;
+    } else {
+      return probabilisticEncryption(name);
     }
-    return salt
-      ? deterministicEncryption(name, salt)
-      : probabilisticEncryption(name);
   }
 
   function decryptName(cipherText, salt) {
     if (salt) {
       try {
-        return AesUtil.decrypt(cipherText, salt)
+        const result = AesUtil.decrypt(cipherText, salt);
+        return result;
       } catch (e) {
+        console.log('ERROR', e.message)
       }
     }
 

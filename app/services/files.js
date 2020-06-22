@@ -3,6 +3,8 @@ const fs = require('fs');
 const sequelize = require('sequelize');
 const SanitizeFilename = require('sanitize-filename');
 const async = require('async');
+const path = require('path');
+const AesUtil = require('../../lib/AesUtil');
 
 const { Op } = sequelize;
 
@@ -56,6 +58,13 @@ module.exports = (Model, App) => {
             encrypt_version: file.encrypt_version
           };
 
+          try {
+            AesUtil.decrypt(file.name, file.file_id);
+            fileInfo.encrypt_version = '03-aes';
+          } catch (e) {
+
+          }
+
           if (file.date) {
             fileInfo.createdAt = file.date;
           }
@@ -78,8 +87,9 @@ module.exports = (Model, App) => {
   const Upload = (user, folderId, fileName, filePath) => {
     return new Promise(async (resolve, reject) => {
       try {
-        if (user.mnemonic === 'null')
+        if (user.mnemonic === 'null') {
           throw new Error('Your mnemonic is invalid');
+        }
 
         const sanitizedFilename = SanitizeFilename(fileName);
 
@@ -99,16 +109,11 @@ module.exports = (Model, App) => {
         if (!rootFolder.bucket) return reject('Missing file bucket');
 
         // Separate filename from extension
-        const extSeparatorPos = fileName.lastIndexOf('.');
-        const fileNameNoExt =
-          extSeparatorPos > 0 ? fileName.slice(0, extSeparatorPos) : fileName;
+        const fileNameParts = path.parse(fileName)
 
-        let encryptedFileName = App.services.Crypt.encryptName(
-          fileNameNoExt,
-          folderId
-        );
+        let encryptedFileName = App.services.Crypt.encryptName(fileNameParts.name, folderId);
 
-        const fileExt = fileName.slice(extSeparatorPos + 1);
+        const fileExt = fileNameParts.ext ? fileNameParts.ext.substring(1) : '';
 
         // Check if file already exists.
         const exists = await Model.file.findOne({
@@ -132,9 +137,9 @@ module.exports = (Model, App) => {
 
         originalEncryptedFileName =
           originalEncryptedFileName ||
-          App.services.Crypt.encryptName(fileNameNoExt);
+          App.services.Crypt.encryptName(fileNameParts.name);
         const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`;
-        const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}.${fileExt}`;
+        const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
         log.info('Uploading file to network');
 
         return App.services.Storj.StoreFile(
@@ -142,23 +147,31 @@ module.exports = (Model, App) => {
           rootFolder.bucket,
           originalEncryptedFileNameWithExt,
           filePath
-        )
-          .then(async ({ fileId, size }) => {
-            if (!fileId) return reject(Error('Missing file id'));
+        ).then(async ({ fileId, size }) => {
+          if (!fileId) return reject(Error('Missing file id'));
 
-            if (!size) return reject(Error('Missing file size'));
+          if (!size) return reject(Error('Missing file size'));
 
-            const addedFile = await Model.file.create({
-              name: encryptedFileName,
-              type: fileExt,
-              fileId,
-              bucket: rootFolder.bucket,
-              size,
-            });
-            const result = await folder.addFile(addedFile);
+          const newFileInfo = {
+            name: encryptedFileName,
+            type: fileExt,
+            fileId,
+            bucket: rootFolder.bucket,
+            size,
+          }
 
-            return resolve(addedFile);
-          })
+          try {
+            AesUtil.decrypt(encryptedFileName, folderId);
+            newFileInfo.encrypt_version = '03-aes'
+          } catch(e) {
+            
+          }
+
+          const addedFile = await Model.file.create(newFileInfo);
+          const result = await folder.addFile(addedFile);
+
+          return resolve(addedFile);
+        })
           .catch((err) => {
             log.error(err.message);
             reject(err.message);
@@ -195,11 +208,11 @@ module.exports = (Model, App) => {
 
           App.services.Storj.ResolveFile(user, file)
             .then((result) => {
-              resolve({ ...result, folderId: file.folder_id });
+              resolve({ ...result, folderId: file.folder_id, name: file.name, type: file.type });
             })
             .catch((err) => {
               if (err.message === 'File already exists') {
-                resolve({ file: { name: `${file.name}.${file.type}` } });
+                resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
               } else {
                 reject(err);
               }

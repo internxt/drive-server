@@ -63,10 +63,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating folder
    */
-  Router.post('/storage/folder/:folderid/meta', passportAuth, function (
-    req,
-    res
-  ) {
+  Router.post('/storage/folder/:folderid/meta', passportAuth, function (req, res) {
     const { user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
@@ -284,22 +281,19 @@ module.exports = (Router, Service, Logger, App) => {
     let filePath;
 
     return Service.Files.Download(user, fileIdInBucket)
-      .then(({ filestream, mimetype, downloadFile, folderId }) => {
+      .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
         filePath = downloadFile;
         const fileName = downloadFile.split('/')[2];
-        const extSeparatorPos = fileName.lastIndexOf('.');
-        const fileNameNoExt = fileName.slice(0, extSeparatorPos);
-        const fileExt = fileName.slice(extSeparatorPos + 1);
-        const decryptedFileName = App.services.Crypt.decryptName(
-          fileNameNoExt,
-          folderId
+        const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+
+        const fileNameDecrypted = `${decryptedFileName}${type ? '.' + type : ''}`
+        const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+
+        res.setHeader(
+          'Content-disposition',
+          `attachment; filename="${fileNameDecrypted}"`
         );
-
-        const decryptedFileNameB64 = Buffer.from(
-          `${decryptedFileName}.${fileExt}`
-        ).toString('base64');
-
-        res.setHeader('Content-type', mimetype);
+        res.setHeader('content-type', mimetype);
         res.set('x-file-name', decryptedFileNameB64);
         filestream.pipe(res);
         fs.unlink(filePath, (error) => {
