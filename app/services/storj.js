@@ -144,7 +144,8 @@ module.exports = (Model, App) => {
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads';
-    const downloadFile = `${downloadDir}/${file.name}.${file.type}`;
+    const shortFileName = crypto.createHash('sha256').update(file.name).digest('hex');
+    const downloadFile = `${downloadDir}/${shortFileName}${file.type ? '.' + file.type : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir);
@@ -170,7 +171,7 @@ module.exports = (Model, App) => {
         },
         finishedCallback: (err) => {
           if (err) {
-            log.error('[NODE-LIB] Error resolving file:', err);
+            log.error('[NODE-LIB] 1. Error resolving file:', err);
             reject(err);
           } else {
             const mimetype = mime.getType(downloadFile);
@@ -217,7 +218,7 @@ module.exports = (Model, App) => {
         },
         finishedCallback: (err) => {
           if (err) {
-            log.error('[NODE-LIB] Error resolving file:', err);
+            log.error('[NODE-LIB] 2. Error resolving file:', err);
             reject(err);
           } else {
             const mimetype = mime.getType(downloadFile);
