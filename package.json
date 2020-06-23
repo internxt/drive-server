@@ -10,6 +10,7 @@
     "bcryptjs": "^2.4.3",
     "bip39": "^3.0.2",
     "body-parser": "^1.19.0",
+    "content-disposition": "^0.5.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
     "dotenv": "^8.2.0",

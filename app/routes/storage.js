@@ -4,7 +4,8 @@ const rimraf = require('rimraf');
 
 const upload = require('~middleware/multer');
 const passport = require('~middleware/passport');
-const _ = require('lodash')
+const _ = require('lodash');
+const contentDisposition = require('content-disposition');
 
 const { passportAuth } = passport;
 
@@ -290,8 +291,8 @@ module.exports = (Router, Service, Logger, App) => {
         const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
         res.setHeader(
-          'Content-disposition',
-          `attachment; filename="${fileNameDecrypted}"`
+          'content-disposition',
+          contentDisposition(fileNameDecrypted)
         );
         res.setHeader('content-type', mimetype);
         res.set('x-file-name', decryptedFileNameB64);
@@ -537,7 +538,7 @@ module.exports = (Router, Service, Logger, App) => {
                 const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? '.' + type : ''}`).toString('base64');
                 const encodedFileName = encodeURI(`${decryptedFileName}${type ? '.' + type : ''}`);
 
-                res.setHeader('content-disposition', `attachment; filename="${encodedFileName}"`);
+                res.setHeader('content-disposition', contentDisposition(encodedFileName));
                 res.set('x-file-name', decryptedFileNameB64);
 
                 filestream.pipe(res);
