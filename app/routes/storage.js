@@ -529,29 +529,15 @@ module.exports = (Router, Service, Logger, App) => {
               });
           } else {
             Service.Files.Download(userData, fileIdInBucket)
-              .then(({ filestream, mimetype, downloadFile, folderId }) => {
-                const fileName = downloadFile.split('/')[2];
-                const extSeparatorPos = fileName.lastIndexOf('.');
-                const fileNameNoExt = fileName.slice(0, extSeparatorPos);
-                const fileExt = fileName.slice(extSeparatorPos + 1);
-                const decryptedFileName = App.services.Crypt.decryptName(
-                  fileNameNoExt,
-                  folderId
-                );
+              .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
+                const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
                 res.setHeader('Content-type', mimetype);
 
-                const decryptedFileNameB64 = Buffer.from(
-                  `${decryptedFileName}.${fileExt}`
-                ).toString('base64');
-                const encodedFileName = encodeURI(
-                  `${decryptedFileName}.${fileExt}`
-                );
+                const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? '.' + type : ''}`).toString('base64');
+                const encodedFileName = encodeURI(`${decryptedFileName}${type ? '.' + type : ''}`);
 
-                res.setHeader(
-                  'Content-disposition',
-                  `attachment; filename="${encodedFileName}"`
-                );
+                res.setHeader('content-disposition', `attachment; filename="${encodedFileName}"`);
                 res.set('x-file-name', decryptedFileNameB64);
 
                 filestream.pipe(res);
