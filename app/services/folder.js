@@ -36,7 +36,7 @@ module.exports = (Model, App) => {
         }
 
         if (user.mnemonic === 'null') {
-          throw Error('Your mnemonic is invalid');
+          // throw Error('Your mnemonic is invalid');
         }
 
         // Encrypt folder name, TODO: use versioning for encryption
@@ -457,7 +457,7 @@ module.exports = (Model, App) => {
         user_id: { [Op.eq]: user.id },
         parent_id: { [Op.eq]: folderId },
       },
-      raw: true,
+      raw: true
     };
 
     if (options.attributes) {
