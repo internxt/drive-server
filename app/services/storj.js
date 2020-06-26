@@ -144,7 +144,7 @@ module.exports = (Model, App) => {
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads';
-    const shortFileName = crypto.createHash('sha256').update(file.name).digest('hex');
+    const shortFileName = file.fileId;
     const downloadFile = `${downloadDir}/${shortFileName}${file.type ? '.' + file.type : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
