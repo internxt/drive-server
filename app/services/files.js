@@ -128,17 +128,17 @@ module.exports = (Model, App) => {
         let originalEncryptedFileName;
         let newName;
         if (exists) {
-          newName = await GetNewMoveName(folderId, fileNameNoExt, fileExt);
+          newName = await GetNewMoveName(folderId, fileNameParts.name, fileExt);
           encryptedFileName = newName.cryptedName;
           originalEncryptedFileName = App.services.Crypt.encryptName(
-            newName.name
+            newName.name,
+            folderId
           );
         }
 
         originalEncryptedFileName =
           originalEncryptedFileName ||
-          App.services.Crypt.encryptName(fileNameParts.name);
-        const encryptedFileNameWithExt = `${encryptedFileName}.${fileExt}`;
+          App.services.Crypt.encryptName(fileNameParts.name, folderId);
         const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
         log.info('Uploading file to network');
 
