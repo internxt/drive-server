@@ -8,7 +8,7 @@ module.exports = (App, Config) => {
   // enables cors
   App.express.use(
     cors({
-      allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'method'],
+      allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'method', 'internxt-version', 'internxt-client', 'internxt-mnemonic'],
       exposedHeaders: ['sessionId'],
       origin: '*',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
