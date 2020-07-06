@@ -4,6 +4,7 @@
   "description": "XCloud server API",
   "main": "app.js",
   "dependencies": {
+    "@sendgrid/mail": "^7.2.1",
     "adm-zip": "^0.4.14",
     "async": "^3.2.0",
     "axios": "^0.19.2",

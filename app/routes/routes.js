@@ -1,5 +1,6 @@
-const speakeasy = require('speakeasy');
+const sgMail = require('@sendgrid/mail');
 
+const speakeasy = require('speakeasy');
 const ActivationRoutes = require('~routes/activation');
 const StorageRoutes = require('~routes/storage');
 const BridgeRoutes = require('~routes/bridge');
@@ -314,6 +315,32 @@ module.exports = (Router, Service, Logger, App) => {
       })
       .catch((err) => {
         console.log(err);
+        res.status(500).send(err);
+      });
+  });
+
+  Router.post('/inxt/buy', function (req, res) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const msg = {
+      to: 'hello@internxt.com',
+      from: 'hello@internxt.com',
+      subject: 'New crypto INXT request',
+      text: 'new crypto inxt request',
+      html: `<ul>
+        <li>Deposit: ${req.body.deposit}</li>
+        <li>Currency: ${req.body.currency}</li>
+        <li>Receive: ${req.body.receive}</li>
+        <li>Currency Receive: ${req.body.currencyReceived}</li>
+        <li>Receiving Address: ${req.body.receivingAddress}</li>
+        <li>Internxt Address: ${req.body.internxtAddress}</li>
+      </ul>`,
+    };
+    sgMail
+      .send(msg)
+      .then((mail) => {
+        res.status(200).send({});
+      })
+      .catch((err) => {
         res.status(500).send(err);
       });
   });
