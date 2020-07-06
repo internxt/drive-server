@@ -75,7 +75,10 @@ module.exports = (Router, Service, Logger, App) => {
 
     // If path es "." or "./" or "./././"..., is the root folder. Just ok
     if (targetPath === '.' || targetPath === '.\\') {
-      return res.status(200).send({ result: 'ok' })
+      return Service.Folder.GetBucket(req.user, rootFolderId).then(folder => {
+        folder.name = Service.Crypt.decryptName(folder.name)
+        res.status(200).send({ result: 'ok', isRoot: true, path: folder })
+      })
     }
 
     let splitted = targetPath.split('\\')
@@ -166,7 +169,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(501).send({ error: err.message })
       } else {
         // console.log(pathResults)
-        res.status(200).send({ result: 'ok', path: pathResults })
+        res.status(200).send({ result: 'ok', isRoot: false, path: pathResults })
       }
     })
   });
