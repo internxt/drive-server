@@ -17,8 +17,8 @@ module.exports = (sequelize, DataTypes) => {
       userAgent: {
         type: DataTypes.STRING,
       },
-      userAgent: {
-        action: DataTypes.STRING,
+      action: {
+        type: DataTypes.STRING,
       },
     },
     {
