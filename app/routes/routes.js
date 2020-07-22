@@ -10,6 +10,7 @@ const MobileRoutes = require('~routes/mobile');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
+const useragent = require('useragent');
 
 const { passportAuth } = passport;
 
@@ -209,10 +210,25 @@ module.exports = (Router, Service, Logger, App) => {
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
       // Call user service to find or create user
+      
+
       Service.User.FindOrCreate(req.body)
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
+            const agent = useragent.parse(req.headers['user-agent']);
+
+            Service.Statistics.Insert({
+              name: 'Internxt Drive Web/Mobile',
+              user: userData.email,
+              userAgent: agent.source,
+              action: 'register'
+            })
+              .then(() => {})
+              .catch((err) => {
+                console.log('Error creating register statistics:', err);
+              });
+
             // Successfull register
             const token = passport.Sign(
               userData.email,
