@@ -1,8 +1,16 @@
 const passport = require('~middleware/passport');
 
 const { passportAuth } = passport;
+const session = require('express-session');
 
 module.exports = (Router, Service, Logger, App) => {
+  Router.use(session({
+    secret: process.env.SESSION_KEY,
+    resave: true,
+    saveUninitialized: false,
+    cookie: {}
+  }));
+
   Router.get('/user/isactivated', passportAuth, function (req, res) {
     const user = req.user.email;
 
@@ -32,14 +40,20 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/reset/:email', function (req, res) {
-    const user = req.params.email.toLowerCase();
-    Service.User.DeactivateUser(user)
-      .then(() => {
-        res.status(200).send();
-      })
-      .catch(() => {
-        res.status(200).send();
-      });
+    if (!req.session.isEmailSend) {
+      req.session.isEmailSend = true;
+
+      const user = req.params.email.toLowerCase();
+      Service.User.DeactivateUser(user)
+        .then(() => {
+          res.status(200).send();
+        })
+        .catch(() => {
+          res.status(200).send();
+        });  
+    } else {
+      res.status(200).send();
+    }
   });
 
   Router.get('/confirmDeactivation/:token', (req, res) => {
@@ -57,7 +71,10 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/user/resend/:email', (req, res) => {
-    Service.User.ResendActivationEmail(req.params.email)
+    if (!req.session.isEmailSend) {
+      req.session.isEmailSend = true;
+
+      Service.User.ResendActivationEmail(req.params.email)
       .then(() => {
         res.status(200).send({ message: 'ok' });
       })
@@ -69,5 +86,8 @@ module.exports = (Router, Service, Logger, App) => {
               : 'Internal server error',
         });
       });
+    } else {
+      res.status(200).send({ message: 'ok' });
+    }
   });
 };
