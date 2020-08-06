@@ -7,6 +7,12 @@ module.exports = (config, Logger) => {
     dialect: 'mysql',
     operatorsAliases: 0,
     logging: Logger.sql,
+    pool: {
+      max: 20,
+      min: 0,
+      acquire: 60000,
+      idle: 10000
+    }
   });
 
   instance
