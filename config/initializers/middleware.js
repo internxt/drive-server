@@ -3,6 +3,7 @@ const cors = require('cors');
 const Passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
+const jwt = require('jsonwebtoken')
 
 module.exports = (App, Config) => {
   // enables cors
@@ -64,9 +65,21 @@ module.exports = (App, Config) => {
    * Prints in console the used endpoints in real time.
    */
   App.express.use(function (req, res, next) {
-    console.log(req.headers.authorization)
+    let user = null;
+    if (req.headers.authorization) {
+      try {
+        const x = jwt.decode(req.headers.authorization.split(" ")[1])
+        if (x.email) {
+          user = x.email
+        } else {
+          user = x
+        }
+      } catch (e) {
+
+      }
+    }
     App.logger.info(
-      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl}`,
+      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? '\t' + user : ''}`,
     );
     next();
   });
