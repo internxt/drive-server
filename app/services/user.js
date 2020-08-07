@@ -423,29 +423,18 @@ module.exports = (Model, App) => {
 
   const LoginFailed = (user, loginFailed) => {
     return new Promise((resolve, reject) => {
-      Model.users
-        .update(
-          {
-            errorLoginCount: loginFailed
-              ? sequelize.literal('error_login_count + 1')
-              : 0,
-          },
-          { where: { email: user } }
-        )
-        .then((res) => {
-          resolve();
-        })
-        .catch(reject);
+      Model.users.update({
+        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0,
+      }, { where: { email: user } }
+      ).then((res) => resolve()).catch(reject);
     });
   };
 
   const ResendActivationEmail = (user) => {
     return new Promise((resolve, reject) => {
-      axios
-        .post(`${process.env.STORJ_BRIDGE}/activations`, {
-          email: user,
-        })
-        .then((res) => resolve())
+      axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
+        email: user,
+      }).then((res) => resolve())
         .catch(reject);
     });
   };
@@ -530,6 +519,10 @@ module.exports = (Model, App) => {
     return !userSyncEnded;
   };
 
+  const UnlockSync = async (user) => {
+    return await Model.users.update({ syncDate: null }, { where: { email: user.email } });
+  }
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -550,5 +543,6 @@ module.exports = (Model, App) => {
     UpdateAccountActivity,
     GetOrSetUserSync,
     UpdateUserSync,
+    UnlockSync
   };
 };

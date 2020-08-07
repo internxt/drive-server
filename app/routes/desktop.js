@@ -51,9 +51,20 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).json({ data: result });
       })
       .catch((err) => {
+        console.log(err)
         res.status(500).json({ error: err.message });
       });
   });
+
+  
+  Router.delete('/user/sync', passportAuth, function (req, res) {
+    const { user } = req;
+    Service.User.UnlockSync(user).then(() => {
+      res.status(200).send();
+    }).catch((err) => {
+      res.status(500).send()
+    })
+  })
 
   Router.post('/storage/exists', passportAuth, function (req, res) {
     const rootFolderId = req.user.root_folder_id
