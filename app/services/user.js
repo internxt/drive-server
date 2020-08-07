@@ -512,13 +512,13 @@ module.exports = (Model, App) => {
       opts.transaction = t;
     }
 
-    Model.users.update({ syncDate: sync }, opts);
+    await Model.users.update({ syncDate: sync }, opts);
 
     return sync;
   };
 
   const GetOrSetUserSync = async (user) => {
-    const t = Model.users.sequelize.transaction();
+    const t = await Model.users.sequelize.transaction();
     const currentSync = await GetUserSync(user, t);
     const userSyncEnded = hasUserSyncEnded(currentSync);
     if (!currentSync || userSyncEnded) {
