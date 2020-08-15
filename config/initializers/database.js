@@ -6,7 +6,11 @@ module.exports = (config, Logger) => {
     host: config.host,
     dialect: 'mysql',
     operatorsAliases: 0,
-    logging: Logger.sql,
+    // logging: Logger.sql,
+    logging: console.log,
+    logging: function (str) {
+      // do your own logging
+    }
   });
 
   instance

@@ -26,9 +26,11 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.get('/storage/folder/:id', passportAuth, function (req, res) {
+  Router.get('/storage/folder/:id/:idTeam?', passportAuth, function (req, res) {
     const folderId = req.params.id;
-    Service.Folder.GetContent(folderId, req.user)
+    const teamId = req.params.idTeam || null;
+
+    Service.Folder.GetContent(folderId, req.user, teamId)
       .then((result) => {
         if (result == null) {
           res.status(500).send([]);
@@ -100,11 +102,12 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/folder', passportAuth, function (req, res) {
     const { folderName } = req.body;
     const { parentFolderId } = req.body;
+    const { teamId } = req.body;
 
     const { user } = req;
     user.mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Folder.Create(user, folderName, parentFolderId)
+    Service.Folder.Create(user, folderName, parentFolderId, teamId)
       .then((result) => {
         res.status(201).json(result);
       })
@@ -167,26 +170,72 @@ module.exports = (Router, Service, Logger, App) => {
     passportAuth,
     upload.single('xfile'),
     function (req, res) {
-      const { user } = req;
+      var { user } = req;
       // Set mnemonic to decrypted mnemonic
       user.mnemonic = req.headers['internxt-mnemonic'];
       const xfile = req.file;
       const folderId = req.params.id;
 
-      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
-        .then((result) => {
-          res.status(201).json(result);
-        })
-        .catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          if (err.includes('Bridge rate limit error')) {
-            res.status(402).json({ message: err });
+      Service.Folder.isFolderOfTeam(folderId).then((folder) => {
+        Service.TeamsMembers.getByUser(user.email).then((teamMember) => {
+          if (folder.id_team == teamMember.id_team) {
+            console.log('----- UPLOADING FOR TEAM -------');
+            Service.Team.getById(folder.id_team).then(team => {
+              Service.User.FindUserByEmail(team.bridge_email)
+                .then((userData) => {
 
-            return;
+                  user = {
+                    email: team.bridge_email,
+                    userId: team.bridge_user,
+                    mnemonic: team.bridge_password,
+                    root_folder_id: userData.root_folder_id
+                  }
+    
+                  Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+                    .then((result) => {
+                      res.status(201).json(result);
+                    })
+                    .catch((err) => {
+                      Logger.error(`${err.message}\n${err.stack}`);
+                      if (err.includes('Bridge rate limit error')) {
+                        res.status(402).json({ message: err });
+    
+                        return;
+                      }
+    
+                      res.status(500).json({ message: err });
+                    });
+                }).catch((err) => {
+                 
+                });
+              
+            }).catch((err) => {
+              console.log(err);
+            });
+          } else {
+            return res.status(500).json({ message: `You're not allowed to upload files on this folder`});
           }
-
-          res.status(500).json({ message: err });
+        }).catch((err) => {
+          return res.status(500).json({ message: `You're not allowed to upload files on this folder`});
         });
+
+      }).catch((err) => {
+        console.log('------ PERSONAL UPLOAD ------');
+        Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+          .then((result) => {
+            res.status(201).json(result);
+          })
+          .catch((err) => {
+            Logger.error(`${err.message}\n${err.stack}`);
+            if (err.includes('Bridge rate limit error')) {
+              res.status(402).json({ message: err });
+
+              return;
+            }
+
+            res.status(500).json({ message: err });
+          });
+      });
     }
   );
 
@@ -271,7 +320,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Uploaded object
    */
   Router.get('/storage/file/:id', passportAuth, function (req, res) {
-    const { user } = req;
+    var { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const fileIdInBucket = req.params.id;
@@ -281,35 +330,89 @@ module.exports = (Router, Service, Logger, App) => {
 
     let filePath;
 
-    return Service.Files.Download(user, fileIdInBucket)
-      .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
-        filePath = downloadFile;
-        const fileName = downloadFile.split('/')[2];
-        const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+    Service.Files.isFileOfTeamFolder(fileIdInBucket).then((file) => {
+      Service.Team.getById(file.folder.id_team).then(team => {
+        Service.TeamsMembers.getByUser(user.email).then((teamMember) => {
 
-        const fileNameDecrypted = `${decryptedFileName}${type ? '.' + type : ''}`
-        const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+            if (teamMember.id_team == file.folder.id_team) {
+              console.log('------ TEAM DOWNLOAD ------');
 
-        res.setHeader(
-          'content-disposition',
-          contentDisposition(fileNameDecrypted)
-        );
-        res.setHeader('content-type', mimetype);
-        res.set('x-file-name', decryptedFileNameB64);
-        filestream.pipe(res);
-        fs.unlink(filePath, (error) => {
-          if (error) throw error;
+              user = {
+                email: team.bridge_email,
+                userId: team.bridge_user,
+                mnemonic: team.bridge_password
+              };
+
+              return Service.Files.Download(user, fileIdInBucket)
+              .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
+                filePath = downloadFile;
+                const fileName = downloadFile.split('/')[2];
+                const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+    
+                const fileNameDecrypted = `${decryptedFileName}${type ? '.' + type : ''}`;
+                const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+    
+                res.setHeader(
+                  'content-disposition',
+                  contentDisposition(fileNameDecrypted)
+                );
+                res.setHeader('content-type', mimetype);
+                res.set('x-file-name', decryptedFileNameB64);
+                filestream.pipe(res);
+                fs.unlink(filePath, (error) => {
+                  if (error) throw error;
+                });
+              })
+              .catch((err) => {
+                if (err.message === 'Bridge rate limit error') {
+                  return res.status(402).json({ message: err.message });
+                }
+    
+                return res.status(500).json({ message: err.message });
+              });
+
+            } else {
+              return res.status(500).json({ message: `You're not allowed to download files of this team`});
+            }
+
+          }).catch(err => {
+            return res.status(500).json({ message: `You're not allowed to download files of this team`});
+          });
+        }).catch((err) => {
+          return res.status(500).json({ message: `You're not allowed to download files of this team`});
+        });
+        
+
+    }).catch((err) => {
+      console.log('------- PERSONAL DOWNLOAD -------');
+      return Service.Files.Download(user, fileIdInBucket)
+        .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
+          filePath = downloadFile;
+          const fileName = downloadFile.split('/')[2];
+          const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+
+          const fileNameDecrypted = `${decryptedFileName}${type ? '.' + type : ''}`
+          const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+
+          res.setHeader(
+            'content-disposition',
+            contentDisposition(fileNameDecrypted)
+          );
+          res.setHeader('content-type', mimetype);
+          res.set('x-file-name', decryptedFileNameB64);
+          filestream.pipe(res);
+          fs.unlink(filePath, (error) => {
+            if (error) throw error;
+          });
+        })
+        .catch((err) => {
+          if (err.message === 'Bridge rate limit error') {
+            return res.status(402).json({ message: err.message });
+          }
+
+          return res.status(500).json({ message: err.message });
         });
       })
-      .catch((err) => {
-        if (err.message === 'Bridge rate limit error') {
-          return res.status(402).json({ message: err.message });
-        }
-
-        console.log(err);
-
-        return res.status(500).json({ message: err.message });
-      });
   });
 
   /**

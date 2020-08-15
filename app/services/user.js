@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
     }
   };
 
-  const FindOrCreate = (user) => {
+  const FindOrCreate = (user, isTeamAccount = false) => {
     // Create password hashed pass only when a pass is given
     const userPass = user.password
       ? App.services.Crypt.decryptText(user.password)
@@ -45,9 +45,18 @@ module.exports = (Model, App) => {
       : null;
 
     // Throw error when user email. pass, salt or mnemonic is missing
-    if (!user.email || !userPass || !userSalt || !user.mnemonic) {
-      throw new Error('Wrong user registration data');
+
+    if (!isTeamAccount) {
+      if (!user.email || !userPass || !userSalt || !user.mnemonic) {
+        throw new Error('Wrong user registration data');
+      }
+    } else {
+      if (!user.email || !user.mnemonic) {
+        throw new Error('Wrong user registration data');
+      }
     }
+
+    
 
     return Model.users.sequelize.transaction(function (t) {
       return Model.users

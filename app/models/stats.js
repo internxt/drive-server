@@ -17,9 +17,6 @@ module.exports = (sequelize, DataTypes) => {
       userAgent: {
         type: DataTypes.STRING,
       },
-      action: {
-        type: DataTypes.STRING,
-      },
     },
     {
       timestamps: true,

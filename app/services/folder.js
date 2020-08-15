@@ -13,15 +13,30 @@ module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
 
   // Create folder entry, for web/mobile & desktop
-  const Create = (user, folderName, parentFolderId) => {
+  const Create = (user, folderName, parentFolderId, teamId = null) => {
     return new Promise(async (resolve, reject) => {
       try {
         // parent folder is yours?
+        var whereCondition = {};
+
+        if (teamId) {
+          whereConition = {
+            where: {
+              id: { [Op.eq]: parentFolderId },
+              id_team: { [Op.eq]: teamId },
+            }
+          };
+        } else {
+          whereConition = {
+            where: {
+              id: { [Op.eq]: parentFolderId },
+              user_id: { [Op.eq]: user.id },
+            }
+          };
+        }
+
         const existsParentFolder = await Model.folder.findOne({
-          where: {
-            id: { [Op.eq]: parentFolderId },
-            user_id: { [Op.eq]: user.id },
-          },
+          whereCondition
         });
 
         if (!existsParentFolder) {
@@ -64,6 +79,7 @@ module.exports = (Model, App) => {
           name: cryptoFolderName,
           bucket: null,
           parentId: parentFolderId || null,
+          id_team: teamId
         });
 
         resolve(xCloudFolder);
@@ -277,34 +293,105 @@ module.exports = (Model, App) => {
     });
   };
 
-  const GetContent = async (folderId, user) => {
-    const result = await Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-        user_id: user.id,
-      },
-      include: [
-        {
-          model: Model.folder,
-          as: 'descendents',
-          hierarchy: true,
+  const GetContent = async (folderId, user, teamId = null) => {
+    if (!teamId) {
+      var result = await Model.folder.findOne({
+        where: {
+          id: { [Op.eq]: folderId },
+          user_id: user.id,
+        },
+        include: [
+          {
+            model: Model.folder,
+            as: 'descendents',
+            hierarchy: true,
+            include: [
+              {
+                model: Model.icon,
+                as: 'icon',
+              },
+            ],
+          },
+          {
+            model: Model.file,
+            as: 'files',
+          },
+          {
+            model: Model.icon,
+            as: 'icon',
+          },
+        ]
+      });
+
+      const teamMember = await Model.teams_members.findOne({
+        where: {
+          user: { [Op.eq]: user.email },
+          is_active: { [Op.eq]: true }
+        }
+      });
+
+      if (teamMember) {
+        const resultTeam = await Model.folder.findOne({
+          where: {
+            id_team: teamMember.id_team,
+          },
           include: [
+            {
+              model: Model.folder,
+              as: 'descendents',
+              hierarchy: true,
+              include: [
+                {
+                  model: Model.icon,
+                  as: 'icon',
+                },
+              ],
+            },
+            {
+              model: Model.file,
+              as: 'files',
+            },
             {
               model: Model.icon,
               as: 'icon',
             },
-          ],
+          ]
+        });
+
+        if (resultTeam && !result.parentId) {
+          result.children.push(resultTeam);
+        }
+      }
+
+    } else {
+      var result = await Model.folder.findOne({
+        where: {
+          id_team: teamId,
+          id: { [Op.eq]: folderId }
         },
-        {
-          model: Model.file,
-          as: 'files',
-        },
-        {
-          model: Model.icon,
-          as: 'icon',
-        },
-      ]
-    });
+        include: [
+          {
+            model: Model.folder,
+            as: 'descendents',
+            hierarchy: true,
+            include: [
+              {
+                model: Model.icon,
+                as: 'icon',
+              },
+            ],
+          },
+          {
+            model: Model.file,
+            as: 'files',
+          },
+          {
+            model: Model.icon,
+            as: 'icon',
+          },
+        ]
+      });
+    }
 
     // Null result implies empty folder.
     // TODO: Should send an error to be handled and showed on website.
@@ -321,6 +408,26 @@ module.exports = (Model, App) => {
 
     return result;
   };
+
+  const isFolderOfTeam = (folderId) => {
+    return new Promise((resolve, reject) => {
+      Model.folder
+        .findOne({
+          where: {
+            id: { [Op.eq]: folderId },
+            id_team: { [Op.ne]: null },
+          }
+        })
+        .then((folder) => {
+          if (!folder) {
+            throw Error('Folder not found on database, please refresh');
+          }
+
+          resolve(folder);
+        })
+        .catch(reject);
+    });
+  }
 
   const UpdateMetadata = (user, folderId, metadata) => {
     return new Promise((resolve, reject) => {
@@ -570,6 +677,7 @@ module.exports = (Model, App) => {
     MoveFolder,
     Download,
     CreateZip,
-    GetBucket
+    GetBucket,
+    isFolderOfTeam
   };
 };

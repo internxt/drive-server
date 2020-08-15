@@ -7,10 +7,12 @@ const BridgeRoutes = require('~routes/bridge');
 const StripeRoutes = require('~routes/stripe');
 const DesktopRoutes = require('~routes/desktop');
 const MobileRoutes = require('~routes/mobile');
+const TeamsRoutes = require('~routes/teams');
+const TeamsMembersRoutes = require('~routes/teamsMembers');
+const TeamInvitationsRoutes = require('~routes/teamInvitations');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
-const useragent = require('useragent');
 
 const { passportAuth } = passport;
 
@@ -35,6 +37,10 @@ module.exports = (Router, Service, Logger, App) => {
   MobileRoutes(Router, Service, Logger, App);
   // Routes to create, edit and delete the 2-factor-authentication
   TwoFactorRoutes(Router, Service, Logger, App);
+
+  TeamsRoutes(Router, Service, Logger, App);
+  TeamsMembersRoutes(Router, Service, Logger, App);
+  TeamInvitationsRoutes(Router, Service, Logger, App);
 
   /**
    * @swagger
@@ -206,33 +212,15 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: User with this email exists
    */
   Router.post('/register', function (req, res) {
+    console.log(req.body);
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
       // Call user service to find or create user
-      
-
       Service.User.FindOrCreate(req.body)
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            var agent = useragent.parse(req.headers['user-agent']);
-            var client = useragent.parse(req.headers['internxt-client']);
-            if (client && client.source === '') {
-              client.source = 'x-cloud-mobile';
-            }
-
-            Service.Statistics.Insert({
-              name: client.source,
-              user: userData.email,
-              userAgent: agent.source,
-              action: 'register'
-            })
-              .then(() => {})
-              .catch((err) => {
-                console.log('Error creating register statistics:', err);
-              });
-
             // Successfull register
             const token = passport.Sign(
               userData.email,
@@ -272,8 +260,52 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: User needs to be activated
    */
   Router.post('/initialize', function (req, res) {
-    // Call user service to find or create user
-    Service.User.InitializeUser(req.body)
+    const idTeam = req.body.idTeam || null;
+
+    if (idTeam) {
+      Service.Team.getById(idTeam).then((team) => {
+        Service.User.InitializeUser({
+          email: team.bridge_email,
+          mnemonic: team.bridge_password
+        })
+        .then((userData) => {
+          // Creating team parent folder
+          Service.User.FindUserByEmail(team.bridge_email).then((teamUser) => {
+            userData.id = teamUser.id;
+            userData.email = teamUser.email;
+            userData.password = teamUser.password;
+            userData.mnemonic = teamUser.mnemonic;
+            userData.root_folder_id = teamUser.root_folder_id;
+
+            Service.Folder.Create(userData, team.name, userData.root_folder_id, team.id)
+            .then((folder) => {
+
+              Service.TeamsMembers.update({
+                user: team.user,
+                id_team: team.id
+              }).then(() => {
+                res.status(200).send({});
+              }).catch((err) => {
+                res.send(err);
+              });
+
+            }).catch((err) => {
+              console.log(err);
+            });
+
+          }).catch((err) => {
+            console.log(err);
+          });
+        }).catch((err) => {
+          Logger.error(`${err.message}\n${err.stack}`);
+          res.send(err.message);
+        });
+      }).catch((err) => {
+        console.log(err);
+      });
+    } else {
+      // Call user service to find or create user
+      Service.User.InitializeUser(req.body)
       .then((userData) => {
         // Process user data and answer API call
         if (userData.root_folder_id) {
@@ -295,6 +327,7 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(`${err.message}\n${err.stack}`);
         res.send(err.message);
       });
+    }
   });
 
   Router.put('/auth/mnemonic', passportAuth, function (req, res) {

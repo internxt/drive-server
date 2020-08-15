@@ -1,20 +1,39 @@
 const passport = require('~middleware/passport');
 
 const { passportAuth } = passport;
-const session = require('express-session');
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.use(session({
-    secret: process.env.SESSION_KEY,
-    resave: true,
-    saveUninitialized: false,
-    cookie: {}
-  }));
-
   Router.get('/user/isactivated', passportAuth, function (req, res) {
     const user = req.user.email;
 
-    Service.Storj.IsUserActivated(user)
+    Service.Team.getByIdUser(user).then((team) => {
+      Service.Storj.IsUserActivated(user)
+      .then((response) => {
+
+        Service.Storj.IsUserActivated(team.bridge_email)
+          .then((responseTeam) => {
+            if (responseTeam.data) {
+              res.status(200).send({
+                activated: response.data.activated,
+                activatedTeam: responseTeam.data.activated,
+                teamId: team.id
+              });
+            } else {
+              res.status(400).send({ error: 'User activation info not found' });
+            }
+          })
+          .catch((error) => {
+            Logger.error(error.stack);
+            res.status(500).json({ error: error.message });
+          });
+
+      })
+      .catch((error) => {
+        Logger.error(error.stack);
+        res.status(500).json({ error: error.message });
+      });
+    }).catch((err) => { // User has not got a team
+      Service.Storj.IsUserActivated(user)
       .then((response) => {
         if (response.data) {
           res.status(200).send({ activated: response.data.activated });
@@ -26,6 +45,7 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(error.stack);
         res.status(500).json({ error: error.message });
       });
+    });
   });
 
   Router.get('/deactivate', passportAuth, function (req, res) {
@@ -40,20 +60,14 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/reset/:email', function (req, res) {
-    if (!req.session.isEmailSend) {
-      req.session.isEmailSend = true;
-
-      const user = req.params.email.toLowerCase();
-      Service.User.DeactivateUser(user)
-        .then(() => {
-          res.status(200).send();
-        })
-        .catch(() => {
-          res.status(200).send();
-        });  
-    } else {
-      res.status(200).send();
-    }
+    const user = req.params.email.toLowerCase();
+    Service.User.DeactivateUser(user)
+      .then(() => {
+        res.status(200).send();
+      })
+      .catch(() => {
+        res.status(200).send();
+      });
   });
 
   Router.get('/confirmDeactivation/:token', (req, res) => {
@@ -71,10 +85,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/user/resend/:email', (req, res) => {
-    if (!req.session.isEmailSend) {
-      req.session.isEmailSend = true;
-
-      Service.User.ResendActivationEmail(req.params.email)
+    Service.User.ResendActivationEmail(req.params.email)
       .then(() => {
         res.status(200).send({ message: 'ok' });
       })
@@ -86,8 +97,5 @@ module.exports = (Router, Service, Logger, App) => {
               : 'Internal server error',
         });
       });
-    } else {
-      res.status(200).send({ message: 'ok' });
-    }
   });
 };
