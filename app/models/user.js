@@ -68,6 +68,9 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
+      uuid: {
+        type: DataTypes.STRING(36)
+      }
     },
     {
       timestamps: true,
