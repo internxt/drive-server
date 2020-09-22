@@ -69,7 +69,8 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
       },
       uuid: {
-        type: DataTypes.STRING(36)
+        type: DataTypes.STRING(36),
+        unique: true,
       }
     },
     {

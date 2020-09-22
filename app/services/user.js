@@ -1,6 +1,7 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
+const uuid = require('uuid');
 
 const { Op } = sequelize;
 
@@ -49,7 +50,7 @@ module.exports = (Model, App) => {
       throw new Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(function (t) {
+    return Model.users.sequelize.transaction(async function (t) {
       return Model.users
         .findOrCreate({
           where: { email: user.email },
@@ -60,6 +61,7 @@ module.exports = (Model, App) => {
             mnemonic: user.mnemonic,
             hKey: userSalt,
             referral: user.referral,
+            uuid: uuid.v4()
           },
           transaction: t,
         })
@@ -88,8 +90,9 @@ module.exports = (Model, App) => {
             }
 
             log.info(
-              'User Service | created brigde user: %s',
-              userResult.email
+              'User Service | created brigde user: %s with uuid: %s',
+              userResult.email,
+              userResult.uuid
             );
 
             const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
