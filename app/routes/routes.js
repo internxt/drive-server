@@ -167,6 +167,8 @@ module.exports = (Router, Service, Logger, App) => {
               storeMnemonic: userData.storeMnemonic,
               name: userData.name,
               lastname: userData.lastname,
+              uuid: userData.uuid,
+              credit: userData.credit
             },
             token,
           });
@@ -335,6 +337,25 @@ module.exports = (Router, Service, Logger, App) => {
       })
       .catch((err) => {
         console.log(err);
+        res.status(500).send(err);
+      });
+  });
+
+  Router.post('/user/claim', function (req, res) {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    req.body.email = req.body.email.toLowerCase();
+    const msg = {
+      to: 'hello@internxt.com',
+      from: req.body.email,
+      subject: 'New credit request',
+      text: 'Hello Internxt! I am ready to receive my credit for referring friends.'
+    };
+    sgMail
+      .send(msg)
+      .then((mail) => {
+        res.status(200).send({});
+      })
+      .catch((err) => {
         res.status(500).send(err);
       });
   });
