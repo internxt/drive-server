@@ -5,7 +5,8 @@ const uuid = require('uuid');
 
 const { Op } = sequelize;
 
-const SYNC_KEEPALIVE_INTERVAL_MS = 30000;
+const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
+const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -238,7 +239,13 @@ module.exports = (Model, App) => {
   };
 
   const DeactivateUser = (email) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      const shouldSend = await ShouldSendEmail(email);
+
+      if (!shouldSend) {
+        return resolve(); // noop
+      }
+
       Model.users
         .findOne({ where: { email: { [Op.eq]: email } } })
         .then((user) => {
@@ -321,6 +328,7 @@ module.exports = (Model, App) => {
   };
 
   const ResetPassword = (email) => {
+    // TODO: Reset password should check ShouldSendEmail
     return new Promise((resolve, reject) => {
       Model.user
         .findOne({ where: { email: { [Op.eq]: email } } })
@@ -433,24 +441,43 @@ module.exports = (Model, App) => {
     });
   };
 
-  const ResendActivationEmail = (user) => {
+  const ShouldSendEmail = (email) => {
     return new Promise((resolve, reject) => {
+      Model.users.findOne({ where: { email: { [Op.eq]: email } } })
+        .then((user) => {
+          if (!user.lastResend) {
+            return resolve(true); // Field is null, send email
+          }
+          const dateDiff = new Date() - user.lastResend;
+          resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL)
+        }).catch(reject);
+    })
+  }
+
+  const SetEmailSended = (email) => {
+    return Model.users.update({
+      lastResend: new Date()
+    }, { where: { email: { [Op.eq]: email } } });
+  }
+
+  const ResendActivationEmail = (user) => {
+    return new Promise(async (resolve, reject) => {
+      const shouldSend = await ShouldSendEmail(user);
+      if (shouldSend) {
+        return resolve(); // noop
+      }
+      SetEmailSended(user);
       axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
         email: user,
       }).then((res) => resolve())
         .catch(reject);
+
     });
   };
 
   const UpdateAccountActivity = (user) => {
     return new Promise((resolve, reject) => {
-      Model.users
-        .update(
-          {
-            updated_at: new Date(),
-          },
-          { where: { email: user } }
-        )
+      Model.users.update({ updated_at: new Date() }, { where: { email: user } })
         .then((res) => {
           resolve();
         })
