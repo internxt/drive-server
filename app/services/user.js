@@ -62,7 +62,9 @@ module.exports = (Model, App) => {
             mnemonic: user.mnemonic,
             hKey: userSalt,
             referral: user.referral,
-            uuid: uuid.v4()
+            uuid: uuid.v4(),
+            referred: user.referred,
+            credit: 0
           },
           transaction: t,
         })
