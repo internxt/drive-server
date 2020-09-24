@@ -360,31 +360,5 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/inxt/buy', function (req, res) {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const msg = {
-      to: 'hello@internxt.com',
-      from: 'hello@internxt.com',
-      subject: 'New crypto INXT request',
-      text: 'new crypto inxt request',
-      html: `<ul>
-        <li>Deposit: ${req.body.deposit}</li>
-        <li>Currency: ${req.body.currency}</li>
-        <li>Receive: ${req.body.receive}</li>
-        <li>Currency Receive: ${req.body.currencyReceived}</li>
-        <li>Receiving Address: ${req.body.receivingAddress}</li>
-        <li>Internxt Address: ${req.body.internxtAddress}</li>
-      </ul>`,
-    };
-    sgMail
-      .send(msg)
-      .then((mail) => {
-        res.status(200).send({});
-      })
-      .catch((err) => {
-        res.status(500).send(err);
-      });
-  });
-
   return Router;
 };
