@@ -243,8 +243,11 @@ module.exports = (Model, App) => {
       const shouldSend = await ShouldSendEmail(email);
 
       if (!shouldSend) {
+        log.info('Do not resend deactivation email to %s', email)
         return resolve(); // noop
       }
+
+      SetEmailSended(email);
 
       Model.users
         .findOne({ where: { email: { [Op.eq]: email } } })
