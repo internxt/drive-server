@@ -75,7 +75,14 @@ module.exports = (sequelize, DataTypes) => {
       lastResend: {
         type: DataTypes.DATE,
         allowNull: true
-      }
+      },
+      referred: {
+        type: DataTypes.STRING
+      },
+      credit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+      },
     },
     {
       timestamps: true,
