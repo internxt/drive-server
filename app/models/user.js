@@ -71,6 +71,10 @@ module.exports = (sequelize, DataTypes) => {
       uuid: {
         type: DataTypes.STRING(36),
         unique: true,
+      },
+      lastResend: {
+        type: DataTypes.DATE,
+        allowNull: true
       }
     },
     {
