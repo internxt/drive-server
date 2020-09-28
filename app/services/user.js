@@ -212,6 +212,20 @@ module.exports = (Model, App) => {
     });
   };
 
+  const FindUsersByReferred = (referredUuid) => {
+    return new Promise((resolve, reject) => {
+      Model.users
+        .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
+        .then((response) => {
+          if (response.length > 0) {
+            let users = response.dataValues.toString;
+            resolve(users);
+          } 
+        })
+        .catch((err) => reject(err));
+    });
+  };
+
   const FindUserObjByEmail = (email) =>
     Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
@@ -566,6 +580,7 @@ module.exports = (Model, App) => {
     GetUserById,
     FindUserByEmail,
     FindUserObjByEmail,
+    FindUsersByReferred,
     InitializeUser,
     GetUsersRootFolder,
     DeactivateUser,

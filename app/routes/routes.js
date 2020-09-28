@@ -341,7 +341,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/user/claim', function (req, res) {
+  Router.post('/user/claim', passportAuth, function (req, res) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     req.body.email = req.body.email.toLowerCase();
     const msg = {
@@ -359,6 +359,30 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send(err);
       });
   });
+
+  Router.post('/user/invite', passportAuth, function (req, res) {
+    const email = req.body.email;
+    console.log(email)
+    Service.Mail.sendInvitationMail(email, req.user).then(() => {
+      console.log("mensaje enviado")
+      res.status(200).send({})
+    }).catch(() => {
+      res.status(500).send({})
+    })
+  });
+
+  Router.get('/user/referred/:uuid', passportAuth, function (req, res) {
+    const uuid = req.params.uuid;
+    Service.User.FindUsersByReferred(uuid)
+      .then( (users) => {
+        if (users.length == 0) {
+          return res.status(200).send({});
+        }
+      }).catch((message) => {
+        Logger.error(message);
+        res.status(500).send({ error: 'No users' })
+      });
+  })
 
   return Router;
 };
