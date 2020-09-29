@@ -212,7 +212,7 @@ module.exports = (Router, Service, Logger, App) => {
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
       // Call user service to find or create user
-      
+
 
       Service.User.FindOrCreate(req.body)
         .then((userData) => {
@@ -230,7 +230,7 @@ module.exports = (Router, Service, Logger, App) => {
               userAgent: agent.source,
               action: 'register'
             })
-              .then(() => {})
+              .then(() => { })
               .catch((err) => {
                 console.log('Error creating register statistics:', err);
               });
@@ -362,27 +362,30 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.post('/user/invite', passportAuth, function (req, res) {
     const email = req.body.email;
-    console.log(email)
     Service.Mail.sendInvitationMail(email, req.user).then(() => {
-      console.log("mensaje enviado")
+      Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
       res.status(200).send({})
     }).catch(() => {
       res.status(500).send({})
     })
   });
 
-  Router.get('/user/referred/:uuid', passportAuth, function (req, res) {
-    const uuid = req.params.uuid;
+  Router.get('/user/referred', passportAuth, function (req, res) {
+    const uuid = req.user.uuid;
     Service.User.FindUsersByReferred(uuid)
-      .then( (users) => {
-        if (users.length == 0) {
-          return res.status(200).send({});
-        }
+      .then((users) => {
+        return res.status(200).send({ total: users });
       }).catch((message) => {
         Logger.error(message);
         res.status(500).send({ error: 'No users' })
       });
   })
+
+  Router.get('/user/credit', passportAuth, function (req, res) {
+    const user = req.user;
+    return res.status(200).send({ userCredit: user.credit });
+  })
+
 
   return Router;
 };

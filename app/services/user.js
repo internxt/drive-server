@@ -217,10 +217,7 @@ module.exports = (Model, App) => {
       Model.users
         .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
         .then((response) => {
-          if (response.length > 0) {
-            let users = response.dataValues.toString;
-            resolve(users);
-          } 
+            resolve(response.length);
         })
         .catch((err) => reject(err));
     });
@@ -228,6 +225,12 @@ module.exports = (Model, App) => {
 
   const FindUserObjByEmail = (email) =>
     Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+
+
+  const GetUserCredit = (uuid) =>
+    Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } }).then((response) => {
+      return response.dataValues;
+  });
 
   const GetUsersRootFolder = (id) =>
     Model.users
@@ -582,6 +585,7 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     FindUsersByReferred,
     InitializeUser,
+    GetUserCredit,
     GetUsersRootFolder,
     DeactivateUser,
     ConfirmDeactivateUser,
