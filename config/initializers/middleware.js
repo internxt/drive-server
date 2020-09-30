@@ -10,16 +10,20 @@ const rateLimit = require('express-rate-limit');
 module.exports = (App, Config) => {
   // use helmet
   App.express.use(helmet());
-  
+
   // Disable X-Powered-By
   App.express.disable('x-powered-by');
 
   // Rate limiter
-  const apiLimiter = rateLimit({
-    windowMs: 5 * 1000,
+  App.express.use('/api/user/claim', rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
     max: 1
-  });
-  App.express.use('/api/user/claim', apiLimiter);
+  }));
+
+  App.express.use('/api/user/invite', rateLimit({
+    windowMs: 60 * 1000,
+    max: 1
+  }));
 
   // enables cors
   App.express.use(
