@@ -362,11 +362,23 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.post('/user/invite', passportAuth, function (req, res) {
     const email = req.body.email;
-    Service.Mail.sendInvitationMail(email, req.user).then(() => {
-      Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
+
+    Service.User.FindUserObjByEmail(email).then((user) => {
+      if (user === null) {
+        Service.Mail.sendInvitationMail(email, req.user).then(() => {
+          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
+          res.status(200).send({})
+        }).catch((err) => {
+          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email)
+          res.status(200).send({})
+        })
+      } else {
+        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email)
+        res.status(200).send({})
+      }
+    }).catch((err) => {
+      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message)
       res.status(200).send({})
-    }).catch(() => {
-      res.status(500).send({})
     })
   });
 
