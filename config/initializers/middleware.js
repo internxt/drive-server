@@ -3,9 +3,24 @@ const cors = require('cors');
 const Passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 module.exports = (App, Config) => {
+  // use helmet
+  App.express.use(helmet());
+  
+  // Disable X-Powered-By
+  App.express.disable('x-powered-by');
+
+  // Rate limiter
+  const apiLimiter = rateLimit({
+    windowMs: 5 * 1000,
+    max: 1
+  });
+  App.express.use('/api/user/claim', apiLimiter);
+
   // enables cors
   App.express.use(
     cors({
@@ -56,7 +71,10 @@ module.exports = (App, Config) => {
 
       App.services.User.FindUserObjByEmail(email)
         .then((user) => done(null, user))
-        .catch(done);
+        .catch((err) => {
+          console.log('Unauthorized %s', email)
+          done(err)
+        });
     }),
   );
 
