@@ -38,6 +38,8 @@ module.exports = (Model, App) => {
   };
 
   const FindOrCreate = (user) => {
+
+    console.log(user)
     // Create password hashed pass only when a pass is given
     const userPass = user.password
       ? App.services.Crypt.decryptText(user.password)
@@ -46,10 +48,15 @@ module.exports = (Model, App) => {
       ? App.services.Crypt.decryptText(user.salt)
       : null;
 
+
+       
+
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
       throw new Error('Wrong user registration data');
     }
+
+    
 
     return Model.users.sequelize.transaction(async function (t) {
       return Model.users
@@ -64,7 +71,7 @@ module.exports = (Model, App) => {
             referral: user.referral,
             uuid: uuid.v4(),
             referred: user.referred,
-            credit: 0
+            credit: user.credit
           },
           transaction: t,
         })
@@ -211,6 +218,11 @@ module.exports = (Model, App) => {
         .catch((err) => reject(err));
     });
   };
+
+  const FindUserByUuid = (uuid) => {
+    console.log(uuid)
+    return Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } })
+  }
 
   const FindUsersByReferred = (referredUuid) => {
     return new Promise((resolve, reject) => {
@@ -583,6 +595,7 @@ module.exports = (Model, App) => {
     GetUserById,
     FindUserByEmail,
     FindUserObjByEmail,
+    FindUserByUuid,
     FindUsersByReferred,
     InitializeUser,
     GetUserCredit,

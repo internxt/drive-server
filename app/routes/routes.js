@@ -11,6 +11,7 @@ const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
 const useragent = require('useragent');
+const uuid = require('uuid');
 
 const { passportAuth } = passport;
 
@@ -207,14 +208,31 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User with this email exists
    */
-  Router.post('/register', function (req, res) {
+  Router.post('/register', async function (req, res) {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
+      
+      const newUser = req.body;
+      newUser.credit = 0;
+
+      const referral = req.body.referral;
+      
+      if (uuid.validate(referral)) {
+        await Service.User
+          .FindUserByUuid(referral)
+          .then((userData) => {
+            if (userData === null) { // Don't exists referral user
+              console.log("No existe la uuid de referencia");
+            } else {
+              newUser.credit = 5;
+            }
+          })
+          .catch((err) => console.log(err));
+      }
+
       // Call user service to find or create user
-
-
-      Service.User.FindOrCreate(req.body)
+      Service.User.FindOrCreate(newUser)
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
