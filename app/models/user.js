@@ -68,6 +68,21 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true,
       },
+      uuid: {
+        type: DataTypes.STRING(36),
+        unique: true,
+      },
+      lastResend: {
+        type: DataTypes.DATE,
+        allowNull: true
+      },
+      referred: {
+        type: DataTypes.STRING
+      },
+      credit: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0
+      },
     },
     {
       timestamps: true,

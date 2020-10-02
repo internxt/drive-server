@@ -6,10 +6,12 @@ module.exports = (config, Logger) => {
     host: config.host,
     dialect: 'mysql',
     operatorsAliases: 0,
-    // logging: Logger.sql,
-    logging: console.log,
-    logging: function (str) {
-      // do your own logging
+    logging: Logger.sql,
+    pool: {
+      max: 20,
+      min: 0,
+      acquire: 60000,
+      idle: 10000
     }
   });
 

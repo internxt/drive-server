@@ -9,7 +9,7 @@
     "source.fixAll.eslint": true
   },
   "[javascript]": {
-    "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "javascript.updateImportsOnFileMove.enabled": "always",
   "prettier.ignorePath": ".prettierignore",

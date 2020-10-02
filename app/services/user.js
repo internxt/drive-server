@@ -1,10 +1,13 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
+const uuid = require('uuid');
+const { Sequelize } = require('sequelize');
 
 const { Op } = sequelize;
 
-const SYNC_KEEPALIVE_INTERVAL_MS = 30000;
+const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
+const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -44,6 +47,9 @@ module.exports = (Model, App) => {
       ? App.services.Crypt.decryptText(user.salt)
       : null;
 
+
+       
+
     // Throw error when user email. pass, salt or mnemonic is missing
 
     if (!isTeamAccount) {
@@ -58,7 +64,7 @@ module.exports = (Model, App) => {
 
     
 
-    return Model.users.sequelize.transaction(function (t) {
+    return Model.users.sequelize.transaction(async function (t) {
       return Model.users
         .findOrCreate({
           where: { email: user.email },
@@ -69,6 +75,9 @@ module.exports = (Model, App) => {
             mnemonic: user.mnemonic,
             hKey: userSalt,
             referral: user.referral,
+            uuid: uuid.v4(),
+            referred: user.referred,
+            credit: user.credit
           },
           transaction: t,
         })
@@ -97,8 +106,9 @@ module.exports = (Model, App) => {
             }
 
             log.info(
-              'User Service | created brigde user: %s',
-              userResult.email
+              'User Service | created brigde user: %s with uuid: %s',
+              userResult.email,
+              userResult.uuid
             );
 
             const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
@@ -215,8 +225,30 @@ module.exports = (Model, App) => {
     });
   };
 
+  const FindUserByUuid = (uuid) => {
+    console.log(uuid)
+    return Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } })
+  }
+
+  const FindUsersByReferred = (referredUuid) => {
+    return new Promise((resolve, reject) => {
+      Model.users
+        .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
+        .then((response) => {
+            resolve(response);
+        })
+        .catch((err) => reject(err));
+    });
+  };
+
   const FindUserObjByEmail = (email) =>
     Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+
+
+  const GetUserCredit = (uuid) =>
+    Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } }).then((response) => {
+      return response.dataValues;
+  });
 
   const GetUsersRootFolder = (id) =>
     Model.users
@@ -243,8 +275,31 @@ module.exports = (Model, App) => {
     }
   };
 
+  const UpdateCredit = async (userUuid) => {
+    return  await Model.users.update(
+        { credit : Sequelize.literal('credit + 5')},
+        { where: { uuid: { [Op.eq]: userUuid } } }
+      );
+  };
+
+  const DecrementCredit = async (userUuid) => {
+    return  await Model.users.update(
+        { credit : Sequelize.literal('credit - 5')},
+        { where: { uuid: { [Op.eq]: userUuid } } }
+      );
+  };
+
   const DeactivateUser = (email) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+      const shouldSend = await ShouldSendEmail(email);
+
+      if (!shouldSend) {
+        log.info('Do not resend deactivation email to %s', email)
+        return resolve(); // noop
+      }
+
+      SetEmailSended(email);
+
       Model.users
         .findOne({ where: { email: { [Op.eq]: email } } })
         .then((user) => {
@@ -300,6 +355,13 @@ module.exports = (Model, App) => {
               .findOne({ where: { email: { [Op.eq]: userEmail } } })
               .then((user) => {
                 console.log('User found on sql');
+
+                const referralUuid = user.referral;
+                if (uuid.validate(referralUuid)) {
+                  DecrementCredit(referralUuid);
+                  console.log("referral decremented")
+                }
+                
                 user
                   .destroy()
                   .then((result) => {
@@ -327,6 +389,7 @@ module.exports = (Model, App) => {
   };
 
   const ResetPassword = (email) => {
+    // TODO: Reset password should check ShouldSendEmail
     return new Promise((resolve, reject) => {
       Model.user
         .findOne({ where: { email: { [Op.eq]: email } } })
@@ -432,42 +495,50 @@ module.exports = (Model, App) => {
 
   const LoginFailed = (user, loginFailed) => {
     return new Promise((resolve, reject) => {
-      Model.users
-        .update(
-          {
-            errorLoginCount: loginFailed
-              ? sequelize.literal('error_login_count + 1')
-              : 0,
-          },
-          { where: { email: user } }
-        )
-        .then((res) => {
-          resolve();
-        })
-        .catch(reject);
+      Model.users.update({
+        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0,
+      }, { where: { email: user } }
+      ).then((res) => resolve()).catch(reject);
     });
   };
 
-  const ResendActivationEmail = (user) => {
+  const ShouldSendEmail = (email) => {
     return new Promise((resolve, reject) => {
-      axios
-        .post(`${process.env.STORJ_BRIDGE}/activations`, {
-          email: user,
-        })
-        .then((res) => resolve())
+      Model.users.findOne({ where: { email: { [Op.eq]: email } } })
+        .then((user) => {
+          if (!user.lastResend) {
+            return resolve(true); // Field is null, send email
+          }
+          const dateDiff = new Date() - user.lastResend;
+          resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL)
+        }).catch(reject);
+    })
+  }
+
+  const SetEmailSended = (email) => {
+    return Model.users.update({
+      lastResend: new Date()
+    }, { where: { email: { [Op.eq]: email } } });
+  }
+
+  const ResendActivationEmail = (user) => {
+    return new Promise(async (resolve, reject) => {
+      const shouldSend = await ShouldSendEmail(user);
+      if (shouldSend) {
+        return resolve(); // noop
+      }
+      SetEmailSended(user);
+      axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
+        email: user,
+      }).then((res) => resolve())
         .catch(reject);
+
     });
   };
 
   const UpdateAccountActivity = (user) => {
     return new Promise((resolve, reject) => {
-      Model.users
-        .update(
-          {
-            updated_at: new Date(),
-          },
-          { where: { email: user } }
-        )
+      Model.users.update({ updated_at: new Date() }, { where: { email: user } })
         .then((res) => {
           resolve();
         })
@@ -521,13 +592,13 @@ module.exports = (Model, App) => {
       opts.transaction = t;
     }
 
-    Model.users.update({ syncDate: sync }, opts);
+    await Model.users.update({ syncDate: sync }, opts);
 
     return sync;
   };
 
   const GetOrSetUserSync = async (user) => {
-    const t = Model.users.sequelize.transaction();
+    const t = await Model.users.sequelize.transaction();
     const currentSync = await GetUserSync(user, t);
     const userSyncEnded = hasUserSyncEnded(currentSync);
     if (!currentSync || userSyncEnded) {
@@ -539,6 +610,10 @@ module.exports = (Model, App) => {
     return !userSyncEnded;
   };
 
+  const UnlockSync = async (user) => {
+    return await Model.users.update({ syncDate: null }, { where: { email: user.email } });
+  }
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -547,8 +622,13 @@ module.exports = (Model, App) => {
     GetUserById,
     FindUserByEmail,
     FindUserObjByEmail,
+    FindUserByUuid,
+    FindUsersByReferred,
     InitializeUser,
+    GetUserCredit,
     GetUsersRootFolder,
+    UpdateCredit,
+    DecrementCredit,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,
@@ -559,5 +639,6 @@ module.exports = (Model, App) => {
     UpdateAccountActivity,
     GetOrSetUserSync,
     UpdateUserSync,
+    UnlockSync
   };
 };

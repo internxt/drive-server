@@ -13,6 +13,8 @@ const TeamInvitationsRoutes = require('~routes/teamInvitations');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
+const useragent = require('useragent');
+const uuid = require('uuid');
 
 const { passportAuth } = passport;
 
@@ -173,6 +175,8 @@ module.exports = (Router, Service, Logger, App) => {
               storeMnemonic: userData.storeMnemonic,
               name: userData.name,
               lastname: userData.lastname,
+              uuid: userData.uuid,
+              credit: userData.credit
             },
             token,
           });
@@ -211,16 +215,53 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User with this email exists
    */
-  Router.post('/register', function (req, res) {
-    console.log(req.body);
+  Router.post('/register', async function (req, res) {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
+      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For'])
+
+      const newUser = req.body;
+      newUser.credit = 0;
+
+      const referral = req.body.referral;
+      
+      if (uuid.validate(referral)) {
+        await Service.User
+          .FindUserByUuid(referral)
+          .then((userData) => {
+            if (userData === null) { // Don't exists referral user
+              console.log("No existe la uuid de referencia");
+            } else {
+              newUser.credit = 5;
+              Service.User.UpdateCredit(referral);
+            }
+          })
+          .catch((err) => console.log(err));
+      }
+
       // Call user service to find or create user
-      Service.User.FindOrCreate(req.body)
+      Service.User.FindOrCreate(newUser)
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
+            var agent = useragent.parse(req.headers['user-agent']);
+            var client = useragent.parse(req.headers['internxt-client']);
+            if (client && client.source === '') {
+              client.source = 'x-cloud-mobile';
+            }
+
+            Service.Statistics.Insert({
+              name: client.source,
+              user: userData.email,
+              userAgent: agent.source,
+              action: 'register'
+            })
+              .then(() => { })
+              .catch((err) => {
+                console.log('Error creating register statistics:', err);
+              });
+
             // Successfull register
             const token = passport.Sign(
               userData.email,
@@ -372,21 +413,14 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/inxt/buy', function (req, res) {
+  Router.post('/user/claim', passportAuth, function (req, res) {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    req.body.email = req.body.email.toLowerCase();
     const msg = {
       to: 'hello@internxt.com',
-      from: 'hello@internxt.com',
-      subject: 'New crypto INXT request',
-      text: 'new crypto inxt request',
-      html: `<ul>
-        <li>Deposit: ${req.body.deposit}</li>
-        <li>Currency: ${req.body.currency}</li>
-        <li>Receive: ${req.body.receive}</li>
-        <li>Currency Receive: ${req.body.currencyReceived}</li>
-        <li>Receiving Address: ${req.body.receivingAddress}</li>
-        <li>Internxt Address: ${req.body.internxtAddress}</li>
-      </ul>`,
+      from: req.body.email,
+      subject: 'New credit request',
+      text: 'Hello Internxt! I am ready to receive my credit for referring friends.'
     };
     sgMail
       .send(msg)
@@ -397,6 +431,49 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send(err);
       });
   });
+
+  Router.post('/user/invite', passportAuth, function (req, res) {
+    const email = req.body.email;
+
+    Service.User.FindUserObjByEmail(email).then((user) => {
+      if (user === null) {
+        Service.Mail.sendInvitationMail(email, req.user).then(() => {
+          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
+          res.status(200).send({})
+        }).catch((err) => {
+          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email)
+          res.status(200).send({})
+        })
+      } else {
+        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email)
+        res.status(200).send({})
+      }
+    }).catch((err) => {
+      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message)
+      res.status(200).send({})
+    })
+  });
+
+  Router.get('/user/referred', passportAuth, function (req, res) {
+
+     const uuid = req.user.uuid;
+
+    Service.User.FindUsersByReferred(uuid)
+      .then((users) => {
+        return res.status(200).send({ total: users });
+      }).catch((message) => {
+        Logger.error(message);
+        res.status(500).send({ error: 'No users' })
+      });
+  })
+
+  
+
+  Router.get('/user/credit', passportAuth, function (req, res) {
+    const user = req.user;
+    return res.status(200).send({ userCredit: user.credit });
+  })
+
 
   return Router;
 };

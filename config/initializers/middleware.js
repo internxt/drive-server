@@ -3,8 +3,28 @@ const cors = require('cors');
 const Passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
 const { ExtractJwt } = require('passport-jwt');
+const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 module.exports = (App, Config) => {
+  // use helmet
+  App.express.use(helmet());
+
+  // Disable X-Powered-By
+  App.express.disable('x-powered-by');
+
+  // Rate limiter
+  App.express.use('/api/user/claim', rateLimit({
+    windowMs: 24 * 60 * 60 * 1000,
+    max: 1
+  }));
+
+  App.express.use('/api/user/invite', rateLimit({
+    windowMs: 60 * 1000,
+    max: 1
+  }));
+
   // enables cors
   App.express.use(
     cors({
@@ -55,7 +75,10 @@ module.exports = (App, Config) => {
 
       App.services.User.FindUserObjByEmail(email)
         .then((user) => done(null, user))
-        .catch(done);
+        .catch((err) => {
+          console.log('Unauthorized %s', email)
+          done(err)
+        });
     }),
   );
 
@@ -64,20 +87,22 @@ module.exports = (App, Config) => {
    * Prints in console the used endpoints in real time.
    */
   App.express.use(function (req, res, next) {
-    if (req.hostname === 'cloud.internxt.com') {
-      App.logger.warn(
-        `[${req.method}${req.headers.authorization ? ` w/AUTH` : ''}] ${
-          req.originalUrl
-        }`,
-      );
-    } else {
-      App.logger.info(
-        `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${
-          req.originalUrl
-        }`,
-      );
-    }
+    let user = null;
+    if (req.headers.authorization) {
+      try {
+        const x = jwt.decode(req.headers.authorization.split(" ")[1])
+        if (x.email) {
+          user = x.email
+        } else {
+          user = x
+        }
+      } catch (e) {
 
+      }
+    }
+    App.logger.info(
+      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? '\t' + user : ''}`,
+    );
     next();
   });
 };

@@ -122,7 +122,8 @@ module.exports = (Model, App) => {
         filename: fileName,
         progressCallback(progress, uploadedBytes, totalBytes) {
           log.info(
-            '[NODE-LIB storeFile] Upload Progress: %s/%s (%s)',
+            '[NODE-LIB %s] Upload Progress: %s/%s (%s)',
+            user.email,
             uploadedBytes,
             totalBytes,
             progress
@@ -163,7 +164,8 @@ module.exports = (Model, App) => {
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           log.info(
-            '[NODE-LIB] Download file progress: %s/%s (%s)',
+            '[NODE-LIB %s] Download file progress: %s/%s (%s)',
+            user.email,
             downloadedBytes,
             totalBytes,
             progress
@@ -171,13 +173,13 @@ module.exports = (Model, App) => {
         },
         finishedCallback: (err) => {
           if (err) {
-            log.error('[NODE-LIB] 1. Error resolving file:', err);
+            log.error('[NODE-LIB %s] 1. Error resolving file: %s', user.email, err.message);
             reject(err);
           } else {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            log.info('[NODE-LIB] File resolved!');
+            log.info('[NODE-LIB %s] File resolved!', user.email);
             resolve({ filestream, mimetype, downloadFile });
             storj.destroy();
           }
