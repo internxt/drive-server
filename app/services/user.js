@@ -277,6 +277,13 @@ module.exports = (Model, App) => {
       );
   };
 
+  const DecrementCredit = async (userUuid) => {
+    return  await Model.users.update(
+        { credit : Sequelize.literal('credit - 5')},
+        { where: { uuid: { [Op.eq]: userUuid } } }
+      );
+  };
+
   const DeactivateUser = (email) => {
     return new Promise(async (resolve, reject) => {
       const shouldSend = await ShouldSendEmail(email);
@@ -343,6 +350,13 @@ module.exports = (Model, App) => {
               .findOne({ where: { email: { [Op.eq]: userEmail } } })
               .then((user) => {
                 console.log('User found on sql');
+
+                const referralUuid = user.referral;
+                if (uuid.validate(referralUuid)) {
+                  DecrementCredit(referralUuid);
+                  console.log("referral decremented")
+                }
+                
                 user
                   .destroy()
                   .then((result) => {
@@ -609,6 +623,7 @@ module.exports = (Model, App) => {
     GetUserCredit,
     GetUsersRootFolder,
     UpdateCredit,
+    DecrementCredit,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,
