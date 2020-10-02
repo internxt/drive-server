@@ -212,7 +212,8 @@ module.exports = (Router, Service, Logger, App) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
-      
+      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For'])
+
       const newUser = req.body;
       newUser.credit = 0;
 

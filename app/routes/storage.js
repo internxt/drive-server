@@ -179,7 +179,7 @@ module.exports = (Router, Service, Logger, App) => {
         })
         .catch((err) => {
           Logger.error(`${err.message}\n${err.stack}`);
-          if (err.includes('Bridge rate limit error')) {
+          if (err.includes && err.includes('Bridge rate limit error')) {
             res.status(402).json({ message: err });
 
             return;
