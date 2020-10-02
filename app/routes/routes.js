@@ -226,6 +226,7 @@ module.exports = (Router, Service, Logger, App) => {
               console.log("No existe la uuid de referencia");
             } else {
               newUser.credit = 5;
+              Service.User.UpdateCredit(referral);
             }
           })
           .catch((err) => console.log(err));
@@ -401,7 +402,9 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/user/referred', passportAuth, function (req, res) {
-    const uuid = req.user.uuid;
+
+     const uuid = req.user.uuid;
+
     Service.User.FindUsersByReferred(uuid)
       .then((users) => {
         return res.status(200).send({ total: users });
@@ -410,6 +413,8 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({ error: 'No users' })
       });
   })
+
+  
 
   Router.get('/user/credit', passportAuth, function (req, res) {
     const user = req.user;

@@ -2,6 +2,7 @@ const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
+const { Sequelize } = require('sequelize');
 
 const { Op } = sequelize;
 
@@ -229,7 +230,7 @@ module.exports = (Model, App) => {
       Model.users
         .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
         .then((response) => {
-            resolve(response.length);
+            resolve(response);
         })
         .catch((err) => reject(err));
     });
@@ -267,6 +268,13 @@ module.exports = (Model, App) => {
     } else {
       return null;
     }
+  };
+
+  const UpdateCredit = async (userUuid) => {
+    return  await Model.users.update(
+        { credit : Sequelize.literal('credit + 5')},
+        { where: { uuid: { [Op.eq]: userUuid } } }
+      );
   };
 
   const DeactivateUser = (email) => {
@@ -600,6 +608,7 @@ module.exports = (Model, App) => {
     InitializeUser,
     GetUserCredit,
     GetUsersRootFolder,
+    UpdateCredit,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,
