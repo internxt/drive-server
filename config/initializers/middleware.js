@@ -25,6 +25,14 @@ module.exports = (App, Config) => {
     max: 1
   }));
 
+  const tenMinutesLimit = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 1
+  })
+
+  App.express.use('/api/storage/share/', tenMinutesLimit);
+  App.express.use('/api/storage/file/', tenMinutesLimit);
+
   // enables cors
   App.express.use(
     cors({
