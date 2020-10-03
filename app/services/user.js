@@ -40,7 +40,7 @@ module.exports = (Model, App) => {
 
   const FindOrCreate = (user) => {
 
-    console.log(user)
+  
     // Create password hashed pass only when a pass is given
     const userPass = user.password
       ? App.services.Crypt.decryptText(user.password)
@@ -221,7 +221,6 @@ module.exports = (Model, App) => {
   };
 
   const FindUserByUuid = (uuid) => {
-    console.log(uuid)
     return Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } })
   }
 
