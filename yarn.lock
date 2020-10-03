@@ -5954,7 +5954,7 @@ stealthy-require@^1.1.1:
   resolved "https://registry.yarnpkg.com/stealthy-require/-/stealthy-require-1.1.1.tgz#35b09875b4ff49f26a777e509b3090a3226bf24b"
   integrity sha1-NbCYdbT/SfJqd35QmzCQoyJr8ks=
 
-storj-service-mailer@internxt/mailer:
+"storj-service-mailer@github:internxt/mailer":
   version "1.4.0"
   resolved "https://codeload.github.com/internxt/mailer/tar.gz/eefadb826879b88e815d0c7d1da29a9d1ea5247c"
   dependencies:
