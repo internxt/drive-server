@@ -6,6 +6,7 @@ const { ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
 
 module.exports = (App, Config) => {
   // use helmet
@@ -22,16 +23,18 @@ module.exports = (App, Config) => {
 
   App.express.use('/api/user/invite', rateLimit({
     windowMs: 60 * 1000,
-    max: 1
+    max: 10
   }));
 
-  const tenMinutesLimit = rateLimit({
-    windowMs: 10 * 60 * 1000,
-    max: 1
+  var downloadLimiter = slowDown({
+    delayAfter: 2,
+    delayMs: 10000,
+    maxDelayMs: 20000,
+    skipFailedRequests: true
   })
 
-  App.express.use('/api/storage/share/', tenMinutesLimit);
-  App.express.use('/api/storage/file/', tenMinutesLimit);
+  App.express.use('/api/storage/share/', downloadLimiter);
+  App.express.use('/api/storage/file/', downloadLimiter);
 
   // enables cors
   App.express.use(
