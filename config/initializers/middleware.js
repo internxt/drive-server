@@ -15,6 +15,14 @@ module.exports = (App, Config) => {
   // Disable X-Powered-By
   App.express.disable('x-powered-by');
 
+  var limiterKeyGenerator = function (req) {
+    if (req.user && req.user.email) {
+      return req.user.email;
+    } else {
+      return req.headers['X-Forwarded-For'] || req.ip;
+    }
+  }
+
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
     windowMs: 24 * 60 * 60 * 1000,
@@ -23,14 +31,16 @@ module.exports = (App, Config) => {
 
   App.express.use('/api/user/invite', rateLimit({
     windowMs: 60 * 1000,
-    max: 10
+    max: 10,
+    keyGenerator: limiterKeyGenerator
   }));
 
   var downloadLimiter = slowDown({
     delayAfter: 2,
     delayMs: 10000,
     maxDelayMs: 20000,
-    skipFailedRequests: true
+    skipFailedRequests: true,
+    keyGenerator: limiterKeyGenerator
   })
 
   App.express.use('/api/storage/share/', downloadLimiter);
