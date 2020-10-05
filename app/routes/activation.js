@@ -23,9 +23,6 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/deactivate', passportAuth, function (req, res) {
     const user = req.user.email;
 
-
-    console.log(user.credit);
-
     Service.User.DeactivateUser(user)
       .then((bridgeRes) => {
         res.status(200).send({ error: null, message: 'User deactivated' });

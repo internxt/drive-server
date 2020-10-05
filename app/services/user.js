@@ -270,6 +270,7 @@ module.exports = (Model, App) => {
   };
 
   const UpdateCredit = async (userUuid) => {
+    Logger.info("€5 added to ", referral);
     return  await Model.users.update(
         { credit : Sequelize.literal('credit + 5')},
         { where: { uuid: { [Op.eq]: userUuid } } }
@@ -277,6 +278,7 @@ module.exports = (Model, App) => {
   };
 
   const DecrementCredit = async (userUuid) => {
+    Logger.info("€5 decremented to ", referralUuid)
     return  await Model.users.update(
         { credit : Sequelize.literal('credit - 5')},
         { where: { uuid: { [Op.eq]: userUuid } } }
@@ -353,8 +355,7 @@ module.exports = (Model, App) => {
                 const referralUuid = user.referral;
                 if (uuid.validate(referralUuid)) {
                   DecrementCredit(referralUuid);
-                  console.log("referral decremented")
-                }
+                } 
                 
                 user
                   .destroy()
