@@ -226,7 +226,6 @@ module.exports = (Model, App) => {
   };
 
   const FindUserByUuid = (uuid) => {
-    console.log(uuid)
     return Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } })
   }
 
