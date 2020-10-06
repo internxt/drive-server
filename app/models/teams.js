@@ -8,11 +8,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         autoIncrement: true,
       },
-      user: DataTypes.STRING,
+      admin: DataTypes.STRING,
       name: DataTypes.STRING,
       bridge_user: DataTypes.STRING,
       bridge_password: DataTypes.STRING,
-      bridge_email: DataTypes.STRING
+      bridge_mnemonic: DataTypes.STRING
     },
     {
       timestamps: false,

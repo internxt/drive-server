@@ -10,7 +10,7 @@ module.exports = (Router, Service, Logger, App) => {
       Service.Storj.IsUserActivated(user)
       .then((response) => {
 
-        Service.Storj.IsUserActivated(team.bridge_email)
+        Service.Storj.IsUserActivated(team.bridge_user)
           .then((responseTeam) => {
             if (responseTeam.data) {
               res.status(200).send({

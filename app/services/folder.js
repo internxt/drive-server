@@ -325,8 +325,7 @@ module.exports = (Model, App) => {
 
       const teamMember = await Model.teams_members.findOne({
         where: {
-          user: { [Op.eq]: user.email },
-          is_active: { [Op.eq]: true }
+          user: { [Op.eq]: user.email }
         }
       });
 

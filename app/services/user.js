@@ -140,9 +140,11 @@ module.exports = (Model, App) => {
 
   const InitializeUser = (user) => {
     return Model.users.sequelize.transaction(function (t) {
+      console.log('user email', user)
       return Model.users
         .findOne({ where: { email: { [Op.eq]: user.email } } })
         .then(async (userData) => {
+          console.log(userData)
           if (userData.root_folder_id) {
             userData.mnemonic = user.mnemonic;
 

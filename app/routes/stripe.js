@@ -80,7 +80,6 @@ module.exports = (Router, Service, Logger, App) => {
             next(null, {});
           } else {
             const { customer, subscription } = payload;
-            console.debug('Payload', subscription);
 
             if (subscription) {
               // Delete subscription (must be improved in the future)
@@ -159,12 +158,13 @@ module.exports = (Router, Service, Logger, App) => {
               if (!userData.isCreated) {
                 next({ message: 'This account already exists' });
               } else {
+                console.log(userData)
                 Service.Team.create({
                   name: 'My team',
-                  user: user,
-                  bridge_user: userData.userId,
+                  admin: user,
+                  bridge_user: userData.email,
                   bridge_password: userData.mnemonic,
-                  bridge_email: userData.email
+                  bridge_mnemonic: userData.email
                 }).then(team => {
 
                   // Service.TeamsMembers.save(

@@ -10,8 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       id_team: DataTypes.INTEGER,
       user: DataTypes.STRING,
-      token: DataTypes.STRING,
-      is_used: DataTypes.BOOLEAN
+      token: DataTypes.STRING
     },
     {
       timestamps: false

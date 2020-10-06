@@ -16,11 +16,11 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       Model.teams
       .create({
-        user: team.user,
+        admin: team.user,
         name: team.name,
         bridge_user: team.bridge_user,
         bridge_password: team.bridge_password,
-        bridge_email: team.bridge_email
+        bridge_email: team.bridge_user
       })
       .then((newTeam) => {
         resolve({ team: newTeam });
@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       Model.teams
         .findOne({
-          where: { user: { [Op.eq]: user } },
+          where: { admin: { [Op.eq]: user } },
         })
         .then((team) => {
           if (team) {

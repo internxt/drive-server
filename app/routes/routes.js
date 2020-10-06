@@ -306,12 +306,12 @@ module.exports = (Router, Service, Logger, App) => {
     if (idTeam) {
       Service.Team.getTeamById(idTeam).then((team) => {
         Service.User.InitializeUser({
-          email: team.bridge_email,
+          email: team.bridge_user,
           mnemonic: team.bridge_password
         })
         .then((userData) => {
           // Creating team parent folder
-          Service.User.FindUserByEmail(team.bridge_email).then((teamUser) => {
+          Service.User.FindUserByEmail(team.bridge_user).then((teamUser) => {
             userData.id = teamUser.id;
             userData.email = teamUser.email;
             userData.password = teamUser.password;

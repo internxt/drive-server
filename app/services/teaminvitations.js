@@ -10,7 +10,7 @@ module.exports = (Model, App) => {
           id_team: teamInvitation.idTeam,
           user: teamInvitation.user,
           token: teamInvitation.token,
-          is_used: false
+         
         }).then((newTeamInvitation) => {
           resolve(newTeamInvitation);
         }).catch((err) => {
@@ -37,7 +37,7 @@ module.exports = (Model, App) => {
   const markAsUsed = (teamInvitation) => {
     return new Promise((resolve, reject) => {
       teamInvitation.update({
-        is_used: true
+        
       }).then(() => {
         resolve();
       }).catch((err) => {
@@ -52,7 +52,7 @@ module.exports = (Model, App) => {
         .findOne({
           where: {
             token: { [Op.eq]: token },
-            is_used: { [Op.eq]: false }
+            
           }
         })
         .then((teamInvitation) => {

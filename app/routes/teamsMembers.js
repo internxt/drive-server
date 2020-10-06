@@ -60,8 +60,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/teams-members/:user', passportAuth, function (req, res) {
-    const { user } = req.user;
-
+    const user = req.user;
     Service.TeamsMembers.getTeamByUser(user.email)
     .then(teamMember => {
       res.status(200).json(teamMember);

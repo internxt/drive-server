@@ -29,6 +29,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, function (req, res) {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
+    console.log('ID TEAM',teamId);
 
     Service.Folder.GetContent(folderId, req.user, teamId)
       .then((result) => {
@@ -177,20 +178,24 @@ module.exports = (Router, Service, Logger, App) => {
       const folderId = req.params.id;
 
       Service.Folder.isFolderOfTeam(folderId).then((folder) => {
+        //Comprobamos si el usuario tiene ese email
         Service.TeamsMembers.getTeamByUser(user.email).then((teamMember) => {
+          //Si coincide el team con la carpeta del usuario
           if (folder.id_team == teamMember.id_team) {
             console.log('----- UPLOADING FOR TEAM -------');
+            //Seleccionamos el id del team
             Service.Team.getTeamById(folder.id_team).then(team => {
-              Service.User.FindUserByEmail(team.bridge_email)
+              //Buscamos el email de ese usuario
+              Service.User.FindUserByEmail(team.bridge_user)
                 .then((userData) => {
-
+                  //lo metemos en la base de datos
                   user = {
                     email: team.bridge_email,
                     userId: team.bridge_user,
                     mnemonic: team.bridge_password,
                     root_folder_id: userData.root_folder_id
                   }
-    
+                  
                   Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
                     .then((result) => {
                       res.status(201).json(result);
@@ -330,6 +335,7 @@ module.exports = (Router, Service, Logger, App) => {
 
     let filePath;
 
+    //PARA DESCARGAS
     Service.Files.isFileOfTeamFolder(fileIdInBucket).then((file) => {
       Service.Team.getTeamById(file.folder.id_team).then(team => {
         Service.TeamsMembers.getTeamByUser(user.email).then((teamMember) => {

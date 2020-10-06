@@ -18,7 +18,7 @@ module.exports = (Router, Service, Logger, App) => {
             var pwd = team.bridge_user;
             var pwdHash = Service.Crypt.hashSha256(pwd);
       
-            var credential = Buffer.from(`${team.bridge_email}:${pwdHash}`).toString(
+            var credential = Buffer.from(`${team.bridge_user}:${pwdHash}`).toString(
               'base64'
             );
 
@@ -65,7 +65,7 @@ module.exports = (Router, Service, Logger, App) => {
             var pwd = team.bridge_user;
             var pwdHash = Service.Crypt.hashSha256(pwd);
 
-            var credential = Buffer.from(`${team.bridge_email}:${pwdHash}`).toString(
+            var credential = Buffer.from(`${team.bridge_user}:${pwdHash}`).toString(
               'base64'
             );
 

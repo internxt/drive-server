@@ -70,7 +70,7 @@ module.exports = (Model, App) => {
         }
       }).then((teamMember) => {
         teamMember.update({
-          is_active: true
+         
         }).then((teamMember) => {
           resolve(teamMember);
         }).catch((err) => {
@@ -93,7 +93,7 @@ module.exports = (Model, App) => {
                 .create({
                   id_team: team.id,
                   user: member,
-                  is_active: false
+                  
                 })
                 .then((newTeamMember) => {
                   let token = `${member};${team.id};${new Date().toISOString().split('.')[0].replace(/[-:T]/g, '')}`;

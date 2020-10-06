@@ -9,8 +9,7 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true,
       },
       id_team: DataTypes.INTEGER,
-      user: DataTypes.STRING,
-      is_active: DataTypes.BOOLEAN
+      user: DataTypes.STRING
     },
     {
       timestamps: false
