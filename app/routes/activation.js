@@ -6,7 +6,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/user/isactivated', passportAuth, function (req, res) {
     const user = req.user.email;
 
-    Service.Team.getByIdUser(user).then((team) => {
+    Service.Team.getTeamByIdUser(user).then((team) => {
       Service.Storj.IsUserActivated(user)
       .then((response) => {
 

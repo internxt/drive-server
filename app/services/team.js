@@ -31,7 +31,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const getByIdUser = (user) => {
+  const getTeamByIdUser = (user) => {
     return new Promise((resolve, reject) => {
       Model.teams
         .findOne({
@@ -51,7 +51,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const getById = (idTeam) => {
+  const getTeamById = (idTeam) => {
     return new Promise((resolve, reject) => {
       Model.teams
         .findOne({
@@ -84,8 +84,8 @@ module.exports = (Model, App) => {
   return {
     Name: 'Team',
     create,
-    getByIdUser,
-    getById,
+    getTeamByIdUser,
+    getTeamById,
     generateBridgeTeamUser
   };
 };

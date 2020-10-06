@@ -128,7 +128,7 @@ module.exports = (Model, App) => {
     });
   }
 
-  const getByIdTeam = (idTeam) => {
+  const getMembersByIdTeam = (idTeam) => {
     return new Promise((resolve, reject) => {
       Model.teams_members
         .findAll({
@@ -189,6 +189,6 @@ module.exports = (Model, App) => {
     remove,
     update,
     getTeamByUser,
-    getByIdTeam
+    getMembersByIdTeam
   };
 };

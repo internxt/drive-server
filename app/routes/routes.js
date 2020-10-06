@@ -304,7 +304,7 @@ module.exports = (Router, Service, Logger, App) => {
     const idTeam = req.body.idTeam || null;
 
     if (idTeam) {
-      Service.Team.getById(idTeam).then((team) => {
+      Service.Team.getTeamById(idTeam).then((team) => {
         Service.User.InitializeUser({
           email: team.bridge_email,
           mnemonic: team.bridge_password

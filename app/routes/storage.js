@@ -177,10 +177,10 @@ module.exports = (Router, Service, Logger, App) => {
       const folderId = req.params.id;
 
       Service.Folder.isFolderOfTeam(folderId).then((folder) => {
-        Service.TeamsMembers.getByUser(user.email).then((teamMember) => {
+        Service.TeamsMembers.getTeamByUser(user.email).then((teamMember) => {
           if (folder.id_team == teamMember.id_team) {
             console.log('----- UPLOADING FOR TEAM -------');
-            Service.Team.getById(folder.id_team).then(team => {
+            Service.Team.getTeamById(folder.id_team).then(team => {
               Service.User.FindUserByEmail(team.bridge_email)
                 .then((userData) => {
 
@@ -331,8 +331,8 @@ module.exports = (Router, Service, Logger, App) => {
     let filePath;
 
     Service.Files.isFileOfTeamFolder(fileIdInBucket).then((file) => {
-      Service.Team.getById(file.folder.id_team).then(team => {
-        Service.TeamsMembers.getByUser(user.email).then((teamMember) => {
+      Service.Team.getTeamById(file.folder.id_team).then(team => {
+        Service.TeamsMembers.getTeamByUser(user.email).then((teamMember) => {
 
             if (teamMember.id_team == file.folder.id_team) {
               console.log('------ TEAM DOWNLOAD ------');

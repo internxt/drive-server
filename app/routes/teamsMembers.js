@@ -4,13 +4,15 @@ const sgMail = require('@sendgrid/mail');
 module.exports = (Router, Service, Logger, App) => {
   Router.post('/teams-members', passportAuth, function (req, res) {
     const { members } = req.body;
-    const { user } = req;
+    const { user } = req.user;
 
-    Service.Team.getByIdUser(user.email).then((team) => {
+    Service.Team.getTeamByUser(user)
+    .then((team) => {
       if (req.body.idTeam == team.id) {
         var oldMembers = [];
 
-        Service.TeamsMembers.getByIdTeam(team.id).then((teamMembers) => {
+        Service.TeamsMembers.getMembersByIdTeam(team.id)
+        .then((teamMembers) => {
           teamMembers.forEach(teamMember => {
             oldMembers.push(teamMember.user);
           });
@@ -37,7 +39,7 @@ module.exports = (Router, Service, Logger, App) => {
     const { idTeam } = req.body;
     const { user } = req;
 
-    Service.Team.getByIdUser(user.email).then((team) => {
+    Service.Team.getTeamByIdUser(user.email).then((team) => {
       if (idTeam == team.id) {
         Service.TeamsMembers.remove(members, team.id).then(() => {
           Service.TeamInvitations.remove(members[0]).then(() => {
@@ -58,9 +60,10 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.get('/teams-members/:user', passportAuth, function (req, res) {
-    const { user } = req.params;
+    const { user } = req.user;
 
-    Service.TeamsMembers.getByUser(user).then(teamMember => {
+    Service.TeamsMembers.getTeamByUser(user.email)
+    .then(teamMember => {
       res.status(200).json(teamMember);
     }).catch(err => {
       res.status(500).json(err);
@@ -70,7 +73,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/teams-members/team/:idTeam', passportAuth, function (req, res) {
     const { idTeam } = req.params;
 
-    Service.TeamsMembers.getByIdTeam(idTeam).then(teamMembers => {
+    Service.TeamsMembers.getMembersByIdTeam(idTeam).then(teamMembers => {
       res.status(200).json(teamMembers);
     }).catch(err => {
       res.status(500).json(err);

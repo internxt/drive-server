@@ -11,8 +11,10 @@ module.exports = (Router, Service, Logger, App) => {
 
     new Promise((resolve, reject) => {
       if (idTeam) {
-        Service.TeamsMembers.getByUser(userData.email).then((teamMember) => {
-          Service.Team.getById(teamMember.id_team).then((team) => {
+        Service.TeamsMembers.getTeamByUser(userData.email)
+        .then((teamMember) => {
+          Service.Team.getTeamById(teamMember.id_team)
+          .then((team) => {
             var pwd = team.bridge_user;
             var pwdHash = Service.Crypt.hashSha256(pwd);
       
@@ -58,8 +60,8 @@ module.exports = (Router, Service, Logger, App) => {
 
     new Promise((resolve, reject) => {
       if (idTeam) {
-        Service.TeamsMembers.getByUser(userData.email).then((teamMember) => {
-          Service.Team.getById(teamMember.id_team).then((team) => {
+        Service.TeamsMembers.getTeamByUser(userData.email).then((teamMember) => {
+          Service.Team.getTeamById(teamMember.id_team).then((team) => {
             var pwd = team.bridge_user;
             var pwdHash = Service.Crypt.hashSha256(pwd);
 
