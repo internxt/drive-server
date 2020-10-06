@@ -45,7 +45,7 @@ const sendMail = (emailTo) => {
   const mailer = new InternxtMailer({
     host: process.env.STORJ_MAILER_HOST,
     port: process.env.STORJ_MAILER_PORT,
-    secure: true,
+    secure: process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production',
     auth: {
       user: process.env.STORJ_MAILER_USERNAME,
       pass: process.env.STORJ_MAILER_PASSWORD,

@@ -51,7 +51,6 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/deactivate', passportAuth, function (req, res) {
     const user = req.user.email;
 
-    Service.User.DecrementCredit(user.referral);
 
     console.log(user.credit);
 
