@@ -33,6 +33,7 @@ module.exports = (Model, App) => {
     });
   }
 
+  // NOT NECESSARY, COLUMN DELETED
   const markAsUsed = (teamInvitation) => {
     return new Promise((resolve, reject) => {
       teamInvitation.update({

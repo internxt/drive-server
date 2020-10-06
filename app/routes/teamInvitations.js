@@ -1,8 +1,7 @@
 const { passportAuth } = require('../middleware/passport');
-const sgMail = require('@sendgrid/mail');
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.post('/team-invitation', function (req, res) {
+  Router.post('/team-invitation', passportAuth, function (req, res) {
     const { token } = req.body;
 
     Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
