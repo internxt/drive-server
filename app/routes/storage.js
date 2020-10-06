@@ -190,7 +190,7 @@ module.exports = (Router, Service, Logger, App) => {
                 .then((userData) => {
                   //lo metemos en la base de datos
                   user = {
-                    email: team.bridge_email,
+                    email: team.bridge_user,
                     userId: team.bridge_user,
                     mnemonic: team.bridge_password,
                     root_folder_id: userData.root_folder_id
@@ -344,7 +344,7 @@ module.exports = (Router, Service, Logger, App) => {
               console.log('------ TEAM DOWNLOAD ------');
 
               user = {
-                email: team.bridge_email,
+                email: team.bridge_user,
                 userId: team.bridge_user,
                 mnemonic: team.bridge_password
               };

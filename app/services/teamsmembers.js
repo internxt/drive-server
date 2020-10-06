@@ -105,7 +105,7 @@ module.exports = (Model, App) => {
                     token: cryptedToken
                   }).then((teamInvitation) => {
                     sendActivationEmail(member, cryptedToken, team.Name).then((email) => {
-                      console.log(email);
+                      console.log("[ TEAMS ] Team %d activation email sent to %s", team.id, email);
                     }).catch((err) => {
                       console.log(err);
                     });

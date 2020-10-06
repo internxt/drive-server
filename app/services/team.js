@@ -13,16 +13,20 @@ module.exports = (Model, App) => {
   const CryptService = require('./crypt')(Model, App);
 
   const create = (team) => {
+
+    console.log("TEAM CREATION ----- ", team)  //debug
+
     return new Promise((resolve, reject) => {
       Model.teams
       .create({
-        admin: team.user,
+        admin: team.admin,
         name: team.name,
         bridge_user: team.bridge_user,
         bridge_password: team.bridge_password,
-        bridge_email: team.bridge_user
+        bridge_mnemonic: team.bridge_mnemonic
       })
       .then((newTeam) => {
+        console.log("TEAM DESPUES DE CREARLO ---- ", newTeam)
         resolve({ team: newTeam });
       })
       .catch((err) => {
