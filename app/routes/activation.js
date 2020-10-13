@@ -3,37 +3,52 @@ const passport = require('~middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/user/isactivated', passportAuth, function (req, res) {
+  Router.get('/user/isactivated/:email', passportAuth, (req, res) => {
     const user = req.user.email;
+    const bridgeUser = req.params.email;
 
-    Service.Team.getTeamByIdUser(user).then((team) => {
-      Service.Storj.IsUserActivated(user)
-      .then((response) => {
+    Service.Team.getTeamByIdUser(user)
+      .then((team) => {
+         console.log("ACTIVATING TEAM", team) // debug
+        if (team.dataValues.bridge_user === bridgeUser) {
+          console.log("TEAM EMAIL ", team.bridge_user); //debug
+          Service.Storj.IsUserActivated(bridgeUser)
+            .then((responseTeam) => {
+              console.log("RESPONSE TEAM", responseTeam); //debug
+              if (responseTeam.status === 200) {
+                console.log("IS ACTIVATED: ", responseTeam.data.activated); //debug
 
-        Service.Storj.IsUserActivated(team.bridge_user)
-          .then((responseTeam) => {
-            if (responseTeam.data) {
-              res.status(200).send({
-                activated: response.data.activated,
-                activatedTeam: responseTeam.data.activated,
-                teamId: team.id
-              });
-            } else {
-              res.status(400).send({ error: 'User activation info not found' });
-            }
-          })
-          .catch((error) => {
-            Logger.error(error.stack);
-            res.status(500).json({ error: error.message });
-          });
-
+                res.status(200).send({
+                  activatedTeam: responseTeam.data.activated,
+                  teamId: team.id
+                });
+              } else {
+                res
+                  .status(400)
+                  .send({ error: 'User activation info not found' });
+              }
+            })
+            .catch((error) => {
+              Logger.error(error.stack);
+              res.status(500).json({ error: error.message });
+            });
+        } else {
+          res.status(500).json({});
+        }
       })
       .catch((error) => {
+        if(!error) {
+          // Not admin
+          res.status(200).json({ });
+        }
         Logger.error(error.stack);
-        res.status(500).json({ error: error.message });
       });
-    }).catch((err) => { // User has not got a team
-      Service.Storj.IsUserActivated(user)
+  });
+
+  Router.get('/user/isactivated', passportAuth, (req, res) => {
+    const user = req.user.email;
+
+    Service.Storj.IsUserActivated(user)
       .then((response) => {
         if (response.data) {
           res.status(200).send({ activated: response.data.activated });
@@ -45,12 +60,10 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(error.stack);
         res.status(500).json({ error: error.message });
       });
-    });
   });
 
-  Router.get('/deactivate', passportAuth, function (req, res) {
+  Router.get('/deactivate', passportAuth, (req, res) => {
     const user = req.user.email;
-
 
     console.log(user.credit);
 
@@ -63,7 +76,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.get('/reset/:email', function (req, res) {
+  Router.get('/reset/:email', (req, res) => {
     const user = req.params.email.toLowerCase();
     Service.User.DeactivateUser(user)
       .then(() => {
@@ -98,7 +111,7 @@ module.exports = (Router, Service, Logger, App) => {
           error:
             err.response.data && err.response.data.error
               ? err.response.data.error
-              : 'Internal server error',
+              : 'Internal server error'
         });
       });
   });
