@@ -11,7 +11,7 @@ const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
 const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
-  const log = App.logger;
+  const Logger = App.logger;
 
   const RegisterNewUser = (user) => {
     // Check data
@@ -29,19 +29,19 @@ module.exports = (Model, App) => {
       Model.users
         .findOne({ where: { email: { [Op.eq]: user.email } } })
         .then((result) => {
-          console.log('Result', result);
+          Logger.info('Result', result);
         })
         .catch((err) => {
-          console.log('Error', err);
+          Logger.error('Error', err);
         });
     } catch (e) {
-      log.error(e);
+      Logger.error(e);
     }
   };
 
   const FindOrCreate = (user) => {
 
-  
+
     // Create password hashed pass only when a pass is given
     const userPass = user.password
       ? App.services.Crypt.decryptText(user.password)
@@ -51,14 +51,14 @@ module.exports = (Model, App) => {
       : null;
 
 
-       
+
 
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
       throw new Error('Wrong user registration data');
     }
 
-    
+
 
     return Model.users.sequelize.transaction(async function (t) {
       return Model.users
@@ -101,7 +101,7 @@ module.exports = (Model, App) => {
               throw new Error('Error creating bridge user');
             }
 
-            log.info(
+            Logger.info(
               'User Service | created brigde user: %s with uuid: %s',
               userResult.email,
               userResult.uuid
@@ -124,9 +124,9 @@ module.exports = (Model, App) => {
         .catch((err) => {
           if (err.response) {
             // This happens when email is registered in bridge
-            log.error(err.response.data);
+            Logger.error(err.response.data);
           } else {
-            log.error(err.stack);
+            Logger.error(err.stack);
           }
 
           throw new Error(err);
@@ -230,7 +230,7 @@ module.exports = (Model, App) => {
       Model.users
         .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
         .then((response) => {
-            resolve(response);
+          resolve(response);
         })
         .catch((err) => reject(err));
     });
@@ -243,7 +243,7 @@ module.exports = (Model, App) => {
   const GetUserCredit = (uuid) =>
     Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } }).then((response) => {
       return response.dataValues;
-  });
+    });
 
   const GetUsersRootFolder = (id) =>
     Model.users
@@ -272,19 +272,19 @@ module.exports = (Model, App) => {
 
   const UpdateCredit = async (userUuid) => {
     //Logger.info("€5 added to ", referral);
-    console.log("€5 added to user with UUID %s", userUuid);
-    return  await Model.users.update(
-        { credit : Sequelize.literal('credit + 5')},
-        { where: { uuid: { [Op.eq]: userUuid } } }
-      );
+    Logger.info("€5 added to user with UUID %s", userUuid);
+    return await Model.users.update(
+      { credit: Sequelize.literal('credit + 5') },
+      { where: { uuid: { [Op.eq]: userUuid } } }
+    );
   };
 
   const DecrementCredit = async (userUuid) => {
-    console.log("€5 decremented to user with UUID %s", userUuid)
-    return  await Model.users.update(
-        { credit : Sequelize.literal('credit - 5')},
-        { where: { uuid: { [Op.eq]: userUuid } } }
-      );
+    Logger.info("€5 decremented to user with UUID %s", userUuid)
+    return await Model.users.update(
+      { credit: Sequelize.literal('credit - 5') },
+      { where: { uuid: { [Op.eq]: userUuid } } }
+    );
   };
 
   const DeactivateUser = (email) => {
@@ -339,11 +339,11 @@ module.exports = (Model, App) => {
                 }
               )
               .then((res) => {
-                console.log('User deleted from bridge');
+                Logger.info('User deleted from bridge');
                 next(null, res);
               })
               .catch((err) => {
-                console.log('Error user deleted from bridge');
+                Logger.error('Error user deleted from bridge');
                 next(err);
               });
           },
@@ -352,21 +352,19 @@ module.exports = (Model, App) => {
             Model.users
               .findOne({ where: { email: { [Op.eq]: userEmail } } })
               .then((user) => {
-                console.log('User found on sql');
-
                 const referralUuid = user.referral;
                 if (uuid.validate(referralUuid)) {
                   DecrementCredit(referralUuid);
-                } 
-                
+                }
+
                 user
                   .destroy()
                   .then((result) => {
-                    console.log('User deleted on sql', userEmail);
+                    Logger.info('User deleted on sql', userEmail);
                     next(null, data);
                   })
                   .catch((err) => {
-                    console.log('Error deleting user on sql');
+                    Logger.error('Error deleting user on sql');
                     next(err);
                   });
               })
@@ -375,7 +373,7 @@ module.exports = (Model, App) => {
         ],
         (err, result) => {
           if (err) {
-            console.log('Error waterfall', err);
+            Logger.error('Error waterfall', err);
             reject(err);
           } else {
             resolve(result);
@@ -406,7 +404,7 @@ module.exports = (Model, App) => {
             })
             .then(resolve)
             .catch((err) => {
-              console.error(err.response.data);
+              Logger.error(err.response.data);
               reject(err);
             });
         })
@@ -454,37 +452,32 @@ module.exports = (Model, App) => {
     return new Promise((resolve, reject) => {
       FindUserByEmail(user)
         .then((userData) => {
-          console.log('Found on database');
           const storedPassword = userData.password.toString();
           if (storedPassword !== currentPassword) {
-            console.log('Invalid password');
+            Logger.error('Invalid password');
             reject({ error: 'Invalid password' });
           } else {
-            console.log('Valid password');
-
             resolve();
 
             Model.users
-              .update(
-                {
-                  password: newPassword,
-                  mnemonic,
-                  hKey: newSalt,
-                },
-                { where: { email: { [Op.eq]: user } } }
+              .update({
+                password: newPassword,
+                mnemonic,
+                hKey: newSalt,
+              }, { where: { email: { [Op.eq]: user } } }
               )
               .then((res) => {
-                console.log('Updated', res);
+                Logger.info('Updated', res);
                 resolve();
               })
               .catch((err) => {
-                console.log('error updating', err);
+                Logger.error('error updating', err);
                 reject({ error: 'Error updating info' });
               });
           }
         })
         .catch((err) => {
-          console.error(err);
+          Logger.error(err);
           reject({ error: 'Internal server error' });
         });
     });
