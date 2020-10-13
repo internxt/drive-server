@@ -1,12 +1,13 @@
 const async = require('async');
+const { default: Stripe } = require('stripe');
+const crypto = require('crypto');
 
 const passport = require('~middleware/passport');
-const { default: Stripe } = require('stripe');
 
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/plans', passportAuth, function (req, res) {
+  Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll()
       .then((data) => {
         res.status(200).json(data);
@@ -28,12 +29,12 @@ module.exports = (Router, Service, Logger, App) => {
     const test = req.body.test || false;
 
     let stripe = require('stripe')(process.env.STRIPE_SK, {
-      apiVersion: '2020-03-02',
+      apiVersion: '2020-03-02'
     });
 
     if (test) {
       stripe = require('stripe')(process.env.STRIPE_SK_TEST, {
-        apiVersion: '2020-03-02',
+        apiVersion: '2020-03-02'
       });
     }
 
@@ -46,7 +47,7 @@ module.exports = (Router, Service, Logger, App) => {
           stripe.customers.list(
             {
               limit: 1,
-              email: user,
+              email: user
             },
             (err, customers) => {
               next(err, customers.data[0]);
@@ -89,32 +90,49 @@ module.exports = (Router, Service, Logger, App) => {
             });
             */
 
-              Service.Stripe.getStorageProducts(test).then((storageProducts) => {
-                Service.Stripe.getTeamProducts(test).then((teamProducts) => {
-
-                  if (storageProducts.find(storageProduct => storageProduct.id === subscription.plan.product))  {
-                    if (storageProducts.find(storageProduct => storageProduct.id === productToSubscribe))  {
-                      next(Error('Already subscribed in a storage plan'));
-                    } else {
-                      next(null, customer);
-                    }
-
-                  } else if (teamProducts.find(teamProduct => teamProduct.id === subscription.plan.product)) {
-                    if (teamProducts.find(teamProduct => teamProduct.id === productToSubscribe))  {
-                      next(Error('Already subscribed in a team plan'));
-                    } else {
-                      next(null, customer);
-                    }
-                  } else {
-                    next(Error('Already subscribed'));  
-                  }
-                }).catch((err) => {
+              Service.Stripe.getStorageProducts(test)
+                .then((storageProducts) => {
+                  Service.Stripe.getTeamProducts(test)
+                    .then((teamProducts) => {
+                      if (
+                        storageProducts.find(
+                          (storageProduct) => storageProduct.id === subscription.plan.product
+                        )
+                      ) {
+                        if (
+                          storageProducts.find(
+                            (storageProduct) => storageProduct.id === productToSubscribe
+                          )
+                        ) {
+                          next(Error('Already subscribed in a storage plan'));
+                        } else {
+                          next(null, customer);
+                        }
+                      } else if (
+                        teamProducts.find(
+                          (teamProduct) => teamProduct.id === subscription.plan.product
+                        )
+                      ) {
+                        if (
+                          teamProducts.find(
+                            (teamProduct) => teamProduct.id === productToSubscribe
+                          )
+                        ) {
+                          next(Error('Already subscribed in a team plan'));
+                        } else {
+                          next(null, customer);
+                        }
+                      } else {
+                        next(Error('Already subscribed'));
+                      }
+                    })
+                    .catch((err) => {
+                      next(Error('Already subscribed'));
+                    });
+                })
+                .catch((err) => {
                   next(Error('Already subscribed'));
-                });  
-              }).catch((err) => {
-                next(Error('Already subscribed'));
-              });
-
+                });
             } else {
               next(null, customer);
             }
@@ -124,57 +142,65 @@ module.exports = (Router, Service, Logger, App) => {
           // Open session
           const customerId = customer !== null ? customer.id || null : null;
 
-          var newBridgeUser = Service.Team.generateBridgeTeamUser();
-          var successUrl = process.env.HOST_DRIVE_WEB;
-          var cancelUrl = successUrl;
+          const newBridgeUser = Service.Team.generateBridgeTeamUser();
+          const successUrl = process.env.HOST_DRIVE_WEB;
+          const cancelUrl = successUrl;
 
-          var sessionParams = {
+          const sessionParams = {
             payment_method_types: ['card'],
             success_url: successUrl,
             cancel_url: cancelUrl,
             subscription_data: {
               items: [{ plan: req.body.plan }],
-              trial_period_days: 30,
+              trial_period_days: 30
             },
             metadata: {},
             customer_email: user,
             customer: customerId,
-            billing_address_collection: 'required',
+            billing_address_collection: 'required'
           };
 
           if (sessionType && sessionType === 'team') {
             // sessionParams.successUrl = `${successUrl}/team/settings`; // Redirect to settings team page
             sessionParams.metadata.team_email = newBridgeUser.email;
 
-            Service.User.FindOrCreate({
-              name: newBridgeUser.email,
-              email: newBridgeUser.email,
-              mnemonic: newBridgeUser.password,
-              lastname: '',
-              password: 'team',
-              salt: 'team',
-              referral: ''
-            }, true).then((userData) => {
+            const salt = crypto.randomBytes(128 / 8).toString('hex');
+            const newPassword = App.services.Crypt.encryptText('team', salt);
+
+            const encryptedPassword = App.services.Crypt.encryptText(newPassword);
+            const encryptedSalt = App.services.Crypt.encryptText(salt);
+
+            Service.User.FindOrCreate(
+              {
+                name: newBridgeUser.email,
+                email: newBridgeUser.email,
+                mnemonic: newBridgeUser.password,
+                lastname: '',
+                password: encryptedPassword,
+                salt: encryptedSalt,
+                referral: ''
+              }
+            ).then((userData) => {
               if (!userData.isCreated) {
                 next({ message: 'This account already exists' });
-              } else {
-                console.log(userData)
+              } else {             
+
                 Service.Team.create({
                   name: 'My team',
                   admin: user,
                   bridge_user: userData.email,
                   bridge_password: userData.mnemonic,
-                  bridge_mnemonic: userData.email
-                }).then(team => {
-
-                  // Service.TeamsMembers.save(
-                  //   [user], [], team
-                  // ).then(() => {}).catch((err) => {});
-
-                }).catch(err => {
+                  bridge_mnemonic: userData.mnemonic
+                }).then( (team) => {                  
+                  const teamId = team.id;
+                  const teamAdmin = team.admin;
+                   Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {
+                    
+                  }).catch((err) => {});
+                }).catch((err) => {
                   console.log(err);
                 });
-              }
+                }
             })
             .catch((err) => {
               next(err);
@@ -195,7 +221,7 @@ module.exports = (Router, Service, Logger, App) => {
             .catch((err) => {
               next(err);
             });
-        },
+        }
       ],
       (err, result) => {
         if (err) {
@@ -216,22 +242,26 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
     const test = req.query.test || false;
-    
-    Service.Stripe.getStorageProducts(test).then((products) => {
-      res.status(200).send(products);
-    }).catch((err) => {
-      res.status(500).send({ error: err });
-    });
+
+    Service.Stripe.getStorageProducts(test)
+      .then((products) => {
+        res.status(200).send(products);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err });
+      });
   });
 
   Router.get('/stripe/teams/products', passportAuth, (req, res) => {
     const test = req.query.test || false;
-    
-    Service.Stripe.getTeamProducts(test).then((products) => {
-      res.status(200).send(products);
-    }).catch((err) => {
-      res.status(500).send({ error: err });
-    });
+
+    Service.Stripe.getTeamProducts(test)
+      .then((products) => {
+        res.status(200).send(products);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err });
+      });
   });
 
   /**
@@ -240,23 +270,27 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/stripe/plans', passportAuth, (req, res) => {
     const stripeProduct = req.body.product;
-    const test = req.body.test || false
+    const test = req.body.test || false;
 
-    Service.Stripe.getStoragePlans(stripeProduct, test).then((plans) => {
-      res.status(200).send(plans);
-    }).catch((err) => {
-      res.status(500).send({ error: err });
-    });
+    Service.Stripe.getStoragePlans(stripeProduct, test)
+      .then((plans) => {
+        res.status(200).send(plans);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err });
+      });
   });
 
   Router.post('/stripe/teams/plans', passportAuth, (req, res) => {
     const stripeProduct = req.body.product;
     const test = req.body.test || false;
 
-    Service.Stripe.getTeamPlans(stripeProduct, test).then((plans) => {
-      res.status(200).send(plans);
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
+    Service.Stripe.getTeamPlans(stripeProduct, test)
+      .then((plans) => {
+        res.status(200).send(plans);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
   });
 };
