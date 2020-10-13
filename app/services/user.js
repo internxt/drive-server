@@ -4,6 +4,7 @@ const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
 
+
 const { Op } = sequelize;
 
 const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
@@ -270,7 +271,8 @@ module.exports = (Model, App) => {
   };
 
   const UpdateCredit = async (userUuid) => {
-    Logger.info("€5 added to ", referral);
+    //Logger.info("€5 added to ", referral);
+    console.log("€5 added to user with UUID %s", userUuid);
     return  await Model.users.update(
         { credit : Sequelize.literal('credit + 5')},
         { where: { uuid: { [Op.eq]: userUuid } } }
@@ -278,7 +280,7 @@ module.exports = (Model, App) => {
   };
 
   const DecrementCredit = async (userUuid) => {
-    Logger.info("€5 decremented to ", referralUuid)
+    console.log("€5 decremented to user with UUID %s", userUuid)
     return  await Model.users.update(
         { credit : Sequelize.literal('credit - 5')},
         { where: { uuid: { [Op.eq]: userUuid } } }

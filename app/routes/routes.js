@@ -224,7 +224,7 @@ module.exports = (Router, Service, Logger, App) => {
           .FindUserByUuid(referral)
           .then((userData) => {
             if (userData === null) { // Don't exists referral user
-              console.log("No existe la uuid de referencia");
+              console.log("UUID not found");
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);
