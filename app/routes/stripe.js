@@ -189,13 +189,12 @@ module.exports = (Router, Service, Logger, App) => {
                   name: 'My team',
                   admin: user,
                   bridge_user: userData.email,
-                  bridge_password: userData.mnemonic,
+                  bridge_password: userData.password,
                   bridge_mnemonic: userData.mnemonic
                 }).then( (team) => {                  
                   const teamId = team.id;
                   const teamAdmin = team.admin;
-                   Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {
-                    
+                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {                    
                   }).catch((err) => {});
                 }).catch((err) => {
                   console.log(err);
