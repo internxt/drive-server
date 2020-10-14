@@ -1,4 +1,7 @@
 const sequelize = require('sequelize');
+const user = require('~models/user');
+const teamInvitations = require('~routes/teamInvitations');
+
 
 const { Op } = sequelize;
 
@@ -12,12 +15,16 @@ module.exports = (Model, App) => {
           token: teamInvitation.token,
          
         }).then((newTeamInvitation) => {
-          resolve(newTeamInvitation);
+          
+          resolve({teamInvitation: newTeamInvitation});
+          console.log('id_team',id_team)
         }).catch((err) => {
           reject(err);
         });
     });
   };
+
+  
 
   const remove = (user) => {
     return new Promise((resolve, reject) => {
@@ -32,14 +39,40 @@ module.exports = (Model, App) => {
       });
     });
   }
-
-  // NOT NECESSARY, COLUMN DELETED
-  const markAsUsed = (teamInvitation) => {
+  const createInvitationsTeams = (teamInvitation) => {
     return new Promise((resolve, reject) => {
-      teamInvitation.update({
-        
-      }).then(() => {
-        resolve();
+      Model.teaminvitations
+        .create({
+          id_team: teamInvitation.idTeam,
+          user: teamInvitation.user,
+          token: teamInvitation.token,
+         
+        }).then((newTeamInvitation) => {
+          resolve({teamInvitation: newTeamInvitation});
+        }).catch((err) => {
+          reject(err);
+        });
+    });
+  };
+
+  const updateTeams = (props) => {
+    return new Promise((resolve, reject) => {
+      
+      Model.team_invitations
+      .findOne({
+        where: {
+          user: { [Op.eq]: props.user },
+          id_team: { [Op.eq]: props.id_team },
+          token: { [Op.eq]: props.token }
+        }
+      }).then((teamInvitation) => {
+        teamInvitation.update({
+         
+        }).then((teamInvitation) => {
+          resolve(teamInvitation);
+        }).catch((err) => {
+          reject(err);
+        });
       }).catch((err) => {
         reject(err);
       });
@@ -52,7 +85,6 @@ module.exports = (Model, App) => {
         .findOne({
           where: {
             token: { [Op.eq]: token },
-            
           }
         })
         .then((teamInvitation) => {
@@ -68,11 +100,81 @@ module.exports = (Model, App) => {
     });
   }
 
+  const getTeamInvitationById = (id_team) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations
+        .findOne({
+          where: { id_team: { [Op.eq]: id_team } },
+        })
+        .then((team_invitations) => {
+          if (team_invitations) {
+            resolve(team_invitations);
+          } else {
+            reject('team does not exists');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          reject('Error querying database');
+        });
+    });
+  }
+
+  const getTeamInvitationByIdUser = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations
+        .findOne({
+          where: { user: { [Op.eq]: user } },
+        })
+        .then((team_invitations) => {
+          if (team_invitations) {
+            resolve(team_invitations);
+          } else {
+            reject('team does not exists');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          reject('Error querying database');
+        });
+    });
+  }
+
+  const FindTeamByEmail = (email) => {
+    return new Promise((resolve, reject) => {
+      Model.Team
+        .findOne({ where: { bridge_user: { [Op.eq]: email } } })
+        .then((userData) => {
+          if (userData) {
+            const user = userData.dataValues;
+            if (user.token) user.token = user.token.toString();
+
+            resolve(user);
+          } else {
+            reject('User not found on X Cloud database');
+          }
+        })
+        .catch((err) => reject(err));
+    });
+  };
+
+  const FindUserByToken= (token) => {
+    return Model.teamInvitations.findOne({ where: {token: { [Op.eq]: token } } })
+  }
+
+
+  
   return {
     Name: 'TeamInvitations',
     save,
     remove,
     getByToken,
-    markAsUsed
+    getTeamInvitationByIdUser,
+    getTeamInvitationById,
+    FindTeamByEmail,
+    FindUserByToken,
+    updateTeams,
+    createInvitationsTeams 
+   
   };
 };

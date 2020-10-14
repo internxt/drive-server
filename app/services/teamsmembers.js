@@ -3,6 +3,8 @@ const async = require('async');
 const sequelize = require('sequelize');
 const fetch = require('node-fetch');
 const InternxtMailer = require('storj-service-mailer');
+const teams_members = require('~models/teams_members');
+const teams = require('~routes/teams');
 
 
 
@@ -10,7 +12,7 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const CryptService = require('./crypt')(Model, App);
-  const TeamInvitationsService = require('./teaminvitations')(Model, App);
+ 
 
   const getTeamByUser = (user) => {
     return new Promise((resolve, reject) => {
@@ -82,18 +84,18 @@ module.exports = (Model, App) => {
     });
   }
 
-  const save = (members, oldMembers, team) => {
+  const save= (members, oldMembers, team) => {
     var membersDiff = members.filter(x => !oldMembers.includes(x));
 
 
     return new Promise((resolve, reject) => {
       async.eachSeries(membersDiff, (member, next) => {
           if (member) {
+            console.log(team.id);
             Model.teams_members
                 .create({
                   id_team: team.id,
                   user: member,
-                  
                 })
                 .then((newTeamMember) => {
                   let token = `${member};${team.id};${new Date().toISOString().split('.')[0].replace(/[-:T]/g, '')}`;
@@ -103,8 +105,9 @@ module.exports = (Model, App) => {
                     idTeam: team.id,
                     user: member,
                     token: cryptedToken
-                  }).then((teamInvitation) => {
-                    sendActivationEmail(member, cryptedToken, team.Name).then((email) => {
+
+                  }).then((teaminvitations ) => {
+                    sendEmailTeamsMember(member, cryptedToken, team.Name).then((email) => {
                       console.log("[ TEAMS ] Team %d activation email sent to %s", team.id, email);
                     }).catch((err) => {
                       console.log(err);
@@ -150,38 +153,6 @@ module.exports = (Model, App) => {
     });
   }
 
-  const sendActivationEmail = (member, cryptedToken, teamName) => {
-    const mailer = new InternxtMailer({
-        host: process.env.STORJ_MAILER_HOST,
-        port: process.env.STORJ_MAILER_PORT,
-        secure: process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production',
-        auth: {
-          user: process.env.STORJ_MAILER_USERNAME,
-          pass: process.env.STORJ_MAILER_PASSWORD,
-        },
-        from: 'hello@internxt.com',
-    });
-
-    return new Promise((resolve, reject) => {
-      mailer.dispatch(
-        member, 
-        'join-team', 
-        {
-          template: 'join-team',
-          go: { in: 'here' },
-          memberName: member,
-          teamName: teamName,
-          urlAcceptInvitation: `${process.env.HOST_DRIVE_WEB}/teams/join/${cryptedToken}`
-        }, (err) => {   
-        if (!err) {
-          resolve(`Mail team's invitation send to ${member}!`);
-          Logger.info("Teams: Team invitation mail sent to", member);
-        } else {
-          reject(`Error sending mail team's invitation to ${member}`);
-        }
-      });
-    });
-  }
 
   return {
     Name: 'TeamsMembers',

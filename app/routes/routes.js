@@ -15,6 +15,9 @@ const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
 const useragent = require('useragent');
 const uuid = require('uuid');
+const crypto = require('crypto');
+const teaminvitations = require('~services/teaminvitations');
+
 
 const { passportAuth } = passport;
 
@@ -225,7 +228,7 @@ module.exports = (Router, Service, Logger, App) => {
       newUser.credit = 0;
 
       const referral = req.body.referral;
-      
+
       if (uuid.validate(referral)) {
         await Service.User
           .FindUserByUuid(referral)
@@ -309,65 +312,66 @@ module.exports = (Router, Service, Logger, App) => {
           email: team.bridge_user,
           mnemonic: team.bridge_password
         })
-        .then((userData) => {
-          // Creating team parent folder
-          Service.User.FindUserByEmail(team.bridge_user).then((teamUser) => {
-            userData.id = teamUser.id;
-            userData.email = teamUser.email;
-            userData.password = teamUser.password;
-            userData.mnemonic = teamUser.mnemonic;
-            userData.root_folder_id = teamUser.root_folder_id;
+          .then((userData) => {
+            // Creating team parent folder
+            Service.User.FindUserByEmail(team.bridge_user).then((teamUser) => {
+              userData.id = teamUser.id;
+              userData.email = teamUser.email;
+              userData.password = teamUser.password;
+              userData.mnemonic = teamUser.mnemonic;
+              userData.root_folder_id = teamUser.root_folder_id;
 
-            Service.Folder.Create(userData, team.name, userData.root_folder_id, team.id)
-            .then((folder) => {
+              Service.Folder.Create(userData, team.name, userData.root_folder_id, team.id)
+                .then((folder) => {
 
-              Service.TeamsMembers.update({
-                user: team.user,
-                id_team: team.id
-              }).then(() => {
-                res.status(200).send({});
-              }).catch((err) => {
-                res.send(err);
-              });
+                  Service.TeamsMembers.update({
+                    user: team.user,
+                    id_team: team.id
+                  }).then(() => {
+                    console.log(id_team);
+                    res.status(200).send({});
+                  }).catch((err) => {
+                    res.send(err);
+                  });
+
+                }).catch((err) => {
+                  console.log(err);
+                });
 
             }).catch((err) => {
               console.log(err);
             });
-
           }).catch((err) => {
-            console.log(err);
+            Logger.error(`${err.message}\n${err.stack}`);
+            res.send(err.message);
           });
-        }).catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          res.send(err.message);
-        });
       }).catch((err) => {
         console.log(err);
       });
     } else {
       // Call user service to find or create user
       Service.User.InitializeUser(req.body)
-      .then((userData) => {
-        // Process user data and answer API call
-        if (userData.root_folder_id) {
-          // Successfull initialization
-          const user = {
-            email: userData.email,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-          };
-          res.status(200).send({ user });
-        } else {
-          // User initialization unsuccessful
-          res
-            .status(400)
-            .send({ message: "Your account can't be initialized" });
-        }
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.send(err.message);
-      });
+        .then((userData) => {
+          // Process user data and answer API call
+          if (userData.root_folder_id) {
+            // Successfull initialization
+            const user = {
+              email: userData.email,
+              mnemonic: userData.mnemonic,
+              root_folder_id: userData.root_folder_id,
+            };
+            res.status(200).send({ user });
+          } else {
+            // User initialization unsuccessful
+            res
+              .status(400)
+              .send({ message: "Your account can't be initialized" });
+          }
+        })
+        .catch((err) => {
+          Logger.error(`${err.message}\n${err.stack}`);
+          res.send(err.message);
+        });
     }
   });
 
@@ -455,7 +459,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/user/referred', passportAuth, function (req, res) {
 
-     const uuid = req.user.uuid;
+    const uuid = req.user.uuid;
 
     Service.User.FindUsersByReferred(uuid)
       .then((users) => {
@@ -466,13 +470,48 @@ module.exports = (Router, Service, Logger, App) => {
       });
   })
 
-  
-
   Router.get('/user/credit', passportAuth, function (req, res) {
     const user = req.user;
     return res.status(200).send({ userCredit: user.credit });
   })
 
+
+  Router.post('/team-invitations', passportAuth, function (req, res) {
+    const email = req.body.email;
+    const idTeam = req.body.idTeam;
+    const tokeninvitations = crypto.randomBytes(20).toString('hex')
+    
+
+   Service.TeamInvitations.save({
+     idTeam: idTeam,
+     user: email,
+     token: tokeninvitations
+   }).then((user) => {
+ 
+    Service.Mail.sendEmailTeamsMember(email,tokeninvitations, req.team).then((team) => {
+  
+      Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email)
+      console.log(token)
+      res.status(200).send({
+      })
+
+    }).catch((err) => {
+      Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+      console.log(req.user.email)
+      console.log(req.body.email)
+      console.log(req.getTeamInvitationById)
+      res.status(200).send({})
+    })
+       
+  }).catch((err) => {
+    
+    Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+  
+    res.status(200).send({})
+  })
+  
+    
+     });
 
   return Router;
 };
