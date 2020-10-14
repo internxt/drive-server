@@ -6,25 +6,21 @@ const teamInvitations = require('~routes/teamInvitations');
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  
   const save = (teamInvitation) => {
     return new Promise((resolve, reject) => {
       Model.team_invitations
         .create({
-          id_team: teamInvitation.idTeam,
+          id_team: teamInvitation.id_team,
           user: teamInvitation.user,
           token: teamInvitation.token,
-         
         }).then((newTeamInvitation) => {
-          
           resolve({teamInvitation: newTeamInvitation});
-          console.log('id_team',id_team)
         }).catch((err) => {
           reject(err);
         });
     });
   };
-
-  
 
   const remove = (user) => {
     return new Promise((resolve, reject) => {
@@ -55,29 +51,7 @@ module.exports = (Model, App) => {
     });
   };
 
-  const updateTeams = (props) => {
-    return new Promise((resolve, reject) => {
-      
-      Model.team_invitations
-      .findOne({
-        where: {
-          user: { [Op.eq]: props.user },
-          id_team: { [Op.eq]: props.id_team },
-          token: { [Op.eq]: props.token }
-        }
-      }).then((teamInvitation) => {
-        teamInvitation.update({
-         
-        }).then((teamInvitation) => {
-          resolve(teamInvitation);
-        }).catch((err) => {
-          reject(err);
-        });
-      }).catch((err) => {
-        reject(err);
-      });
-    });
-  }
+ 
 
   const getByToken = (token) => {
     return new Promise((resolve, reject) => {
@@ -173,7 +147,6 @@ module.exports = (Model, App) => {
     getTeamInvitationById,
     FindTeamByEmail,
     FindUserByToken,
-    updateTeams,
     createInvitationsTeams 
    
   };

@@ -63,7 +63,6 @@ module.exports = (Model, App) => {
 
   const update = (props) => {
     return new Promise((resolve, reject) => {
-      
       Model.teams_members
       .findOne({
         where: {
@@ -71,9 +70,11 @@ module.exports = (Model, App) => {
           id_team: { [Op.eq]: props.id_team }
         }
       }).then((teamMember) => {
+        console.log('teamMember', teamMember)
         teamMember.update({
          
         }).then((teamMember) => {
+
           resolve(teamMember);
         }).catch((err) => {
           reject(err);
