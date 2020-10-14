@@ -154,12 +154,40 @@ module.exports = (Model, App) => {
   }
 
 
+  const addTeamMember = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.teams_members
+      .findOne({
+        where: {
+          user: { [Op.eq]: user.user },
+          id_team: { [Op.eq]: user.id_team }
+        }
+      }).then((teamMember) => {
+        if(teamMember) {
+          reject();
+        }
+        Model.teams_members.create({
+          id_team: team.id,
+          user: member,
+        }).then((newMember) => {
+          resolve(newMember)
+        }).catch((err) => {
+          reject(err);
+        })  
+      }).catch((err) => {
+        reject(err);
+      });
+    });
+  }
+
+
   return {
     Name: 'TeamsMembers',
     save,
     remove,
     update,
     getTeamByUser,
-    getMembersByIdTeam
+    getMembersByIdTeam,
+    addTeamMember
   };
 };
