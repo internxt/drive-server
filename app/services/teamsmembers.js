@@ -60,7 +60,6 @@ module.exports = (Model, App) => {
       });
     });
   }
-
   const update = (props) => {
     return new Promise((resolve, reject) => {
       Model.teams_members
@@ -84,11 +83,9 @@ module.exports = (Model, App) => {
       });
     });
   }
-
+ 
   const save= (members, oldMembers, team) => {
     var membersDiff = members.filter(x => !oldMembers.includes(x));
-
-
     return new Promise((resolve, reject) => {
       async.eachSeries(membersDiff, (member, next) => {
           if (member) {
@@ -181,14 +178,40 @@ module.exports = (Model, App) => {
     });
   }
 
+  const saveMembersFromInvitations = (invitedMembers) => {
+    return new Promise((resolve, reject) => {
+      Model.teams_members
+      .findOne({
+        where: {
+          user: { [Op.eq]: invitedMembers.user },
+          id_team: { [Op.eq]: invitedMembers.id_team }
+        }
+      }).then((teamMember) => {
+        if(teamMember) {
+          reject();
+        }
+        Model.teams_members.create({
+          id_team:invitedMembers.id_team,
+          user: invitedMembers.user,
+        }).then((newMember) => {
+          resolve(newMember)
+        }).catch((err) => {
+          reject(err);
+        })  
+      }).catch((err) => {
+        reject(err);
+      });
+    });
+  }
+
 
   return {
     Name: 'TeamsMembers',
     save,
     remove,
-    update,
     getTeamByUser,
     getMembersByIdTeam,
-    addTeamMember
+    addTeamMember,
+    saveMembersFromInvitations
   };
 };

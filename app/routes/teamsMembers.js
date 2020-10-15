@@ -31,11 +31,9 @@ module.exports = (Router, Service, Logger, App) => {
       } else {
         res.status(500).json({error: "it's not your team"});
       
-       
       }
     }).catch((err) => {
 
-     
       res.status(500).json({error: "it's not your team"});
     });
   });

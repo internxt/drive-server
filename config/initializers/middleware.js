@@ -46,6 +46,12 @@ module.exports = (App, Config) => {
   App.express.use('/api/storage/share/', downloadLimiter);
   App.express.use('/api/storage/file/', downloadLimiter);
 
+  App.express.use('/api/team-invitations', rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 1,
+    keyGenerator: limiterKeyGenerator
+  }))
+
   // enables cors
   App.express.use(
     cors({

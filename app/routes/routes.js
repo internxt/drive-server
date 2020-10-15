@@ -9,7 +9,6 @@ const DesktopRoutes = require('~routes/desktop');
 const MobileRoutes = require('~routes/mobile');
 const TeamsRoutes = require('~routes/teams');
 const TeamsMembersRoutes = require('~routes/teamsMembers');
-const TeamInvitationsRoutes = require('~routes/teamInvitations');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
@@ -45,7 +44,7 @@ module.exports = (Router, Service, Logger, App) => {
 
   TeamsRoutes(Router, Service, Logger, App);
   TeamsMembersRoutes(Router, Service, Logger, App);
-  TeamInvitationsRoutes(Router, Service, Logger, App);
+
 
   /**
    * @swagger
@@ -485,30 +484,21 @@ module.exports = (Router, Service, Logger, App) => {
         id_team: team.id,
         user: email,
         token: token
-      }).then((user) => {  
+      }).then((user) => {
         Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
-  
+
           Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email)
           res.status(200).send({
-            
           })
-  
         }).catch((err) => {
-          Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, req.body.email)
-          console.log(req.user.email)
-          console.log(req.body.email)
-          console.log(idTeam)
-     
+          Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
         })
       }).catch((err) => {
-        Logger.error('Error: Send invitation mail from %s to %s 2 ' , req.user.email, req.body.email)
-     
+        Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
       })
     }).catch(err => {
-      Logger.error('el usuario %s no tiene team', req.user.email)
+      Logger.error('The user %s not have a team Invitation', req.user.email)
     })
-
-
   });
 
 
@@ -517,33 +507,30 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
 
-      console.log('TEAM INVITATION', teamInvitation.dataValues)
-
-      // Guardamos en team members la invitación
-      
-
-      // Después, borramos de invitacion
-      teamInvitation.destroy()
-
-      Service.TeamsMembers.update(teamInvitation).then(() => {
-
-        res.status(200).json({});
-
+      Service.TeamInvitations.saveInvitationsMembers({
+        id_team: teamInvitation.id_team,
+        user: teamInvitation.user
+      }).then((newMember) => {
+        Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
+        teamInvitation.destroy().then(() => {
+          res.status(200).send({})
+        }).catch(err => {
+          res.status(500).send({ error: 'The invitation could not be destroyed'})
+        })
       }).catch((err) => {
+        Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
         console.error(err)
-
-        res.status(500).json({ error: 'Invalid Team invitation link 1' });
-        console.log('ERROR ENTRAR', token)
-      });
+        res.status(500).send({ error: 'The invitation is not saved' })
+      })
 
     }).catch((err) => {
       res.status(500).json({ error: 'Invalid Team invitation link 2' });
       Logger.error('Token %s doesn\'t exists', token)
+      console.error(err)
     });
 
   });
 
-
-
   return Router;
+
 };

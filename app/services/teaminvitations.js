@@ -1,6 +1,6 @@
 const sequelize = require('sequelize');
 const user = require('~models/user');
-const teamInvitations = require('~routes/teamInvitations');
+
 
 
 const { Op } = sequelize;
@@ -35,7 +35,8 @@ module.exports = (Model, App) => {
       });
     });
   }
-  const createInvitationsTeams = (teamInvitation) => {
+
+  const createTableInvitationTeams = (teamInvitation) => {
     return new Promise((resolve, reject) => {
       Model.teaminvitations
         .create({
@@ -65,7 +66,7 @@ module.exports = (Model, App) => {
           if (teamInvitation) {
             resolve(teamInvitation);
           } else {
-            reject('team invitation does not exists');
+            reject('Team invitation does not exists');
           }
         })
         .catch((err) => {
@@ -73,18 +74,19 @@ module.exports = (Model, App) => {
         });
     });
   }
-
-  const getTeamInvitationById = (id_team) => {
+  
+  const getTeamInvitationById = (idInvitation) => {
     return new Promise((resolve, reject) => {
       Model.team_invitations
         .findOne({
-          where: { id_team: { [Op.eq]: id_team } },
+          where: { id: { [Op.eq]: idInvitation } },
         })
-        .then((team_invitations) => {
-          if (team_invitations) {
-            resolve(team_invitations);
+        .then((invitation) => {
+          console.log('RESULTADO QUERY', invitation)
+          if (invitation) {
+            resolve(invitation);
           } else {
-            reject('team does not exists');
+            reject('Team invitation does not exists');
           }
         })
         .catch((err) => {
@@ -100,11 +102,11 @@ module.exports = (Model, App) => {
         .findOne({
           where: { user: { [Op.eq]: user } },
         })
-        .then((team_invitations) => {
-          if (team_invitations) {
-            resolve(team_invitations);
+        .then((teaminvitations) => {
+          if (teaminvitations) {
+            resolve(teaminvitations);
           } else {
-            reject('team does not exists');
+            reject('Team invitation does not exists');
           }
         })
         .catch((err) => {
@@ -114,30 +116,6 @@ module.exports = (Model, App) => {
     });
   }
 
-  const FindTeamByEmail = (email) => {
-    return new Promise((resolve, reject) => {
-      Model.Team
-        .findOne({ where: { bridge_user: { [Op.eq]: email } } })
-        .then((userData) => {
-          if (userData) {
-            const user = userData.dataValues;
-            if (user.token) user.token = user.token.toString();
-
-            resolve(user);
-          } else {
-            reject('User not found on X Cloud database');
-          }
-        })
-        .catch((err) => reject(err));
-    });
-  };
-
-  const FindUserByToken= (token) => {
-    return Model.teamInvitations.findOne({ where: {token: { [Op.eq]: token } } })
-  }
-
-
-  
   return {
     Name: 'TeamInvitations',
     save,
@@ -145,9 +123,7 @@ module.exports = (Model, App) => {
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
-    FindTeamByEmail,
-    FindUserByToken,
-    createInvitationsTeams 
+    createTableInvitationTeams 
    
   };
 };
