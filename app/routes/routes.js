@@ -1,15 +1,16 @@
 const sgMail = require('@sendgrid/mail');
 
 const speakeasy = require('speakeasy');
-const ActivationRoutes = require('~routes/activation');
-const StorageRoutes = require('~routes/storage');
-const BridgeRoutes = require('~routes/bridge');
-const StripeRoutes = require('~routes/stripe');
-const DesktopRoutes = require('~routes/desktop');
-const MobileRoutes = require('~routes/mobile');
-const TwoFactorRoutes = require('~routes/twofactor');
-const passport = require('~middleware/passport');
-const swaggerSpec = require('~config/initializers/swagger');
+const ActivationRoutes = require('./activation');
+const StorageRoutes = require('./storage');
+const BridgeRoutes = require('./bridge');
+const StripeRoutes = require('./stripe');
+const DesktopRoutes = require('./desktop');
+const MobileRoutes = require('./mobile');
+const TwoFactorRoutes = require('./twofactor');
+
+const passport = require('../middleware/passport');
+const swaggerSpec = require('../../config/initializers/swagger');
 const useragent = require('useragent');
 const uuid = require('uuid');
 

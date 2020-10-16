@@ -2,8 +2,8 @@ const fs = require('fs');
 
 const rimraf = require('rimraf');
 
-const upload = require('~middleware/multer');
-const passport = require('~middleware/passport');
+const upload = require('../middleware/multer');
+const passport = require('../middleware/passport');
 const _ = require('lodash');
 const contentDisposition = require('content-disposition');
 

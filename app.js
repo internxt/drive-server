@@ -1,9 +1,9 @@
-const Config = require('~config/config');
-const Server = require('~config/initializers/server');
-const Routes = require('~routes/routes');
-const Models = require('~models/models');
-const Services = require('~services/services');
-const Middleware = require('~config/initializers/middleware');
+const Config = require('./config/config');
+const Server = require('./config/initializers/server');
+const Routes = require('./app/routes/routes');
+const Models = require('./app/models/models');
+const Services = require('./app/services/services');
+const Middleware = require('./config/initializers/middleware');
 
 const config = new Config();
 const App = new Server(config);

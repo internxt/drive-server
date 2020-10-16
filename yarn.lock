@@ -1218,7 +1218,7 @@ chai@^4.2.0:
     pathval "^1.1.0"
     type-detect "^4.0.5"
 
-chalk@^2.0.0, chalk@^2.0.1, chalk@^2.1.0, chalk@^2.4.1, chalk@^2.4.2:
+chalk@^2.0.0, chalk@^2.0.1, chalk@^2.1.0, chalk@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
   integrity sha512-Mti+f9lpJNcwF4tWV8/OrTTtF1gZi+f8FqlyAdouralcFWFQWF2+NgCHShjkCb+IFBLq9buZwE1xckQU4peSuQ==
@@ -4055,13 +4055,6 @@ lines-and-columns@^1.1.6:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
-
-link-module-alias@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/link-module-alias/-/link-module-alias-1.2.0.tgz#6a3b7b014cfe18b2759a1222fffce6a40fc120e4"
-  integrity sha512-ahPjXepbSVKbahTB6LxR//VHm8HPfI+QQygCH+E82spBY4HR5VPJTvlhKBc9F7muVxnS6C1rRfoPOXAbWO/fyw==
-  dependencies:
-    chalk "^2.4.1"
 
 load-json-file@^2.0.0:
   version "2.0.0"

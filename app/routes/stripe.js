@@ -1,6 +1,6 @@
 const async = require('async');
 
-const passport = require('~middleware/passport');
+const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
