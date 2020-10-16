@@ -2,11 +2,12 @@ const { passportAuth } = require('../middleware/passport');
 const sgMail = require('@sendgrid/mail');
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.post('/teams-members', passportAuth, function (req, res) {
+  Router.post('/api/teams-members', passportAuth, function (req, res) {
     const { members } = req.body;
+
     const { user } = req.user;
 
-    Service.Team.getTeamByUser(user)
+    Service.Team.getTeamByIdUser(user)
     .then((team) => {
       if (req.body.idTeam == team.id) {
         var oldMembers = [];
@@ -19,6 +20,7 @@ module.exports = (Router, Service, Logger, App) => {
 
           Service.TeamsMembers.save(members, oldMembers, team).then(() => {
             res.status(200).json({'message': 'new users saved'});
+            
           }).catch((err) => {
             res.status(500).json({error: err});
           });
@@ -28,8 +30,10 @@ module.exports = (Router, Service, Logger, App) => {
 
       } else {
         res.status(500).json({error: "it's not your team"});
+      
       }
     }).catch((err) => {
+
       res.status(500).json({error: "it's not your team"});
     });
   });

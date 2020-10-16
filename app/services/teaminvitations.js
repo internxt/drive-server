@@ -1,18 +1,21 @@
 const sequelize = require('sequelize');
+const user = require('~models/user');
+
+
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  
   const save = (teamInvitation) => {
     return new Promise((resolve, reject) => {
       Model.team_invitations
         .create({
-          id_team: teamInvitation.idTeam,
+          id_team: teamInvitation.id_team,
           user: teamInvitation.user,
           token: teamInvitation.token,
-         
         }).then((newTeamInvitation) => {
-          resolve(newTeamInvitation);
+          resolve({teamInvitation: newTeamInvitation});
         }).catch((err) => {
           reject(err);
         });
@@ -33,18 +36,23 @@ module.exports = (Model, App) => {
     });
   }
 
-  // NOT NECESSARY, COLUMN DELETED
-  const markAsUsed = (teamInvitation) => {
+  const createTableInvitationTeams = (teamInvitation) => {
     return new Promise((resolve, reject) => {
-      teamInvitation.update({
-        
-      }).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(err);
-      });
+      Model.teaminvitations
+        .create({
+          id_team: teamInvitation.idTeam,
+          user: teamInvitation.user,
+          token: teamInvitation.token,
+         
+        }).then((newTeamInvitation) => {
+          resolve({teamInvitation: newTeamInvitation});
+        }).catch((err) => {
+          reject(err);
+        });
     });
-  }
+  };
+
+ 
 
   const getByToken = (token) => {
     return new Promise((resolve, reject) => {
@@ -52,17 +60,57 @@ module.exports = (Model, App) => {
         .findOne({
           where: {
             token: { [Op.eq]: token },
-            
           }
         })
         .then((teamInvitation) => {
           if (teamInvitation) {
             resolve(teamInvitation);
           } else {
-            reject('team invitation does not exists');
+            reject('Team invitation does not exists');
           }
         })
         .catch((err) => {
+          reject('Error querying database');
+        });
+    });
+  }
+  
+  const getTeamInvitationById = (idInvitation) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations
+        .findOne({
+          where: { id: { [Op.eq]: idInvitation } },
+        })
+        .then((invitation) => {
+          console.log('RESULTADO QUERY', invitation)
+          if (invitation) {
+            resolve(invitation);
+          } else {
+            reject('Team invitation does not exists');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          reject('Error querying database');
+        });
+    });
+  }
+
+  const getTeamInvitationByIdUser = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations
+        .findOne({
+          where: { user: { [Op.eq]: user } },
+        })
+        .then((teaminvitations) => {
+          if (teaminvitations) {
+            resolve(teaminvitations);
+          } else {
+            reject('Team invitation does not exists');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
           reject('Error querying database');
         });
     });
@@ -73,6 +121,9 @@ module.exports = (Model, App) => {
     save,
     remove,
     getByToken,
-    markAsUsed
+    getTeamInvitationByIdUser,
+    getTeamInvitationById,
+    createTableInvitationTeams 
+   
   };
 };
