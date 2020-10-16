@@ -1,6 +1,8 @@
 const sgMail = require('@sendgrid/mail');
-
 const speakeasy = require('speakeasy');
+const useragent = require('useragent');
+const uuid = require('uuid');
+
 const ActivationRoutes = require('~routes/activation');
 const StorageRoutes = require('~routes/storage');
 const BridgeRoutes = require('~routes/bridge');
@@ -13,8 +15,6 @@ const TeamInvitationsRoutes = require('~routes/teamInvitations');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
-const useragent = require('useragent');
-const uuid = require('uuid');
 
 const { passportAuth } = passport;
 
@@ -61,19 +61,38 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/login', function (req, res) {
+  Router.post('/login', (req, res) => {
     req.body.email = req.body.email.toLowerCase();
+
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
     }
 
     // Call user service to find user
-    return Service.User.FindUserByEmail(req.body.email)
+    Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
         if (!userData) {
           // Wrong user
           return res.status(400).json({ error: 'Wrong email/password' });
         }
+
+
+        let isTeamActivated = false;
+        let userTeam;
+        // Check if user has a team
+        Service.Team.getTeamByMember(req.body.email).then((team) => {
+          userTeam = team;                     
+          Service.Storj.IsUserActivated(team.bridge_user).then((responseTeam) => {
+            console.log("RESPONSE TEAM ", responseTeam); //debug
+            if (responseTeam.status === 200) {
+              console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
+              isTeamActivated = responseTeam.data.activated;                
+            }
+          }).catch((error) => {
+            Logger.error(error.stack);
+          });
+        }).catch((err) => { console.log("ERROR FINDING USER TEAM: ", err)})
+        
 
         return Service.Storj.IsUserActivated(req.body.email)
           .then((resActivation) => {
@@ -83,26 +102,32 @@ module.exports = (Router, Service, Logger, App) => {
               const encSalt = App.services.Crypt.encryptText(
                 userData.hKey.toString()
               );
-              const required2FA =
-                userData.secret_2FA && userData.secret_2FA.length > 0;
-              res.status(200).send({ sKey: encSalt, tfa: required2FA });
+              
+              const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+              res.status(200).send({
+                sKey: encSalt,
+                tfa: required2FA,
+                isTeamActivated: isTeamActivated,
+                userTeam : userTeam
+              });
             }
           })
           .catch((err) => {
             console.error(err);
             res.status(400).send({
               error: 'User not found on Bridge database',
-              message: err.response ? err.response.data : err,
+              message: err.response ? err.response.data : err
             });
           });
       })
-      .catch((err) => {
-        Logger.error(`${err}: ${req.body.email}`);
-        res.status(400).send({
-          error: 'User not found on Cloud database',
-          message: err.message,
-        });
+    .catch((err) => {
+      Logger.error(`${err}: ${req.body.email}`);
+      res.status(400).send({
+        error: 'User not found on Cloud database',
+        message: err.message
       });
+      
+    });
   });
 
   /**
@@ -122,7 +147,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/access', function (req, res) {
+  Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
 
     // Call user service to find or create user
@@ -131,7 +156,7 @@ module.exports = (Router, Service, Logger, App) => {
         if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
           res.status(500).send({
             error:
-              'Your account has been blocked for security reasons. Please reach out to us',
+              'Your account has been blocked for security reasons. Please reach out to us'
           });
 
           return;
@@ -149,7 +174,7 @@ module.exports = (Router, Service, Logger, App) => {
             secret: userData.secret_2FA,
             token: req.body.tfa,
             encoding: 'base32',
-            window: 2,
+            window: 2
           });
         }
 
@@ -178,7 +203,7 @@ module.exports = (Router, Service, Logger, App) => {
               uuid: userData.uuid,
               credit: userData.credit
             },
-            token,
+            token
           });
         } else {
           // Wrong password
@@ -193,7 +218,7 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(`${err.message}\n${err.stack}`);
         res.status(400).send({
           error: 'User not found on Cloud database',
-          message: err.message,
+          message: err.message
         });
       });
   });
@@ -215,23 +240,27 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User with this email exists
    */
-  Router.post('/register', async function (req, res) {
+  Router.post('/register', async (req, res) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
-      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For'])
+      Logger.warn(
+        'Register request for %s from %s',
+        req.body.email,
+        req.headers['X-Forwarded-For']
+      );
 
       const newUser = req.body;
       newUser.credit = 0;
 
-      const referral = req.body.referral;
-      
+      const { referral } = req.body;
+
       if (uuid.validate(referral)) {
-        await Service.User
-          .FindUserByUuid(referral)
+        await Service.User.FindUserByUuid(referral)
           .then((userData) => {
-            if (userData === null) { // Don't exists referral user
-              console.log("No existe la uuid de referencia");
+            if (userData === null) {
+              // Don't exists referral user
+              console.log('No existe la uuid de referencia');
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);
@@ -245,8 +274,8 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            var agent = useragent.parse(req.headers['user-agent']);
-            var client = useragent.parse(req.headers['internxt-client']);
+            const agent = useragent.parse(req.headers['user-agent']);
+            const client = useragent.parse(req.headers['internxt-client']);
             if (client && client.source === '') {
               client.source = 'x-cloud-mobile';
             }
@@ -257,7 +286,7 @@ module.exports = (Router, Service, Logger, App) => {
               userAgent: agent.source,
               action: 'register'
             })
-              .then(() => { })
+              .then(() => {})
               .catch((err) => {
                 console.log('Error creating register statistics:', err);
               });
@@ -283,6 +312,7 @@ module.exports = (Router, Service, Logger, App) => {
     }
   });
 
+
   /**
    * @swagger
    * /initialize:
@@ -300,85 +330,40 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User needs to be activated
    */
-  Router.post('/initialize', function (req, res) {
-    const idTeam = req.body.idTeam || null;
-
-    if (idTeam) {
-      Service.Team.getTeamById(idTeam).then((team) => {
-        Service.User.InitializeUser({
-          email: team.bridge_user,
-          mnemonic: team.bridge_password
-        })
-        .then((userData) => {
-          // Creating team parent folder
-          Service.User.FindUserByEmail(team.bridge_user).then((teamUser) => {
-            userData.id = teamUser.id;
-            userData.email = teamUser.email;
-            userData.password = teamUser.password;
-            userData.mnemonic = teamUser.mnemonic;
-            userData.root_folder_id = teamUser.root_folder_id;
-
-            Service.Folder.Create(userData, team.name, userData.root_folder_id, team.id)
-            .then((folder) => {
-
-              Service.TeamsMembers.update({
-                user: team.user,
-                id_team: team.id
-              }).then(() => {
-                res.status(200).send({});
-              }).catch((err) => {
-                res.send(err);
-              });
-
-            }).catch((err) => {
-              console.log(err);
-            });
-
-          }).catch((err) => {
-            console.log(err);
-          });
-        }).catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          res.send(err.message);
-        });
-      }).catch((err) => {
-        console.log(err);
-      });
-    } else {
-      // Call user service to find or create user
-      Service.User.InitializeUser(req.body)
-      .then((userData) => {
-        // Process user data and answer API call
-        if (userData.root_folder_id) {
-          // Successfull initialization
-          const user = {
-            email: userData.email,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-          };
-          res.status(200).send({ user });
-        } else {
-          // User initialization unsuccessful
-          res
-            .status(400)
-            .send({ message: "Your account can't be initialized" });
-        }
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.send(err.message);
-      });
-    }
+  Router.post('/initialize', (req, res) => {
+    // Call user service to find or create user
+    Service.User.InitializeUser(req.body)
+    .then((userData) => {
+      // Process user data and answer API call
+      if (userData.root_folder_id) {
+        // Successfull initialization
+        const user = {
+          email: userData.email,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id
+        };
+        res.status(200).send({ user });
+      } else {
+        // User initialization unsuccessful
+        res
+          .status(400)
+          .send({ message: "Your account can't be initialized" });
+      }
+    })
+    .catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.send(err.message);
+    });
   });
 
-  Router.put('/auth/mnemonic', passportAuth, function (req, res) {
+  Router.put('/auth/mnemonic', passportAuth, (req, res) => {
     const {
-      body: { email, mnemonic },
+      body: { email, mnemonic }
     } = req;
     Service.User.UpdateMnemonic(email, mnemonic)
       .then(() => {
         res.status(200).json({
-          message: 'Successfully updated user with mnemonic',
+          message: 'Successfully updated user with mnemonic'
         });
       })
       .catch(({ message }) => {
@@ -413,13 +398,14 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/user/claim', passportAuth, function (req, res) {
+  Router.post('/user/claim', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
       to: 'hello@internxt.com',
       from: req.user.email,
       subject: 'New credit request',
-      text: 'Hello Internxt! I am ready to receive my credit for referring friends.'
+      text:
+        'Hello Internxt! I am ready to receive my credit for referring friends.'
     };
     sgMail
       .send(msg)
@@ -431,48 +417,65 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/user/invite', passportAuth, function (req, res) {
-    const email = req.body.email;
+  Router.post('/user/invite', passportAuth, (req, res) => {
+    const { email } = req.body;
 
-    Service.User.FindUserObjByEmail(email).then((user) => {
-      if (user === null) {
-        Service.Mail.sendInvitationMail(email, req.user).then(() => {
-          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
-          res.status(200).send({})
-        }).catch((err) => {
-          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email)
-          res.status(200).send({})
-        })
-      } else {
-        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email)
-        res.status(200).send({})
-      }
-    }).catch((err) => {
-      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message)
-      res.status(200).send({})
-    })
+    Service.User.FindUserObjByEmail(email)
+      .then((user) => {
+        if (user === null) {
+          Service.Mail.sendInvitationMail(email, req.user)
+            .then(() => {
+              Logger.info(
+                'Usuario %s envia invitación a %s',
+                req.user.email,
+                req.body.email
+              );
+              res.status(200).send({});
+            })
+            .catch((err) => {
+              Logger.error(
+                'Error: Send mail from %s to %s',
+                req.user.email,
+                req.body.email
+              );
+              res.status(200).send({});
+            });
+        } else {
+          Logger.warn(
+            'Error: Send mail from %s to %s, already registered',
+            req.user.email,
+            req.body.email
+          );
+          res.status(200).send({});
+        }
+      })
+      .catch((err) => {
+        Logger.error(
+          'Error: Send mail from %s to %s, SMTP error',
+          req.user.email,
+          req.body.email,
+          err.message
+        );
+        res.status(200).send({});
+      });
   });
 
-  Router.get('/user/referred', passportAuth, function (req, res) {
-
-     const uuid = req.user.uuid;
+  Router.get('/user/referred', passportAuth, (req, res) => {
+    const { uuid } = req.user;
 
     Service.User.FindUsersByReferred(uuid)
-      .then((users) => {
-        return res.status(200).send({ total: users });
-      }).catch((message) => {
+      .then((users) => res.status(200).send({ total: users }))
+      .catch((message) => {
         Logger.error(message);
-        res.status(500).send({ error: 'No users' })
+        res.status(500).send({ error: 'No users' });
       });
-  })
+  });
 
-  
+  Router.get('/user/credit', passportAuth, (req, res) => {
+    const { user } = req;
 
-  Router.get('/user/credit', passportAuth, function (req, res) {
-    const user = req.user;
     return res.status(200).send({ userCredit: user.credit });
-  })
-
+  });
 
   return Router;
 };

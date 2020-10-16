@@ -11,7 +11,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Only auth. users can generate a new code.
    * Prevent 2FA users from getting a new code.
    */
-  Router.get('/tfa', passportAuth, function (req, res) {
+  Router.get('/tfa', passportAuth, (req, res) => {
     const userData = req.user;
     if (!userData) {
       res.status(500).send({ error: 'User does not exists' });
@@ -21,14 +21,14 @@ module.exports = (Router, Service, Logger, App) => {
       const secret = speakeasy.generateSecret({ length: 10 });
       const url = speakeasy.otpauthURL({
         secret: secret.ascii,
-        label: 'Internxt',
+        label: 'Internxt'
       });
       qrcode
         .toDataURL(url)
         .then((bidi) => {
           res.status(200).send({
             code: secret.base32,
-            qr: bidi,
+            qr: bidi
           });
         })
         .catch((err) => {
@@ -38,7 +38,7 @@ module.exports = (Router, Service, Logger, App) => {
     }
   });
 
-  Router.put('/tfa', passportAuth, function (req, res) {
+  Router.put('/tfa', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.FindUserByEmail(user)
@@ -51,7 +51,7 @@ module.exports = (Router, Service, Logger, App) => {
             secret: req.body.key,
             token: req.body.code,
             encoding: 'base32',
-            window: 2,
+            window: 2
           });
 
           if (isValid) {
@@ -72,7 +72,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.delete('/tfa', passportAuth, function (req, res) {
+  Router.delete('/tfa', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.FindUserByEmail(user)
@@ -87,7 +87,7 @@ module.exports = (Router, Service, Logger, App) => {
             secret: userData.secret_2FA,
             token: req.body.code,
             encoding: 'base32',
-            window: 2,
+            window: 2
           });
 
           // Check user password is valid
@@ -97,7 +97,7 @@ module.exports = (Router, Service, Logger, App) => {
             res.status(500).send({ error: 'Invalid password' });
           } else if (!isValid) {
             res.status(500).send({
-              error: 'Invalid 2FA code. Please, use an updated code.',
+              error: 'Invalid 2FA code. Please, use an updated code.'
             });
           } else {
             Service.User.Delete2FA(user)
@@ -106,7 +106,7 @@ module.exports = (Router, Service, Logger, App) => {
               })
               .catch((err) => {
                 res.status(500).send({
-                  error: 'Server error deactivating user 2FA. Try again later.',
+                  error: 'Server error deactivating user 2FA. Try again later.'
                 });
               });
           }

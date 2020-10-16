@@ -3,7 +3,7 @@ require('dotenv').config();
 const InternxtMailer = require('storj-service-mailer');
 const Sequelize = require('sequelize');
 
-const UserModel = require('./../models/user');
+const UserModel = require('../models/user');
 
 const { Op } = Sequelize;
 
@@ -15,7 +15,7 @@ const sequelize = new Sequelize(
     host: process.env.RDS_HOSTNAME,
     dialect: 'mysql',
     operatorsAliases: 0,
-    logging: null,
+    logging: null
   }
 );
 const User = UserModel(sequelize, Sequelize);
@@ -30,7 +30,7 @@ const updateUser = (emailUser) => {
     User.update(
       {
         is_email_activity_sended: true,
-        updated_at: yearAgo,
+        updated_at: yearAgo
       },
       { where: { email: emailUser }, silent: true }
     )
@@ -45,12 +45,14 @@ const sendMail = (emailTo) => {
   const mailer = new InternxtMailer({
     host: process.env.STORJ_MAILER_HOST,
     port: process.env.STORJ_MAILER_PORT,
-    secure: process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production',
+    secure:
+      process.env.NODE_ENV === 'staging'
+      || process.env.NODE_ENV === 'production',
     auth: {
       user: process.env.STORJ_MAILER_USERNAME,
-      pass: process.env.STORJ_MAILER_PASSWORD,
+      pass: process.env.STORJ_MAILER_PASSWORD
     },
-    from: 'hello@internxt.com',
+    from: 'hello@internxt.com'
   });
 
   mailer.dispatch(
@@ -58,9 +60,9 @@ const sendMail = (emailTo) => {
     'inactive',
     {
       template: 'variables',
-      go: { in: 'here' },
+      go: { in: 'here' }
     },
-    function (err) {
+    (err) => {
       if (!err) {
         console.log(`Mail sent to ${emailTo}!`);
         updateUser(emailTo);
@@ -85,12 +87,12 @@ const getInactiveAccountsForAYear = () => {
     User.findAll({
       where: {
         updatedAt: {
-          [Op.lt]: yearAgo,
+          [Op.lt]: yearAgo
         },
         is_email_activity_sended: {
-          [Op.eq]: false,
-        },
-      },
+          [Op.eq]: false
+        }
+      }
     })
       .then((res) => {
         resolve(res);

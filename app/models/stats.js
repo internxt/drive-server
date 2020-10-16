@@ -6,21 +6,21 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       name: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       user: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       userAgent: {
-        type: DataTypes.STRING,
-      },
+        type: DataTypes.STRING
+      }
     },
     {
       timestamps: true,
-      underscored: true,
+      underscored: true
     }
   );
 

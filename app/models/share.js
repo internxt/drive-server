@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       token: DataTypes.DECIMAL(10, 2),
       user: DataTypes.INTEGER,
@@ -14,15 +14,15 @@ module.exports = (sequelize, DataTypes) => {
       mnemonic: DataTypes.STRING,
       is_folder: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: false
       },
       views: {
         type: DataTypes.INTEGER,
-        defaultValue: 1,
-      },
+        defaultValue: 1
+      }
     },
     {
-      timestamps: false,
+      timestamps: false
     }
   );
 

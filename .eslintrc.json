@@ -10,12 +10,10 @@
   },
   "extends": [
     "airbnb-base",
-    "prettier",
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:node/recommended"
   ],
-  "plugins": ["prettier"],
   "env": {
     "node": true,
     "commonjs": true,
@@ -43,7 +41,6 @@
   //   "no-unused-expressions": "off"
   // },
   "rules": {
-    "prettier/prettier": "error",
     "import/no-unresolved": ["error", { "commonjs": true, "amd": true }],
     "import/named": "error",
     "import/namespace": "error",
@@ -73,7 +70,7 @@
     "no-async-promise-executor": 0,
     "node/no-missing-require": 0,
     "node/no-extraneous-require": 0,
-    "comma-dangle": 0,
+    "comma-dangle": ["error", "never"],
     "newline-before-return": 1,
     "padding-line-between-statements": [
       2,
