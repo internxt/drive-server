@@ -1,4 +1,4 @@
-const passport = require('~middleware/passport');
+const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
@@ -64,8 +64,6 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/deactivate', passportAuth, (req, res) => {
     const user = req.user.email;
-
-    console.log(user.credit);
 
     Service.User.DeactivateUser(user)
       .then((bridgeRes) => {

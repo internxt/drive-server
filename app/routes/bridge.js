@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const passport = require('~middleware/passport');
+const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 

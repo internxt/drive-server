@@ -2,7 +2,7 @@ const async = require('async');
 const { default: Stripe } = require('stripe');
 const crypto = require('crypto');
 
-const passport = require('~middleware/passport');
+const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 

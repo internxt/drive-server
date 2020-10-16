@@ -23,6 +23,14 @@ module.exports = (App, Config) => {
     }
   }
 
+  var limitSkipper = function (req, res, next) {
+    const whiteEndpoint = /^\/api\/storage\/share\/file\/(\w+)/
+    if (req.originalUrl.match(whiteEndpoint)) {
+      return true
+    }
+    return false;
+  }
+
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
     windowMs: 24 * 60 * 60 * 1000,
@@ -40,7 +48,8 @@ module.exports = (App, Config) => {
     delayMs: 10000,
     maxDelayMs: 20000,
     skipFailedRequests: true,
-    keyGenerator: limiterKeyGenerator
+    keyGenerator: limiterKeyGenerator,
+    skip: limitSkipper
   })
 
   App.express.use('/api/storage/share/', downloadLimiter);

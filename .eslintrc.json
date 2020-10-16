@@ -21,27 +21,6 @@
     "commonjs": true,
     "es6": true
   },
-  // "rules": {
-  //   "semi": 0,
-  //   "func-names": 0,
-  //   "space-before-function-paren": "off",
-  //   "global-require": 0,
-  //   "comma-dangle": 0,
-  //   "prefer-destructuring": 0,
-  //   "import/no-dynamic-require": 0,
-  //   "prefer-arrow-callback": 0,
-  //   "no-unused-vars": 0,
-  //   "arrow-body-style": 0,
-  //   "prefer-template": 0,
-  //   "eqeqeq": 1,
-  //   "max-len": 0,
-  //   "no-console": 0,
-  //   "no-param-reassign": 0,
-  //   "prefer-promise-reject-errors": 0,
-  //   "object-shorthand": "off",
-  //   "consistent-return": "off",
-  //   "no-unused-expressions": "off"
-  // },
   "rules": {
     "prettier/prettier": "error",
     "import/no-unresolved": ["error", { "commonjs": true, "amd": true }],
@@ -81,21 +60,5 @@
       { "blankLine": "always", "prev": "if", "next": "*" }
     ],
     "no-use-before-define": 0
-  },
-  "settings": {
-    "import/resolver": {
-      "alias": {
-        "extensions": [".js", ".jsx", ".json"],
-        "map": [
-          ["~services", "./app/services"],
-          ["~scripts", "./app/scripts"],
-          ["~routes", "./app/routes"],
-          ["~models", "./app/models"],
-          ["~middleware", "./app/middleware"],
-          ["~config", "./config"],
-          ["~", "./src"]
-        ]
-      }
-    }
   }
 }

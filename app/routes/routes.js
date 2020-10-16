@@ -1,17 +1,18 @@
 const sgMail = require('@sendgrid/mail');
 
 const speakeasy = require('speakeasy');
-const ActivationRoutes = require('~routes/activation');
-const StorageRoutes = require('~routes/storage');
-const BridgeRoutes = require('~routes/bridge');
-const StripeRoutes = require('~routes/stripe');
-const DesktopRoutes = require('~routes/desktop');
-const MobileRoutes = require('~routes/mobile');
-const TeamsRoutes = require('~routes/teams');
+const ActivationRoutes = require('./activation');
+const StorageRoutes = require('./storage');
+const BridgeRoutes = require('./bridge');
+const StripeRoutes = require('./stripe');
+const DesktopRoutes = require('./desktop');
+const MobileRoutes = require('./mobile');
+const TwoFactorRoutes = require('./twofactor');
+
+const passport = require('../middleware/passport');
+const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsMembersRoutes = require('~routes/teamsMembers');
-const TwoFactorRoutes = require('~routes/twofactor');
-const passport = require('~middleware/passport');
-const swaggerSpec = require('~config/initializers/swagger');
+const TeamsRoutes = require('~routes/teams');
 const useragent = require('useragent');
 const uuid = require('uuid');
 const crypto = require('crypto');
@@ -233,7 +234,7 @@ module.exports = (Router, Service, Logger, App) => {
           .FindUserByUuid(referral)
           .then((userData) => {
             if (userData === null) { // Don't exists referral user
-              console.log("No existe la uuid de referencia");
+              console.log("UUID not found");
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);

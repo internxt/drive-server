@@ -1,7 +1,7 @@
 const speakeasy = require('speakeasy');
 const qrcode = require('qrcode');
 
-const passport = require('~middleware/passport');
+const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
