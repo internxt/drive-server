@@ -84,7 +84,7 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(email, password, mnemonic);
 
       return new Promise((resolve, reject) => {
-        storj.createBucket(bucketName, function (err, res) {
+        storj.createBucket(bucketName, (err, res) => {
           if (err) {
             log.error('[NODE-LIB createBucket]', err);
             reject(err.message);
@@ -104,7 +104,7 @@ module.exports = (Model, App) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic);
 
     return new Promise((resolve, reject) => {
-      storj.deleteBucket(bucketId, function (err, result) {
+      storj.deleteBucket(bucketId, (err, result) => {
         if (err) {
           reject(err);
         } else {
@@ -114,39 +114,37 @@ module.exports = (Model, App) => {
     });
   };
 
-  const StoreFile = (user, bucketId, fileName, filePath) => {
-    return new Promise((resolve, reject) => {
-      const actualFileSize = fs.lstatSync(filePath).size;
-      const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-      storj.storeFile(bucketId, filePath, {
-        filename: fileName,
-        progressCallback(progress, uploadedBytes, totalBytes) {
-          log.info(
-            '[NODE-LIB %s] Upload Progress: %s/%s (%s)',
-            user.email,
-            uploadedBytes,
-            totalBytes,
-            progress
-          );
-        },
-        finishedCallback(err, fileId) {
-          if (err) {
-            log.error('[NODE-LIB storeFile]', err);
-            reject(err);
-          } else {
-            log.info('[NODE-LIB storeFile] File complete:', fileId);
-            storj.destroy();
-            resolve({ fileId, size: actualFileSize });
-          }
-        },
-      });
+  const StoreFile = (user, bucketId, fileName, filePath) => new Promise((resolve, reject) => {
+    const actualFileSize = fs.lstatSync(filePath).size;
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+    storj.storeFile(bucketId, filePath, {
+      filename: fileName,
+      progressCallback(progress, uploadedBytes, totalBytes) {
+        log.info(
+          '[NODE-LIB %s] Upload Progress: %s/%s (%s)',
+          user.email,
+          uploadedBytes,
+          totalBytes,
+          progress
+        );
+      },
+      finishedCallback(err, fileId) {
+        if (err) {
+          log.error('[NODE-LIB storeFile]', err);
+          reject(err);
+        } else {
+          log.info('[NODE-LIB storeFile] File complete:', fileId);
+          storj.destroy();
+          resolve({ fileId, size: actualFileSize });
+        }
+      },
     });
-  };
+  });
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads';
     const shortFileName = file.fileId;
-    const downloadFile = `${downloadDir}/${shortFileName}${file.type ? '.' + file.type : ''}`;
+    const downloadFile = `${downloadDir}/${shortFileName}${file.type ? `.${file.type}` : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir);
@@ -235,45 +233,39 @@ module.exports = (Model, App) => {
     });
   };
 
-  const DeleteFile = (user, bucketId, file) => {
-    return new Promise((resolve, reject) => {
-      const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-      storj.deleteFile(bucketId, file, function (err, result) {
-        if (err) {
-          log.error('[NODE-LIB deleteFile]', err);
-          reject(Error(err));
-        } else {
-          resolve(result);
-        }
-      });
+  const DeleteFile = (user, bucketId, file) => new Promise((resolve, reject) => {
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+    storj.deleteFile(bucketId, file, (err, result) => {
+      if (err) {
+        log.error('[NODE-LIB deleteFile]', err);
+        reject(Error(err));
+      } else {
+        resolve(result);
+      }
     });
-  };
+  });
 
-  const ListBuckets = (user) => {
-    return new Promise((resolve, reject) => {
-      const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-      storj.getBuckets((err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      });
+  const ListBuckets = (user) => new Promise((resolve, reject) => {
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+    storj.getBuckets((err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
     });
-  };
+  });
 
-  const ListBucketFiles = (user, bucketId) => {
-    return new Promise((resolve, reject) => {
-      const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-      storj.listFiles(bucketId, function (err, result) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
-      });
+  const ListBucketFiles = (user, bucketId) => new Promise((resolve, reject) => {
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+    storj.listFiles(bucketId, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
     });
-  };
+  });
 
   return {
     Name: 'Storj',

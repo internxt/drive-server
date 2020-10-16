@@ -1,5 +1,6 @@
 const CryptoJS = require('crypto-js');
-const AesUtil = require('../../lib/AesUtil')
+
+const AesUtil = require('../../lib/AesUtil');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -73,20 +74,22 @@ module.exports = (Model, App) => {
 
   function encryptName(name, salt) {
     if (salt) {
-      const encryptedResult = AesUtil.encrypt(name, salt, salt ? false : true)
+      const encryptedResult = AesUtil.encrypt(name, salt, !salt);
+
       return encryptedResult;
-    } else {
-      return probabilisticEncryption(name);
     }
+
+    return probabilisticEncryption(name);
   }
 
   function decryptName(cipherText, salt) {
     if (salt) {
       try {
         const result = AesUtil.decrypt(cipherText, salt);
+
         return result;
       } catch (e) {
-        console.log('ERROR', e.message)
+        console.log('ERROR', e.message);
       }
     }
 
@@ -119,7 +122,8 @@ module.exports = (Model, App) => {
     return encryptName(textToEncrypt, salt);
   }
 
-  // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
+  // Method to hash password.
+  // If salt is passed, use it, in other case use crypto lib for generate salt
   function passToHash(passObject) {
     try {
       const salt = passObject.salt

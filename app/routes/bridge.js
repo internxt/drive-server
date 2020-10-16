@@ -5,7 +5,7 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/usage', passportAuth, function (req, res) {
+  Router.get('/usage', passportAuth, (req, res) => {
     const userData = req.user;
 
     const pwd = userData.userId;
@@ -31,7 +31,7 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   // TODO
-  Router.get('/limit', passportAuth, function (req, res) {
+  Router.get('/limit', passportAuth, (req, res) => {
     const userData = req.user;
 
     const pwd = userData.userId;

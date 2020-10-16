@@ -3,8 +3,8 @@ require('dotenv').config();
 const { Environment } = require('storj');
 const Sequelize = require('sequelize');
 
-const UserModel = require('./../models/user');
-const FolderModel = require('./../models/folder');
+const UserModel = require('../models/user');
+const FolderModel = require('../models/folder');
 
 const { Op } = Sequelize;
 
@@ -22,15 +22,13 @@ const sequelize = new Sequelize(
 const User = UserModel(sequelize, Sequelize);
 const Folder = FolderModel(sequelize, Sequelize);
 
-const getBucket = (folderId) => {
-  return new Promise((resolve, reject) => {
-    Folder.findOne({
-      where: { id: { [Op.eq]: folderId } },
-    })
-      .then((res) => resolve(res.bucket))
-      .catch(reject);
-  });
-};
+const getBucket = (folderId) => new Promise((resolve, reject) => {
+  Folder.findOne({
+    where: { id: { [Op.eq]: folderId } },
+  })
+    .then((res) => resolve(res.bucket))
+    .catch(reject);
+});
 
 const updateUser = (emailUser) => {
   console.log(`Removing root_folder_id ${emailUser}`);
@@ -49,35 +47,33 @@ const updateUser = (emailUser) => {
   });
 };
 
-const deleteRootBucket = (user, bucketId) => {
-  return new Promise((resolve, reject) => {
-    let storj;
-    try {
-      storj = new Environment({
-        bridgeUrl: process.env.STORJ_BRIDGE,
-        bridgeUser: user.email,
-        bridgePass: user.userId,
-        logLevel: 3,
-      });
-    } catch (error) {
-      console.error('[NODE-LIB getEnvironment]', error);
-      reject(error);
-    }
-
-    console.log(`Removing root bucket for user: ${user.email}`);
-    storj.deleteBucket(bucketId, function (err, result) {
-      if (err) {
-        console.error(err);
-        reject(err);
-      } else {
-        console.log(result);
-        updateUser(user.email)
-          .then((res) => resolve(res))
-          .catch(reject);
-      }
+const deleteRootBucket = (user, bucketId) => new Promise((resolve, reject) => {
+  let storj;
+  try {
+    storj = new Environment({
+      bridgeUrl: process.env.STORJ_BRIDGE,
+      bridgeUser: user.email,
+      bridgePass: user.userId,
+      logLevel: 3,
     });
+  } catch (error) {
+    console.error('[NODE-LIB getEnvironment]', error);
+    reject(error);
+  }
+
+  console.log(`Removing root bucket for user: ${user.email}`);
+  storj.deleteBucket(bucketId, (err, result) => {
+    if (err) {
+      console.error(err);
+      reject(err);
+    } else {
+      console.log(result);
+      updateUser(user.email)
+        .then((res) => resolve(res))
+        .catch(reject);
+    }
   });
-};
+});
 
 const getUnconfirmedUsers = () => {
   const yearAgo = new Date();

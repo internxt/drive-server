@@ -11,7 +11,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Only auth. users can generate a new code.
    * Prevent 2FA users from getting a new code.
    */
-  Router.get('/tfa', passportAuth, function (req, res) {
+  Router.get('/tfa', passportAuth, (req, res) => {
     const userData = req.user;
     if (!userData) {
       res.status(500).send({ error: 'User does not exists' });
@@ -38,7 +38,7 @@ module.exports = (Router, Service, Logger, App) => {
     }
   });
 
-  Router.put('/tfa', passportAuth, function (req, res) {
+  Router.put('/tfa', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.FindUserByEmail(user)
@@ -72,7 +72,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.delete('/tfa', passportAuth, function (req, res) {
+  Router.delete('/tfa', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.FindUserByEmail(user)

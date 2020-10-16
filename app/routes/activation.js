@@ -3,7 +3,7 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/user/isactivated', passportAuth, function (req, res) {
+  Router.get('/user/isactivated', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.Storj.IsUserActivated(user)
@@ -20,7 +20,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.get('/deactivate', passportAuth, function (req, res) {
+  Router.get('/deactivate', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.DeactivateUser(user)
@@ -32,7 +32,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.get('/reset/:email', function (req, res) {
+  Router.get('/reset/:email', (req, res) => {
     const user = req.params.email.toLowerCase();
     Service.User.DeactivateUser(user)
       .then(() => {

@@ -5,7 +5,7 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/plans', passportAuth, function (req, res) {
+  Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll()
       .then((data) => {
         res.status(200).json(data);
@@ -151,9 +151,7 @@ module.exports = (Router, Service, Logger, App) => {
       } else {
         const productsMin = products.data
           .filter((p) => !!p.metadata.size_bytes)
-          .map((p) => {
-            return { id: p.id, name: p.name, metadata: p.metadata };
-          })
+          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
           .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
         res.status(200).send(productsMin);
       }
@@ -180,15 +178,13 @@ module.exports = (Router, Service, Logger, App) => {
           res.status(500).send({ error: err.message });
         } else {
           const plansMin = plans.data
-            .map((p) => {
-              return {
-                id: p.id,
-                price: p.amount,
-                name: p.nickname,
-                interval: p.interval,
-                interval_count: p.interval_count,
-              };
-            })
+            .map((p) => ({
+              id: p.id,
+              price: p.amount,
+              name: p.nickname,
+              interval: p.interval,
+              interval_count: p.interval_count,
+            }))
             .sort((a, b) => a.price * 1 - b.price * 1);
           res.status(200).send(plansMin);
         }

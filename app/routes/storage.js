@@ -1,11 +1,13 @@
 const fs = require('fs');
+const path = require('path');
 
 const rimraf = require('rimraf');
+const _ = require('lodash');
+const contentDisposition = require('content-disposition');
+const async = require('async');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
-const _ = require('lodash');
-const contentDisposition = require('content-disposition');
 
 const { passportAuth } = passport;
 
@@ -26,7 +28,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.get('/storage/folder/:id', passportAuth, function (req, res) {
+  Router.get('/storage/folder/:id', passportAuth, (req, res) => {
     const folderId = req.params.id;
     Service.Folder.GetContent(folderId, req.user)
       .then((result) => {
@@ -64,7 +66,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating folder
    */
-  Router.post('/storage/folder/:folderid/meta', passportAuth, function (req, res) {
+  Router.post('/storage/folder/:folderid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
@@ -97,7 +99,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.post('/storage/folder', passportAuth, function (req, res) {
+  Router.post('/storage/folder', passportAuth, (req, res) => {
     const { folderName } = req.body;
     const { parentFolderId } = req.body;
 
@@ -130,7 +132,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Message
    */
-  Router.delete('/storage/folder/:id', passportAuth, function (req, res) {
+  Router.delete('/storage/folder/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
@@ -166,7 +168,7 @@ module.exports = (Router, Service, Logger, App) => {
     '/storage/folder/:id/upload',
     passportAuth,
     upload.single('xfile'),
-    function (req, res) {
+    (req, res) => {
       const { user } = req;
       // Set mnemonic to decrypted mnemonic
       user.mnemonic = req.headers['internxt-mnemonic'];
@@ -212,7 +214,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       501:
    *         description: Folder with same name exists in folder destination.
    */
-  Router.post('/storage/moveFolder', passportAuth, function (req, res) {
+  Router.post('/storage/moveFolder', passportAuth, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
     const { user } = req;
@@ -243,7 +245,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       400:
    *         description: Bad request. Any data is not passed on request.
    */
-  Router.post('/storage/file', passportAuth, function (req, res) {
+  Router.post('/storage/file', passportAuth, (req, res) => {
     const { user } = req;
     const { file } = req.body;
     Service.Files.CreateFile(user, file).then((result) => {
@@ -270,7 +272,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Uploaded object
    */
-  Router.get('/storage/file/:id', passportAuth, function (req, res) {
+  Router.get('/storage/file/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
@@ -282,12 +284,14 @@ module.exports = (Router, Service, Logger, App) => {
     let filePath;
 
     return Service.Files.Download(user, fileIdInBucket)
-      .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
+      .then(({
+        filestream, mimetype, downloadFile, folderId, name, type
+      }) => {
         filePath = downloadFile;
         const fileName = downloadFile.split('/')[2];
         const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
-        const fileNameDecrypted = `${decryptedFileName}${type ? '.' + type : ''}`
+        const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
         const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
         res.setHeader(
@@ -334,7 +338,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating file
    */
-  Router.post('/storage/file/:fileid/meta', passportAuth, function (req, res) {
+  Router.post('/storage/file/:fileid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const fileId = req.params.fileid;
     const { metadata } = req.body;
@@ -371,7 +375,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       501:
    *         description: File with same name exists in folder destination.
    */
-  Router.post('/storage/moveFile', passportAuth, function (req, res) {
+  Router.post('/storage/moveFile', passportAuth, (req, res) => {
     const { fileId } = req.body;
     const { destination } = req.body;
     const { user } = req;
@@ -391,7 +395,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.delete(
     '/storage/bucket/:bucketid/file/:fileid',
     passportAuth,
-    function (req, res) {
+    (req, res) => {
       if (req.params.bucketid === 'null') {
         return res.status(500).json({ error: 'No bucket ID provided' });
       }
@@ -499,13 +503,13 @@ module.exports = (Router, Service, Logger, App) => {
                         `./downloads/${tree.id}/${folderName}.zip`
                       );
 
-                      rimraf(`./downloads/${tree.id}`, function () {
+                      rimraf(`./downloads/${tree.id}`, () => {
                         console.log('Folder removed after send zip');
                       });
                     })
                     .catch((err) => {
                       if (fs.existsSync(`./downloads/${tree.id}`)) {
-                        rimraf(`./downloads/${tree.id}`, function () {
+                        rimraf(`./downloads/${tree.id}`, () => {
                           console.log(
                             'Folder removed after fail folder download'
                           );
@@ -530,13 +534,15 @@ module.exports = (Router, Service, Logger, App) => {
               });
           } else {
             Service.Files.Download(userData, fileIdInBucket)
-              .then(({ filestream, mimetype, downloadFile, folderId, name, type }) => {
+              .then(({
+                filestream, mimetype, downloadFile, folderId, name, type
+              }) => {
                 const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
                 res.setHeader('Content-type', mimetype);
 
-                const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? '.' + type : ''}`).toString('base64');
-                const encodedFileName = encodeURI(`${decryptedFileName}${type ? '.' + type : ''}`);
+                const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
+                const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
 
                 res.setHeader('content-disposition', contentDisposition(encodedFileName));
                 res.set('x-file-name', decryptedFileNameB64);
@@ -569,16 +575,16 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.post('/storage/sftp/list', passportAuth, (req, res) => {
-    let fs_path = req.body.path;
+    const fsPath = req.body.path;
 
-    if (!fs_path) { return res.status(200).send({}) }
+    if (!fsPath) { return res.status(200).send({}); }
 
-    const replaced_path = fs_path.replace('\\', '/');
-    const normalized_path = path.normalize(replaced_path);
-    const splitted_path = normalized_path.split('/');
-    const filtered_path = splitted_path.filter(x => x !== '')
+    const replacedPath = fsPath.replace('\\', '/');
+    const normalizedPath = path.normalize(replacedPath);
+    const splittedPath = normalizedPath.split('/');
+    const filteredPath = splittedPath.filter((x) => x !== '');
 
-    if (filtered_path.length === 0) {
+    if (filteredPath.length === 0) {
       return Service.Folder.GetContent(req.user.root_folder_id, req.user)
         .then((result) => {
           if (result == null) {
@@ -591,55 +597,51 @@ module.exports = (Router, Service, Logger, App) => {
           Logger.error(`${err.message}\n${err.stack}`);
           res.status(500).json(err);
         });
-
-    } else {
-      console.log('Sub-folders request is under construction', filtered_path)
-
-      let position = 0;
-
-      const findFolder = (folders, targetName) => {
-        return new Promise((resolve, reject) => {
-          async.eachSeries(folders, (folder, nextFolder) => {
-            if (folder.name === targetName) { nextFolder('found', folder); }
-            else { nextFolder(); }
-          }, (err, folder) => {
-            if (err === 'found') { resolve(folder); }
-            else { reject(); }
-          })
-        });
-      }
-
-      const getSubFolders = (folderId) => {
-        return new Promise((resolve, reject) => {
-          Service.Folder.GetContent(folderId, req.user).then(result => {
-            resolve(result.children);
-          }).catch(err => {
-            reject(err);
-          })
-        });
-      }
-
-      const testUntil = (next) => {
-        next(null, position < filtered_path.length);
-      }
-
-      let currentFolderId = req.user.root_folder_id;
-
-      async.doDuring((err) => {
-        getSubFolders(currentFolderId).then(children => {
-          findFolder(folders, filtered_path[position]).then(result => {
-          }).catch(err => {
-
-          })
-        })
-      }, testUntil, (err) => {
-        if (err) {
-          res.status(500).send({ error: 'Folder does not exists' })
-        } else {
-
-        }
-      })
-
     }
+
+    console.log('Sub-folders request is under construction', filteredPath);
+
+    const position = 0;
+
+    const findFolder = (folders, targetName) => new Promise((resolve, reject) => {
+      async.eachSeries(folders, (folder, nextFolder) => {
+        if (folder.name === targetName) { nextFolder('found', folder); } else { nextFolder(); }
+      }, (err, folder) => {
+        if (err === 'found') { resolve(folder); } else { reject(); }
+      });
+    });
+
+    const getSubFolders = (folderId) => new Promise((resolve, reject) => {
+      Service.Folder.GetContent(folderId, req.user).then((result) => {
+        resolve(result.children);
+      }).catch((err) => {
+        reject(err);
+      });
+    });
+
+    const testUntil = (next) => {
+      next(null, position < filteredPath.length);
+    };
+
+    const currentFolderId = req.user.root_folder_id;
+
+    return 0;
+
+    /*
+    async.doDuring((err) => {
+      getSubFolders(currentFolderId).then((children) => {
+        findFolder(folders, filteredPath[position]).then((result) => {
+        }).catch((err1) => {
+          (() => { })(err1);
+        });
+      });
+    }, testUntil, (err2) => {
+      if (err2) {
+        res.status(500).send({ error: 'Folder does not exists' });
+      } else {
+        (() => { })();
+      }
+    });
+    */
   });
 };

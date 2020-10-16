@@ -5,7 +5,8 @@ const SanitizeFilename = require('sanitize-filename');
 const sequelize = require('sequelize');
 const async = require('async');
 const AdmZip = require('adm-zip');
-const AesUtil = require('../../lib/AesUtil')
+
+const AesUtil = require('../../lib/AesUtil');
 
 const { Op } = sequelize;
 
@@ -13,65 +14,67 @@ module.exports = (Model, App) => {
   const FileService = require('./files')(Model, App);
 
   // Create folder entry, for web/mobile & desktop
-  const Create = (user, folderName, parentFolderId) => {
-    return new Promise(async (resolve, reject) => {
-      try {
-        // parent folder is yours?
-        const existsParentFolder = await Model.folder.findOne({
-          where: {
-            id: { [Op.eq]: parentFolderId },
-            user_id: { [Op.eq]: user.id },
-          },
-        });
+  const Create = (user, folderName, parentFolderId) => new Promise(async (resolve, reject) => {
+    try {
+      // parent folder is yours?
+      const existsParentFolder = await Model.folder.findOne({
+        where: {
+          id: { [Op.eq]: parentFolderId },
+          user_id: { [Op.eq]: user.id },
+        },
+      });
 
-        if (!existsParentFolder) {
-          throw Error('Parent folder is not yours');
-        }
-
-        // Prevent strange folder names from being created
-        const sanitizedFoldername = SanitizeFilename(folderName);
-
-        if (folderName === '' || sanitizedFoldername !== folderName) {
-          throw Error('Invalid folder name');
-        }
-
-        if (user.mnemonic === 'null') {
-          // throw Error('Your mnemonic is invalid');
-        }
-
-        // Encrypt folder name, TODO: use versioning for encryption
-        const cryptoFolderName = App.services.Crypt.encryptName(
-          folderName,
-          parentFolderId
-        );
-
-        const exists = await Model.folder.findOne({
-          where: {
-            parentId: { [Op.eq]: parentFolderId },
-            name: { [Op.eq]: cryptoFolderName },
-          },
-        });
-
-        if (exists) {
-          // TODO: If the folder already exists, return the folder data to make desktop incorporate new info to its database
-          throw Error('Folder with the same name already exists');
-        }
-
-        // Since we upload everything in the same bucket, this line is no longer needed
-        // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
-        const xCloudFolder = await user.createFolder({
-          name: cryptoFolderName,
-          bucket: null,
-          parentId: parentFolderId || null,
-        });
-
-        resolve(xCloudFolder);
-      } catch (error) {
-        reject(error);
+      if (!existsParentFolder) {
+        throw Error('Parent folder is not yours');
       }
-    });
-  };
+
+      // Prevent strange folder names from being created
+      const sanitizedFoldername = SanitizeFilename(folderName);
+
+      if (folderName === '' || sanitizedFoldername !== folderName) {
+        throw Error('Invalid folder name');
+      }
+
+      if (user.mnemonic === 'null') {
+        // throw Error('Your mnemonic is invalid');
+      }
+
+      // Encrypt folder name, TODO: use versioning for encryption
+      const cryptoFolderName = App.services.Crypt.encryptName(
+        folderName,
+        parentFolderId
+      );
+
+      const exists = await Model.folder.findOne({
+        where: {
+          parentId: { [Op.eq]: parentFolderId },
+          name: { [Op.eq]: cryptoFolderName },
+        },
+      });
+
+      if (exists) {
+        // TODO: If the folder already exists,
+        // return the folder data to make desktop
+        // incorporate new info to its database
+        throw Error('Folder with the same name already exists');
+      }
+
+      // Since we upload everything in the same bucket, this line is no longer needed
+      // const bucket = await App
+      // .services.Storj
+      // .CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+
+      const xCloudFolder = await user.createFolder({
+        name: cryptoFolderName,
+        bucket: null,
+        parentId: parentFolderId || null,
+      });
+
+      resolve(xCloudFolder);
+    } catch (error) {
+      reject(error);
+    }
+  });
 
   const Delete = async (user, folderId) => {
     console.info('User %s requested to delete folder %s', user.email, folderId);
@@ -133,74 +136,70 @@ module.exports = (Model, App) => {
     zip.writeZip(zipFileName);
   };
 
-  const Download = (tree, userData) => {
-    return new Promise(async (resolve, reject) => {
-      const rootFolder = App.services.Crypt.decryptName(
-        tree.name,
-        tree.parentId
-      );
-      const rootPath = `./downloads/${tree.id}/${rootFolder}`;
-      const listFilesToDownload = [];
+  const Download = (tree, userData) => new Promise(async (resolve, reject) => {
+    const rootFolder = App.services.Crypt.decryptName(
+      tree.name,
+      tree.parentId
+    );
+    const rootPath = `./downloads/${tree.id}/${rootFolder}`;
+    const listFilesToDownload = [];
 
-      function traverseFile(files, path = rootPath) {
-        files.forEach((file) => {
-          listFilesToDownload.push({
-            id: file.fileId,
-            path,
-          });
+    function traverseFile(files, path = rootPath) {
+      files.forEach((file) => {
+        listFilesToDownload.push({
+          id: file.fileId,
+          path,
         });
-      }
-
-      function traverseChildren(children, path = rootPath) {
-        children.forEach((child) => {
-          const subFolder = App.services.Crypt.decryptName(
-            child.name,
-            child.parentId
-          );
-
-          fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
-            if (err) throw err;
-          });
-
-          if (child.files && child.files.length > 0) {
-            traverseFile(child.files, `${path}/${subFolder}`);
-          }
-
-          if (child.children && child.children.length > 0) {
-            traverseChildren(child.children, `${path}/${subFolder}`);
-          }
-        });
-      }
-
-      fs.mkdir(rootPath, { recursive: true }, (err) => {
-        if (err) throw err;
       });
+    }
 
-      if (tree.files && tree.files.length > 0) {
-        traverseFile(tree.files);
-      }
+    function traverseChildren(children, path = rootPath) {
+      children.forEach((child) => {
+        const subFolder = App.services.Crypt.decryptName(
+          child.name,
+          child.parentId
+        );
 
-      if (tree.children && tree.children.length > 0) {
-        traverseChildren(tree.children);
-      }
+        fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
+          if (err) throw err;
+        });
 
-      async.eachSeries(
-        listFilesToDownload,
-        (file, next) => {
-          FileService.DownloadFolderFile(userData, file.id, file.path)
-            .then(() => {
-              next();
-            })
-            .catch((err) => {
-              next(err);
-            });
-        },
-        (err) => {
-          return err ? reject(err) : resolve();
+        if (child.files && child.files.length > 0) {
+          traverseFile(child.files, `${path}/${subFolder}`);
         }
-      );
+
+        if (child.children && child.children.length > 0) {
+          traverseChildren(child.children, `${path}/${subFolder}`);
+        }
+      });
+    }
+
+    fs.mkdir(rootPath, { recursive: true }, (err) => {
+      if (err) throw err;
     });
-  };
+
+    if (tree.files && tree.files.length > 0) {
+      traverseFile(tree.files);
+    }
+
+    if (tree.children && tree.children.length > 0) {
+      traverseChildren(tree.children);
+    }
+
+    async.eachSeries(
+      listFilesToDownload,
+      (file, next) => {
+        FileService.DownloadFolderFile(userData, file.id, file.path)
+          .then(() => {
+            next();
+          })
+          .catch((err) => {
+            next(err);
+          });
+      },
+      (err) => (err ? reject(err) : resolve())
+    );
+  });
 
   const GetTreeSize = (tree) => {
     let treeSize = 0;
@@ -268,14 +267,12 @@ module.exports = (Model, App) => {
     });
   };
 
-  const mapChildrenNames = (folder = []) => {
-    return folder.map((child) => {
-      child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-      child.children = mapChildrenNames(child.children);
+  const mapChildrenNames = (folder = []) => folder.map((child) => {
+    child.name = App.services.Crypt.decryptName(child.name, child.parentId);
+    child.children = mapChildrenNames(child.children);
 
-      return child;
-    });
-  };
+    return child;
+  });
 
   const GetContent = async (folderId, user) => {
     const result = await Model.folder.findOne({
@@ -322,94 +319,66 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const UpdateMetadata = (user, folderId, metadata) => {
-    return new Promise((resolve, reject) => {
-      const newMeta = {};
+  const UpdateMetadata = (user, folderId, metadata) => new Promise((resolve, reject) => {
+    const newMeta = {};
 
-      async.waterfall(
-        [
-          (next) => {
-            // Is there something to change?
-            if (!metadata.itemName && !metadata.icon && !metadata.color) {
-              next(Error('Nothing to change'));
-            } else {
-              next();
-            }
-          },
-          (next) => {
-            // Get the target folder from database
-            Model.folder
-              .findOne({ where: { id: { [Op.eq]: folderId } } })
-              .then((result) => next(null, result))
-              .catch(next);
-          },
-          (folder, next) => {
-            // Check if user is the owner of that folder
-            if (folder.user_id !== user.id) {
-              next(Error('Update Folder Metadata: This is not your folder'));
-            } else {
-              next(null, folder);
-            }
-          },
-          (folder, next) => {
-            // Check if the new folder name already exists
-            if (metadata.itemName) {
-              const cryptoFolderName = App.services.Crypt.encryptName(
-                metadata.itemName,
-                folder.parentId
-              );
-
-              Model.folder
-                .findOne({
-                  where: {
-                    parentId: { [Op.eq]: folder.parentId },
-                    name: { [Op.eq]: cryptoFolderName },
-                  },
-                })
-                .then((isDuplicated) => {
-                  if (isDuplicated) {
-                    next(Error('Folder with this name exists'));
-                  } else {
-                    newMeta.name = cryptoFolderName;
-                    try {
-                      AesUtil.decrypt(cryptoFolderName, folder.parentId)
-                      newMeta.encrypt_version = '03-aes'
-                    } catch (e) {
-
-                    }
-                    next(null, folder);
-                  }
-                })
-                .catch(next);
-            } else {
-              next(null, folder);
-            }
-          },
-          (folder, next) => {
-            // Set optional changes
-            if (metadata.color) {
-              newMeta.color = metadata.color;
-            }
-
-            if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
-              newMeta.icon_id = metadata.icon;
-            }
-
-            next(null, folder);
-          },
-          (folder, next) => {
-            // Perform the update
-            folder
-              .update(newMeta)
-              .then((result) => next(null, result))
-              .catch(next);
-          },
-        ],
-        (err, result) => {
-          if (err) {
-            reject(err);
+    async.waterfall(
+      [
+        (next) => {
+          // Is there something to change?
+          if (!metadata.itemName && !metadata.icon && !metadata.color) {
+            next(Error('Nothing to change'));
           } else {
-            resolve(result);
+            next();
+          }
+        },
+        (next) => {
+          // Get the target folder from database
+          Model.folder
+            .findOne({ where: { id: { [Op.eq]: folderId } } })
+            .then((result) => next(null, result))
+            .catch(next);
+        },
+        (folder, next) => {
+          // Check if user is the owner of that folder
+          if (folder.user_id !== user.id) {
+            next(Error('Update Folder Metadata: This is not your folder'));
+          } else {
+            next(null, folder);
+          }
+        },
+        (folder, next) => {
+          // Check if the new folder name already exists
+          if (metadata.itemName) {
+            const cryptoFolderName = App.services.Crypt.encryptName(
+              metadata.itemName,
+              folder.parentId
+            );
+
+            Model.folder
+              .findOne({
+                where: {
+                  parentId: { [Op.eq]: folder.parentId },
+                  name: { [Op.eq]: cryptoFolderName },
+                },
+              })
+              .then((isDuplicated) => {
+                if (isDuplicated) {
+                  next(Error('Folder with this name exists'));
+                } else {
+                  newMeta.name = cryptoFolderName;
+                  try {
+                    AesUtil.decrypt(cryptoFolderName, folder.parentId);
+                    newMeta.encrypt_version = '03-aes';
+                  } catch (e) {
+                    (() => {})();
+                  }
+                  next(null, folder);
+                }
+              })
+              .catch(next);
+          } else {
+            next(null, folder);
           }
         },
         (folder, next) => {
@@ -422,10 +391,6 @@ module.exports = (Model, App) => {
             newMeta.icon_id = metadata.icon;
           }
 
-          if (metadata.icon === 'none') {
-            newMeta.icon_id = null;
-          }
-
           next(null, folder);
         },
         (folder, next) => {
@@ -434,16 +399,44 @@ module.exports = (Model, App) => {
             .update(newMeta)
             .then((result) => next(null, result))
             .catch(next);
+        },
+      ],
+      (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
         }
-      );
-    });
-  };
+      },
+      (folder, next) => {
+        // Set optional changes
+        if (metadata.color) {
+          newMeta.color = metadata.color;
+        }
 
-  const GetBucketList = (user) => {
-    return new Promise((resolve, reject) => {
-      App.services.Storj.ListBuckets(user).then(resolve).catch(reject);
-    });
-  };
+        if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
+          newMeta.icon_id = metadata.icon;
+        }
+
+        if (metadata.icon === 'none') {
+          newMeta.icon_id = null;
+        }
+
+        next(null, folder);
+      },
+      (folder, next) => {
+        // Perform the update
+        folder
+          .update(newMeta)
+          .then((result) => next(null, result))
+          .catch(next);
+      }
+    );
+  });
+
+  const GetBucketList = (user) => new Promise((resolve, reject) => {
+    App.services.Storj.ListBuckets(user).then(resolve).catch(reject);
+  });
 
   const GetChildren = async (user, folderId, options = {}) => {
     const query = {
@@ -545,16 +538,14 @@ module.exports = (Model, App) => {
     return response;
   };
 
-  const GetBucket = (user, folder_id) => {
-    return new Promise((resolve, reject) => {
-      Model.folder.findOne({
-        where: {
-          id: { [Op.eq]: folder_id },
-          user_id: { [Op.eq]: user.id },
-        }
-      }).then(folder => { resolve(folder); }).catch(reject)
-    });
-  }
+  const GetBucket = (user, folderId) => new Promise((resolve, reject) => {
+    Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id },
+      }
+    }).then((folder) => { resolve(folder); }).catch(reject);
+  });
 
   return {
     Name: 'Folder',

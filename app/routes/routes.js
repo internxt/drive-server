@@ -1,6 +1,11 @@
 const sgMail = require('@sendgrid/mail');
-
 const speakeasy = require('speakeasy');
+const useragent = require('useragent');
+const uuid = require('uuid');
+
+const passport = require('../middleware/passport');
+const swaggerSpec = require('../../config/initializers/swagger');
+
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
 const BridgeRoutes = require('./bridge');
@@ -8,11 +13,6 @@ const StripeRoutes = require('./stripe');
 const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
-
-const passport = require('../middleware/passport');
-const swaggerSpec = require('../../config/initializers/swagger');
-const useragent = require('useragent');
-const uuid = require('uuid');
 
 const { passportAuth } = passport;
 
@@ -55,7 +55,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/login', function (req, res) {
+  Router.post('/login', (req, res) => {
     req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
@@ -77,8 +77,7 @@ module.exports = (Router, Service, Logger, App) => {
               const encSalt = App.services.Crypt.encryptText(
                 userData.hKey.toString()
               );
-              const required2FA =
-                userData.secret_2FA && userData.secret_2FA.length > 0;
+              const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
               res.status(200).send({ sKey: encSalt, tfa: required2FA });
             }
           })
@@ -116,7 +115,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/access', function (req, res) {
+  Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
 
     // Call user service to find or create user
@@ -209,23 +208,23 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User with this email exists
    */
-  Router.post('/register', async function (req, res) {
+  Router.post('/register', async (req, res) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
-      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For'])
+      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For']);
 
       const newUser = req.body;
       newUser.credit = 0;
 
-      const referral = req.body.referral;
-      
+      const { referral } = req.body;
+
       if (uuid.validate(referral)) {
         await Service.User
           .FindUserByUuid(referral)
           .then((userData) => {
             if (userData === null) { // Don't exists referral user
-              console.log("UUID not found");
+              console.log('UUID not found');
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);
@@ -239,8 +238,8 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            var agent = useragent.parse(req.headers['user-agent']);
-            var client = useragent.parse(req.headers['internxt-client']);
+            const agent = useragent.parse(req.headers['user-agent']);
+            const client = useragent.parse(req.headers['internxt-client']);
             if (client && client.source === '') {
               client.source = 'x-cloud-mobile';
             }
@@ -294,7 +293,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: User needs to be activated
    */
-  Router.post('/initialize', function (req, res) {
+  Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
     Service.User.InitializeUser(req.body)
       .then((userData) => {
@@ -320,7 +319,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.put('/auth/mnemonic', passportAuth, function (req, res) {
+  Router.put('/auth/mnemonic', passportAuth, (req, res) => {
     const {
       body: { email, mnemonic },
     } = req;
@@ -362,7 +361,7 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/user/claim', passportAuth, function (req, res) {
+  Router.post('/user/claim', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
       to: 'hello@internxt.com',
@@ -380,48 +379,43 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/user/invite', passportAuth, function (req, res) {
-    const email = req.body.email;
+  Router.post('/user/invite', passportAuth, (req, res) => {
+    const { email } = req.body;
 
     Service.User.FindUserObjByEmail(email).then((user) => {
       if (user === null) {
         Service.Mail.sendInvitationMail(email, req.user).then(() => {
-          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email)
-          res.status(200).send({})
+          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
+          res.status(200).send({});
         }).catch((err) => {
-          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email)
-          res.status(200).send({})
-        })
+          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
+          res.status(200).send({});
+        });
       } else {
-        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email)
-        res.status(200).send({})
+        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
+        res.status(200).send({});
       }
     }).catch((err) => {
-      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message)
-      res.status(200).send({})
-    })
+      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
+      res.status(200).send({});
+    });
   });
 
-  Router.get('/user/referred', passportAuth, function (req, res) {
+  Router.get('/user/referred', passportAuth, (req, res) => {
+    const refUuid = req.user.uuid;
 
-     const uuid = req.user.uuid;
-
-    Service.User.FindUsersByReferred(uuid)
-      .then((users) => {
-        return res.status(200).send({ total: users });
-      }).catch((message) => {
+    Service.User.FindUsersByReferred(refUuid)
+      .then((users) => res.status(200).send({ total: users })).catch((message) => {
         Logger.error(message);
-        res.status(500).send({ error: 'No users' })
+        res.status(500).send({ error: 'No users' });
       });
-  })
+  });
 
-  
+  Router.get('/user/credit', passportAuth, (req, res) => {
+    const { user } = req;
 
-  Router.get('/user/credit', passportAuth, function (req, res) {
-    const user = req.user;
     return res.status(200).send({ userCredit: user.credit });
-  })
-
+  });
 
   return Router;
 };

@@ -3,7 +3,7 @@ require('dotenv').config();
 const InternxtMailer = require('storj-service-mailer');
 const Sequelize = require('sequelize');
 
-const UserModel = require('./../models/user');
+const UserModel = require('../models/user');
 
 const { Op } = Sequelize;
 
@@ -60,7 +60,7 @@ const sendMail = (emailTo) => {
       template: 'variables',
       go: { in: 'here' },
     },
-    function (err) {
+    (err) => {
       if (!err) {
         console.log(`Mail sent to ${emailTo}!`);
         updateUser(emailTo);

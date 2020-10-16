@@ -10,19 +10,17 @@
   },
   "extends": [
     "airbnb-base",
-    "prettier",
     "plugin:import/errors",
     "plugin:import/warnings",
     "plugin:node/recommended"
   ],
-  "plugins": ["prettier"],
+  "plugins": [],
   "env": {
     "node": true,
     "commonjs": true,
     "es6": true
   },
   "rules": {
-    "prettier/prettier": "error",
     "import/no-unresolved": ["error", { "commonjs": true, "amd": true }],
     "import/named": "error",
     "import/namespace": "error",
