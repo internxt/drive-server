@@ -69,11 +69,8 @@ module.exports = (Model, App) => {
           id_team: { [Op.eq]: props.id_team }
         }
       }).then((teamMember) => {
-        console.log('teamMember', teamMember)
         teamMember.update({
-         
         }).then((teamMember) => {
-
           resolve(teamMember);
         }).catch((err) => {
           reject(err);
@@ -141,7 +138,7 @@ module.exports = (Model, App) => {
           if (teamMembers) {
             resolve(teamMembers);
           } else {
-            reject('team members does not exists');
+            reject('Team members does not exists');
           }
         })
         .catch((err) => {
@@ -212,6 +209,7 @@ module.exports = (Model, App) => {
     getTeamByUser,
     getMembersByIdTeam,
     addTeamMember,
-    saveMembersFromInvitations
+    saveMembersFromInvitations,
+    update
   };
 };

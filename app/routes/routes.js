@@ -11,12 +11,12 @@ const TwoFactorRoutes = require('./twofactor');
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
-const TeamsMembersRoutes = require('~routes/teamsMembers');
-const TeamsRoutes = require('~routes/teams');
+const TeamsMembersRoutes = require('./teamsMembers');
+const TeamsRoutes = require('./teams');
+
 const useragent = require('useragent');
 const uuid = require('uuid');
 const crypto = require('crypto');
-const teaminvitations = require('~services/teaminvitations');
 
 
 const { passportAuth } = passport;
@@ -100,6 +100,7 @@ module.exports = (Router, Service, Logger, App) => {
           });
       })
       .catch((err) => {
+        console.log('111')
         Logger.error(`${err}: ${req.body.email}`);
         res.status(400).send({
           error: 'User not found on Cloud database',
@@ -193,6 +194,7 @@ module.exports = (Router, Service, Logger, App) => {
         }
       })
       .catch((err) => {
+        console.log('222')
         Logger.error(`${err.message}\n${err.stack}`);
         res.status(400).send({
           error: 'User not found on Cloud database',
@@ -234,7 +236,7 @@ module.exports = (Router, Service, Logger, App) => {
           .FindUserByUuid(referral)
           .then((userData) => {
             if (userData === null) { // Don't exists referral user
-              console.log("UUID not found");
+              console.log("No existe la uuid de referencia");
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);
@@ -480,7 +482,54 @@ module.exports = (Router, Service, Logger, App) => {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex')
 
+    //EN CASO DE ERRORES MANDAR 500 Y EN CASO DE CONFIRMACION MANDAR 200 ( res.status().send({}) )
+    //Coger un getTeamInvitationByIdUser de Service.TeamInvitations y pasarle email y then(una invitacion)
+    //Ver si la invitacion que le hemos pasado existe
+    //Si existe reenviamos el email (sendEmailTeamsMember)
+    //No existe vemos si es miembro, vemos si existe el usuario ( lo haremos con  getTeamByUser pasandole un usuario que será el mismo user que el de email de antes)
+    //Si es miembro no hace nada
+    //No es miembro, hace de crear una invitacion y crear el token
     Service.Team.getTeamByIdUser(req.user.email).then(team => {
+
+      Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
+        if (teamInvitation) {
+          return Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
+            Logger.info('The email is forwarded because the user %s has been invited to join the team by the user %s', req.user.email, req.body.email)
+            res.status(200).send({
+            })
+          }).catch((err) => {
+            Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+            res.status(500).send({
+            })
+          })
+        }
+      }).catch(err => {
+        Logger.error('The user %s not have a team Invitation 1', email)
+        res.status(500).send({
+        })
+        console.error(err)
+      })
+      
+      Service.TeamsMembers.getTeamByUser(email).then(() => {
+          res.status(200).send({
+          })
+          Logger.info('User %s is member of the team', email)
+
+      }).catch(err => {
+        Logger.error('The user %s not have a team Invitation 2', req.user.email)
+        res.status(500).send({
+        })
+      })
+
+    }).catch(err => {
+      Logger.error('The user %s not have a team Invitation 3', req.user.email)
+      res.status(500).send({
+      })
+    })
+
+    return
+    Service.Team.getTeamByIdUser(req.user.email).then(team => {
+
       Service.TeamInvitations.save({
         id_team: team.id,
         user: email,
@@ -493,12 +542,18 @@ module.exports = (Router, Service, Logger, App) => {
           })
         }).catch((err) => {
           Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+          res.status(500).send({
+          })
         })
       }).catch((err) => {
         Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+        res.status(500).send({
+        })
       })
     }).catch(err => {
       Logger.error('The user %s not have a team Invitation', req.user.email)
+      res.status(500).send({
+      })
     })
   });
 
@@ -506,9 +561,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/teams/join/:token', (req, res) => {
     const { token } = req.params;
 
-    Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
 
-      Service.TeamInvitations.saveInvitationsMembers({
+    Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
+      Service.TeamsMembers.saveMembersFromInvitations({
         id_team: teamInvitation.id_team,
         user: teamInvitation.user
       }).then((newMember) => {
@@ -516,7 +571,7 @@ module.exports = (Router, Service, Logger, App) => {
         teamInvitation.destroy().then(() => {
           res.status(200).send({})
         }).catch(err => {
-          res.status(500).send({ error: 'The invitation could not be destroyed'})
+          res.status(500).send({ error: 'The invitation could not be destroyed' })
         })
       }).catch((err) => {
         Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
@@ -531,6 +586,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
   });
+
 
   return Router;
 
