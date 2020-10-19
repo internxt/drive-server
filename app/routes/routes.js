@@ -486,7 +486,7 @@ module.exports = (Router, Service, Logger, App) => {
     Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
 
       if (teamInvitation) {
-        Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
+        Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
           Logger.info('The user %s has already an invitation', email)
           Logger.info('The email is forwarded because the user %s has been invited to join the team by the user %s', req.user.email, email)
           res.status(200).send({
