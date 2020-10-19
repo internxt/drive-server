@@ -116,6 +116,7 @@ module.exports = (Model, App) => {
     });
   }
 
+  
   return {
     Name: 'TeamInvitations',
     save,
@@ -123,7 +124,8 @@ module.exports = (Model, App) => {
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
-    createTableInvitationTeams 
+    createTableInvitationTeams,
    
+    
   };
 };

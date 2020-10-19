@@ -36,6 +36,28 @@ module.exports = (Model, App) => {
     });
   }
 
+  const getMember= (memberInvitation) => {
+    return new Promise((resolve, reject) => {
+      Model.teams_members
+        .findOne({
+          where: {
+            user: { [Op.eq]: memberInvitation.user }
+          }
+        })
+        .then((teamMember) => {
+          if (teamMember) {
+            resolve(teamMember);
+          } else {
+            reject("This user don't have any team");
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          reject('Error querying database');
+        });
+    });
+  }
+
   const remove = (members, idTeam) => {
     return new Promise((resolve, reject) => {
       async.eachSeries(members, (member, next) => {
@@ -210,6 +232,7 @@ module.exports = (Model, App) => {
     getMembersByIdTeam,
     addTeamMember,
     saveMembersFromInvitations,
-    update
+    update,
+    getMember
   };
 };
