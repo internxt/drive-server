@@ -87,11 +87,7 @@ module.exports = (Model, App) => {
       })
       .then((teamMember) => {
         console.log("TEAM MEMBER", teamMember); //debug
-        if (teamMember) {
-          resolve(teamMember.dataValues);
-        } else {
-          reject("This user don't have any team");
-        }
+        resolve(teamMember);
       })
       .catch((err) => {
         console.error(err);
@@ -102,6 +98,9 @@ module.exports = (Model, App) => {
   const getTeamByMember = function (userEmail) {
     return new Promise(function (resolve, reject) {
       getIdTeamByUser(userEmail).then(function (team) {
+        if (!team) {
+          return resolve()
+        }
         getTeamById(team.id_team).then(function (team2) {
           console.log("FINDED TEAM", team2); //debug
           resolve(team2);

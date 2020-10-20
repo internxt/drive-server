@@ -15,8 +15,12 @@ const TeamInvitationsRoutes = require('~routes/teamInvitations');
 const TwoFactorRoutes = require('~routes/twofactor');
 const passport = require('~middleware/passport');
 const swaggerSpec = require('~config/initializers/swagger');
+const team = require('~services/team');
 
 const { passportAuth } = passport;
+let isTeamActivated = false;
+let userTeam = null;
+let rootFolderId = 0;
 
 module.exports = (Router, Service, Logger, App) => {
   // Documentation
@@ -61,38 +65,20 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
+
   Router.post('/login', (req, res) => {
     req.body.email = req.body.email.toLowerCase();
-
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
     }
 
     // Call user service to find user
-    Service.User.FindUserByEmail(req.body.email)
+    return Service.User.FindUserByEmail(req.body.email)
       .then((userData) => {
         if (!userData) {
           // Wrong user
           return res.status(400).json({ error: 'Wrong email/password' });
         }
-
-
-        let isTeamActivated = false;
-        let userTeam;
-        // Check if user has a team
-        Service.Team.getTeamByMember(req.body.email).then((team) => {
-          userTeam = team;                     
-          Service.Storj.IsUserActivated(team.bridge_user).then((responseTeam) => {
-            console.log("RESPONSE TEAM ", responseTeam); //debug
-            if (responseTeam.status === 200) {
-              console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
-              isTeamActivated = responseTeam.data.activated;                
-            }
-          }).catch((error) => {
-            Logger.error(error.stack);
-          });
-        }).catch((err) => { console.log("ERROR FINDING USER TEAM: ", err)})
-        
 
         return Service.Storj.IsUserActivated(req.body.email)
           .then((resActivation) => {
@@ -102,34 +88,26 @@ module.exports = (Router, Service, Logger, App) => {
               const encSalt = App.services.Crypt.encryptText(
                 userData.hKey.toString()
               );
-              
               const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-              res.status(200).send({
-                sKey: encSalt,
-                tfa: required2FA,
-                isTeamActivated: isTeamActivated,
-                userTeam : userTeam
-              });
+              res.status(200).send({ sKey: encSalt, tfa: required2FA });
             }
           })
           .catch((err) => {
             console.error(err);
             res.status(400).send({
               error: 'User not found on Bridge database',
-              message: err.response ? err.response.data : err
+              message: err.response ? err.response.data : err,
             });
           });
       })
-    .catch((err) => {
-      Logger.error(`${err}: ${req.body.email}`);
-      res.status(400).send({
-        error: 'User not found on Cloud database',
-        message: err.message
+      .catch((err) => {
+        Logger.error(`${err}: ${req.body.email}`);
+        res.status(400).send({
+          error: 'User not found on Cloud database',
+          message: err.message,
+        });
       });
-      
-    });
   });
-
   /**
    * @swagger
    * /access:
@@ -150,9 +128,12 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
 
+    let isTeamActivated = false;
+    let rootFolderId = 0;
+    let userTeam = null;
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
+      .then(async (userData) => {
         if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
           res.status(500).send({
             error:
@@ -161,6 +142,30 @@ module.exports = (Router, Service, Logger, App) => {
 
           return;
         }
+
+        let responseTeam = null;
+        // Check if user has a team
+        await new Promise((resolve, reject) => {
+          Service.Team.getTeamByMember(req.body.email).then(async (team) => {
+            //console.log("USERTEAM: ", userTeam);
+            userTeam = team;
+            if (!team) {
+              resolve();
+            }
+            rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
+            responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
+            //console.log("RESPONSE TEAM ", responseTeam); //debug
+            if (responseTeam) {
+              console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
+              isTeamActivated = responseTeam.data.activated;
+              resolve();
+            }
+          }).catch((error) => {
+            Logger.error(error.stack);
+            reject()
+          });
+
+        })
 
         // Process user data and answer API call
         const pass = App.services.Crypt.decryptText(req.body.password);
@@ -203,7 +208,15 @@ module.exports = (Router, Service, Logger, App) => {
               uuid: userData.uuid,
               credit: userData.credit
             },
-            token
+            token,
+            team: {
+              bridge_user: userTeam.bridge_user,
+              bridge_password: userTeam.bridge_password,
+              bridge_mnemonic: userTeam.bridge_mnemonic,
+              admin: userTeam.admin,
+              root_folder_id: rootFolderId,
+              isActivated: isTeamActivated
+            }
           });
         } else {
           // Wrong password
@@ -213,8 +226,7 @@ module.exports = (Router, Service, Logger, App) => {
 
           res.status(400).json({ error: 'Wrong email/password' });
         }
-      })
-      .catch((err) => {
+      }).catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
         res.status(400).send({
           error: 'User not found on Cloud database',
@@ -286,7 +298,7 @@ module.exports = (Router, Service, Logger, App) => {
               userAgent: agent.source,
               action: 'register'
             })
-              .then(() => {})
+              .then(() => { })
               .catch((err) => {
                 console.log('Error creating register statistics:', err);
               });
@@ -333,27 +345,27 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
     Service.User.InitializeUser(req.body)
-    .then((userData) => {
-      // Process user data and answer API call
-      if (userData.root_folder_id) {
-        // Successfull initialization
-        const user = {
-          email: userData.email,
-          mnemonic: userData.mnemonic,
-          root_folder_id: userData.root_folder_id
-        };
-        res.status(200).send({ user });
-      } else {
-        // User initialization unsuccessful
-        res
-          .status(400)
-          .send({ message: "Your account can't be initialized" });
-      }
-    })
-    .catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.send(err.message);
-    });
+      .then((userData) => {
+        // Process user data and answer API call
+        if (userData.root_folder_id) {
+          // Successfull initialization
+          const user = {
+            email: userData.email,
+            mnemonic: userData.mnemonic,
+            root_folder_id: userData.root_folder_id
+          };
+          res.status(200).send({ user });
+        } else {
+          // User initialization unsuccessful
+          res
+            .status(400)
+            .send({ message: "Your account can't be initialized" });
+        }
+      })
+      .catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        res.send(err.message);
+      });
   });
 
   Router.put('/auth/mnemonic', passportAuth, (req, res) => {
