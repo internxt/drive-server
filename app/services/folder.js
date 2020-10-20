@@ -287,102 +287,47 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
-    if (!teamId) {
-      var result = await Model.folder.findOne({
+    const teamMember = null;
+    if(teamId) {
+      teamMember = await Model.teams_members.findOne({
         where: {
-          id: { [Op.eq]: folderId },
-          user_id: user.id
-        },
-        include: [
-          {
-            model: Model.folder,
-            as: 'descendents',
-            hierarchy: true,
-            include: [
-              {
-                model: Model.icon,
-                as: 'icon'
-              }
-            ]
-          },
-          {
-            model: Model.file,
-            as: 'files'
-          },
-          {
-            model: Model.icon,
-            as: 'icon'
-          }
-        ]
-      });
-
-      const teamMember = await Model.teams_members.findOne({
-        where: {
-          user: { [Op.eq]: user.email }
+          user: { [Op.eq]: user.email },
+          id_team: { [Op.eq]: teamId }
         }
       });
+    }
 
-      if (teamMember) {
-        const resultTeam = await Model.folder.findOne({
-          where: {
-            id_team: teamMember.id_team
-          },
+    if (teamId && !teamMember) {
+      return null;    //User isn't member of this team
+    } 
+
+    var result = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+      },
+      include: [
+        {
+          model: Model.folder,
+          as: 'descendents',
+          hierarchy: true,
           include: [
-            {
-              model: Model.folder,
-              as: 'descendents',
-              hierarchy: true,
-              include: [
-                {
-                  model: Model.icon,
-                  as: 'icon'
-                }
-              ]
-            },
-            {
-              model: Model.file,
-              as: 'files'
-            },
             {
               model: Model.icon,
               as: 'icon'
             }
           ]
-        });
-
-        if (resultTeam && !result.parentId) {
-          result.children.push(resultTeam);
-        }
-      }
-    } else {
-      var result = await Model.folder.findOne({
-        where: {
-          id_team: teamId,
-          id: { [Op.eq]: folderId }
         },
-        include: [
-          {
-            model: Model.folder,
-            as: 'descendents',
-            hierarchy: true,
-            include: [
-              {
-                model: Model.icon,
-                as: 'icon'
-              }
-            ]
-          },
-          {
-            model: Model.file,
-            as: 'files'
-          },
-          {
-            model: Model.icon,
-            as: 'icon'
-          }
-        ]
-      });
-    }
+        {
+          model: Model.file,
+          as: 'files'
+        },
+        {
+          model: Model.icon,
+          as: 'icon'
+        }
+      ]
+    });
+
 
     // Null result implies empty folder.
     // TODO: Should send an error to be handled and showed on website.

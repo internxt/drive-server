@@ -162,6 +162,7 @@ module.exports = (Model, App) => {
         // Set decrypted mnemonic to returning object
         const updatedUser = userData;
         updatedUser.mnemonic = user.mnemonic;
+        updatedUser.root_folder_id = rootFolder.id;
 
         return updatedUser;
       })

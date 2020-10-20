@@ -147,24 +147,31 @@ module.exports = (Router, Service, Logger, App) => {
         // Check if user has a team
         await new Promise((resolve, reject) => {
           Service.Team.getTeamByMember(req.body.email).then(async (team) => {
-            //console.log("USERTEAM: ", userTeam);
+            console.log("USERTEAM: ", team); //debug
             userTeam = team;
-            if (!team) {
-              resolve();
+            if (team !== undefined) {
+              rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
+              responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
+              //console.log("RESPONSE TEAM ", responseTeam); //debug
+              if (responseTeam) {
+                console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
+                isTeamActivated = responseTeam.data.activated;
+                userTeam = {
+                  bridge_user: userTeam.bridge_user,
+                  bridge_password: userTeam.bridge_password,
+                  bridge_mnemonic: userTeam.bridge_mnemonic,
+                  admin: userTeam.admin,
+                  root_folder_id: rootFolderId,
+                  isActivated: isTeamActivated
+                };
+                resolve();
+              }
             }
-            rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
-            responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-            //console.log("RESPONSE TEAM ", responseTeam); //debug
-            if (responseTeam) {
-              console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
-              isTeamActivated = responseTeam.data.activated;
-              resolve();
-            }
+            resolve();
           }).catch((error) => {
             Logger.error(error.stack);
             reject()
           });
-
         })
 
         // Process user data and answer API call
@@ -209,14 +216,7 @@ module.exports = (Router, Service, Logger, App) => {
               credit: userData.credit
             },
             token,
-            team: {
-              bridge_user: userTeam.bridge_user,
-              bridge_password: userTeam.bridge_password,
-              bridge_mnemonic: userTeam.bridge_mnemonic,
-              admin: userTeam.admin,
-              root_folder_id: rootFolderId,
-              isActivated: isTeamActivated
-            }
+            userTeam
           });
         } else {
           // Wrong password

@@ -3,7 +3,7 @@ const passport = require('~middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/user/isactivated/:email', passportAuth, (req, res) => {
+  Router.get('/team/isactivated/:email', passportAuth, (req, res) => {
     const user = req.user.email;
     const bridgeUser = req.params.email;
 
@@ -17,10 +17,12 @@ module.exports = (Router, Service, Logger, App) => {
               console.log("RESPONSE TEAM ", responseTeam); //debug
               if (responseTeam.status === 200) {
                 console.log("IS ACTIVATED: ", responseTeam.data.activated); //debug
+                const isTeamActivated = responseTeam.data.activated;
+                const teamId = team.id;
 
                 res.status(200).send({
-                  activatedTeam: responseTeam.data.activated,
-                  teamId: team.id
+                  isTeamActivated,
+                  teamId
                 });
               } else {
                 res

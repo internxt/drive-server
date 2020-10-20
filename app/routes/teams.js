@@ -24,15 +24,15 @@ module.exports = (Router, Service, Logger, App) => {
 
 
   Router.post('/teams/initialize', passportAuth, (req, res) => {
-    const idTeam = req.body.idTeam;
+    const bridgeUser = req.body.email;
+    const mnemonic = req.body.mnemonic;
 
-    Service.Team.getTeamById(idTeam).then((team) => {
-      Service.User.InitializeUser({
-        email: team.bridge_user,
-        mnemonic: team.bridge_mnemonic
+    Service.User.InitializeUser({
+      email: bridgeUser,
+      mnemonic: mnemonic
       }).then((userData) => {
         // Creating team parent folder
-        Service.User.FindUserByEmail(team.bridge_user).then((teamUser) => {
+        Service.User.FindUserByEmail(bridgeUser).then((teamUser) => {
           userData.id = teamUser.id;
           userData.email = teamUser.email;
           userData.password = teamUser.password;
@@ -41,9 +41,9 @@ module.exports = (Router, Service, Logger, App) => {
 
           Service.Folder.Create(
             userData,
-            team.name,
-            userData.root_folder_id,
-            team.id
+            teamUser.name,
+            userData.root_folder_id
+            
           ).then((folder) => {
             console.log("TEAM FOLDER CREATED: ", folder); //debug
             res.status(200).send({ folder });           
@@ -57,9 +57,7 @@ module.exports = (Router, Service, Logger, App) => {
         Logger.error(`${err.message}\n${err.stack}`);
         res.status(500).send(err.message);
       });
-    }).catch((err) => {
-      console.log(err);
-    });
+
   });
 
 
