@@ -41,6 +41,6 @@ module.exports = (Model, App) => {
     IsBucketId,
     IsDatabaseId,
     FileNameParts,
-    getNewMoveName,
+    getNewMoveName
   };
 };

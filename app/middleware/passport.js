@@ -19,5 +19,5 @@ function Verify(token, secret) {
 module.exports = {
   passportAuth,
   Sign,
-  Verify,
+  Verify
 };

@@ -6,34 +6,34 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       parentId: {
         type: DataTypes.INTEGER,
-        hierarchy: true,
+        hierarchy: true
       },
       name: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       bucket: {
-        type: DataTypes.STRING(24),
+        type: DataTypes.STRING(24)
       },
       user_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id',
-        },
+          key: 'id'
+        }
       },
       icon_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'icon',
-          key: 'id',
-        },
+          key: 'id'
+        }
       },
       color: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       encrypt_version: {
         type: DataTypes.STRING
@@ -45,7 +45,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: true,
       underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }],
+      indexes: [{ name: 'name', fields: ['name'] }]
     }
   );
 

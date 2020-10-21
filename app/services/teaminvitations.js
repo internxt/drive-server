@@ -22,19 +22,20 @@ module.exports = (Model, App) => {
     });
   };
 
-  const remove = (user) => {
-    return new Promise((resolve, reject) => {
-      Model.team_invitations.destroy({
-        where: { 
+  const remove = (user) => new Promise((resolve, reject) => {
+    Model.team_invitations
+      .destroy({
+        where: {
           user: { [Op.eq]: user }
         }
-      }).then(() => {
+      })
+      .then(() => {
         resolve();
-      }).catch((err) => {
+      })
+      .catch((err) => {
         reject(err);
       });
-    });
-  }
+  });
 
   const createTableInvitationTeams = (teamInvitation) => {
     return new Promise((resolve, reject) => {

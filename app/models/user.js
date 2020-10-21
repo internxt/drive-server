@@ -6,71 +6,71 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       userId: {
-        type: DataTypes.STRING(60),
+        type: DataTypes.STRING(60)
       },
       name: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       lastname: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       email: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: false
       },
       password: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       mnemonic: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       storeMnemonic: {
         type: DataTypes.BOOLEAN,
         allowNull: true,
-        defaultValue: true,
+        defaultValue: true
       },
       root_folder_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'folders',
-          key: 'id',
-        },
+          key: 'id'
+        }
       },
       isFreeTier: {
-        type: DataTypes.BOOLEAN,
+        type: DataTypes.BOOLEAN
       },
       isCreated: {
-        type: DataTypes.VIRTUAL,
+        type: DataTypes.VIRTUAL
       },
       hKey: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: false
       },
       secret_2FA: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       errorLoginCount: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.INTEGER
       },
       is_email_activity_sended: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        defaultValue: false,
+        defaultValue: false
       },
       referral: {
         type: DataTypes.STRING,
-        allowNull: true,
+        allowNull: true
       },
       syncDate: {
         type: DataTypes.DATE,
-        allowNull: true,
+        allowNull: true
       },
       uuid: {
         type: DataTypes.STRING(36),
-        unique: true,
+        unique: true
       },
       lastResend: {
         type: DataTypes.DATE,
@@ -82,16 +82,16 @@ module.exports = (sequelize, DataTypes) => {
       credit: {
         type: DataTypes.INTEGER,
         defaultValue: 0
-      },
+      }
     },
     {
       timestamps: true,
-      underscored: true,
+      underscored: true
     },
     {
       defaultScope: {
-        attributes: { exclude: ['userId'] },
-      },
+        attributes: { exclude: ['userId'] }
+      }
     }
   );
 

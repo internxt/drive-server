@@ -3,24 +3,26 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
-  Router.get('/user/isactivated/:email', passportAuth, (req, res) => {
+  Router.get('/team/isactivated/:email', passportAuth, (req, res) => {
     const user = req.user.email;
     const bridgeUser = req.params.email;
 
-    Service.Team.getTeamByIdUser(user)
+    Service.Team.getTeamByMember(user)
       .then((team) => {
-         console.log("ACTIVATING TEAM", team) // debug
+         console.log("ACTIVATING TEAM ", team) // debug
         if (team.dataValues.bridge_user === bridgeUser) {
           console.log("TEAM EMAIL ", team.bridge_user); //debug
           Service.Storj.IsUserActivated(bridgeUser)
             .then((responseTeam) => {
-              console.log("RESPONSE TEAM", responseTeam); //debug
+              console.log("RESPONSE TEAM ", responseTeam); //debug
               if (responseTeam.status === 200) {
                 console.log("IS ACTIVATED: ", responseTeam.data.activated); //debug
+                const isTeamActivated = responseTeam.data.activated;
+                const teamId = team.id;
 
                 res.status(200).send({
-                  activatedTeam: responseTeam.data.activated,
-                  teamId: team.id
+                  isTeamActivated,
+                  teamId
                 });
               } else {
                 res

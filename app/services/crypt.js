@@ -1,5 +1,6 @@
 const CryptoJS = require('crypto-js');
-const AesUtil = require('../../lib/AesUtil')
+
+const AesUtil = require('../../lib/AesUtil');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -73,20 +74,22 @@ module.exports = (Model, App) => {
 
   function encryptName(name, salt) {
     if (salt) {
-      const encryptedResult = AesUtil.encrypt(name, salt, salt ? false : true)
+      const encryptedResult = AesUtil.encrypt(name, salt, !salt);
+
       return encryptedResult;
-    } else {
-      return probabilisticEncryption(name);
     }
+
+    return probabilisticEncryption(name);
   }
 
   function decryptName(cipherText, salt) {
     if (salt) {
       try {
         const result = AesUtil.decrypt(cipherText, salt);
+
         return result;
       } catch (e) {
-        console.log('ERROR', e.message)
+        console.log('ERROR', e.message);
       }
     }
 
@@ -127,11 +130,11 @@ module.exports = (Model, App) => {
         : CryptoJS.lib.WordArray.random(128 / 8);
       const hash = CryptoJS.PBKDF2(passObject.password, salt, {
         keySize: 256 / 32,
-        iterations: 10000,
+        iterations: 10000
       });
       const hashedObjetc = {
         salt: salt.toString(),
-        hash: hash.toString(),
+        hash: hash.toString()
       };
 
       return hashedObjetc;
@@ -155,6 +158,6 @@ module.exports = (Model, App) => {
     probabilisticEncryption,
     probabilisticDecryption,
     passToHash,
-    hashSha256,
+    hashSha256
   };
 };
