@@ -1,5 +1,5 @@
 const sequelize = require('sequelize');
-const user = require('~models/user');
+const user = require('../models/user');
 
 
 

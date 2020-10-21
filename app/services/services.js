@@ -1,3 +1,4 @@
+
 const fs = require('fs');
 const path = require('path');
 
@@ -20,6 +21,7 @@ module.exports = (Model, App) => {
     log.info('Services loaded');
 
     return services;
+    
   } catch (error) {
     log.error(error);
     throw new Error(error);

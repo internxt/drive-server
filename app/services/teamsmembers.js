@@ -4,43 +4,16 @@ const async = require('async');
 const sequelize = require('sequelize');
 const fetch = require('node-fetch');
 const InternxtMailer = require('storj-service-mailer');
-const teams_members = require('~models/teams_members');
-const teams = require('~routes/teams');
+const teams_members = require('./../models/teams_members');
+const teams = require('./../routes/teams');
 
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const CryptService = require('./crypt')(Model, App);
- 
 
-  
 
-  const remove = (members, idTeam) => new Promise((resolve, reject) => {
-    async.eachSeries(
-      members,
-      (member, next) => {
-  const getMember= (memberInvitation) => {
-    return new Promise((resolve, reject) => {
-      Model.teams_members
-        .findOne({
-          where: {
-            user: { [Op.eq]: memberInvitation.user }
-          }
-        })
-        .then((teamMember) => {
-          if (teamMember) {
-            resolve(teamMember);
-          } else {
-            reject("This user don't have any team");
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          reject('Error querying database');
-        });
-    });
-  }
 
   const remove = (members, idTeam) => {
     return new Promise((resolve, reject) => {
@@ -63,119 +36,89 @@ module.exports = (Model, App) => {
           next();
         }
       },
-      (err) => {
-        err ? reject(err) : resolve();
-      }
-    );
-  });
-
-  const update = (props) => new Promise((resolve, reject) => {
-    Model.teams_members
-      }, (err) => {
+        (err) => {
           err ? reject(err) : resolve();
-      });
+        }
+      );
     });
-  }
+  };
+
   const update = (props) => {
     return new Promise((resolve, reject) => {
       Model.teams_members
-      .findOne({
-        where: {
-          user: { [Op.eq]: props.user },
-          id_team: { [Op.eq]: props.id_team }
-        }
-      })
-      .then((teamMember) => {
-        teamMember
-          .update({})
-          .then((teamMember) => {
+        .findOne({
+          where: {
+            user: { [Op.eq]: props.user },
+            id_team: { [Op.eq]: props.id_team }
+          }
+        })
+        .then((teamMember) => {
+          teamMember
+            .update({})
+            .then((teamMember) => {
+              resolve(teamMember);
+            })
+            .catch((err) => {
+              reject(err);
+            });
+        })
+        .catch((err) => {
+        }).then((teamMember) => {
+          teamMember.update({
+          }).then((teamMember) => {
             resolve(teamMember);
-          })
-          .catch((err) => {
+          }).catch((err) => {
             reject(err);
           });
-      })
-      .catch((err) => {
-      }).then((teamMember) => {
-        teamMember.update({
-        }).then((teamMember) => {
-          resolve(teamMember);
         }).catch((err) => {
           reject(err);
         });
-      }).catch((err) => {
-        reject(err);
-      });
-  });
-
-  const save = (members, oldMembers, team) => {
-    const membersDiff = members.filter((x) => !oldMembers.includes(x));
-
     });
   }
- 
-  const save= (members, oldMembers, team) => {
+
+
+
+  const save = (members, oldMembers, team) => {
     var membersDiff = members.filter(x => !oldMembers.includes(x));
     return new Promise((resolve, reject) => {
       async.eachSeries(
-        membersDiff,
-        (member, next) => {
+        membersDiff,(member, next) => {
           if (member) {
             console.log(team.id);
             Model.teams_members
               .create({
                 id_team: team.id,
                 user: member
-              })
-              .then((newTeamMember) => {
-                const token = `${member};${
-                  team.id
-                };${new Date()
-                  .toISOString()
-                  .split('.')[0]
-                  .replace(/[-:T]/g, '')}`;
-                const cryptedToken = CryptService.encryptText(
-                  token,
-                  process.env.CRYPTO_KEY
-                );
+              }).then((newTeamMember) => {
+                    let token = `${member};${team.id};${new Date().toISOString().split('.')[0].replace(/[-:T]/g, '')}`;
+                    let cryptedToken = CryptService.encryptText(token, process.env.CRYPTO_KEY);
 
-                TeamInvitationsService.save({
-                  idTeam: team.id,
-                  user: member,
-                  token: cryptedToken
-                })
-                .then((newTeamMember) => {
-                  let token = `${member};${team.id};${new Date().toISOString().split('.')[0].replace(/[-:T]/g, '')}`;
-                  let cryptedToken = CryptService.encryptText(token, process.env.CRYPTO_KEY);
-
-                  TeamInvitationsService.save({
-                    idTeam: team.id,
-                    user: member,
-                    token: cryptedToken
-
-                  }).then((teaminvitations ) => {
-                    sendEmailTeamsMember(member, cryptedToken, team.Name).then((email) => {
-                      console.log("[ TEAMS ] Team %d activation email sent to %s", team.id, email);
+                    TeamInvitationsService.save({
+                      idTeam: team.id,
+                      user: member,
+                      token: cryptedToken
+                    }).then((teaminvitations) => {
+                      sendEmailTeamsMember(member, cryptedToken, team.Name).then((email) => {
+                        console.log("[ TEAMS ] Team %d activation email sent to %s", team.id, email);
+                      }).catch((err) => {
+                        console.log(err);
+                      });
                     }).catch((err) => {
                       console.log(err);
                     });
 
-                  }).catch((err) => {
-                    console.log(err);
+                    next();
+                  })
+                  .catch((err) => {
+                    next('Unable to create new teams members on db');
                   });
-
+              } else {
                 next();
-              })
-              .catch((err) => {
-                next('Unable to create new teams members on db');
-              });
-          } else {
-            next();
-          }
+              }
         },
-        (err) => {
-          err ? reject(err) : resolve();
-        }
+          (err) => {
+            err ? reject(err) : resolve();
+          }
       );
     });
   };
@@ -200,77 +143,70 @@ module.exports = (Model, App) => {
           reject('Error querying database');
         });
     });
-  }
+  };
 
 
   const addTeamMember = (user) => {
     return new Promise((resolve, reject) => {
       Model.teams_members
-      .findOne({
-        where: {
-          user: { [Op.eq]: user.user },
-          id_team: { [Op.eq]: user.id_team }
-        }
-      }).then((teamMember) => {
-        if(teamMember) {
-          reject();
-        }
-        Model.teams_members.create({
-          id_team: team.id,
-          user: member,
-        }).then((newMember) => {
-          resolve(newMember)
+        .findOne({
+          where: {
+            user: { [Op.eq]: user.user },
+            id_team: { [Op.eq]: user.id_team }
+          }
+        }).then((teamMember) => {
+          if (teamMember) {
+            reject();
+          }
+          Model.teams_members.create({
+            id_team: team.id,
+            user: member,
+          }).then((newMember) => {
+            resolve(newMember)
+          }).catch((err) => {
+            reject(err);
+          })
         }).catch((err) => {
           reject(err);
-        })  
-      }).catch((err) => {
-        reject(err);
-      });
+        });
     });
   };
 
-  const addTeamMember = (idTeam, userEmail) => new Promise((resolve, reject) => {
-    console.log("TEAM ID: ", idTeam);
-    console.log("TEAM ADMIN: ", userEmail)
-    Model.teams_members
+
   const saveMembersFromInvitations = (invitedMembers) => {
     return new Promise((resolve, reject) => {
       Model.teams_members
-      .findOne({
-        where: {          
-          id_team: { [Op.eq]: idTeam },
-          user: { [Op.eq]: userEmail }
-        where: {
-          user: { [Op.eq]: invitedMembers.user },
-          id_team: { [Op.eq]: invitedMembers.id_team }
-        }
-      })
-      .then((teamMember) => {
-        if (teamMember) {
-          reject();
-        }
-        Model.teams_members.create({
-          id_team:invitedMembers.id_team,
-          user: invitedMembers.user,
-        }).then((newMember) => {
-          resolve(newMember)
+        .findOne({
+          where: {
+            user: { [Op.eq]: invitedMembers.user },
+            id_team: { [Op.eq]: invitedMembers.id_team }
+          }
+        })
+        .then((teamMember) => {
+          if (teamMember) {
+            reject();
+          }
+          Model.teams_members.create({
+            id_team: invitedMembers.id_team,
+            user: invitedMembers.user,
+          }).then((newMember) => {
+            resolve(newMember)
+          }).catch((err) => {
+            reject(err);
+          })
         }).catch((err) => {
           reject(err);
-        })  
-      }).catch((err) => {
-        reject(err);
-      });
-  });
+        });
+    });
+  };
 
   return {
     Name: 'TeamsMembers',
     save,
     remove,
-    getTeamByUser,
     getMembersByIdTeam,
     addTeamMember,
     saveMembersFromInvitations,
-    update,
-    getMember
+    update
   };
 };
