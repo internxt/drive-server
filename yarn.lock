@@ -480,7 +480,7 @@
   dependencies:
     deepmerge "^4.2.2"
 
-"@sendgrid/mail@^7.2.1":
+"@sendgrid/mail@^7.2.1", "@sendgrid/mail@^7.3.0":
   version "7.3.0"
   resolved "https://registry.yarnpkg.com/@sendgrid/mail/-/mail-7.3.0.tgz#8c68aa2992412b9c03b97059af0bca90f912295a"
   integrity sha512-05k7Xl0/5LCyMLGJwSNPsbNZ0ej6EwSbnRyP6CnCAq3MoVRSi7a7wDDPsxF3Gz7F24DVLp/fCN1DKDaZDQxxdw==
@@ -3088,6 +3088,15 @@ invert-kv@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/invert-kv/-/invert-kv-1.0.0.tgz#104a8e4aaca6d3d8cd157a8ef8bfab2d7a3ffdb6"
   integrity sha1-EEqOSqym09jNFXqO+L+rLXo//bY=
+
+inxt-service-mailer@internxt/mailer:
+  version "1.4.0"
+  resolved "https://codeload.github.com/internxt/mailer/tar.gz/a6166dd4618d8438be807de556851462d17c808d"
+  dependencies:
+    "@sendgrid/mail" "^7.3.0"
+    async "^3.1.0"
+    handlebars "^4.1.2"
+    nodemailer "^6.3.0"
 
 ip-regex@^2.1.0:
   version "2.1.0"
@@ -5959,14 +5968,6 @@ stealthy-require@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/stealthy-require/-/stealthy-require-1.1.1.tgz#35b09875b4ff49f26a777e509b3090a3226bf24b"
   integrity sha1-NbCYdbT/SfJqd35QmzCQoyJr8ks=
-
-"storj-service-mailer@github:internxt/mailer":
-  version "1.4.0"
-  resolved "https://codeload.github.com/internxt/mailer/tar.gz/eefadb826879b88e815d0c7d1da29a9d1ea5247c"
-  dependencies:
-    async "^3.1.0"
-    handlebars "^4.1.2"
-    nodemailer "^6.3.0"
 
 "storj@github:internxt/node-lib":
   version "5.1.0"

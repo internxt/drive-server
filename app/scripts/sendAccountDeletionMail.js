@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const InternxtMailer = require('storj-service-mailer');
+const InternxtMailer = require('inxt-service-mailer');
 const Sequelize = require('sequelize');
 
 const UserModel = require('../models/user');
@@ -43,17 +43,17 @@ const updateUser = (emailUser) => {
 
 const sendMail = (emailTo) => {
   const mailer = new InternxtMailer({
-    host: process.env.STORJ_MAILER_HOST,
-    port: process.env.STORJ_MAILER_PORT,
+    host: process.env.INXT_MAILER_HOST,
+    port: process.env.INXT_MAILER_PORT,
     secure: true,
     auth: {
-      user: process.env.STORJ_MAILER_USERNAME,
-      pass: process.env.STORJ_MAILER_PASSWORD,
+      user: process.env.INXT_MAILER_USERNAME,
+      pass: process.env.INXT_MAILER_PASSWORD,
     },
     from: 'hello@internxt.com',
   });
 
-  mailer.dispatch(
+  mailer.dispatchSendGrid(
     emailTo,
     'inactive',
     {
