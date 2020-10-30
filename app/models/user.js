@@ -83,6 +83,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0
       },
+      welcomePack: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      }
     },
     {
       timestamps: true,

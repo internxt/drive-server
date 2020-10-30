@@ -13,6 +13,7 @@ const StripeRoutes = require('./stripe');
 const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
+const ExtraRoutes = require('./extra');
 
 const { passportAuth } = passport;
 
@@ -37,6 +38,8 @@ module.exports = (Router, Service, Logger, App) => {
   MobileRoutes(Router, Service, Logger, App);
   // Routes to create, edit and delete the 2-factor-authentication
   TwoFactorRoutes(Router, Service, Logger, App);
+  // Extra routes uncategorized
+  ExtraRoutes(Router, Service, Logger, App);
 
   /**
    * @swagger
