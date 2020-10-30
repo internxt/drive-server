@@ -64,7 +64,8 @@ module.exports = (Model, App) => {
           referral: user.referral,
           uuid: uuid.v4(),
           referred: user.referred,
-          credit: user.credit
+          credit: user.credit,
+          welcomePack: true
         },
         transaction: t,
       })
