@@ -299,7 +299,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
     Service.User.InitializeUser(req.body)
-      .then((userData) => {
+      .then(async (userData) => {
         // Process user data and answer API call
         if (userData.root_folder_id) {
           // Successfull initialization
@@ -308,12 +308,24 @@ module.exports = (Router, Service, Logger, App) => {
             mnemonic: userData.mnemonic,
             root_folder_id: userData.root_folder_id,
           };
-          res.status(200).send({ user });
+
+          try {
+            const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id)
+            const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id)
+            personalFolder.iconId = 1;
+            personalFolder.color = 'pink';
+            familyFolder.iconId = 18;
+            familyFolder.color = 'yellow';
+            await personalFolder.save()
+            await familyFolder.save()
+          } catch (e) {
+            Logger.error('Cannot initialize welcome folders: %s', e.message)
+          } finally {
+            res.status(200).send({ user });
+          }
         } else {
           // User initialization unsuccessful
-          res
-            .status(400)
-            .send({ message: "Your account can't be initialized" });
+          res.status(400).send({ message: "Your account can't be initialized" });
         }
       })
       .catch((err) => {
