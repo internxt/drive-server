@@ -28,6 +28,7 @@
     "mysql2": "^2.1.0",
     "nconf": "^0.10.0",
     "node-fetch": "^2.6.0",
+    "openpgp": "^4.10.8",
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",

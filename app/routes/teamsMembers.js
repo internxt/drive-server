@@ -74,7 +74,7 @@ module.exports = (Router, Service, Logger, App) => {
 
     console.log("USUARIO QUE PREGUNTA", userEmail); //debug
 
-    Service.TeamsMembers.getIdTeamByUser(userEmail)
+    Service.Team.getIdTeamByUser(userEmail)
       .then((team) => {
         Service.Team.getTeamById(team.id_team).then((team2) => {
           console.log("FINDED TEAM", team2); //debug

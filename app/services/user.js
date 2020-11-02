@@ -3,6 +3,8 @@ const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
+const { keys } = require('lodash');
+
 
 
 const { Op } = sequelize;
@@ -40,6 +42,7 @@ module.exports = (Model, App) => {
   };
 
   const FindOrCreate = (user) => {
+
     // Create password hashed pass only when a pass is given
     const userPass = user.password
       ? App.services.Crypt.decryptText(user.password)
@@ -48,81 +51,100 @@ module.exports = (Model, App) => {
       ? App.services.Crypt.decryptText(user.salt)
       : null;
 
+
+
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
       throw new Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) => Model.users
-      .findOrCreate({
-        where: { email: user.email },
-        defaults: {
-          name: user.name,
-          lastname: user.lastname,
-          password: userPass,
-          mnemonic: user.mnemonic,
-          hKey: userSalt,
-          referral: user.referral,
-          uuid: uuid.v4(),
-          referred: user.referred,
-          credit: user.credit
-        },
-        transaction: t
-      })
-      .spread(async (userResult, created) => {
-        if (created) {
-          // Create bridge pass using email (because id is unconsistent)
-          const bcryptId = await App.services.Storj.IdToBcrypt(
-            userResult.email
-          );
+    return Model.users.sequelize.transaction(async (t) => 
+      Model.users
+        .findOrCreate({
+          where: { email: user.email },
+          defaults: {
+            name: user.name,
+            lastname: user.lastname,
+            password: userPass,
+            mnemonic: user.mnemonic,
+            hKey: userSalt,
+            referral: user.referral,
+            uuid: uuid.v4(),
+            referred: user.referred,
+            credit: user.credit
+          },
+          transaction: t
+        })
+        .spread(async (userResult, created) => {
+          if (created) {
+          
+            Model.keyserver.findOrCreate({
+              where: { user_id: userResult.id},
+              defaults:{
+                user_id: user.id,
+                private_key: user.privateKey,
+                public_key: user.publicKey,
+                revocation_key: user.revocationKey,
+                encrypt_version: null
+              },
+              transaction: t
+            })
+          
+            // Create bridge pass using email (because id is unconsistent)
+            const bcryptId = await App.services.Storj.IdToBcrypt(
+              userResult.email
+            );
 
-          const bridgeUser = await App.services.Storj.RegisterBridgeUser(
-            userResult.email,
-            bcryptId
-          );
+            const bridgeUser = await App.services.Storj.RegisterBridgeUser(
+              userResult.email,
+              bcryptId
+            );
 
-          if (
-            bridgeUser
+            if (
+              bridgeUser
               && bridgeUser.response
               && bridgeUser.response.status === 500
-          ) {
-            throw Error(bridgeUser.response.data.error);
+            ) {
+              throw Error(bridgeUser.response.data.error);
+            }
+
+
+            if (!bridgeUser.data) {
+              throw new Error('Error creating bridge user');
+            }
+
+            Logger.info(
+              'User Service | created brigde user: %s with uuid: %s',
+              userResult.email,
+              userResult.uuid
+            );
+
+            const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
+            // Store bcryptid on user register
+            await userResult.update(
+              { userId: bcryptId, isFreeTier: freeTier },
+              { transaction: t }
+            );
+
+            // Set created flag for Frontend management
+            Object.assign(userResult, { isCreated: created });
           }
 
-          if (!bridgeUser.data) {
-            throw new Error('Error creating bridge user');
+          // TODO: proveriti userId kao pass
+          return userResult;
+        })
+        .catch((err) => {
+          if (err.response) {
+            // This happens when email is registered in bridge
+            Logger.error(err.response.data);
+          } else {
+            Logger.error(err.stack);
           }
 
-          log.info(
-            'User Service | created brigde user: %s with uuid: %s',
-            userResult.email,
-            userResult.uuid
-          );
-
-          const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
-          // Store bcryptid on user register
-          await userResult.update(
-            { userId: bcryptId, isFreeTier: freeTier },
-            { transaction: t }
-          );
-
-          // Set created flag for Frontend management
-          Object.assign(userResult, { isCreated: created });
-        }
-
-        // TODO: proveriti userId kao pass
-        return userResult;
-      })
-      .catch((err) => {
-        if (err.response) {
-          // This happens when email is registered in bridge
-          log.error(err.response.data);
-        } else {
-          log.error(err.stack);
-        }
-
-        throw new Error(err);
-      })); // end transaction
+          throw new Error(err);
+        })
+    
+    ); // end transaction
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) =>
@@ -142,7 +164,7 @@ module.exports = (Model, App) => {
           userData.userId,
           user.mnemonic
         );
-        log.info('User init | root bucket created %s', rootBucket.name);
+        Logger.info('User init | root bucket created %s', rootBucket.name);
 
         const rootFolderName = await App.services.Crypt.encryptName(
           `${rootBucket.name}`
@@ -152,7 +174,7 @@ module.exports = (Model, App) => {
           name: rootFolderName,
           bucket: rootBucket.id
         });
-        log.info('User init | root folder created, mysql id:', rootFolder.id);
+        Logger.info('User init | root folder created, mysql id:', rootFolder.id);
 
         // Update user register with root folder Id
         await userData.update(
@@ -183,7 +205,7 @@ module.exports = (Model, App) => {
       throw new Error('UpdateStorageOption: User not found');
     })
     .catch((error) => {
-      log.error(error.stack);
+      Logger.error(error.stack);
       throw new Error(error);
     });
 
@@ -193,9 +215,7 @@ module.exports = (Model, App) => {
     console.log('email', email); // debug
 
     return new Promise((resolve, reject) => {
-      Model.users
-        .findOne({ where: { email: { [Op.eq]: email } } })
-        .then((userData) => {
+      Model.users.findOne({ where: { email: { [Op.eq]: email } }}).then((userData) => {
           if (userData) {
             const user = userData.dataValues;
             if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
@@ -221,7 +241,7 @@ module.exports = (Model, App) => {
   });
 
   const FindUserObjByEmail = (email) => {
-     return Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+    return Model.users.findOne({ where: { email: { [Op.eq]: email } } });
   }
 
   const GetUserCredit = (uuid) => Model.users
@@ -293,7 +313,7 @@ module.exports = (Model, App) => {
             resolve(data);
           })
           .catch((err) => {
-            log.warn(err.response.data);
+            Logger.warn(err.response.data);
             reject(err);
           });
       })
@@ -385,6 +405,7 @@ module.exports = (Model, App) => {
         })
         .catch(reject);
     });
+
   const ConfirmResetPassword = (email, token, newPassword) => new Promise((resolve, reject) => {
     axios
       .post(`${App.config.get('STORJ_BRIDGE')}/resets/${token}`, {
@@ -419,7 +440,9 @@ module.exports = (Model, App) => {
     FindUserByEmail(user)
       .then((userData) => {
         console.log('Found on database');
+
         const storedPassword = userData.password.toString();
+
         if (storedPassword !== currentPassword) {
           console.log('Invalid password');
           reject({ error: 'Invalid password' });
@@ -607,6 +630,10 @@ module.exports = (Model, App) => {
     UpdateAccountActivity,
     GetOrSetUserSync,
     UpdateUserSync,
-    UnlockSync
+    UnlockSync,
+    ResetPassword,
+    ConfirmResetPassword,
+    RegisterNewUser
+
   };
 };

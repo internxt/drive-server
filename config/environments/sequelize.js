@@ -1,9 +1,9 @@
 module.exports = {
   development: {
     dialect: 'mysql',
-    database: 'xcloud_server_dev',
-    username: 'developer',
-    password: 'asdf1234',
+    database: 'xcloud',
+    username: 'root',
+    password: '',
     host: 'localhost',
   },
   test: {
