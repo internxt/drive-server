@@ -149,7 +149,8 @@ module.exports = (Model, App) => {
         name: rootFolderName,
         bucket: rootBucket.id,
       });
-      Logger.info('User init | root folder created, mysql id:', rootFolder.id);
+
+      Logger.info('User init | root folder created, id: %s', rootFolder.id);
 
       // Update user register with root folder Id
       await userData.update(

@@ -34,7 +34,8 @@ module.exports = (App, Config) => {
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
     windowMs: 24 * 60 * 60 * 1000,
-    max: 1
+    max: 3,
+    keyGenerator: limiterKeyGenerator
   }));
 
   App.express.use('/api/user/invite', rateLimit({
