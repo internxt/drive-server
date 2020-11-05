@@ -40,9 +40,5 @@ module.exports = (sequelize, DataTypes) => {
           },
     );
 
-    keyserver.associate = function (models) {
-        keyserver.hasMany(models.folder);
-    };
-
     return keyserver;
 };

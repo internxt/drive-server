@@ -170,6 +170,7 @@ module.exports = (Router, Service, Logger, App) => {
             responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
             //console.log("RESPONSE TEAM ", responseTeam); //debug
             if (responseTeam) {
+              console.log('RESPONSE TEAM',responseTeam)
               console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
               isTeamActivated = responseTeam.data.activated;
               userTeam = {

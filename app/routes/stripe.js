@@ -94,24 +94,14 @@ module.exports = (Router, Service, Logger, App) => {
                 .then((storageProducts) => {
                   Service.Stripe.getTeamProducts(test)
                     .then((teamProducts) => {
-                      if (
-                        storageProducts.find(
-                          (storageProduct) => storageProduct.id === subscription.plan.product
-                        )
-                      ) {
-                        if (
-                          storageProducts.find(
-                            (storageProduct) => storageProduct.id === productToSubscribe
-                          )
-                        ) {
+                      if (storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)) {
+                        if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
                           next(Error('Already subscribed in a storage plan'));
                         } else {
                           next(null, customer);
                         }
                       } else if (
-                        teamProducts.find(
-                          (teamProduct) => teamProduct.id === subscription.plan.product
-                        )
+                        teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
                       ) {
                         if (
                           teamProducts.find(
@@ -165,6 +155,7 @@ module.exports = (Router, Service, Logger, App) => {
             sessionParams.metadata.team_email = newBridgeUser.email;
 
             const salt = crypto.randomBytes(128 / 8).toString('hex');
+            console.log('SALT', salt)
             const newPassword = App.services.Crypt.encryptText('team', salt);
 
             const encryptedPassword = App.services.Crypt.encryptText(newPassword);
@@ -183,7 +174,7 @@ module.exports = (Router, Service, Logger, App) => {
             ).then((userData) => {
               if (!userData.isCreated) {
                 next({ message: 'This account already exists' });
-              } else {             
+              } else {
 
                 Service.Team.create({
                   name: 'My team',
@@ -191,19 +182,19 @@ module.exports = (Router, Service, Logger, App) => {
                   bridge_user: userData.email,
                   bridge_password: userData.password,
                   bridge_mnemonic: userData.mnemonic
-                }).then( (team) => {                  
+                }).then((team) => {
                   const teamId = team.id;
                   const teamAdmin = team.admin;
-                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {                    
-                  }).catch((err) => {});
+                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {
+                  }).catch((err) => { });
                 }).catch((err) => {
                   console.log(err);
                 });
-                }
+              }
             })
-            .catch((err) => {
-              next(err);
-            });
+              .catch((err) => {
+                next(err);
+              });
           }
 
           if (sessionParams.customer) {
