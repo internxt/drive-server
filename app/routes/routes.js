@@ -170,7 +170,7 @@ module.exports = (Router, Service, Logger, App) => {
             responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
             //console.log("RESPONSE TEAM ", responseTeam); //debug
             if (responseTeam) {
-              console.log('RESPONSE TEAM',responseTeam)
+              console.log('RESPONSE TEAM', responseTeam)
               console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
               isTeamActivated = responseTeam.data.activated;
               userTeam = {
@@ -525,18 +525,23 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/team-invitations', passportAuth, async function (req, res) {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex')
-   
+
 
     Service.Team.getTeamByIdUser(req.user.email).then(teamInfo => {
-     console.log('EQUIPO', teamInfo);
+      console.log('EQUIPO', teamInfo);
       console.log('email', email)
-      
 
       Service.Keyserver.keysExists(req.user).then((userKey) => {
-        console.log(userKey)
-        console.log(userKey.public_key)
-        const encrypTeam = AesUtil.encrypt(req.team, userKey.public_key)
-        console.log(encrypTeam)
+        console.log('ENTRAMOS EN KEYEXISTS')
+        console.log('CLAVE PUBLICA', userKey.public_key)
+
+        const encryptBridgePassword = AesUtil.encrypt(teamInfo.bridge_password, userKey.public_key)
+        const encryptBridgeMnemonic = AesUtil.encrypt(teamInfo.bridge_mnemonic, userKey.public_key)
+
+        console.log('BRIDGE PASSWORD TEAMS', teamInfo.bridge_password)
+        console.log('CONTRASEÑA ENCRIPTADA CLAVE PUBLICA CON TEAMS', encryptBridgePassword)
+        console.log('BRIDGE MNEMONIC TEAMS', teamInfo.bridge_password)
+        console.log('MNEMONIC ENCRIPTADO CLAVE PUBLICA CON TEAMS', encryptBridgeMnemonic)
 
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
           console.log('Aqui henmos entrado')
