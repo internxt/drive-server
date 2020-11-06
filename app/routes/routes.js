@@ -526,32 +526,14 @@ module.exports = (Router, Service, Logger, App) => {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex')
 
-
-    Service.Team.getTeamByIdUser(req.user.email).then(teamInfo => {
-      console.log('EQUIPO', teamInfo);
-      console.log('email', email)
-
-      Service.Keyserver.keysExists(req.user).then((userKey) => {
-        console.log('ENTRAMOS EN KEYEXISTS')
-        console.log('CLAVE PUBLICA', userKey.public_key)
-
-        const encryptBridgePassword = AesUtil.encrypt(teamInfo.bridge_password, userKey.public_key)
-        const encryptBridgeMnemonic = AesUtil.encrypt(teamInfo.bridge_mnemonic, userKey.public_key)
-
-        console.log('BRIDGE PASSWORD TEAMS', teamInfo.bridge_password)
-        console.log('CONTRASEÑA ENCRIPTADA CLAVE PUBLICA CON TEAMS', encryptBridgePassword)
-        console.log('BRIDGE MNEMONIC TEAMS', teamInfo.bridge_password)
-        console.log('MNEMONIC ENCRIPTADO CLAVE PUBLICA CON TEAMS', encryptBridgeMnemonic)
-
+    Service.Team.getTeamByIdUser(req.user.email).then(() => {
+      Service.Keyserver.keysExists(req.user).then(() => {
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
-          console.log('Aqui henmos entrado')
           if (teamInvitation) {
             Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
-
               Logger.info('The user %s has already an invitation', email)
               Logger.info('The email is forwarded to the user %s', email)
-              res.status(200).send({
-              })
+              res.status(200).send({})
             }).catch((err) => {
               Logger.error('Error: Send invitation mail from %s to %s', req.user.email, email)
               res.status(500).send({
@@ -566,9 +548,7 @@ module.exports = (Router, Service, Logger, App) => {
               res.status(200).send({
               });
             } else {
-              res
-                .status(400)
-                .send({ error: 'This user is alredy a member' });
+              res.status(400).send({ error: 'This user is alredy a member' });
             }
           }).catch((err) => {
             Logger.info('The user %s is not a member', email)
@@ -605,13 +585,11 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).send({
         })
       })
-
     }).catch(err => {
       Logger.error('The user %s not have a team', req.user.email)
       res.status(500).send({
       })
     })
-
   });
 
 
@@ -619,52 +597,72 @@ module.exports = (Router, Service, Logger, App) => {
     const { token } = req.params;
 
     Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
-      Service.TeamsMembers.saveMembersFromInvitations({
-        id_team: teamInvitation.id_team,
-        user: teamInvitation.user
-      }).then((newMember) => {
-        Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
-        teamInvitation.destroy().then(() => {
-          res.status(200).send({})
-        }).catch(err => {
-          res.status(500).send({ error: 'The invitation could not be destroyed' })
-        })
+
+      Service.Team.getTeamById(teamInvitation.id_team).then((team) => {
+        Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
+
+          Service.Keyserver.keysExists(userId).then(async (userKey) => {
+
+
+            let publicKeyArmored = Buffer.from(userKey.public_key, 'base64').toString('ascii')
+
+            const encryptedBridgePassword = await openpgp.encrypt({
+              message: openpgp.message.fromText(team.bridge_password),                 // input as Message object
+              publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
+            });
+            const dataBridgePassword = encryptedBridgePassword.data;
+            
+            
+            const encryptedBridgeMnemonic = await openpgp.encrypt({
+              message: openpgp.message.fromText(team.bridge_mnemonic),                 // input as Message object
+              publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
+            });
+            const dataBridgeMnemonic = encryptedBridgeMnemonic.data;
+            console.log('DATOS ENCRYPTADO',dataBridgeMnemonic.length)
+
+
+
+
+            Service.TeamsMembers.saveMembersFromInvitations({
+              id_team: teamInvitation.id_team,
+              user: teamInvitation.user,
+              bridge_password: dataBridgePassword,
+              bridge_mnemonic: dataBridgeMnemonic
+            }).then((newMember) => {
+              Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
+              teamInvitation.destroy().then(() => {
+                res.status(200).send({})
+              }).catch(err => {
+                res.status(500).send({ error: 'The invitation could not be destroyed' })
+              })
+            }).catch((err) => {
+              Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
+              console.error(err)
+              res.status(500).send({ error: 'The invitation is not saved' })
+            })
+          }).catch((err) => {
+            res.status(500).json({ error: 'Invalid Team invitation link' });
+            Logger.error('KEYS NOT EXIST')
+            console.error(err)
+          });
+        }).catch((err) => {
+          res.status(500).json({ error: 'Invalid Team invitation link' });
+          Logger.error('USER NOT EXIST')
+          console.error(err)
+        });
+
       }).catch((err) => {
-        Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
+        res.status(500).json({ error: 'Invalid Team invitation link' });
+        Logger.error('TEAM WITH THIS ID NOT EXIST')
         console.error(err)
-        res.status(500).send({ error: 'The invitation is not saved' })
-      })
+      });
 
     }).catch((err) => {
-      res.status(500).json({ error: 'Invalid Team invitation link 2' });
+      res.status(500).json({ error: 'Invalid Team invitation link' });
       Logger.error('Token %s doesn\'t exists', token)
       console.error(err)
     });
 
-  });
-
-
-  Router.patch('/team/password/:userTeam', passportAuth, (req, res) => {
-    const userTeam = req.params.userTeam
-
-    const teamPassword = req.body.teamPassword;
-    const mnemonicTeam = req.body.mnemonicTeam;
-
-
-    Service.Team.UpdatePasswordMnemonicTeam(
-      userTeam,
-      teamPassword,
-      mnemonicTeam
-    )
-      .then((result) => {
-        res.status(200).send({});
-        console.log(mnemonicTeam)
-      })
-      .catch((err) => {
-        console.log(mnemonicTeam)
-        console.log(err);
-        res.status(500).send(err);
-      });
   });
 
   return Router;

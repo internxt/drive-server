@@ -140,7 +140,9 @@ module.exports = (Model, App) => {
       Model.teams_members.findOne({
         where: {
           id_team: { [Op.eq]: idTeam },
-          user: { [Op.eq]: userEmail }
+          user: { [Op.eq]: userEmail },
+          bridge_password: { [Op.eq]: invitedMembers.bridge_password },
+          bridge_mnemonic: { [Op.eq]: invitedMembers.bridge_mnemonic }
         }
       }).then((teamMember) => {
         if (teamMember) {
@@ -163,7 +165,9 @@ module.exports = (Model, App) => {
       Model.teams_members.findOne({
           where: {
             user: { [Op.eq]: invitedMembers.user },
-            id_team: { [Op.eq]: invitedMembers.id_team }
+            id_team: { [Op.eq]: invitedMembers.id_team },
+            bridge_password: { [Op.eq]: invitedMembers.bridge_password },
+            bridge_mnemonic: { [Op.eq]: invitedMembers.bridge_mnemonic }
           }
         }).then((teamMember) => {
           if (teamMember) {
@@ -172,6 +176,8 @@ module.exports = (Model, App) => {
           Model.teams_members.create({
             id_team: invitedMembers.id_team,
             user: invitedMembers.user,
+            bridge_password: invitedMembers.bridge_password ,
+            bridge_mnemonic: invitedMembers.bridge_mnemonic 
           }).then((newMember) => {
             resolve(newMember)
           }).catch((err) => {
