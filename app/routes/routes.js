@@ -2,6 +2,8 @@ const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
 const useragent = require('useragent');
 const uuid = require('uuid');
+const Analitycs = require('analytics-node');
+const client = new Analytics(process.env.APP_SEGMENT_KEY);
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -231,6 +233,18 @@ module.exports = (Router, Service, Logger, App) => {
             } else {
               newUser.credit = 5;
               Service.User.UpdateCredit(referral);
+              // Tack here the referrals
+              client.track({
+                event: 'referral',
+                referrer: {
+                  email: userData.email,
+                  userId: userData.userId,
+                },
+                referee: {
+                  email: newUser.email,
+                  userId: newUser.userId
+                }
+              })
             }
           })
           .catch((err) => console.log(err));
