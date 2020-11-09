@@ -77,7 +77,9 @@ module.exports = (Model, App) => {
         })
         .spread(async (userResult, created) => {
           if (created) {
-          
+             if(user.publicKey && user.privateKey && user.revocationKey){
+              console.log('CREATED',created)
+              console.log(user.publicKey)
             Model.keyserver.findOrCreate({
               where: { user_id: userResult.id},
               defaults:{
@@ -89,6 +91,8 @@ module.exports = (Model, App) => {
               },
               transaction: t
             })
+          // }else{
+
           
             // Create bridge pass using email (because id is unconsistent)
             const bcryptId = await App.services.Storj.IdToBcrypt(
@@ -128,6 +132,7 @@ module.exports = (Model, App) => {
 
             // Set created flag for Frontend management
             Object.assign(userResult, { isCreated: created });
+          }
           }
 
           // TODO: proveriti userId kao pass

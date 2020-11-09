@@ -22,11 +22,12 @@ module.exports = (Router, Service, Logger, App) => {
    * Stripe Session is neccesary to perform a new payment
    */
   Router.post('/stripe/session', passportAuth, (req, res) => {
-    const planToSubscribe = req.body.plan;
     const productToSubscribe = req.body.product;
     const sessionType = req.body.sessionType || null;
-    const teamEmail = req.body.teamEmail || null;
     const test = req.body.test || false;
+    const mnemonicTeam = req.body.mnemonicTeam;
+
+    console.log('Mnemonic', mnemonicTeam)
 
     let stripe = require('stripe')(process.env.STRIPE_SK, {
       apiVersion: '2020-03-02'
@@ -181,7 +182,7 @@ module.exports = (Router, Service, Logger, App) => {
                   admin: user,
                   bridge_user: userData.email,
                   bridge_password: userData.password,
-                  bridge_mnemonic: userData.mnemonic
+                  bridge_mnemonic: mnemonicTeam
                 }).then((team) => {
                   const teamId = team.id;
                   const teamAdmin = team.admin;

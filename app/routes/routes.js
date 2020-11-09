@@ -297,14 +297,6 @@ module.exports = (Router, Service, Logger, App) => {
         }).catch((err) => console.log(err));
       }
       const { privateKey, publicKey, revocationKey } = req.body
-
-
-      console.log('CLAVE PRIVADA SERVER', privateKey.length)
-      console.log('******************************************************************************')
-      console.log('CLAVE PUBLICA SERVER', publicKey.length)
-      console.log('******************************************************************************')
-      console.log('CLAVE REVOCATE SERVER', revocationKey.length)
-
       // Call user service to find or create user
       Service.User.FindOrCreate(newUser)
         .then((userData) => {
@@ -603,25 +595,18 @@ module.exports = (Router, Service, Logger, App) => {
 
           Service.Keyserver.keysExists(userId).then(async (userKey) => {
 
-
             let publicKeyArmored = Buffer.from(userKey.public_key, 'base64').toString('ascii')
 
             const encryptedBridgePassword = await openpgp.encrypt({
               message: openpgp.message.fromText(team.bridge_password),                 // input as Message object
               publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
             });
-            const dataBridgePassword = encryptedBridgePassword.data;
-            
-            
+            const dataBridgePassword = Buffer.from(encryptedBridgePassword.data).toString('base64');
             const encryptedBridgeMnemonic = await openpgp.encrypt({
               message: openpgp.message.fromText(team.bridge_mnemonic),                 // input as Message object
               publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
             });
-            const dataBridgeMnemonic = encryptedBridgeMnemonic.data;
-            console.log('DATOS ENCRYPTADO',dataBridgeMnemonic.length)
-
-
-
+            const dataBridgeMnemonic = Buffer.from(encryptedBridgeMnemonic.data).toString('base64');
 
             Service.TeamsMembers.saveMembersFromInvitations({
               id_team: teamInvitation.id_team,
