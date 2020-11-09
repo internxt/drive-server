@@ -22,12 +22,11 @@ module.exports = (Router, Service, Logger, App) => {
    * Stripe Session is neccesary to perform a new payment
    */
   Router.post('/stripe/session', passportAuth, (req, res) => {
+    const planToSubscribe = req.body.plan;
     const productToSubscribe = req.body.product;
     const sessionType = req.body.sessionType || null;
+    const teamEmail = req.body.teamEmail || null;
     const test = req.body.test || false;
-    const mnemonicTeam = req.body.mnemonicTeam;
-
-    console.log('Mnemonic', mnemonicTeam)
 
     let stripe = require('stripe')(process.env.STRIPE_SK, {
       apiVersion: '2020-03-02'
@@ -95,14 +94,24 @@ module.exports = (Router, Service, Logger, App) => {
                 .then((storageProducts) => {
                   Service.Stripe.getTeamProducts(test)
                     .then((teamProducts) => {
-                      if (storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)) {
-                        if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
+                      if (
+                        storageProducts.find(
+                          (storageProduct) => storageProduct.id === subscription.plan.product
+                        )
+                      ) {
+                        if (
+                          storageProducts.find(
+                            (storageProduct) => storageProduct.id === productToSubscribe
+                          )
+                        ) {
                           next(Error('Already subscribed in a storage plan'));
                         } else {
                           next(null, customer);
                         }
                       } else if (
-                        teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
+                        teamProducts.find(
+                          (teamProduct) => teamProduct.id === subscription.plan.product
+                        )
                       ) {
                         if (
                           teamProducts.find(
@@ -156,7 +165,6 @@ module.exports = (Router, Service, Logger, App) => {
             sessionParams.metadata.team_email = newBridgeUser.email;
 
             const salt = crypto.randomBytes(128 / 8).toString('hex');
-            console.log('SALT', salt)
             const newPassword = App.services.Crypt.encryptText('team', salt);
 
             const encryptedPassword = App.services.Crypt.encryptText(newPassword);
@@ -182,11 +190,13 @@ module.exports = (Router, Service, Logger, App) => {
                   admin: user,
                   bridge_user: userData.email,
                   bridge_password: userData.password,
-                  bridge_mnemonic: mnemonicTeam
+                  bridge_mnemonic: userData.mnemonic
                 }).then((team) => {
                   const teamId = team.id;
                   const teamAdmin = team.admin;
-                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin).then((newMember) => {
+                  const teamBridgePassword= team.bridge_password;
+                  const teamBridgeMnemonic = team.bridge_mnemonic;
+                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin,teamBridgePassword,teamBridgeMnemonic).then((newMember) => {
                   }).catch((err) => { });
                 }).catch((err) => {
                   console.log(err);

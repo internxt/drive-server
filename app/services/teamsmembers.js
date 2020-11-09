@@ -132,17 +132,18 @@ module.exports = (Model, App) => {
   };
 
 
-  const addTeamMember = (idTeam, userEmail) => {
+  const addTeamMember = (idTeam, userEmail,bridge_password,bridge_mnemonic) => {
     return new Promise((resolve, reject) => {
       console.log("TEAM ID: ", idTeam);
       console.log("TEAM ADMIN: ", userEmail)
+      
       
       Model.teams_members.findOne({
         where: {
           id_team: { [Op.eq]: idTeam },
           user: { [Op.eq]: userEmail },
-          bridge_password: { [Op.eq]: invitedMembers.bridge_password },
-          bridge_mnemonic: { [Op.eq]: invitedMembers.bridge_mnemonic }
+          bridge_password: { [Op.eq]: bridge_password },
+          bridge_mnemonic: { [Op.eq]: bridge_mnemonic }
         }
       }).then((teamMember) => {
         if (teamMember) {
@@ -151,7 +152,9 @@ module.exports = (Model, App) => {
 
         Model.teams_members.create({
           id_team: idTeam,
-          user: userEmail
+          user: userEmail,
+          bridge_password: bridge_password,
+          bridge_mnemonic: bridge_mnemonic
         }).then((newMember) => {
           console.log("NUEVO TEAM MEMBER AÑADIDO", newMember);
           resolve(newMember);
