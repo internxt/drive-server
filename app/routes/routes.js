@@ -2,6 +2,8 @@ const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
 const useragent = require('useragent');
 const uuid = require('uuid');
+const Analytics = require('analytics-node');
+const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -222,6 +224,9 @@ module.exports = (Router, Service, Logger, App) => {
 
       const { referral } = req.body;
 
+      let hasReferral = false;
+      let referrer = null
+
       if (uuid.validate(referral)) {
         await Service.User
           .FindUserByUuid(referral)
@@ -230,6 +235,8 @@ module.exports = (Router, Service, Logger, App) => {
               console.log('UUID not found');
             } else {
               newUser.credit = 5;
+              hasReferral = true;
+              referrer = userData;
               Service.User.UpdateCredit(referral);
             }
           })
@@ -246,6 +253,26 @@ module.exports = (Router, Service, Logger, App) => {
             if (client && client.source === '') {
               client.source = 'x-cloud-mobile';
             }
+
+            if (hasReferral) {
+              // Tack here the referrals
+              analytics.track({
+                event: 'referrals',
+                userId: userData.uuid,
+                properties: {
+                  referrer: {
+                    email: referrer.email,
+                    userId: referrer.uuid,
+                  },
+                  referee: {
+                    email: userData.email,
+                    userId: userData.uuid
+                  }
+                }
+              })
+            }
+
+
 
             Service.Statistics.Insert({
               name: client.source,
