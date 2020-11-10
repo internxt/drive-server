@@ -21,7 +21,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Should create a new Stripe Session token.
    * Stripe Session is neccesary to perform a new payment
    */
-  Router.post('/stripe/session', passportAuth, (req, res) => {
+  Router.post('/stripe/session', passportAuth, async (req, res) => {
     const planToSubscribe = req.body.plan;
     const productToSubscribe = req.body.product;
     const sessionType = req.body.sessionType || null;
@@ -170,11 +170,14 @@ module.exports = (Router, Service, Logger, App) => {
             const encryptedPassword = App.services.Crypt.encryptText(newPassword);
             const encryptedSalt = App.services.Crypt.encryptText(salt);
 
+            const mnemonicTeam = req.body.mnemonicTeam
+            
+
             Service.User.FindOrCreate(
               {
                 name: newBridgeUser.email,
                 email: newBridgeUser.email,
-                mnemonic: newBridgeUser.password,
+                mnemonic: mnemonicTeam,
                 lastname: '',
                 password: encryptedPassword,
                 salt: encryptedSalt,
@@ -192,11 +195,14 @@ module.exports = (Router, Service, Logger, App) => {
                   bridge_password: userData.password,
                   bridge_mnemonic: userData.mnemonic
                 }).then((team) => {
+                  console.log(mnemonicTeam)
                   const teamId = team.id;
                   const teamAdmin = team.admin;
                   const teamBridgePassword= team.bridge_password;
                   const teamBridgeMnemonic = team.bridge_mnemonic;
+                  console.log(team)
                   Service.TeamsMembers.addTeamMember(teamId, teamAdmin,teamBridgePassword,teamBridgeMnemonic).then((newMember) => {
+                    console.log('NUEVO MIEMBRO AÑADIDO DESDE STRIPE.JS', newMember)
                   }).catch((err) => { });
                 }).catch((err) => {
                   console.log(err);
@@ -214,13 +220,14 @@ module.exports = (Router, Service, Logger, App) => {
             delete sessionParams.customer;
           }
 
-          stripe.checkout.sessions
+           stripe.checkout.sessions
             .create(sessionParams)
             .then((result) => {
               next(null, result);
             })
             .catch((err) => {
               next(err);
+              
             });
         }
       ],

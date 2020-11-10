@@ -11,9 +11,9 @@ module.exports = (Model, App) => {
                 where: {
                     user_id: { [Op.eq]: user.id }
                 }
-            }).then((userKey) => {
-                if (userKey) {
-                    resolve(userKey);
+            }).then((keys) => {
+                if (keys) {
+                    resolve(keys);
                 } else {
                     reject('Keys not exists');
                 }

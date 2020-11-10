@@ -66,10 +66,7 @@ module.exports = (Model, App) => {
   });
 
   const generateBridgeTeamUser = () => {
-    const dateNow = new Date()
-      .toISOString()
-      .split('.')[0]
-      .replace(/[-:T]/g, '');
+    const dateNow = new Date().toISOString().split('.')[0].replace(/[-:T]/g, '');
     const passwd = CryptService.encryptText(dateNow, process.env.CRYPTO_KEY);
 
     return {

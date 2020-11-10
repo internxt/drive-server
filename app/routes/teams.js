@@ -25,10 +25,8 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.post('/teams/initialize', passportAuth, (req, res) => {
     const bridgeUser = req.body.email;
-    const mnemonic = bip39.generateMnemonic(256);
-    const encMnemonic = encryptTextWithKey(mnemonic, this.state.register.password);
-    
-
+    const mnemonic = req.body.mnemonic
+  
     Service.User.InitializeUser({
       email: bridgeUser,
       mnemonic: mnemonic

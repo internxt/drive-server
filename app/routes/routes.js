@@ -94,7 +94,15 @@ module.exports = (Router, Service, Logger, App) => {
             userData.hKey.toString()
           );
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          res.status(200).send({ sKey: encSalt, tfa: required2FA });
+          Service.Keyserver.keysExists(userData).then((userKey) => {
+            
+          res.status(200).send({ pbKey:userKey.public_key, pvKey: userKey.private_key, revKey:userKey.revocation_key, sKey: encSalt, tfa: required2FA });
+          }).catch((err) =>{
+            console.error(err);
+            res.status(400).send({
+              error: 'The user dont have keys'
+            })
+          })
         }
       }).catch((err) => {
         console.error(err);
@@ -147,6 +155,8 @@ module.exports = (Router, Service, Logger, App) => {
 
       Service.Keyserver.keysExists(userData).then(async () => {
         console.log('ID DEL KEYEXISTS USUARIO', userData.id)
+        console.log(req.body.publicKey)
+        console.log(req.body.privateKey)
 
       }).catch((err) => {
         Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (keys) => {
@@ -157,7 +167,6 @@ module.exports = (Router, Service, Logger, App) => {
           console.log(err)
         });
       });
-
 
       let responseTeam = null;
       // Check if user has a team
@@ -490,20 +499,22 @@ module.exports = (Router, Service, Logger, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
-  Router.get('/user/keys', passportAuth, (req, res) => {
-    const { user } = req.user
-    //Generate keys
-    openpgp.generateKey({
-      userIds: [{ email: 'inxt@inxt.com' }], // you can pass multiple user IDs
-      curve: 'ed25519',                                           // ECC curve name
-    });
-    const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-
+  Router.get('/user/keys/:user', passportAuth, (req, res) => {
+   
     Service.Keyserver.keysExists(user).then((userKey) => {
       res.status(200).send({
-        publicKey: userKey.publicKey
+        publicKey: userKey.publicKey,
+        privateKey: userKey.privateKey,
+        revocationKey: userKey.revocationKey
 
       }).catch((message) => {
+        const { user } = req.user
+        //Generate keys
+        openpgp.generateKey({
+          userIds: [{ email: 'inxt@inxt.com' }], // you can pass multiple user IDs
+          curve: 'ed25519',                                           // ECC curve name
+        });
+        const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
         Logger.error(message);
         res.status(200).send({
           publicKey: codpublicKey
