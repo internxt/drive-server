@@ -138,7 +138,7 @@ module.exports = (Router, Service, Logger, App) => {
             }
           }
         },
-        (customer, next) => {
+         (customer, next) => {
           // Open session
           const customerId = customer !== null ? customer.id || null : null;
 
@@ -166,12 +166,9 @@ module.exports = (Router, Service, Logger, App) => {
 
             const salt = crypto.randomBytes(128 / 8).toString('hex');
             const newPassword = App.services.Crypt.encryptText('team', salt);
-
             const encryptedPassword = App.services.Crypt.encryptText(newPassword);
             const encryptedSalt = App.services.Crypt.encryptText(salt);
-
             const mnemonicTeam = req.body.mnemonicTeam
-            
 
             Service.User.FindOrCreate(
               {
@@ -183,7 +180,11 @@ module.exports = (Router, Service, Logger, App) => {
                 salt: encryptedSalt,
                 referral: ''
               }
-            ).then((userData) => {
+            ).then(async (userData)  => {
+              const bcryptId = await App.services.Storj.IdToBcrypt(
+                newBridgeUser.email
+              );
+  
               if (!userData.isCreated) {
                 next({ message: 'This account already exists' });
               } else {
@@ -192,16 +193,16 @@ module.exports = (Router, Service, Logger, App) => {
                   name: 'My team',
                   admin: user,
                   bridge_user: userData.email,
-                  bridge_password: userData.password,
+                  bridge_password: bcryptId,
                   bridge_mnemonic: userData.mnemonic
                 }).then((team) => {
                   console.log(mnemonicTeam)
                   const teamId = team.id;
                   const teamAdmin = team.admin;
-                  const teamBridgePassword= team.bridge_password;
+                  const teamBridgePassword = team.bridge_password;
                   const teamBridgeMnemonic = team.bridge_mnemonic;
                   console.log(team)
-                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin,teamBridgePassword,teamBridgeMnemonic).then((newMember) => {
+                  Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic).then((newMember) => {
                     console.log('NUEVO MIEMBRO AÑADIDO DESDE STRIPE.JS', newMember)
                   }).catch((err) => { });
                 }).catch((err) => {
@@ -220,14 +221,14 @@ module.exports = (Router, Service, Logger, App) => {
             delete sessionParams.customer;
           }
 
-           stripe.checkout.sessions
+          stripe.checkout.sessions
             .create(sessionParams)
             .then((result) => {
               next(null, result);
             })
             .catch((err) => {
               next(err);
-              
+
             });
         }
       ],
