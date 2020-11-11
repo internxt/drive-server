@@ -154,9 +154,6 @@ module.exports = (Router, Service, Logger, App) => {
       }
 
       Service.Keyserver.keysExists(userData).then(async () => {
-        console.log('ID DEL KEYEXISTS USUARIO', userData.id)
-        console.log(req.body.publicKey)
-        console.log(req.body.privateKey)
 
       }).catch((err) => {
         Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (keys) => {
@@ -172,15 +169,11 @@ module.exports = (Router, Service, Logger, App) => {
       // Check if user has a team
       await new Promise((resolve, reject) => {
         Service.Team.getTeamByMember(req.body.email).then(async (team) => {
-          console.log("USERTEAM: ", team); //debug
           userTeam = team;
           if (team !== undefined) {
             rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
             responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-            //console.log("RESPONSE TEAM ", responseTeam); //debug
             if (responseTeam) {
-              console.log('RESPONSE TEAM', responseTeam)
-              console.log("IS TEAM ACTIVATED: ", responseTeam.data.activated); //debug
               isTeamActivated = responseTeam.data.activated;
               userTeam = {
                 bridge_user: userTeam.bridge_user,
@@ -227,6 +220,13 @@ module.exports = (Router, Service, Logger, App) => {
           internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
         );
 
+        let teamRol = '';
+          if (userTeam && userTeam.admin === req.body.email) {
+            teamRol = 'admin';
+          } else if (userTeam) {
+            teamRol = 'member';
+          }
+
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
 
@@ -242,7 +242,8 @@ module.exports = (Router, Service, Logger, App) => {
             credit: userData.credit
           },
           token,
-          userTeam
+          userTeam,
+          teamRol
         });
       } else {
         // Wrong password
@@ -499,13 +500,12 @@ module.exports = (Router, Service, Logger, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
+
   Router.get('/user/keys/:user', passportAuth, (req, res) => {
    
     Service.Keyserver.keysExists(user).then((userKey) => {
       res.status(200).send({
-        publicKey: userKey.publicKey,
-        privateKey: userKey.privateKey,
-        revocationKey: userKey.revocationKey
+        publicKey: userKey.publicKey
 
       }).catch((message) => {
         const { user } = req.user

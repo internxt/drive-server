@@ -106,6 +106,20 @@ module.exports = (Model, App) => {
     });
   };
 
+  getTeamByAdmin = (adminEmail) => {
+    Model.teams.findOne({
+      where: {
+        admin: { [Op.eq]: adminEmail }
+      }
+    }).then((team) => {
+      if (!team) {
+        return reject("No team");
+      } else {
+        resolve(team);
+      }
+    }).catch((err) => { reject("Error querying database: ")})
+  }
+
   return {
     Name: 'Team',
     create,
@@ -113,6 +127,7 @@ module.exports = (Model, App) => {
     getTeamById,
     generateBridgeTeamUser,
     getIdTeamByUser,
-    getTeamByMember
+    getTeamByMember,
+    getTeamByAdmin
   };
 };
