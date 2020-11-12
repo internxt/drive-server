@@ -165,6 +165,7 @@ module.exports = (Router, Service, Logger, App) => {
           Service.User.LoginFailed(req.body.email, false);
           Service.User.UpdateAccountActivity(req.body.email);
 
+          Service.Analytics.trackAll(req, userData, 'user-signin')
           res.status(200).json({
             user: {
               userId: userData.userId,
@@ -178,6 +179,7 @@ module.exports = (Router, Service, Logger, App) => {
             },
             token,
           });
+
         } else {
           // Wrong password
           if (pass !== userData.password.toString()) {
@@ -254,33 +256,23 @@ module.exports = (Router, Service, Logger, App) => {
               client.source = 'x-cloud-mobile';
             }
 
-            if (hasReferral) {
-              // Tack here the referrals
-              analytics.track({
-                event: 'referrals',
-                userId: userData.uuid,
-                properties: {
-                  referrer: {
-                    email: referrer.email,
-                    userId: referrer.uuid,
-                  },
-                  referee: {
-                    email: userData.email,
-                    userId: userData.uuid
-                  }
-                }
-              })
-            }
-
-
+            Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
+              referrer: {
+                email: referrer.email,
+                userId: referrer.uuid,
+              },
+              referee: {
+                email: userData.email,
+                userId: userData.uuid
+              }
+            } : {});
 
             Service.Statistics.Insert({
               name: client.source,
               user: userData.email,
               userAgent: agent.source,
               action: 'register'
-            })
-              .then(() => { })
+            }).then(() => { })
               .catch((err) => {
                 console.log('Error creating register statistics:', err);
               });
@@ -291,7 +283,7 @@ module.exports = (Router, Service, Logger, App) => {
               App.config.get('secrets').JWT
             );
             const user = { email: userData.email };
-            res.status(200).send({ token, user });
+            res.status(200).send({ token, user, uuid: userData.uuid });
           } else {
             // This account already exists
             res.status(400).send({ message: 'This account already exists' });
@@ -411,14 +403,19 @@ module.exports = (Router, Service, Logger, App) => {
       subject: 'New credit request',
       text: 'Hello Internxt! I am ready to receive my credit for referring friends.'
     };
-    sgMail
-      .send(msg)
-      .then(() => {
-        res.status(200).send({});
-      })
-      .catch((err) => {
-        res.status(500).send(err);
-      });
+    if (req.user.credit > 0) {
+      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', credit: req.user.credit })
+      sgMail
+        .send(msg)
+        .then(() => {
+          res.status(200).send({});
+        })
+        .catch((err) => {
+          res.status(500).send(err);
+        });
+    } else {
+      res.status(500).send({ error: 'No credit' })
+    }
   });
 
   Router.post('/user/invite', passportAuth, (req, res) => {
@@ -455,7 +452,6 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/user/credit', passportAuth, (req, res) => {
     const { user } = req;
-
     return res.status(200).send({ userCredit: user.credit });
   });
 

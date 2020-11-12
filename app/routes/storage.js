@@ -177,13 +177,13 @@ module.exports = (Router, Service, Logger, App) => {
 
       Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
         .then((result) => {
+
           res.status(201).json(result);
         })
         .catch((err) => {
           Logger.error(`${err.message}\n${err.stack}`);
           if (err.includes && err.includes('Bridge rate limit error')) {
             res.status(402).json({ message: err });
-
             return;
           }
 
@@ -227,27 +227,16 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).json(error);
       });
   });
+
   /**
    * @swagger
-   * /storage/file:
-   *   post:
-   *     description: Create file entry on DB for an existing bucketentry
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: file
-   *         description: file object with properties
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: File created successfully
-   *       400:
-   *         description: Bad request. Any data is not passed on request.
+   * description: Create file entry on DB for an existing file on the network
+   * Suitable for Desktop app.
    */
   Router.post('/storage/file', passportAuth, (req, res) => {
     const { user } = req;
     const { file } = req.body;
+
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {

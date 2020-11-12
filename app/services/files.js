@@ -6,11 +6,13 @@ const SanitizeFilename = require('sanitize-filename');
 const async = require('async');
 
 const AesUtil = require('../../lib/AesUtil');
+const AnalyticsService = require('./analytics')
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const log = App.logger;
+  const analyticsService = AnalyticsService(Model, App)
 
   const CreateFile = (user, file) => new Promise(async (resolve, reject) => {
     if (
@@ -165,7 +167,11 @@ module.exports = (Model, App) => {
         }
 
         const addedFile = await Model.file.create(newFileInfo);
-        const result = await folder.addFile(addedFile);
+        try {
+          const result = await folder.addFile(addedFile);
+        } catch (e) {
+          log.error('Cannot add file to non existent folder')
+        }
 
         return resolve(addedFile);
       })
@@ -180,7 +186,6 @@ module.exports = (Model, App) => {
     } finally {
       fs.unlink(filePath, (error) => {
         if (error) throw error;
-
         console.log(`Deleted:  ${filePath}`);
       });
     }

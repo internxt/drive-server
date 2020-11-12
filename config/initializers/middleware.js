@@ -132,7 +132,7 @@ module.exports = (App, Config) => {
       }
     }
     App.logger.info(
-      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? '\t' + user : ''}`,
+      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ' ' + user : ''}`,
     );
     next();
   });

@@ -3,6 +3,7 @@ const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
+const Analytics = require('./analytics')
 
 const { Op } = sequelize;
 
@@ -11,32 +12,7 @@ const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
-
-  const RegisterNewUser = (user) => {
-    // Check data
-    if (!user.email || !user.password || !user.salt || !user.mnemonic) {
-      throw new Error('Inssuficient registration data');
-    }
-
-    // Decrypt password
-    const userPass = App.services.Crypt.decryptText(user.password);
-    const userSalt = App.services.Crypt.decryptText(user.salt);
-
-    const t = Model.users.sequelize.transaction();
-
-    try {
-      Model.users
-        .findOne({ where: { email: { [Op.eq]: user.email } } })
-        .then((result) => {
-          Logger.info('Result', result);
-        })
-        .catch((err) => {
-          Logger.error('Error', err);
-        });
-    } catch (e) {
-      Logger.error(e);
-    }
-  };
+  const analytics = Analytics(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -81,11 +57,7 @@ module.exports = (Model, App) => {
             bcryptId
           );
 
-          if (
-            bridgeUser
-            && bridgeUser.response
-            && bridgeUser.response.status === 500
-          ) {
+          if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
             throw Error(bridgeUser.response.data.error);
           }
 
@@ -93,11 +65,7 @@ module.exports = (Model, App) => {
             throw new Error('Error creating bridge user');
           }
 
-          Logger.info(
-            'User Service | created brigde user: %s with uuid: %s',
-            userResult.email,
-            userResult.uuid
-          );
+          Logger.info('User Service | created brigde user: %s with uuid: %s', userResult.email, userResult.uuid);
 
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
@@ -134,21 +102,12 @@ module.exports = (Model, App) => {
         return userData;
       }
 
-      const rootBucket = await App.services.Storj.CreateBucket(
-        userData.email,
-        userData.userId,
-        user.mnemonic
-      );
+      const rootBucket = await App.services.Storj.CreateBucket(userData.email, userData.userId, user.mnemonic);
       Logger.info('User init | root bucket created %s', rootBucket.name);
 
-      const rootFolderName = await App.services.Crypt.encryptName(
-        `${rootBucket.name}`
-      );
+      const rootFolderName = await App.services.Crypt.encryptName(`${rootBucket.name}`);
 
-      const rootFolder = await userData.createFolder({
-        name: rootFolderName,
-        bucket: rootBucket.id,
-      });
+      const rootFolder = await userData.createFolder({ name: rootFolderName, bucket: rootBucket.id });
 
       Logger.info('User init | root folder created, id: %s', rootFolder.id);
 
@@ -315,49 +274,47 @@ module.exports = (Model, App) => {
   });
 
   const ConfirmDeactivateUser = (token) => new Promise((resolve, reject) => {
-    async.waterfall(
-      [
-        (next) => {
-          axios
-            .get(
-              `${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-              {
-                headers: { 'Content-Type': 'application/json' },
-              }
-            )
-            .then((res) => {
-              Logger.info('User deleted from bridge');
-              next(null, res);
-            })
-            .catch((err) => {
-              Logger.error('Error user deleted from bridge');
-              next(err);
-            });
-        },
-        (data, next) => {
-          const userEmail = data.data.email;
-          Model.users
-            .findOne({ where: { email: { [Op.eq]: userEmail } } })
-            .then((user) => {
-              const referralUuid = user.referral;
-              if (uuid.validate(referralUuid)) {
-                DecrementCredit(referralUuid);
-              }
+    async.waterfall([
+      (next) => {
+        axios
+          .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
+            {
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+          .then((res) => {
+            Logger.info('User deleted from bridge');
+            next(null, res);
+          })
+          .catch((err) => {
+            Logger.error('Error user deleted from bridge');
+            next(err);
+          });
+      },
+      (data, next) => {
+        const userEmail = data.data.email;
+        Model.users
+          .findOne({ where: { email: { [Op.eq]: userEmail } } })
+          .then((user) => {
+            const referralUuid = user.referral;
+            if (uuid.validate(referralUuid)) {
+              DecrementCredit(referralUuid);
+            }
 
-              user
-                .destroy()
-                .then((result) => {
-                  Logger.info('User deleted on sql', userEmail);
-                  next(null, data);
-                })
-                .catch((err) => {
-                  Logger.error('Error deleting user on sql');
-                  next(err);
-                });
-            })
-            .catch(next);
-        },
-      ],
+            user
+              .destroy()
+              .then((result) => {
+                analytics.track({ userId: userData.uuid, event: 'user-deactivation-confirm' })
+                Logger.info('User deleted on sql', userEmail);
+                next(null, data);
+              })
+              .catch((err) => {
+                Logger.error('Error deleting user on sql');
+                next(err);
+              });
+          }).catch(next);
+      },
+    ],
       (err, result) => {
         if (err) {
           Logger.error('Error waterfall', err);
@@ -466,6 +423,9 @@ module.exports = (Model, App) => {
   const ShouldSendEmail = (email) => new Promise((resolve, reject) => {
     Model.users.findOne({ where: { email: { [Op.eq]: email } } })
       .then((user) => {
+        if (!user) {
+          return resolve(false); // User doesn't exist
+        }
         if (!user.lastResend) {
           return resolve(true); // Field is null, send email
         }
@@ -488,10 +448,7 @@ module.exports = (Model, App) => {
 
     SetEmailSended(user);
 
-    return axios.post(`${process.env.STORJ_BRIDGE}/activations`, {
-      email: user,
-    }).then((res) => resolve())
-      .catch(reject);
+    return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user }).then((res) => resolve()).catch(reject);
   });
 
   const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {

@@ -24,7 +24,8 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user.email;
 
     Service.User.DeactivateUser(user)
-      .then((bridgeRes) => {
+      .then(() => {
+        Service.Analytics.track({ userId: req.user.uuid, event: 'user-deactivation-request' })
         res.status(200).send({ error: null, message: 'User deactivated' });
       })
       .catch((err) => {
@@ -51,8 +52,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(resConfirm.status).send(req.data);
       })
       .catch((err) => {
-        console.log('Deactivation request to Server failed');
-        console.log(err);
+        log.error('Deactivation request to Server failed: %s', err.message);
         res.status(400).send({ error: err.message });
       });
   });
