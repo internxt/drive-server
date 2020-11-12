@@ -257,13 +257,15 @@ module.exports = (Router, Service, Logger, App) => {
             }
 
             Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
-              referrer: {
-                email: referrer.email,
-                userId: referrer.uuid,
-              },
-              referee: {
-                email: userData.email,
-                userId: userData.uuid
+              properties: {
+                referrer: {
+                  email: referrer.email,
+                  userId: referrer.uuid,
+                },
+                referee: {
+                  email: userData.email,
+                  userId: userData.uuid
+                }
               }
             } : {});
 
