@@ -33,6 +33,7 @@
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
+    "prettysize": "^2.0.0",
     "qrcode": "^1.4.4",
     "rimraf": "^3.0.2",
     "sanitize-filename": "^1.6.3",

@@ -278,9 +278,7 @@ module.exports = (Model, App) => {
       (next) => {
         axios
           .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-            {
-              headers: { 'Content-Type': 'application/json' },
-            }
+            { headers: { 'Content-Type': 'application/json' } }
           )
           .then((res) => {
             Logger.info('User deleted from bridge');
