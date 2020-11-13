@@ -95,13 +95,12 @@ module.exports = (Router, Service, Logger, App) => {
           );
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
           Service.Keyserver.keysExists(userData).then((userKey) => {
-            
-          res.status(200).send({ pbKey:userKey.public_key, pvKey: userKey.private_key, revKey:userKey.revocation_key, sKey: encSalt, tfa: required2FA });
-          }).catch((err) =>{
+
+
+            res.status(200).send({ pbKey: userKey.public_key, pvKey: userKey.private_key, revKey: userKey.revocation_key, sKey: encSalt, tfa: required2FA });
+          }).catch((err) => {
             console.error(err);
-            res.status(400).send({
-              error: 'The user dont have keys'
-            })
+            res.status(200).send({ sKey: encSalt, tfa: required2FA });
           })
         }
       }).catch((err) => {
@@ -153,14 +152,15 @@ module.exports = (Router, Service, Logger, App) => {
         return;
       }
 
-      Service.Keyserver.keysExists(userData).then(async () => {
+      Service.Keyserver.keysExists(userData).then(async (userKey) => {
+
 
       }).catch((err) => {
         Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (keys) => {
 
           console.log(err)
         }).catch((err) => {
-          console.log('No se han podido guardar las claves')
+          console.log('The keys are not saved')//debug
           console.log(err)
         });
       });
@@ -170,21 +170,30 @@ module.exports = (Router, Service, Logger, App) => {
       await new Promise((resolve, reject) => {
         Service.Team.getTeamByMember(req.body.email).then(async (team) => {
           userTeam = team;
+          //Service.TeamsMembers.getMemberByIdTeam(userTeam.id,req.body.email).then(async (member) => {
           if (team !== undefined) {
             rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
             responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-            if (responseTeam) {
-              isTeamActivated = responseTeam.data.activated;
-              userTeam = {
-                bridge_user: userTeam.bridge_user,
-                bridge_password: userTeam.bridge_password,
-                bridge_mnemonic: userTeam.bridge_mnemonic,
-                admin: userTeam.admin,
-                root_folder_id: rootFolderId,
-                isActivated: isTeamActivated
-              };
-              resolve();
+              if (responseTeam) {
+              member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
+              if(member){
+               console.log('aqui tambien')//debug
+                console.log('a ver si aqui si', userTeam)
+                console.log('miembro', member)
+
+                isTeamActivated = responseTeam.data.activated;
+                userTeam = {
+                  bridge_user: userTeam.bridge_user,
+                  bridge_password: userTeam.bridge_password,
+                  bridge_mnemonic: member.bridge_mnemonic,
+                  admin: userTeam.admin,
+                  root_folder_id: rootFolderId,
+                  isActivated: isTeamActivated
+                };
+                resolve();
+                console.log('ÚSERTEAM//////////////////////', userTeam)
             }
+          }
           }
           resolve();
         }).catch((error) => {
@@ -192,6 +201,7 @@ module.exports = (Router, Service, Logger, App) => {
           reject()
         });
       })
+
 
       // Process user data and answer API call
       const pass = App.services.Crypt.decryptText(req.body.password);
@@ -221,11 +231,11 @@ module.exports = (Router, Service, Logger, App) => {
         );
 
         let teamRol = '';
-          if (userTeam && userTeam.admin === req.body.email) {
-            teamRol = 'admin';
-          } else if (userTeam) {
-            teamRol = 'member';
-          }
+        if (userTeam && userTeam.admin === req.body.email) {
+          teamRol = 'admin';
+        } else if (userTeam) {
+          teamRol = 'member';
+        }
 
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
@@ -502,15 +512,18 @@ module.exports = (Router, Service, Logger, App) => {
 
 
   Router.get('/user/keys/:user', passportAuth, (req, res) => {
-   
-    Service.Keyserver.keysExists(user).then((userKey) => {
-      res.status(200).send({
-        publicKey: userKey.publicKey
+    const user = req.params.user
+    console.log(user)
+    Service.User.FindUserByEmail(user).then((userKeys) => {
+      Service.Keyserver.keysExists(userKeys).then((keys) => {
+        console.log('HAY CLAVES EN SERVER')
+        console.log(keys)
+        res.status(200).send({
+          publicKey: keys.public_key
+        })
 
-      }).catch((message) => {
-        const { user } = req.user
-        //Generate keys
-        openpgp.generateKey({
+      }).catch(async (err) => {
+        const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
           userIds: [{ email: 'inxt@inxt.com' }], // you can pass multiple user IDs
           curve: 'ed25519',                                           // ECC curve name
         });
@@ -519,15 +532,23 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).send({
           publicKey: codpublicKey
         });
-      });
-    });
+        Logger.error('Error: The user not have keys')
+        res.status(500).send({})
+      })
+    }).catch((err) => {
+      Logger.error('Error: The user invited is not register')
+      console.log(err)
+      res.status(500).send({})
+    })
   });
 
 
 
   Router.post('/team-invitations', passportAuth, async function (req, res) {
     const email = req.body.email;
-    const token = crypto.randomBytes(20).toString('hex')
+    const token = crypto.randomBytes(20).toString('hex');
+    const Encryptbridge_password = req.body.bridgePass;
+    const Encryptmnemonic = req.body.mnemonicTeam;
 
     Service.Team.getTeamByIdUser(req.user.email).then(() => {
       Service.Keyserver.keysExists(req.user).then(() => {
@@ -538,7 +559,7 @@ module.exports = (Router, Service, Logger, App) => {
               Logger.info('The email is forwarded to the user %s', email)
               res.status(200).send({})
             }).catch((err) => {
-              Logger.error('Error: Send invitation mail from %s to %s', req.user.email, email)
+              Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email)
               res.status(500).send({
                 error: 'Error: Send invitation mail'
               })
@@ -559,19 +580,22 @@ module.exports = (Router, Service, Logger, App) => {
               Service.TeamInvitations.save({
                 id_team: team.id,
                 user: email,
-                token: token
+                token: token,
+                bridge_password: Encryptbridge_password,
+                mnemonic: Encryptmnemonic
               }).then((user) => {
                 Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
                   Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email)
                   res.status(200).send({
                   })
                 }).catch((err) => {
-                  Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+                  Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email)
                   res.status(500).send({
                   })
                 })
               }).catch((err) => {
-                Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email)
+                Logger.error('Error: Send invitation mail from %s to %s 3', req.user.email, req.body.email)
+                console.log(err)
                 res.status(500).send({
                 })
               })
@@ -600,30 +624,14 @@ module.exports = (Router, Service, Logger, App) => {
     const { token } = req.params;
 
     Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
-
       Service.Team.getTeamById(teamInvitation.id_team).then((team) => {
         Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
-
           Service.Keyserver.keysExists(userId).then(async (userKey) => {
-
-            let publicKeyArmored = Buffer.from(userKey.public_key, 'base64').toString('ascii')
-
-            const encryptedBridgePassword = await openpgp.encrypt({
-              message: openpgp.message.fromText(team.bridge_password),                 // input as Message object
-              publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
-            });
-            const dataBridgePassword = Buffer.from(encryptedBridgePassword.data).toString('base64');
-            const encryptedBridgeMnemonic = await openpgp.encrypt({
-              message: openpgp.message.fromText(team.bridge_mnemonic),                 // input as Message object
-              publicKeys: (await openpgp.key.readArmored(publicKeyArmored)).keys, // for encryption
-            });
-            const dataBridgeMnemonic = Buffer.from(encryptedBridgeMnemonic.data).toString('base64');
-
             Service.TeamsMembers.saveMembersFromInvitations({
               id_team: teamInvitation.id_team,
               user: teamInvitation.user,
-              bridge_password: dataBridgePassword,
-              bridge_mnemonic: dataBridgeMnemonic
+              bridge_password: teamInvitation.bridge_password,
+              bridge_mnemonic: teamInvitation.mnemonic
             }).then((newMember) => {
               Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
               teamInvitation.destroy().then(() => {

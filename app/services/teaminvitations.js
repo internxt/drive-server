@@ -14,6 +14,8 @@ module.exports = (Model, App) => {
           id_team: teamInvitation.id_team,
           user: teamInvitation.user,
           token: teamInvitation.token,
+          bridge_password: teamInvitation.bridge_password,
+          mnemonic: teamInvitation.mnemonic
         }).then((newTeamInvitation) => {
           resolve({teamInvitation: newTeamInvitation});
         }).catch((err) => {

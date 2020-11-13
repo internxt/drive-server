@@ -1,3 +1,5 @@
+const { mnemonicToEntropy } = require("bip39");
+
 module.exports = (sequelize, DataTypes) => {
   const TeamInvitations = sequelize.define(
     'team_invitations',
@@ -10,7 +12,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       id_team: DataTypes.INTEGER,
       user: DataTypes.STRING,
-      token: DataTypes.STRING
+      token: DataTypes.STRING,
+      bridge_password: DataTypes.STRING,
+      mnemonic: DataTypes.STRING
     },
     {
       timestamps: false

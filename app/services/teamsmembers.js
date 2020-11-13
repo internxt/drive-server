@@ -131,6 +131,26 @@ module.exports = (Model, App) => {
     });
   };
 
+  const getMemberByIdTeam = (idTeam,email) => {
+    return new Promise((resolve, reject) => {
+    return Model.teams_members.findOne({
+      where: {
+      id_team: { [Op.eq]: idTeam },
+      user: { [Op.eq]: email},
+    }
+  }).then((member) => {
+    if (member) {
+      resolve(member);
+    } else {
+      reject('Team member does not exist');
+    }
+  }).catch((err) => {
+    console.error(err);
+    reject('Error querying database');
+  });
+});
+};
+
 
   const addTeamMember = (idTeam, userEmail,bridge_password,bridge_mnemonic) => {
     return new Promise((resolve, reject) => {
@@ -203,6 +223,7 @@ module.exports = (Model, App) => {
     getMembersByIdTeam,
     addTeamMember,
     saveMembersFromInvitations,
-    update
+    update,
+    getMemberByIdTeam
   };
 };
