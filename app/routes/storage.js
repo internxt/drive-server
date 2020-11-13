@@ -8,6 +8,8 @@ const async = require('async');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
+const prettySize = require('prettysize')
+const mimeTypes = require('mime-types')
 
 const { passportAuth } = passport;
 
@@ -239,6 +241,20 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
+      const NOW = (new Date()).toISOString()
+      Service.Analytics.track({
+        userId: req.user.uuid,
+        event: 'file-upload-finished',
+        platform: 'desktop',
+        email: req.user.email,
+        file_id: file.fileId,
+        file_size: file.size,
+        date: NOW,
+        file_mime_type: mimeTypes.lookup(file.type),
+        device: 'desktop',
+        file_type: file.type,
+        file_size_readable: prettySize(file.size)
+      })
     }).catch((error) => {
       Logger.error(error);
       res.status(400).json({ message: error.message });
@@ -283,10 +299,7 @@ module.exports = (Router, Service, Logger, App) => {
         const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
         const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
-        res.setHeader(
-          'content-disposition',
-          contentDisposition(fileNameDecrypted)
-        );
+        res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
         res.setHeader('content-type', mimetype);
         res.set('x-file-name', decryptedFileNameB64);
         filestream.pipe(res);
@@ -370,73 +383,55 @@ module.exports = (Router, Service, Logger, App) => {
     const { user } = req;
 
     Service.Files.MoveFile(user, fileId, destination)
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((error) => {
-        res.status(500).json(error);
-      });
+      .then((result) => { res.status(200).json(result) })
+      .catch((error) => { res.status(500).json(error) });
   });
 
   /*
    * Delete file by bridge (mongodb) ids
    */
-  Router.delete(
-    '/storage/bucket/:bucketid/file/:fileid',
-    passportAuth,
-    (req, res) => {
-      if (req.params.bucketid === 'null') {
-        return res.status(500).json({ error: 'No bucket ID provided' });
-      }
-
-      if (req.params.fileid === 'null') {
-        return res.status(500).json({ error: 'No file ID provided' });
-      }
-
-      const { user } = req;
-      const bucketId = req.params.bucketid;
-      const fileIdInBucket = req.params.fileid;
-
-      return Service.Files.Delete(user, bucketId, fileIdInBucket)
-        .then(() => {
-          res.status(200).json({ deleted: true });
-        })
-        .catch((err) => {
-          Logger.error(err.stack);
-          res.status(500).json({ error: err.message });
-        });
+  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, (req, res) => {
+    if (req.params.bucketid === 'null') {
+      return res.status(500).json({ error: 'No bucket ID provided' });
     }
-  );
+
+    if (req.params.fileid === 'null') {
+      return res.status(500).json({ error: 'No file ID provided' });
+    }
+
+    const { user } = req;
+    const bucketId = req.params.bucketid;
+    const fileIdInBucket = req.params.fileid;
+
+    return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
+      res.status(200).json({ deleted: true });
+    }).catch((err) => {
+      Logger.error(err.stack);
+      res.status(500).json({ error: err.message });
+    });
+  });
 
   /*
    * Delete file by database ids (mysql)
    */
-  Router.delete(
-    '/storage/folder/:folderid/file/:fileid',
-    passportAuth,
-    (req, res) => {
-      Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
-        .then(() => {
-          res.status(200).json({ deleted: true });
-        })
-        .catch((err) => {
-          console.error('Error deleting file:', err.message);
-          res.status(500).json({ error: err.message });
-        });
-    }
-  );
+  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
+    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
+      .then(() => {
+        res.status(200).json({ deleted: true });
+      })
+      .catch((err) => {
+        console.error('Error deleting file:', err.message);
+        res.status(500).json({ error: err.message });
+      });
+  });
 
   Router.post('/storage/shortLink', passportAuth, (req, res) => {
     const user = req.user.email;
     const { url } = req.body;
 
     Service.Share.GenerateShortLink(user, url)
-      .then((shortLink) => {
-        res.status(200).json(shortLink);
-      })
-      .catch((err) => {
-        res.status(500).json({ error: err.message });
-      });
+      .then((shortLink) => { res.status(200).json(shortLink) })
+      .catch((err) => { res.status(500).json({ error: err.message }) });
   });
 
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
@@ -453,9 +448,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).send(result);
       })
       .catch((err) => {
-        res
-          .status(402)
-          .send(err.error ? err.error : { error: 'Internal Server Error' });
+        res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
       });
   });
 
@@ -499,9 +492,7 @@ module.exports = (Router, Service, Logger, App) => {
                     .catch((err) => {
                       if (fs.existsSync(`./downloads/${tree.id}`)) {
                         rimraf(`./downloads/${tree.id}`, () => {
-                          console.log(
-                            'Folder removed after fail folder download'
-                          );
+                          console.log('Folder removed after fail folder download');
                         });
                       }
 
@@ -514,11 +505,6 @@ module.exports = (Router, Service, Logger, App) => {
                 }
               })
               .catch((err) => {
-                // if (fs.existsSync(`./downloads/${tree.id}`)) {
-                //   rimraf(`./downloads/${tree.id}`, function () {
-                //     console.log('Folder removed after fail folder download');
-                //   });
-                // }
                 res.status(402).json({ error: 'Error downloading folder' });
               });
           } else {

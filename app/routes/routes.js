@@ -171,11 +171,11 @@ module.exports = (Router, Service, Logger, App) => {
               userId: userData.userId,
               mnemonic: userData.mnemonic,
               root_folder_id: userData.root_folder_id,
-              storeMnemonic: userData.storeMnemonic,
               name: userData.name,
               lastname: userData.lastname,
               uuid: userData.uuid,
-              credit: userData.credit
+              credit: userData.credit,
+              createdAt: userData.createdAt
             },
             token,
           });
@@ -280,10 +280,7 @@ module.exports = (Router, Service, Logger, App) => {
               });
 
             // Successfull register
-            const token = passport.Sign(
-              userData.email,
-              App.config.get('secrets').JWT
-            );
+            const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
             const user = { email: userData.email };
             res.status(200).send({ token, user, uuid: userData.uuid });
           } else {

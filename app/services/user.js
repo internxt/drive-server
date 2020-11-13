@@ -16,12 +16,8 @@ module.exports = (Model, App) => {
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
-    const userPass = user.password
-      ? App.services.Crypt.decryptText(user.password)
-      : null;
-    const userSalt = user.salt
-      ? App.services.Crypt.decryptText(user.salt)
-      : null;
+    const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
+    const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
@@ -249,7 +245,6 @@ module.exports = (Model, App) => {
     return Model.users
       .findOne({ where: { email: { [Op.eq]: email } } })
       .then((user) => {
-        const crypto = require('crypto-js');
         const password = crypto.SHA256(user.userId).toString();
         const auth = Buffer.from(`${user.email}:${password}`).toString(
           'base64'
@@ -322,42 +317,6 @@ module.exports = (Model, App) => {
         }
       }
     );
-  });
-
-  // TODO: Reset password should check ShouldSendEmail
-  const ResetPassword = (email) => new Promise((resolve, reject) => {
-    Model.user
-      .findOne({ where: { email: { [Op.eq]: email } } })
-      .then((user) => {
-        const crypto = require('crypto-js');
-        const password = crypto.SHA256(user.userId).toString();
-        const auth = Buffer.from(`${user.email}:${password}`).toString(
-          'base64'
-        );
-
-        axios
-          .patch(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-            headers: {
-              Authorization: `Basic ${auth}`,
-              'Content-Type': 'application/json',
-            },
-          })
-          .then(resolve)
-          .catch((err) => {
-            Logger.error(err.response.data);
-            reject(err);
-          });
-      })
-      .catch(reject);
-  });
-  const ConfirmResetPassword = (email, token, newPassword) => new Promise((resolve, reject) => {
-    axios
-      .post(`${App.config.get('STORJ_BRIDGE')}/resets/${token}`, {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword }),
-      })
-      .then(resolve)
-      .catch(reject);
   });
 
   const Store2FA = (user, key) => new Promise((resolve, reject) => {

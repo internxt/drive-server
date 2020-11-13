@@ -115,12 +115,8 @@ module.exports = (Router, Service, Logger, App) => {
 
           stripe.checkout.sessions
             .create(sessionParams)
-            .then((result) => {
-              next(null, result);
-            })
-            .catch((err) => {
-              next(err);
-            });
+            .then((result) => { next(null, result) })
+            .catch((err) => { next(err) });
         },
       ],
       (err, result) => {
@@ -128,7 +124,6 @@ module.exports = (Router, Service, Logger, App) => {
           console.log('Error', err.message);
           res.status(500).send({ error: err.message });
         } else {
-          console.log('Correcto', result);
           res.status(200).send(result);
         }
       }
