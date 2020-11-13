@@ -486,6 +486,10 @@ module.exports = (Model, App) => {
   const UnlockSync = (user) => Model.users.update({ syncDate: null },
     { where: { email: user.email } });
 
+  const ActivateUser = (token) => {
+    return axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`)
+  }
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -511,6 +515,7 @@ module.exports = (Model, App) => {
     UpdateAccountActivity,
     GetOrSetUserSync,
     UpdateUserSync,
-    UnlockSync
+    UnlockSync,
+    ActivateUser
   };
 };

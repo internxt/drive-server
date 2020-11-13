@@ -3,6 +3,15 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
+
+  Router.get('/user/activations/:token', (req, res) => {
+    Service.User.ActivateUser(req.params.token).then(() => {
+      res.status(200).send();
+    }).catch(err => {
+      res.status(err.response.status).send(err.response.data)
+    })
+  })
+
   Router.get('/user/isactivated', passportAuth, (req, res) => {
     const user = req.user.email;
 
