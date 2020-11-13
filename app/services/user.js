@@ -399,7 +399,7 @@ module.exports = (Model, App) => {
     lastResend: new Date()
   }, { where: { email: { [Op.eq]: email } } });
 
-  const ResendActivationEmail = (user) => new Promise(async (resolve, reject) => {
+  const ResendActivationEmail = async (user) => {
     const shouldSend = await ShouldSendEmail(user);
     if (shouldSend) {
       return resolve(); // noop
@@ -407,8 +407,8 @@ module.exports = (Model, App) => {
 
     SetEmailSended(user);
 
-    return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user }).then((res) => resolve()).catch(reject);
-  });
+    return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user })
+  };
 
   const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
     Model.users.update({ updated_at: new Date() }, { where: { email: user } })
