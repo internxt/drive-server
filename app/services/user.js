@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
           mnemonic: user.mnemonic,
           hKey: userSalt,
           referral: user.referral,
-          uuid: uuid.v4(),
+          uuid: null,
           referred: user.referred,
           credit: user.credit,
           welcomePack: true
@@ -66,10 +66,11 @@ module.exports = (Model, App) => {
 
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
-          await userResult.update(
-            { userId: bcryptId, isFreeTier: freeTier },
-            { transaction: t }
-          );
+          await userResult.update({
+            userId: bcryptId,
+            isFreeTier: freeTier,
+            uuid: bridgeUser.data.uuid
+          }, { transaction: t });
 
           // Set created flag for Frontend management
           Object.assign(userResult, { isCreated: created });
