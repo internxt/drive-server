@@ -177,7 +177,7 @@ module.exports = (Router, Service, Logger, App) => {
               credit: userData.credit,
               createdAt: userData.createdAt
             },
-            token,
+            token
           });
 
         } else {
@@ -191,10 +191,7 @@ module.exports = (Router, Service, Logger, App) => {
       })
       .catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
-        res.status(400).send({
-          error: 'User not found on Cloud database',
-          message: err.message,
-        });
+        res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
       });
   });
 

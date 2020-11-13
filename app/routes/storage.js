@@ -345,14 +345,12 @@ module.exports = (Router, Service, Logger, App) => {
     const fileId = req.params.fileid;
     const { metadata } = req.body;
 
-    Service.Files.UpdateMetadata(user, fileId, metadata)
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((err) => {
-        Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
-      });
+    Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
+      res.status(200).json(result);
+    }).catch((err) => {
+      Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+      res.status(500).json(err.message);
+    });
   });
 
   /**
