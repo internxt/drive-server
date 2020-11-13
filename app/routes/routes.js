@@ -398,9 +398,9 @@ module.exports = (Router, Service, Logger, App) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
       to: 'hello@internxt.com',
-      from: req.user.email,
+      from: 'hello@internxt.com',
       subject: 'New credit request',
-      text: 'Hello Internxt! I am ready to receive my credit for referring friends.'
+      text: 'Hello Internxt! I am ready to receive my credit for referring friends. My email is ' + req.user.email
     };
     if (req.user.credit > 0) {
       analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', credit: req.user.credit })
