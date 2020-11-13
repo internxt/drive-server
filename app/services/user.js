@@ -4,6 +4,7 @@ const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
 const Analytics = require('./analytics')
+const crypto = require('crypto-js');
 
 const { Op } = sequelize;
 
