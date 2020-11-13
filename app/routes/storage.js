@@ -312,8 +312,6 @@ module.exports = (Router, Service, Logger, App) => {
           return res.status(402).json({ message: err.message });
         }
 
-        console.log(err);
-
         return res.status(500).json({ message: err.message });
       });
   });

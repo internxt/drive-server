@@ -247,12 +247,6 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            const agent = useragent.parse(req.headers['user-agent']);
-            const client = useragent.parse(req.headers['internxt-client']);
-            if (client && client.source === '') {
-              client.source = 'x-cloud-mobile';
-            }
-
             Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
               properties: {
                 referrer: {
@@ -265,16 +259,6 @@ module.exports = (Router, Service, Logger, App) => {
                 }
               }
             } : {});
-
-            Service.Statistics.Insert({
-              name: client.source,
-              user: userData.email,
-              userAgent: agent.source,
-              action: 'register'
-            }).then(() => { })
-              .catch((err) => {
-                console.log('Error creating register statistics:', err);
-              });
 
             // Successfull register
             const token = passport.Sign(userData.email, App.config.get('secrets').JWT);

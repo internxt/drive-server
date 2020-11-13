@@ -8,19 +8,6 @@ const { passportAuth } = require('../middleware/passport');
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
     const { user } = req;
-    const agent = useragent.parse(req.headers['user-agent']);
-
-    if (agent && agent.family === 'Electron') {
-      Service.Statistics.Insert({
-        name: 'X Cloud Desktop',
-        user: user.email,
-        userAgent: agent.source,
-      })
-        .then(() => { })
-        .catch((err) => {
-          console.log('Error creating statistics:', err);
-        });
-    }
 
     Service.User.UpdateAccountActivity(user.email);
 
