@@ -7,6 +7,10 @@ module.exports = (Model, App) => {
     return analytics.track(...params);
   }
 
+  const identify = (...params) => {
+    return analytics.identify(...params);
+  }
+
   const trackEvent = (req, user, eventName, props) => {
     if (user && typeof user === 'string') {
       return analytics.track({ userId: user, event: eventName, ...props })
@@ -71,6 +75,7 @@ module.exports = (Model, App) => {
     determineClient,
     trackIfDesktop,
     trackIfMobile,
-    trackAll
+    trackAll,
+    identify
   }
 }
