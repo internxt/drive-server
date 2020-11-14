@@ -165,7 +165,7 @@ module.exports = (Router, Service, Logger, App) => {
           Service.User.LoginFailed(req.body.email, false);
           Service.User.UpdateAccountActivity(req.body.email);
 
-          Service.Analytics.trackAll(req, userData, 'user-signin')
+          Service.Analytics.trackAll(req, userData, 'user-signin', { properties: { email: userData.email } })
           res.status(200).json({
             user: {
               userId: userData.userId,
