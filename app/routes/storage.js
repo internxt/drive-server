@@ -246,14 +246,16 @@ module.exports = (Router, Service, Logger, App) => {
         userId: req.user.uuid,
         event: 'file-upload-finished',
         platform: 'desktop',
-        email: req.user.email,
-        file_id: file.fileId,
-        file_size: file.size,
-        date: NOW,
-        file_mime_type: mimeTypes.lookup(file.type),
-        device: 'desktop',
-        file_type: file.type,
-        file_size_readable: prettySize(file.size)
+        properties: {
+          platform: 'desktop',
+          email: req.user.email,
+          file_id: file.fileId,
+          file_size: file.size,
+          date: NOW,
+          file_mime_type: mimeTypes.lookup(file.type),
+          file_type: file.type,
+          file_size_readable: prettySize(file.size)
+        }
       })
     }).catch((error) => {
       Logger.error(error);

@@ -299,7 +299,7 @@ module.exports = (Model, App) => {
             user
               .destroy()
               .then((result) => {
-                analytics.track({ userId: userData.uuid, event: 'user-deactivation-confirm' })
+                analytics.track({ userId: userData.uuid, event: 'user-deactivation-confirm', properties: { email: userEmail } })
                 Logger.info('User deleted on sql', userEmail);
                 next(null, data);
               })
@@ -335,13 +335,7 @@ module.exports = (Model, App) => {
       .catch(reject);
   });
 
-  const UpdatePasswordMnemonic = (
-    user,
-    currentPassword,
-    newPassword,
-    newSalt,
-    mnemonic
-  ) => new Promise((resolve, reject) => {
+  const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic) => new Promise((resolve, reject) => {
     FindUserByEmail(user)
       .then((userData) => {
         const storedPassword = userData.password.toString();
@@ -412,10 +406,7 @@ module.exports = (Model, App) => {
 
   const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
     Model.users.update({ updated_at: new Date() }, { where: { email: user } })
-      .then((res) => {
-        resolve();
-      })
-      .catch(reject);
+      .then((res) => { resolve(); }).catch(reject);
   });
 
   const getSyncDate = () => {
@@ -440,7 +431,7 @@ module.exports = (Model, App) => {
     const opts = {
       where: { email: { [Op.eq]: user } },
       attributes: ['syncDate'],
-      raw: true,
+      raw: true
     };
 
     if (t) {

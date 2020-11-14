@@ -384,7 +384,7 @@ module.exports = (Router, Service, Logger, App) => {
       text: 'Hello Internxt! I am ready to receive my credit for referring friends. My email is ' + req.user.email
     };
     if (req.user.credit > 0) {
-      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', credit: req.user.credit })
+      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', properties: { credit: req.user.credit } })
       sgMail
         .send(msg)
         .then(() => {
