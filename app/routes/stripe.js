@@ -140,7 +140,7 @@ module.exports = (Router, Service, Logger, App) => {
       req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
       { apiVersion: '2020-03-02' }
     );
-    stripe.products.list({}, (err, products) => {
+    stripe.products.list({ limit: 100 }, (err, products) => {
       if (err) {
         res.status(500).send({ error: err });
       } else {
