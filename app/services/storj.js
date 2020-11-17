@@ -121,7 +121,7 @@ module.exports = (Model, App) => {
     storj.storeFile(bucketId, filePath, {
       filename: fileName,
       progressCallback(progress, uploadedBytes, totalBytes) {
-        log.info(
+        log.warn(
           '[NODE-LIB %s] Upload Progress: %s (%s%%)',
           user.email,
           prettysize(totalBytes),
@@ -133,7 +133,7 @@ module.exports = (Model, App) => {
           log.error('[NODE-LIB storeFile]', err);
           reject(err);
         } else {
-          log.info('[NODE-LIB storeFile] File complete:', fileId);
+          log.warn('[NODE-LIB storeFile] File upload finished');
           storj.destroy();
           resolve({ fileId, size: actualFileSize });
         }
@@ -160,7 +160,7 @@ module.exports = (Model, App) => {
 
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.info(
+          log.warn(
             '[NODE-LIB %s] Download Progress: %s (%s%%)',
             user.email,
             prettysize(totalBytes),
@@ -175,7 +175,7 @@ module.exports = (Model, App) => {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            log.info('[NODE-LIB %s] File resolved!', user.email);
+            log.warn('[NODE-LIB %s] File resolved!', user.email);
             storj.destroy();
             resolve({ filestream, mimetype, downloadFile });
           }
@@ -207,7 +207,7 @@ module.exports = (Model, App) => {
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.info(
+          log.warn(
             '[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
@@ -222,7 +222,7 @@ module.exports = (Model, App) => {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            log.info('[NODE-LIB] File resolved!');
+            log.warn('[NODE-LIB] File resolved!');
             storj.destroy();
             resolve({ filestream, mimetype, downloadFile });
           }

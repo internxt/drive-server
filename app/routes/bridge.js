@@ -23,6 +23,13 @@ module.exports = (Router, Service, Logger, App) => {
         },
       })
       .then((data) => {
+        Service.Analytics.identify({
+          userId: req.user.uuid,
+          email: req.user.email,
+          traits: {
+            storage_usage: data.data ? data.data.total : 0
+          }
+        })
         res.status(200).send(data.data ? data.data : { total: 0 });
       })
       .catch((err) => {

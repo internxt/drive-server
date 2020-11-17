@@ -15,70 +15,61 @@ module.exports = (Model, App) => {
   const analyticsService = AnalyticsService(Model, App)
 
   const CreateFile = (user, file) => new Promise(async (resolve, reject) => {
-    if (
-      !file
-      || !file.fileId
-      || !file.bucket
-      || !file.size
-      || !file.folder_id
-      || !file.name
-    ) {
+    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       return reject(new Error('Invalid metadata for new file'));
     }
 
-    return Model.folder
-      .findOne({
+    return Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: file.folder_id },
+        user_id: { [Op.eq]: user.id },
+      },
+    }).then(async (folder) => {
+      if (!folder) {
+        return reject(new Error('Folder not found / Is not your folder'));
+      }
+
+      const fileExists = await Model.file.findOne({
         where: {
-          id: { [Op.eq]: file.folder_id },
-          user_id: { [Op.eq]: user.id },
+          name: { [Op.eq]: file.name },
+          folder_id: { [Op.eq]: folder.id },
+          type: { [Op.eq]: file.type },
         },
-      })
-      .then(async (folder) => {
-        if (!folder) {
-          return reject(new Error('Folder not found / Is not your folder'));
-        }
+      });
 
-        const fileExists = await Model.file.findOne({
-          where: {
-            name: { [Op.eq]: file.name },
-            folder_id: { [Op.eq]: folder.id },
-            type: { [Op.eq]: file.type },
-          },
+      if (fileExists) {
+        return reject(new Error('File entry already exists'));
+      }
+
+      const fileInfo = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        folder_id: folder.id,
+        fileId: file.file_id,
+        bucket: file.bucket,
+        encrypt_version: file.encrypt_version
+      };
+
+      try {
+        AesUtil.decrypt(file.name, file.file_id);
+        fileInfo.encrypt_version = '03-aes';
+      } catch (e) {
+        (() => { })(e);
+      }
+
+      if (file.date) {
+        fileInfo.createdAt = file.date;
+      }
+
+      return Model.file
+        .create(fileInfo)
+        .then(resolve)
+        .catch((err) => {
+          console.log('Error creating entry', err);
+          reject('Unable to create file in database');
         });
-
-        if (fileExists) {
-          return reject(new Error('File entry already exists'));
-        }
-
-        const fileInfo = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          folder_id: folder.id,
-          fileId: file.file_id,
-          bucket: file.bucket,
-          encrypt_version: file.encrypt_version
-        };
-
-        try {
-          AesUtil.decrypt(file.name, file.file_id);
-          fileInfo.encrypt_version = '03-aes';
-        } catch (e) {
-          (() => { })(e);
-        }
-
-        if (file.date) {
-          fileInfo.createdAt = file.date;
-        }
-
-        return Model.file
-          .create(fileInfo)
-          .then(resolve)
-          .catch((err) => {
-            console.log('Error creating entry', err);
-            reject('Unable to create file in database');
-          });
-      })
+    })
       .catch((err) => {
         console.log('Other error', err);
         reject(`Cannot find bucket ${file.folder_id}`);

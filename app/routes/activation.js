@@ -63,7 +63,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(resConfirm.status).send(req.data);
       })
       .catch((err) => {
-        log.error('Deactivation request to Server failed: %s', err.message);
+        Logger.error('Deactivation request to Server failed: %s', err.message);
         res.status(400).send({ error: err.message });
       });
   });
@@ -76,7 +76,7 @@ module.exports = (Router, Service, Logger, App) => {
       .catch((err) => {
         res.status(500).send({
           error:
-            err.response.data && err.response.data.error
+            err.response && err.response.data && err.response.data.error
               ? err.response.data.error
               : 'Internal server error',
         });

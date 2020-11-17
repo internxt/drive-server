@@ -62,7 +62,7 @@ module.exports = (Model, App) => {
             throw new Error('Error creating bridge user');
           }
 
-          Logger.info('User Service | created brigde user: %s with uuid: %s', userResult.email, userResult.uuid);
+          Logger.info('User Service | created brigde user: %s', userResult.email);
 
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
@@ -299,8 +299,13 @@ module.exports = (Model, App) => {
             user
               .destroy()
               .then((result) => {
-                analytics.track({ userId: userData.uuid, event: 'user-deactivation-confirm', properties: { email: userEmail } })
-                Logger.info('User deleted on sql', userEmail);
+                analytics.track({
+                  userId: user.uuid, event: 'user-deactivation-confirm',
+                  properties: {
+                    email: userEmail
+                  }
+                })
+                Logger.info('User deleted on sql: %s', userEmail);
                 next(null, data);
               })
               .catch((err) => {

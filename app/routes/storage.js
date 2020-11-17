@@ -166,32 +166,39 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Uploaded object
    */
-  Router.post(
-    '/storage/folder/:id/upload',
-    passportAuth,
-    upload.single('xfile'),
-    (req, res) => {
-      const { user } = req;
-      // Set mnemonic to decrypted mnemonic
-      user.mnemonic = req.headers['internxt-mnemonic'];
-      const xfile = req.file;
-      const folderId = req.params.id;
+  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
+    const { user } = req;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    const xfile = req.file;
+    const folderId = req.params.id;
 
-      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
-        .then((result) => {
 
-          res.status(201).json(result);
-        })
-        .catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          if (err.includes && err.includes('Bridge rate limit error')) {
-            res.status(402).json({ message: err });
-            return;
+    const extension = path.extname(xfile.originalname);
+
+    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+      .then((result) => {
+        Service.Analytics.track({
+          userId: req.user.uuid,
+          event: 'file-upload-finished',
+          properties: {
+            file_size: xfile.size,
+            email: req.user.email,
+            file_type: extension
           }
-
-          res.status(500).json({ message: err });
         });
-    }
+        res.status(201).json(result);
+      })
+      .catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        if (err.includes && err.includes('Bridge rate limit error')) {
+          res.status(402).json({ message: err });
+          return;
+        }
+
+        res.status(500).json({ message: err });
+      });
+  }
   );
 
   /**
@@ -435,19 +442,28 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
 
+    if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
+      if (!req.body.views) {
+        Service.Analytics.track({
+          userId: req.user.uuid, event: 'file-download-finished', properties: {
+            platform: 'mobile',
+            file_id: req.params.id
+          }
+        })
+      }
+    }
+
     Service.Share.GenerateToken(
       user,
       req.params.id,
       req.headers['internxt-mnemonic'],
       req.body.isFolder,
       req.body.views
-    )
-      .then((result) => {
-        res.status(200).send(result);
-      })
-      .catch((err) => {
-        res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
-      });
+    ).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
+    });
   });
 
   Router.get('/storage/share/:token', (req, res) => {

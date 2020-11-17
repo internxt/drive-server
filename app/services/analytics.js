@@ -42,7 +42,7 @@ module.exports = (Model, App) => {
       source = req
     }
 
-    if (source === 'x-cloud-web') {
+    if (source === 'x-cloud-web' || source === 'drive-web') {
       return 'web';
     }
 
@@ -54,7 +54,6 @@ module.exports = (Model, App) => {
       return 'mobile';
     }
 
-    console.log(req.headers)
     return null;
   }
 
@@ -64,6 +63,10 @@ module.exports = (Model, App) => {
 
     if (allowedSources.indexOf(device) === -1) {
       device = 'unknown';
+    }
+
+    if (props.properties) {
+      props.properties.platform = device;
     }
     return trackEvent(req, user, eventName, { ...props, platform: device })
   }
