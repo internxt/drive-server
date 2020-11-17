@@ -104,6 +104,7 @@ module.exports = (Router, Service, Logger, App) => {
             },
             customer_email: user,
             customer: customerId,
+            allow_promotion_codes: true,
             billing_address_collection: 'required',
           };
 
