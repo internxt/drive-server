@@ -95,9 +95,10 @@ module.exports = (Router, Service, Logger, App) => {
           );
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
           Service.Keyserver.keysExists(userData).then((userKey) => {
+            const publicKeyExists = true;
+            const privateKeyExists = true;
 
-
-            res.status(200).send({ pbKey: userKey.public_key, pvKey: userKey.private_key, revKey: userKey.revocation_key, sKey: encSalt, tfa: required2FA });
+            res.status(200).send({ publicKeyExists: publicKeyExists, privateKeyExists: privateKeyExists, sKey: encSalt, tfa: required2FA });
           }).catch((err) => {
             console.error(err);
             res.status(200).send({ sKey: encSalt, tfa: required2FA });
@@ -141,124 +142,128 @@ module.exports = (Router, Service, Logger, App) => {
     let isTeamActivated = false;
     let rootFolderId = 0;
     let userTeam = null;
-    
+
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
-      if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({
-          error:
-            'Your account has been blocked for security reasons. Please reach out to us'
-        })
-        return;
-      }
-
       Service.Keyserver.keysExists(userData).then(async (userKey) => {
+        if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+          res.status(500).send({
+            error:
+              'Your account has been blocked for security reasons. Please reach out to us'
+          })
+          return;
+        }
 
+
+
+        let responseTeam = null;
+        // Check if user has a team
+        await new Promise((resolve, reject) => {
+          Service.Team.getTeamByMember(req.body.email).then(async (team) => {
+            userTeam = team;
+            if (team !== undefined) {
+              rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
+              responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
+              if (responseTeam) {
+                member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
+                if (member) {
+                  isTeamActivated = responseTeam.data.activated;
+                  userTeam = {
+                    idTeam: team.id,
+                    bridge_user: userTeam.bridge_user,
+                    bridge_password: userTeam.bridge_password,
+                    bridge_mnemonic: member.bridge_mnemonic,
+                    admin: userTeam.admin,
+                    root_folder_id: rootFolderId,
+                    isActivated: isTeamActivated
+                  };
+                  resolve();
+                }
+              }
+            }
+            resolve();
+          }).catch((error) => {
+            Logger.error(error.stack);
+            reject()
+          });
+        })
+
+
+        // Process user data and answer API call
+        const pass = App.services.Crypt.decryptText(req.body.password);
+
+        // 2-Factor Auth. Verification
+        const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
+        let tfaResult = true;
+
+        if (needsTfa) {
+          tfaResult = speakeasy.totp.verifyDelta({
+            secret: userData.secret_2FA,
+            token: req.body.tfa,
+            encoding: 'base32',
+            window: 2
+          });
+        }
+
+        if (!tfaResult) {
+          res.status(400).send({ error: 'Wrong 2-factor auth code' });
+        } else if (pass === userData.password.toString() && tfaResult) {
+          // Successfull login
+          const internxtClient = req.headers['internxt-client'];
+          const token = passport.Sign(
+            userData.email,
+            App.config.get('secrets').JWT,
+            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
+          );
+          let teamRol = '';
+          if (userTeam && userTeam.admin === req.body.email) {
+            teamRol = 'admin';
+          } else if (userTeam) {
+            teamRol = 'member';
+          }
+
+          Service.User.LoginFailed(req.body.email, false);
+          Service.User.UpdateAccountActivity(req.body.email);
+
+          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
+            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web')
+
+          res.status(200).json({
+            user: {
+              userId: userData.userId,
+              mnemonic: userData.mnemonic,
+              root_folder_id: userData.root_folder_id,
+              storeMnemonic: userData.storeMnemonic,
+              name: userData.name,
+              lastname: userData.lastname,
+              uuid: userData.uuid,
+              credit: userData.credit,
+              publicKey: userKey.public_key,
+              privateKey: userKey.private_key,
+              revocationKey: userKey.revocation_key
+            },
+            token,
+            userTeam,
+            teamRol,
+            tokenTeam
+
+          });
+        } else {
+          // Wrong password
+          if (pass !== userData.password.toString()) {
+            Service.User.LoginFailed(req.body.email, true);
+          }
+
+          res.status(400).json({ error: 'Wrong email/password' });
+        }
 
       }).catch((err) => {
-        Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (keys) => {
+        Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (userKey) => {
         }).catch((err) => {
         });
       });
 
-      let responseTeam = null;
-      // Check if user has a team
-      await new Promise((resolve, reject) => {
-        Service.Team.getTeamByMember(req.body.email).then(async (team) => {
-          userTeam = team;
-          if (team !== undefined) {
-            rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
-            responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-            if (responseTeam) {
-              member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
-              if (member) {
-                isTeamActivated = responseTeam.data.activated;
-                userTeam = {
-                  idTeam: team.id,
-                  bridge_user: userTeam.bridge_user,
-                  bridge_password: userTeam.bridge_password,
-                  bridge_mnemonic: member.bridge_mnemonic,
-                  admin: userTeam.admin,
-                  root_folder_id: rootFolderId,
-                  isActivated: isTeamActivated
-                };
-                resolve();
-              }
-            }
-          }
-          resolve();
-        }).catch((error) => {
-          Logger.error(error.stack);
-          reject()
-        });
-      })
-
-
-      // Process user data and answer API call
-      const pass = App.services.Crypt.decryptText(req.body.password);
-
-      // 2-Factor Auth. Verification
-      const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
-      let tfaResult = true;
-
-      if (needsTfa) {
-        tfaResult = speakeasy.totp.verifyDelta({
-          secret: userData.secret_2FA,
-          token: req.body.tfa,
-          encoding: 'base32',
-          window: 2
-        });
-      }
-
-      if (!tfaResult) {
-        res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass === userData.password.toString() && tfaResult) {
-        // Successfull login
-        const internxtClient = req.headers['internxt-client'];
-        const token = passport.Sign(
-          userData.email,
-          App.config.get('secrets').JWT,
-          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
-        );
-        let teamRol = '';
-        if (userTeam && userTeam.admin === req.body.email) {
-          teamRol = 'admin';
-        } else if (userTeam) {
-          teamRol = 'member';
-        }
-       
-        Service.User.LoginFailed(req.body.email, false);
-        Service.User.UpdateAccountActivity(req.body.email);
-
-        const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
-        internxtClient === 'x-cloud-web' || internxtClient === 'drive-web')
-       
-        res.status(200).json({
-          user: {
-            userId: userData.userId,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-            storeMnemonic: userData.storeMnemonic,
-            name: userData.name,
-            lastname: userData.lastname,
-            uuid: userData.uuid,
-            credit: userData.credit
-          },
-          token,
-          userTeam,
-          teamRol,
-          tokenTeam
-          
-        });
-      } else {
-        // Wrong password
-        if (pass !== userData.password.toString()) {
-          Service.User.LoginFailed(req.body.email, true);
-        }
-
-        res.status(400).json({ error: 'Wrong email/password' });
-      }
 
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
@@ -511,15 +516,15 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.params.user
     Service.User.FindUserByEmail(user).then((userKeys) => {
       Service.Keyserver.keysExists(userKeys).then((keys) => {
-        res.status(200).send({publicKey: keys.public_key})
+        res.status(200).send({ publicKey: keys.public_key })
       }).catch(async (err) => {
         const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
-          userIds: [{ email: 'inxt@inxt.com' }], 
-          curve: 'ed25519',                                         
+          userIds: [{ email: 'inxt@inxt.com' }],
+          curve: 'ed25519',
         });
         const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
         Logger.error(message);
-        res.status(200).send({publicKey: codpublicKey});
+        res.status(200).send({ publicKey: codpublicKey });
         Logger.error('Error: The user not have keys')
         res.status(500).send({})
       })
@@ -530,7 +535,7 @@ module.exports = (Router, Service, Logger, App) => {
     })
   });
 
-  Router.post('/teams/team-invitations', passportAuth, async function (req, res) {
+  Router.post('/teams/invitations', passportAuth, async function (req, res) {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex');
     const Encryptbridge_password = req.body.bridgePass;
@@ -545,7 +550,7 @@ module.exports = (Router, Service, Logger, App) => {
               res.status(200).send({})
             }).catch((err) => {
               Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email)
-              res.status(500).send({error: 'Error: Send invitation mail'})
+              res.status(500).send({ error: 'Error: Send invitation mail' })
             })
           }
         }).catch(err => {
@@ -554,7 +559,7 @@ module.exports = (Router, Service, Logger, App) => {
             if (responseMember.status === 200) {
               res.status(200).send({});
             } else {
-              res.status(400).send({error: 'This user is alredy a member'});
+              res.status(400).send({ error: 'This user is alredy a member' });
             }
           }).catch((err) => {
             Logger.info('The user %s is not a member', email)
@@ -613,7 +618,7 @@ module.exports = (Router, Service, Logger, App) => {
               teamInvitation.destroy().then(() => {
                 res.status(200).send({})
               }).catch(err => {
-                res.status(500).send({error: 'The invitation could not be destroyed'})
+                res.status(500).send({ error: 'The invitation could not be destroyed' })
               })
             }).catch((err) => {
               Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
