@@ -92,6 +92,23 @@ module.exports = (Model, App) => {
       });
   });
 
+  const getTeamBridgeUser = (user) => new Promise((resolve, reject) => {
+    Model.teams
+      .findOne({
+        where: {
+         bridge_user: { [Op.eq]: user }
+        }
+      })
+      .then((team) => {
+        
+        resolve(team);
+      })
+      .catch((err) => {
+        console.error(err);
+        reject('Error querying database');
+      });
+  });
+
   const getTeamByMember = function (userEmail) {
     return new Promise(function (resolve, reject) {
       getIdTeamByUser(userEmail).then(function (team) {
@@ -128,6 +145,6 @@ module.exports = (Model, App) => {
     generateBridgeTeamUser,
     getIdTeamByUser,
     getTeamByMember,
-    getTeamByAdmin
-  };
+    getTeamBridgeUser
+    };
 };

@@ -552,6 +552,7 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.params.user
     Service.User.FindUserByEmail(user).then((userKeys) => {
       Service.Keyserver.keysExists(userKeys).then((keys) => {
+        console.log('aqui si')
         res.status(200).send({ publicKey: keys.public_key })
       }).catch(async (err) => {
         const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
@@ -571,14 +572,16 @@ module.exports = (Router, Service, Logger, App) => {
     })
   });
 
-  Router.post('/teams/invitations', passportAuth, async function (req, res) {
+  Router.post('/team-invitations', passportAuth, function (req, res) {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex');
     const Encryptbridge_password = req.body.bridgePass;
     const Encryptmnemonic = req.body.mnemonicTeam;
+    console.log(req.body.email)
+    console.log('req user',req.user)
 
-    Service.Team.getTeamByIdUser(req.user.email).then(() => {
-      Service.Keyserver.keysExists(req.user).then(() => {
+    Service.User.FindUserByEmail(email).then((userData) => {
+      Service.Keyserver.keysExists(userData).then(() => {
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
           if (teamInvitation) {
             Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
@@ -591,7 +594,7 @@ module.exports = (Router, Service, Logger, App) => {
           }
         }).catch(err => {
           Logger.info('The user %s not have a team Invitation', email)
-          Service.Team.getTeamByMember(email).then((responseMember) => {
+          Service.Team.getIdTeamByUser(email).then((responseMember) => {
             if (responseMember.status === 200) {
               res.status(200).send({});
             } else {
@@ -599,7 +602,7 @@ module.exports = (Router, Service, Logger, App) => {
             }
           }).catch((err) => {
             Logger.info('The user %s is not a member', email)
-            Service.Team.getTeamByIdUser(req.user.email).then(team => {
+            Service.Team.getTeamBridgeUser(req.user.email).then(team => {
               Service.TeamInvitations.save({
                 id_team: team.id,
                 user: email,
