@@ -119,6 +119,29 @@ module.exports = (Router, Service, Logger, App) => {
       });
     });
   });
+
+  Router.post('/user/generateKey', (req, res) => {
+    const email = req.body.email;
+    const publicKey = req.body.publicKey;
+    const privateKey = req.body.privateKey;
+    const revocationKey = req.body.revocationKey;
+
+    Service.User.FindUserByEmail(email).then((user) => {
+      console.log(user)
+      Service.Keyserver.addKeysLogin(user, publicKey, privateKey, revocationKey).then((userKey) => {
+
+      }).catch((err) => {
+        console.log('The keys could not be saved')
+      });
+
+    }).catch((err) => {
+      console.log('The user is not in DB')
+
+    });
+
+  });
+
+
   /**
    * @swagger
    * /access:
@@ -146,89 +169,89 @@ module.exports = (Router, Service, Logger, App) => {
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
-      Service.Keyserver.keysExists(userData).then(async (userKey) => {
-        if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-          res.status(500).send({
-            error:
-              'Your account has been blocked for security reasons. Please reach out to us'
-          })
-          return;
-        }
+      if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+        res.status(500).send({
+          error:
+            'Your account has been blocked for security reasons. Please reach out to us'
+        })
+        return;
+      }
+
+      keys = await Service.Keyserver.keysExists(userData)
 
 
-
-        let responseTeam = null;
-        // Check if user has a team
-        await new Promise((resolve, reject) => {
-          Service.Team.getTeamByMember(req.body.email).then(async (team) => {
-            userTeam = team;
-            if (team !== undefined) {
-              rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
-              responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-              if (responseTeam) {
-                member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
-                if (member) {
-                  isTeamActivated = responseTeam.data.activated;
-                  userTeam = {
-                    idTeam: team.id,
-                    bridge_user: userTeam.bridge_user,
-                    bridge_password: userTeam.bridge_password,
-                    bridge_mnemonic: member.bridge_mnemonic,
-                    admin: userTeam.admin,
-                    root_folder_id: rootFolderId,
-                    isActivated: isTeamActivated
-                  };
-                  resolve();
-                }
+      let responseTeam = null;
+      // Check if user has a team
+      await new Promise((resolve, reject) => {
+        Service.Team.getTeamByMember(req.body.email).then(async (team) => {
+          userTeam = team;
+          if (team !== undefined) {
+            rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
+            responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
+            if (responseTeam) {
+              member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
+              if (member) {
+                isTeamActivated = responseTeam.data.activated;
+                userTeam = {
+                  idTeam: team.id,
+                  bridge_user: userTeam.bridge_user,
+                  bridge_password: userTeam.bridge_password,
+                  bridge_mnemonic: member.bridge_mnemonic,
+                  admin: userTeam.admin,
+                  root_folder_id: rootFolderId,
+                  isActivated: isTeamActivated
+                };
+                resolve();
               }
             }
-            resolve();
-          }).catch((error) => {
-            Logger.error(error.stack);
-            reject()
-          });
-        })
+          }
+          resolve();
+        }).catch((error) => {
+          Logger.error(error.stack);
+          reject()
+        });
+      })
 
 
-        // Process user data and answer API call
-        const pass = App.services.Crypt.decryptText(req.body.password);
+      // Process user data and answer API call
+      const pass = App.services.Crypt.decryptText(req.body.password);
 
-        // 2-Factor Auth. Verification
-        const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
-        let tfaResult = true;
+      // 2-Factor Auth. Verification
+      const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
+      let tfaResult = true;
 
-        if (needsTfa) {
-          tfaResult = speakeasy.totp.verifyDelta({
-            secret: userData.secret_2FA,
-            token: req.body.tfa,
-            encoding: 'base32',
-            window: 2
-          });
+      if (needsTfa) {
+        tfaResult = speakeasy.totp.verifyDelta({
+          secret: userData.secret_2FA,
+          token: req.body.tfa,
+          encoding: 'base32',
+          window: 2
+        });
+      }
+
+      if (!tfaResult) {
+        res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      } else if (pass === userData.password.toString() && tfaResult) {
+        // Successfull login
+        const internxtClient = req.headers['internxt-client'];
+        const token = passport.Sign(
+          userData.email,
+          App.config.get('secrets').JWT,
+          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
+        );
+        let teamRol = '';
+        if (userTeam && userTeam.admin === req.body.email) {
+          teamRol = 'admin';
+        } else if (userTeam) {
+          teamRol = 'member';
         }
 
-        if (!tfaResult) {
-          res.status(400).send({ error: 'Wrong 2-factor auth code' });
-        } else if (pass === userData.password.toString() && tfaResult) {
-          // Successfull login
-          const internxtClient = req.headers['internxt-client'];
-          const token = passport.Sign(
-            userData.email,
-            App.config.get('secrets').JWT,
-            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
-          );
-          let teamRol = '';
-          if (userTeam && userTeam.admin === req.body.email) {
-            teamRol = 'admin';
-          } else if (userTeam) {
-            teamRol = 'member';
-          }
+        Service.User.LoginFailed(req.body.email, false);
+        Service.User.UpdateAccountActivity(req.body.email);
 
-          Service.User.LoginFailed(req.body.email, false);
-          Service.User.UpdateAccountActivity(req.body.email);
-
+        if (userTeam) {
           const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
             internxtClient === 'x-cloud-web' || internxtClient === 'drive-web')
-
           res.status(200).json({
             user: {
               userId: userData.userId,
@@ -239,31 +262,44 @@ module.exports = (Router, Service, Logger, App) => {
               lastname: userData.lastname,
               uuid: userData.uuid,
               credit: userData.credit,
-              publicKey: userKey.public_key,
-              privateKey: userKey.private_key,
-              revocationKey: userKey.revocation_key
+              publicKey: keys.public_key,
+              privateKey: keys.private_key,
+              revocationKey: keys.revocation_key
             },
             token,
             userTeam,
             teamRol,
             tokenTeam
-
           });
         } else {
-          // Wrong password
-          if (pass !== userData.password.toString()) {
-            Service.User.LoginFailed(req.body.email, true);
-          }
+          res.status(200).json({
+            user: {
+              userId: userData.userId,
+              mnemonic: userData.mnemonic,
+              root_folder_id: userData.root_folder_id,
+              storeMnemonic: userData.storeMnemonic,
+              name: userData.name,
+              lastname: userData.lastname,
+              uuid: userData.uuid,
+              credit: userData.credit,
+              publicKey: keys.public_key,
+              privateKey: keys.private_key,
+              revocationKey: keys.revocation_key
+            },
+            token,
+            userTeam,
+            teamRol,
 
-          res.status(400).json({ error: 'Wrong email/password' });
+          });
+        }
+      } else {
+        // Wrong password
+        if (pass !== userData.password.toString()) {
+          Service.User.LoginFailed(req.body.email, true);
         }
 
-      }).catch((err) => {
-        Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (userKey) => {
-        }).catch((err) => {
-        });
-      });
-
+        res.status(400).json({ error: 'Wrong email/password' });
+      }
 
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
