@@ -141,6 +141,7 @@ module.exports = (Router, Service, Logger, App) => {
     let isTeamActivated = false;
     let rootFolderId = 0;
     let userTeam = null;
+    
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
@@ -157,11 +158,7 @@ module.exports = (Router, Service, Logger, App) => {
 
       }).catch((err) => {
         Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocationKey).then(async (keys) => {
-
-          console.log(err)
         }).catch((err) => {
-          console.log('The keys are not saved')//debug
-          console.log(err)
         });
       });
 
@@ -170,19 +167,15 @@ module.exports = (Router, Service, Logger, App) => {
       await new Promise((resolve, reject) => {
         Service.Team.getTeamByMember(req.body.email).then(async (team) => {
           userTeam = team;
-          //Service.TeamsMembers.getMemberByIdTeam(userTeam.id,req.body.email).then(async (member) => {
           if (team !== undefined) {
             rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
             responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-              if (responseTeam) {
+            if (responseTeam) {
               member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
-              if(member){
-               console.log('aqui tambien')//debug
-                console.log('a ver si aqui si', userTeam)
-                console.log('miembro', member)
-
+              if (member) {
                 isTeamActivated = responseTeam.data.activated;
                 userTeam = {
+                  idTeam: team.id,
                   bridge_user: userTeam.bridge_user,
                   bridge_password: userTeam.bridge_password,
                   bridge_mnemonic: member.bridge_mnemonic,
@@ -191,9 +184,8 @@ module.exports = (Router, Service, Logger, App) => {
                   isActivated: isTeamActivated
                 };
                 resolve();
-                console.log('ÚSERTEAM//////////////////////', userTeam)
+              }
             }
-          }
           }
           resolve();
         }).catch((error) => {
@@ -229,17 +221,19 @@ module.exports = (Router, Service, Logger, App) => {
           App.config.get('secrets').JWT,
           internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
         );
-
         let teamRol = '';
         if (userTeam && userTeam.admin === req.body.email) {
           teamRol = 'admin';
         } else if (userTeam) {
           teamRol = 'member';
         }
-
+       
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
 
+        const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
+        internxtClient === 'x-cloud-web' || internxtClient === 'drive-web')
+       
         res.status(200).json({
           user: {
             userId: userData.userId,
@@ -253,7 +247,9 @@ module.exports = (Router, Service, Logger, App) => {
           },
           token,
           userTeam,
-          teamRol
+          teamRol,
+          tokenTeam
+          
         });
       } else {
         // Wrong password
@@ -513,25 +509,17 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/user/keys/:user', passportAuth, (req, res) => {
     const user = req.params.user
-    console.log(user)
     Service.User.FindUserByEmail(user).then((userKeys) => {
       Service.Keyserver.keysExists(userKeys).then((keys) => {
-        console.log('HAY CLAVES EN SERVER')
-        console.log(keys)
-        res.status(200).send({
-          publicKey: keys.public_key
-        })
-
+        res.status(200).send({publicKey: keys.public_key})
       }).catch(async (err) => {
         const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
-          userIds: [{ email: 'inxt@inxt.com' }], // you can pass multiple user IDs
-          curve: 'ed25519',                                           // ECC curve name
+          userIds: [{ email: 'inxt@inxt.com' }], 
+          curve: 'ed25519',                                         
         });
         const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
         Logger.error(message);
-        res.status(200).send({
-          publicKey: codpublicKey
-        });
+        res.status(200).send({publicKey: codpublicKey});
         Logger.error('Error: The user not have keys')
         res.status(500).send({})
       })
@@ -542,9 +530,7 @@ module.exports = (Router, Service, Logger, App) => {
     })
   });
 
-
-
-  Router.post('/team-invitations', passportAuth, async function (req, res) {
+  Router.post('/teams/team-invitations', passportAuth, async function (req, res) {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex');
     const Encryptbridge_password = req.body.bridgePass;
@@ -555,24 +541,20 @@ module.exports = (Router, Service, Logger, App) => {
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
           if (teamInvitation) {
             Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
-              Logger.info('The user %s has already an invitation', email)
               Logger.info('The email is forwarded to the user %s', email)
               res.status(200).send({})
             }).catch((err) => {
               Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email)
-              res.status(500).send({
-                error: 'Error: Send invitation mail'
-              })
+              res.status(500).send({error: 'Error: Send invitation mail'})
             })
           }
         }).catch(err => {
           Logger.info('The user %s not have a team Invitation', email)
           Service.Team.getTeamByMember(email).then((responseMember) => {
             if (responseMember.status === 200) {
-              res.status(200).send({
-              });
+              res.status(200).send({});
             } else {
-              res.status(400).send({ error: 'This user is alredy a member' });
+              res.status(400).send({error: 'This user is alredy a member'});
             }
           }).catch((err) => {
             Logger.info('The user %s is not a member', email)
@@ -586,36 +568,30 @@ module.exports = (Router, Service, Logger, App) => {
               }).then((user) => {
                 Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
                   Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email)
-                  res.status(200).send({
-                  })
+                  res.status(200).send({})
                 }).catch((err) => {
                   Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email)
-                  res.status(500).send({
-                  })
+                  res.status(500).send({})
                 })
               }).catch((err) => {
                 Logger.error('Error: Send invitation mail from %s to %s 3', req.user.email, req.body.email)
                 console.log(err)
-                res.status(500).send({
-                })
+                res.status(500).send({})
               })
             }).catch(err => {
               Logger.error('The user %s not have a team Invitation', req.user.email)
-              res.status(500).send({
-              })
+              res.status(500).send({})
             })
           })
         })
       }).catch(err => {
         Logger.error('The user %s not have a public key', email)
         console.log(err)
-        res.status(500).send({
-        })
+        res.status(500).send({})
       })
     }).catch(err => {
       Logger.error('The user %s not have a team', req.user.email)
-      res.status(500).send({
-      })
+      res.status(500).send({})
     })
   });
 
@@ -637,38 +613,28 @@ module.exports = (Router, Service, Logger, App) => {
               teamInvitation.destroy().then(() => {
                 res.status(200).send({})
               }).catch(err => {
-                res.status(500).send({ error: 'The invitation could not be destroyed' })
+                res.status(500).send({error: 'The invitation could not be destroyed'})
               })
             }).catch((err) => {
               Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
-              console.error(err)
               res.status(500).send({ error: 'The invitation is not saved' })
             })
           }).catch((err) => {
             res.status(500).json({ error: 'Invalid Team invitation link' });
-            Logger.error('KEYS NOT EXIST')
-            console.error(err)
+            Logger.error('Keys not exists')
           });
         }).catch((err) => {
           res.status(500).json({ error: 'Invalid Team invitation link' });
-          Logger.error('USER NOT EXIST')
-          console.error(err)
+          Logger.error('User not exists')
         });
 
       }).catch((err) => {
         res.status(500).json({ error: 'Invalid Team invitation link' });
-        Logger.error('TEAM WITH THIS ID NOT EXIST')
-        console.error(err)
       });
-
     }).catch((err) => {
       res.status(500).json({ error: 'Invalid Team invitation link' });
       Logger.error('Token %s doesn\'t exists', token)
-      console.error(err)
     });
-
   });
-
   return Router;
-
 };

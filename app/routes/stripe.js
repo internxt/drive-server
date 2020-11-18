@@ -201,16 +201,12 @@ module.exports = (Router, Service, Logger, App) => {
                   const teamAdmin = team.admin;
                   const teamBridgePassword = team.bridge_password;
                   const teamBridgeMnemonic = team.bridge_mnemonic;
-                  console.log(team)
                   Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic).then((newMember) => {
-                    console.log('NUEVO MIEMBRO AÑADIDO DESDE STRIPE.JS', newMember)
                   }).catch((err) => { });
                 }).catch((err) => {
-                  console.log(err);
                 });
               }
-            })
-              .catch((err) => {
+            }).catch((err) => {
                 next(err);
               });
           }
@@ -221,12 +217,9 @@ module.exports = (Router, Service, Logger, App) => {
             delete sessionParams.customer;
           }
 
-          stripe.checkout.sessions
-            .create(sessionParams)
-            .then((result) => {
+          stripe.checkout.sessions.create(sessionParams).then((result) => {
               next(null, result);
-            })
-            .catch((err) => {
+            }).catch((err) => {
               next(err);
 
             });
@@ -252,11 +245,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/stripe/products', passportAuth, (req, res) => {
     const test = req.query.test || false;
 
-    Service.Stripe.getStorageProducts(test)
-      .then((products) => {
+    Service.Stripe.getStorageProducts(test).then((products) => {
         res.status(200).send(products);
-      })
-      .catch((err) => {
+      }).catch((err) => {
         res.status(500).send({ error: err });
       });
   });
@@ -264,11 +255,9 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/stripe/teams/products', passportAuth, (req, res) => {
     const test = req.query.test || false;
 
-    Service.Stripe.getTeamProducts(test)
-      .then((products) => {
+    Service.Stripe.getTeamProducts(test).then((products) => {
         res.status(200).send(products);
-      })
-      .catch((err) => {
+      }).catch((err) => {
         res.status(500).send({ error: err });
       });
   });
@@ -281,11 +270,9 @@ module.exports = (Router, Service, Logger, App) => {
     const stripeProduct = req.body.product;
     const test = req.body.test || false;
 
-    Service.Stripe.getStoragePlans(stripeProduct, test)
-      .then((plans) => {
+    Service.Stripe.getStoragePlans(stripeProduct, test).then((plans) => {
         res.status(200).send(plans);
-      })
-      .catch((err) => {
+      }).catch((err) => {
         res.status(500).send({ error: err });
       });
   });
@@ -294,11 +281,9 @@ module.exports = (Router, Service, Logger, App) => {
     const stripeProduct = req.body.product;
     const test = req.body.test || false;
 
-    Service.Stripe.getTeamPlans(stripeProduct, test)
-      .then((plans) => {
+    Service.Stripe.getTeamPlans(stripeProduct, test).then((plans) => {
         res.status(200).send(plans);
-      })
-      .catch((err) => {
+      }).catch((err) => {
         res.status(500).send({ error: err.message });
       });
   });

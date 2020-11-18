@@ -1,4 +1,5 @@
 const CryptoJS = require('crypto-js');
+const crypto = require('crypto')
 
 const AesUtil = require('../../lib/AesUtil');
 
@@ -144,7 +145,7 @@ module.exports = (Model, App) => {
   }
 
   function hashSha256(text) {
-    return CryptoJS.SHA256(text).toString();
+    return crypto.createHash('sha256').update(text).digest('hex')
   }
 
   return {

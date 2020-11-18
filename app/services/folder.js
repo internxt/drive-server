@@ -352,11 +352,9 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => new Promise((resolve, reject) => {
-    Model.folder
-      .findOne({
+    Model.folder.findOne({
         where: {
-          id: { [Op.eq]: folderId },
-          id_team: { [Op.ne]: null }
+          id: { [Op.eq]: folderId }
         }
       })
       .then((folder) => {
