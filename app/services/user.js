@@ -78,8 +78,6 @@ module.exports = (Model, App) => {
         .spread(async (userResult, created) => {
           if (created) {
             if (user.publicKey && user.privateKey && user.revocationKey) {
-              console.log('CREATED', created)
-              console.log(user.publicKey)
               Model.keyserver.findOrCreate({
                 where: { user_id: userResult.id },
                 defaults: {
@@ -93,8 +91,6 @@ module.exports = (Model, App) => {
               })
 
             }
-
-
 
             // Create bridge pass using email (because id is unconsistent)
             const bcryptId = await App.services.Storj.IdToBcrypt(
@@ -164,7 +160,6 @@ const InitializeUser = (user) => Model.users.sequelize.transaction((t) =>
 
         return userData;
       }
-
       const rootBucket = await App.services.Storj.CreateBucket(
         userData.email,
         userData.userId,
@@ -218,14 +213,11 @@ const UpdateStorageOption = (email, option) => Model.users
 const GetUserById = (id) => Model.users.findOne({ where: { id: { [Op.eq]: id } } }).then((response) => response.dataValues);
 
 const FindUserByEmail = (email) => {
-  console.log('email', email); // debug
-
   return new Promise((resolve, reject) => {
     Model.users.findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
       if (userData) {
         const user = userData.dataValues;
         if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-
         resolve(user);
       } else {
         reject('User not found on X Cloud database');
@@ -308,8 +300,7 @@ const DeactivateUser = (email) => new Promise(async (resolve, reject) => {
         'base64'
       );
 
-      axios
-        .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
+      axios.delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
           headers: {
             Authorization: `Basic ${auth}`,
             'Content-Type': 'application/json'
@@ -385,7 +376,7 @@ const ConfirmDeactivateUser = (token) => new Promise((resolve, reject) => {
 });
 
 const ResetPassword = (email) =>
-  // TODO: Reset password should check ShouldSendEmail
+  //  Reset password should check ShouldSendEmail
   new Promise((resolve, reject) => {
     Model.user
       .findOne({ where: { email: { [Op.eq]: email } } })
@@ -640,6 +631,5 @@ return {
   ResetPassword,
   ConfirmResetPassword,
   RegisterNewUser
-
 };
 };

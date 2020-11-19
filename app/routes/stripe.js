@@ -196,7 +196,6 @@ module.exports = (Router, Service, Logger, App) => {
                   bridge_password: bcryptId,
                   bridge_mnemonic: userData.mnemonic
                 }).then((team) => {
-                  console.log(mnemonicTeam)
                   const teamId = team.id;
                   const teamAdmin = team.admin;
                   const teamBridgePassword = team.bridge_password;

@@ -39,24 +39,6 @@ module.exports = (Model, App) => {
       });
   });
 
-  const createTableInvitationTeams = (teamInvitation) => {
-    return new Promise((resolve, reject) => {
-      Model.teaminvitations
-        .create({
-          id_team: teamInvitation.idTeam,
-          user: teamInvitation.user,
-          token: teamInvitation.token,
-         
-        }).then((newTeamInvitation) => {
-          resolve({teamInvitation: newTeamInvitation});
-        }).catch((err) => {
-          reject(err);
-        });
-    });
-  };
-
- 
-
   const getByToken = (token) => {
     return new Promise((resolve, reject) => {
       Model.team_invitations
@@ -85,7 +67,6 @@ module.exports = (Model, App) => {
           where: { id: { [Op.eq]: idInvitation } },
         })
         .then((invitation) => {
-          console.log('RESULTADO QUERY', invitation)
           if (invitation) {
             resolve(invitation);
           } else {
@@ -113,7 +94,6 @@ module.exports = (Model, App) => {
           }
         })
         .catch((err) => {
-          console.error(err);
           reject('Error querying database');
         });
     });
@@ -127,7 +107,6 @@ module.exports = (Model, App) => {
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
-    createTableInvitationTeams,
    
     
   };

@@ -112,7 +112,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.Folder.Create(user, folderName, parentFolderId, teamId)
       .then((result) => {
-        console.log('CREADO CARPETA', teamId)//debug
         res.status(201).json(result);
       })
       .catch((err) => {

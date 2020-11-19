@@ -13,8 +13,6 @@ module.exports = (Model, App) => {
   const CryptService = require('./crypt')(Model, App);
 
   const create = async (team) => {
-    console.log('TEAM CREATION ----- ', team); // debug
-
     return await new Promise((resolve, reject) => {
       Model.teams
         .create({
@@ -83,7 +81,6 @@ module.exports = (Model, App) => {
         }
       })
       .then((teamMember) => {
-        console.log("TEAM MEMBER", teamMember); //debug
         resolve(teamMember);
       })
       .catch((err) => {
@@ -116,26 +113,12 @@ module.exports = (Model, App) => {
           return resolve()
         }
         getTeamById(team.id_team).then(function (team2) {
-          console.log("FINDED TEAM", team2); //debug
           resolve(team2);
         }).catch((err) => { reject(); })
       }).catch((err) => { reject("TEAM NOT FOUND"); });
     });
   };
 
-  getTeamByAdmin = (adminEmail) => {
-    Model.teams.findOne({
-      where: {
-        admin: { [Op.eq]: adminEmail }
-      }
-    }).then((team) => {
-      if (!team) {
-        return reject("No team");
-      } else {
-        resolve(team);
-      }
-    }).catch((err) => { reject("Error querying database: ")})
-  }
 
   return {
     Name: 'Team',

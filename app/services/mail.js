@@ -33,7 +33,6 @@ module.exports = (Model, App) => {
             resolve();
           } else {
             console.error(`Error sending mail to ${emailTo}`);
-            console.error(err);
             reject(err);
           }
         }
