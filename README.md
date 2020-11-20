@@ -1,12 +1,14 @@
-### XCloud Server
+### Drive Server
 
 #### Prerrequisites
 
-Node <= v10.16.0
+Node ^10.23.0
 
-sudo apt install curl pkg-config
+`npm i -g yarn pm2`
 
-npm install
+`sudo apt install curl pkg-config build-essential`
+
+`yarn`
 
 #### Database setup
 
