@@ -44,6 +44,11 @@ module.exports = (App, Config) => {
     keyGenerator: limiterKeyGenerator
   }));
 
+  App.express.use('/api/register', rateLimit({
+    windowMs: 10 * 1000, max: 1,
+    keyGenerator: limiterKeyGenerator
+  }))
+
   var downloadLimiter = slowDown({
     delayAfter: 2,
     delayMs: 10000,
