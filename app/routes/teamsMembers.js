@@ -4,35 +4,6 @@ const { passportAuth } = require('../middleware/passport');
 
 module.exports = (Router, Service, Logger, App) => {
 
-  Router.delete('/teams-members/', passportAuth, (req, res) => {
-    const { members } = req.body;
-    const { idTeam } = req.body;
-    const { user } = req;
-
-    Service.Team.getTeamByIdUser(user.email)
-      .then((team) => {
-        if (idTeam == team.id) {
-          Service.TeamsMembers.remove(members, team.id)
-            .then(() => {
-              Service.TeamInvitations.remove(members[0])
-                .then(() => {
-                  res.status(200).json({ message: 'team member removed' });
-                })
-                .catch((err) => {
-                  res.status(500).json({ error: err });
-                });
-            })
-            .catch((err) => {
-              res.status(500).json({ error: err });
-            });
-        } else {
-          res.status(500).json({ error: "it's not your team" });
-        }
-      })
-      .catch((err) => {
-        res.status(500).json({ error: "it's not your team" });
-      });
-  });
 
   Router.get('/teams-members/:user', passportAuth, (req, res) => {
     const userEmail  = req.params.user;

@@ -1,20 +1,7 @@
 
 const { passportAuth } = require('../middleware/passport');
-const team = require('./../services/team');
 const crypto = require('crypto');
-const AesUtil = require('../../lib/AesUtil');
-const openpgp = require('openpgp');
-const sgMail = require('@sendgrid/mail');
-const speakeasy = require('speakeasy');
-const useragent = require('useragent');
-const uuid = require('uuid');
-const ActivationRoutes = require('./activation');
-const StorageRoutes = require('./storage');
-const BridgeRoutes = require('./bridge');
-const StripeRoutes = require('./stripe');
-const DesktopRoutes = require('./desktop');
-const MobileRoutes = require('./mobile');
-const TwoFactorRoutes = require('./twofactor');
+const user = require('../services/user');
 
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/teams/:user', passportAuth, async (req, res) => {
@@ -91,8 +78,6 @@ module.exports = (Router, Service, Logger, App) => {
     const token = crypto.randomBytes(20).toString('hex');
     const Encryptbridge_password = req.body.bridgePass;
     const Encryptmnemonic = req.body.mnemonicTeam;
-    console.log(req.body.email)
-    console.log('req user', req.user)
 
     Service.User.FindUserByEmail(email).then((userData) => {
       Service.Keyserver.keysExists(userData).then(() => {
@@ -158,9 +143,9 @@ module.exports = (Router, Service, Logger, App) => {
     const { token } = req.params;
 
     Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
-      Service.Team.getTeamById(teamInvitation.id_team).then((team) => {
+      Service.Team.getTeamById(teamInvitation.id_team).then(() => {
         Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
-          Service.Keyserver.keysExists(userId).then(async (userKey) => {
+          Service.Keyserver.keysExists(userId).then(async () => {
             Service.TeamsMembers.saveMembersFromInvitations({
               id_team: teamInvitation.id_team,
               user: teamInvitation.user,
@@ -240,16 +225,64 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.get('/teams-members/team/:idTeam', passportAuth, (req, res) => {
+
+  Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
     const { idTeam } = req.params;
-    Service.TeamsMembers.getMembersByIdTeam(idTeam)
-      .then((teamMembers) => {
-        res.status(200).json(teamMembers);
-      })
-      .catch((err) => {
-        res.status(500).json(err);
-      });
+    const members = await Service.TeamsMembers.getPeople(idTeam);
+    res.status(200).send(members)
   });
+
+
+
+  Router.delete('/teams/member', passportAuth, (req, res) => {
+    const user = req.user
+    const idTeam = req.body.idTeam
+    const removeUser = req.body.item.user
+    
+
+    Service.Team.getTeamByIdUser(user.email).then((team) => {
+      if (idTeam == team.id) {
+        Service.TeamsMembers.removeMembers(removeUser).then(() => {
+          res.status(200).send({ info:'The user is removed '})
+        }).catch((err) => {
+          console.log(err)
+          res.status(500).json({ error: err });
+        });
+      } else {
+        console.log(err)
+        res.status(500).send({ info:'You not have permissions 1'})
+      }
+    }).catch((err) => {
+      console.log(err)
+      
+      res.status(500).send({ info:'You not have permissions 2'})
+    });
+
+  });
+
+  Router.delete('/teams/invitation', passportAuth, (req, res) => {
+    const user = req.user
+    const idTeam = req.body.idTeam
+    const removeUser = req.body.item.user
+
+    Service.Team.getTeamByIdUser(user.email).then((team) => {
+      if (idTeam == team.id) {
+        Service.TeamInvitations.removeInvitations(removeUser).then(() => {
+          res.status(200).send({ info:'The user is removed '})
+        }).catch((err) => {
+          console.log(err)
+          res.status(500).json({ error: err });
+        });
+      } else {
+        console.log(err)
+        res.status(500).send({ info:'You not have permissions'})
+      }
+    }).catch((err) => {
+      console.log(err)
+      res.status(500).send({ info:'You not have permissions'})
+    });
+  });
+
   return Router;
 
 };

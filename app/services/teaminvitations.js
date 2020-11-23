@@ -100,6 +100,22 @@ module.exports = (Model, App) => {
   }
 
   
+  const removeInvitations = (userInvitation) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations.destroy({
+        where: {
+          user: { [Op.eq]: userInvitation },
+        }
+      }).then((removedInvitation) => {
+        resolve(removedInvitation)
+      }).catch((err) => {
+        reject(err)
+      });
+
+    });
+  }
+
+  
   return {
     Name: 'TeamInvitations',
     save,
@@ -107,6 +123,8 @@ module.exports = (Model, App) => {
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
+    removeInvitations
+    
    
     
   };

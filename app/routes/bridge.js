@@ -32,15 +32,13 @@ module.exports = (Router, Service, Logger, App) => {
       const pwd = userData.userId;
       const pwdHash = Service.Crypt.hashSha256(pwd);
       const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString('base64');
-      console.log(credential)
       axios.get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Basic ${credential}`,
           },
-        })
-        .then((data) => {
-          res.status(200).send(data.data ? data.data : { total: 0 });
+        }).then((data) => {
+          res.status(200).send( data.data ? data.data : { total: 0});
         })
         .catch((err) => {
           res.status(400).send({ result: 'Error retrieving bridge information' });
