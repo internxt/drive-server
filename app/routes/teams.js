@@ -82,7 +82,6 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user.email
     const idTeam = req.body.idTeam
 
-    //Comprobamos cuantas invitaciones hay, si hay mas de 10 no puedes seguir
     const totalUsers = await Service.TeamsMembers.getPeople(idTeam)
     const plans = await Service.Team.getPlans(user)
     console.log('plans', plans)
@@ -90,11 +89,8 @@ module.exports = (Router, Service, Logger, App) => {
     if (totalUsers.length >= 10 && plans.maxSpaceBytes == '214748364800') {
       return res.status(500).send({ error: 'No puedes invitar a mas' })
     }
-    //Comprobamos si existe ese usuario registrado
     Service.User.FindUserByEmail(email).then((userData) => {
-      //comprobamos si tiene claves publicas
       Service.Keyserver.keysExists(userData).then(() => {
-        //comprobamos que plan tiene
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
           if (teamInvitation) {
             Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
