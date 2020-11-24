@@ -2,6 +2,7 @@
 const { passportAuth } = require('../middleware/passport');
 const crypto = require('crypto');
 const user = require('../services/user');
+const axios = require('axios');
 
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/teams/:user', passportAuth, async (req, res) => {
@@ -73,14 +74,27 @@ module.exports = (Router, Service, Logger, App) => {
       });
   });
 
-  Router.post('/teams/team-invitations', passportAuth, function (req, res) {
+  Router.post('/teams/team-invitations', passportAuth, async (req, res) => {
     const email = req.body.email;
     const token = crypto.randomBytes(20).toString('hex');
     const Encryptbridge_password = req.body.bridgePass;
     const Encryptmnemonic = req.body.mnemonicTeam;
+    const user = req.user.email
+    const idTeam = req.body.idTeam
 
+    //Comprobamos cuantas invitaciones hay, si hay mas de 10 no puedes seguir
+    const totalUsers = await Service.TeamsMembers.getPeople(idTeam)
+    const plans = await Service.Team.getPlans(user)
+    console.log('plans', plans)
+
+    if (totalUsers.length >= 10 && plans.maxSpaceBytes == '214748364800') {
+      return res.status(500).send({ error: 'No puedes invitar a mas' })
+    }
+    //Comprobamos si existe ese usuario registrado
     Service.User.FindUserByEmail(email).then((userData) => {
+      //comprobamos si tiene claves publicas
       Service.Keyserver.keysExists(userData).then(() => {
+        //comprobamos que plan tiene
         Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
           if (teamInvitation) {
             Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
@@ -138,151 +152,165 @@ module.exports = (Router, Service, Logger, App) => {
     })
   });
 
+Router.post('/teams/join/:token', (req, res) => {
+  const { token } = req.params;
 
-  Router.post('/teams/join/:token', (req, res) => {
-    const { token } = req.params;
-
-    Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
-      Service.Team.getTeamById(teamInvitation.id_team).then(() => {
-        Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
-          Service.Keyserver.keysExists(userId).then(async () => {
-            Service.TeamsMembers.saveMembersFromInvitations({
-              id_team: teamInvitation.id_team,
-              user: teamInvitation.user,
-              bridge_password: teamInvitation.bridge_password,
-              bridge_mnemonic: teamInvitation.mnemonic
-            }).then((newMember) => {
-              Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
-              teamInvitation.destroy().then(() => {
-                res.status(200).send({})
-              }).catch(err => {
-                res.status(500).send({ error: 'The invitation could not be destroyed' })
-              })
-            }).catch((err) => {
-              Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
-              res.status(500).send({ error: 'The invitation is not saved' })
+  Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
+    Service.Team.getTeamById(teamInvitation.id_team).then(() => {
+      Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
+        Service.Keyserver.keysExists(userId).then(async () => {
+          Service.TeamsMembers.saveMembersFromInvitations({
+            id_team: teamInvitation.id_team,
+            user: teamInvitation.user,
+            bridge_password: teamInvitation.bridge_password,
+            bridge_mnemonic: teamInvitation.mnemonic
+          }).then((newMember) => {
+            Logger.info('Miembro %s save in teamsMembers', teamInvitation.user)
+            teamInvitation.destroy().then(() => {
+              res.status(200).send({})
+            }).catch(err => {
+              res.status(500).send({ error: 'The invitation could not be destroyed' })
             })
           }).catch((err) => {
-            res.status(500).json({ error: 'Invalid Team invitation link' });
-            Logger.error('Keys not exists')
-          });
+            Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user)
+            res.status(500).send({ error: 'The invitation is not saved' })
+          })
         }).catch((err) => {
           res.status(500).json({ error: 'Invalid Team invitation link' });
-          Logger.error('User not exists')
+          Logger.error('Keys not exists')
         });
-
       }).catch((err) => {
         res.status(500).json({ error: 'Invalid Team invitation link' });
+        Logger.error('User not exists')
       });
+
     }).catch((err) => {
       res.status(500).json({ error: 'Invalid Team invitation link' });
-      Logger.error('Token %s doesn\'t exists', token)
     });
-
+  }).catch((err) => {
+    res.status(500).json({ error: 'Invalid Team invitation link' });
+    Logger.error('Token %s doesn\'t exists', token)
   });
 
-  Router.delete('/teams-members/', passportAuth, (req, res) => {
-    const { members } = req.body;
-    const { idTeam } = req.body;
-    const { user } = req;
+});
 
-    Service.Team.getTeamByIdUser(user.email)
-      .then((team) => {
-        if (idTeam == team.id) {
-          Service.TeamsMembers.remove(members, team.id)
-            .then(() => {
-              Service.TeamInvitations.remove(members[0])
-                .then(() => {
-                  res.status(200).json({ message: 'team member removed' });
-                })
-                .catch((err) => {
-                  res.status(500).json({ error: err });
-                });
-            })
-            .catch((err) => {
-              res.status(500).json({ error: err });
-            });
-        } else {
-          res.status(500).json({ error: "it's not your team" });
-        }
-      })
-      .catch((err) => {
+Router.delete('/teams-members/', passportAuth, (req, res) => {
+  const { members } = req.body;
+  const { idTeam } = req.body;
+  const { user } = req;
+
+  Service.Team.getTeamByIdUser(user.email)
+    .then((team) => {
+      if (idTeam == team.id) {
+        Service.TeamsMembers.remove(members, team.id)
+          .then(() => {
+            Service.TeamInvitations.remove(members[0])
+              .then(() => {
+                res.status(200).json({ message: 'team member removed' });
+              })
+              .catch((err) => {
+                res.status(500).json({ error: err });
+              });
+          })
+          .catch((err) => {
+            res.status(500).json({ error: err });
+          });
+      } else {
         res.status(500).json({ error: "it's not your team" });
-      });
-  });
-
-  Router.get('/teams-members/:user', passportAuth, (req, res) => {
-    const userEmail = req.params.user;
-
-    Service.Team.getIdTeamByUser(userEmail)
-      .then((team) => {
-        Service.Team.getTeamById(team.id_team).then((team2) => {
-          res.status(200).json(team2.dataValues);
-        }).catch((err) => { })
-      })
-      .catch((err) => {
-        res.status(500).json(err);
-      });
-  });
-
-
-  Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
-    const { idTeam } = req.params;
-    const members = await Service.TeamsMembers.getPeople(idTeam);
-    res.status(200).send(members)
-  });
-
-
-
-  Router.delete('/teams/member', passportAuth, (req, res) => {
-    const user = req.user
-    const idTeam = req.body.idTeam
-    const removeUser = req.body.item.user
-    
-
-    Service.Team.getTeamByIdUser(user.email).then((team) => {
-      if (idTeam == team.id) {
-        Service.TeamsMembers.removeMembers(removeUser).then(() => {
-          res.status(200).send({ info:'The user is removed '})
-        }).catch((err) => {
-          console.log(err)
-          res.status(500).json({ error: err });
-        });
-      } else {
-        console.log(err)
-        res.status(500).send({ info:'You not have permissions 1'})
       }
-    }).catch((err) => {
-      console.log(err)
-      
-      res.status(500).send({ info:'You not have permissions 2'})
+    })
+    .catch((err) => {
+      res.status(500).json({ error: "it's not your team" });
     });
+});
 
-  });
+Router.get('/teams-members/:user', passportAuth, (req, res) => {
+  const userEmail = req.params.user;
 
-  Router.delete('/teams/invitation', passportAuth, (req, res) => {
-    const user = req.user
-    const idTeam = req.body.idTeam
-    const removeUser = req.body.item.user
+  Service.Team.getIdTeamByUser(userEmail)
+    .then((team) => {
+      Service.Team.getTeamById(team.id_team).then((team2) => {
+        res.status(200).json(team2.dataValues);
+      }).catch((err) => { })
+    })
+    .catch((err) => {
+      res.status(500).json(err);
+    });
+});
 
-    Service.Team.getTeamByIdUser(user.email).then((team) => {
-      if (idTeam == team.id) {
-        Service.TeamInvitations.removeInvitations(removeUser).then(() => {
-          res.status(200).send({ info:'The user is removed '})
-        }).catch((err) => {
-          console.log(err)
-          res.status(500).json({ error: err });
-        });
-      } else {
+
+Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
+  const { idTeam } = req.params;
+  const {user} = req.user.email
+  const members = await Service.TeamsMembers.getPeople(idTeam);
+  res.status(200).send(members)
+});
+
+
+
+Router.delete('/teams/member', passportAuth, (req, res) => {
+  const user = req.user
+  const idTeam = req.body.idTeam
+  const removeUser = req.body.item.user
+
+
+  Service.Team.getTeamByIdUser(user.email).then((team) => {
+    if (idTeam == team.id) {
+      Service.TeamsMembers.removeMembers(removeUser).then(() => {
+        res.status(200).send({ info: 'The user is removed ' })
+      }).catch((err) => {
         console.log(err)
-        res.status(500).send({ info:'You not have permissions'})
-      }
-    }).catch((err) => {
+        res.status(500).json({ error: err });
+      });
+    } else {
       console.log(err)
-      res.status(500).send({ info:'You not have permissions'})
-    });
+      res.status(500).send({ info: 'You not have permissions 1' })
+    }
+  }).catch((err) => {
+    console.log(err)
+
+    res.status(500).send({ info: 'You not have permissions 2' })
   });
 
-  return Router;
+});
+
+Router.delete('/teams/invitation', passportAuth, (req, res) => {
+  const user = req.user
+  const idTeam = req.body.idTeam
+  const removeUser = req.body.item.user
+
+  Service.Team.getTeamByIdUser(user.email).then((team) => {
+    if (idTeam == team.id) {
+      Service.TeamInvitations.removeInvitations(removeUser).then(() => {
+        res.status(200).send({ info: 'The user is removed ' })
+      }).catch((err) => {
+        console.log(err)
+        res.status(500).json({ error: err });
+      });
+    } else {
+      console.log(err)
+      res.status(500).send({ info: 'You not have permissions' })
+    }
+  }).catch((err) => {
+    console.log(err)
+    res.status(500).send({ info: 'You not have permissions' })
+  });
+});
+
+Router.get('/deactivateTeam', passportAuth, (req, res) => {
+  const user = req.user.email;
+
+  Service.User.DeactivateUser(user)
+    .then((bridgeRes) => {
+      res.status(200).send({ error: null, message: 'User deactivated' });
+    })
+    .catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
+});
+
+
+
+return Router;
 
 };

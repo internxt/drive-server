@@ -181,21 +181,19 @@ module.exports = (Router, Service, Logger, App) => {
                 referral: ''
               }
             ).then(async (userData)  => {
-              const bcryptId = await App.services.Storj.IdToBcrypt(
-                newBridgeUser.email
-              );
-  
+              
               if (!userData.isCreated) {
                 next({ message: 'This account already exists' });
               } else {
-
                 Service.Team.create({
                   name: 'My team',
                   admin: user,
                   bridge_user: userData.email,
-                  bridge_password: bcryptId,
+                  bridge_password: userData.userId,
                   bridge_mnemonic: userData.mnemonic
                 }).then((team) => {
+
+                  
                   const teamId = team.id;
                   const teamAdmin = team.admin;
                   const teamBridgePassword = team.bridge_password;

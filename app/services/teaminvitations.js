@@ -80,6 +80,25 @@ module.exports = (Model, App) => {
     });
   }
 
+  const getinvitationsidTeam = (idTeam) => {
+    return new Promise((resolve, reject) => {
+      Model.team_invitations.findOne({
+          where: { id_team: { [Op.eq]: idTeam } },
+        })
+        .then((invitation) => {
+          if (invitation) {
+            resolve(invitation);
+          } else {
+            reject('Team invitation does not exists');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          reject('Error querying database');
+        });
+    });
+  }
+
   const getTeamInvitationByIdUser = (user) => {
     return new Promise((resolve, reject) => {
       Model.team_invitations
@@ -123,7 +142,8 @@ module.exports = (Model, App) => {
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
-    removeInvitations
+    removeInvitations,
+    getinvitationsidTeam
     
    
     

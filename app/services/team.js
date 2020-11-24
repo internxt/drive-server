@@ -5,8 +5,10 @@ const fetch = require('node-fetch');
 
 const { Op } = sequelize;
 const async = require('async');
+const axios = require('axios');
 
 module.exports = (Model, App) => {
+
   const FolderService = require('./folder')(Model, App);
   const UserService = require('./user')(Model, App);
   const StorjService = require('./storj')(Model, App);
@@ -89,6 +91,21 @@ module.exports = (Model, App) => {
       });
   });
 
+  const getPlans = async (user) => {
+    const dataBridge = await getTeamBridgeUser(user);
+    const pwd = dataBridge.bridge_password;
+    const pwdHash = CryptService.hashSha256(pwd);
+    const credential = Buffer.from(`${dataBridge.bridge_user}:${pwdHash}`).toString('base64');
+    const limit = await axios.get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${credential}`,
+      },
+    }).then(res => res.data)
+    .catch(err => null)
+    return limit
+  }
+
   const getTeamBridgeUser = (user) => new Promise((resolve, reject) => {
     Model.teams
       .findOne({
@@ -107,15 +124,25 @@ module.exports = (Model, App) => {
   });
 
   const getTeamByMember = function (userEmail) {
+    console.log(userEmail)
     return new Promise(function (resolve, reject) {
       getIdTeamByUser(userEmail).then(function (team) {
+        console.log('email', userEmail)
+        console.log('team',team)
         if (!team) {
           return resolve()
         }
         getTeamById(team.id_team).then(function (team2) {
+          console.log('team.id_team', team.id_team)
+          console.log('team2',team2)
           resolve(team2);
-        }).catch((err) => { reject(); })
-      }).catch((err) => { reject("TEAM NOT FOUND"); });
+        }).catch((err) => { 
+          console.log(err) 
+          reject(); 
+        })
+      }).catch((err) => {
+         reject("TEAM NOT FOUND");
+         });
     });
   };
 
@@ -128,6 +155,7 @@ module.exports = (Model, App) => {
     generateBridgeTeamUser,
     getIdTeamByUser,
     getTeamByMember,
-    getTeamBridgeUser
+    getTeamBridgeUser,
+    getPlans
     };
 };
