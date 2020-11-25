@@ -75,19 +75,23 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
     Router.post('/teams/team-invitations', passportAuth, async (req, res) => {
+        //Datas
         const email = req.body.email;
         const token = crypto.randomBytes(20).toString('hex');
         const Encryptbridge_password = req.body.bridgePass;
         const Encryptmnemonic = req.body.mnemonicTeam;
         const user = req.user.email;
         const idTeam = req.body.idTeam;
+        //Datas for the 10-person limit
 
         const totalUsers = await Service.TeamsMembers.getPeople(idTeam);
         const plans = await Service.Team.getPlans(user);
 
         if (totalUsers.length >= 10 && plans.maxSpaceBytes == '214748364800') {
-            return res.status(500).send({ error: 'No puedes invitar a mas' });
+            return res.status(500).send({ error: 'You cannot exceed the limit of 10 members' });
         }
+
+        //Rest
         Service.User.FindUserByEmail(email).then((userData) => {
             Service.Keyserver.keysExists(userData).then(() => {
                 Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
@@ -267,7 +271,7 @@ module.exports = (Router, Service, Logger, App) => {
 
     Router.get('/confirmDeactivationTeam/:token', (req, res) => {
         const { token } = req.params;
-        console.log('TOKEN ROUTE',token);
+        console.log('TOKEN ROUTE', token);
 
         Service.Team.ConfirmDeactivateTeam(token)
             .then((resConfirm) => {
