@@ -3,7 +3,22 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
+<<<<<<<
   Router.get('/team/isactivated/:email', passportAuth, (req, res) => {
+=======
+
+  Router.get('/user/activations/:token', (req, res) => {
+    Service.User.ActivateUser(req.params.token).then((response) => {
+      const body = response.data;
+      Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } })
+      res.status(200).send(body);
+    }).catch(err => {
+      res.status(err.response.status).send(err.response.data)
+    })
+  })
+
+  Router.get('/user/isactivated', passportAuth, (req, res) => {
+>>>>>>>
     const user = req.user.email;
     const bridgeUser = req.params.email;
 
@@ -64,7 +79,8 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.user.email;
 
     Service.User.DeactivateUser(user)
-      .then((bridgeRes) => {
+      .then(() => {
+        Service.Analytics.track({ userId: req.user.uuid, event: 'user-deactivation-request', properties: { email: user } })
         res.status(200).send({ error: null, message: 'User deactivated' });
       })
       .catch((err) => {
@@ -91,7 +107,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(resConfirm.status).send(req.data);
       })
       .catch((err) => {
-        console.log('Deactivation request to Server failed');
+        Logger.error('Deactivation request to Server failed: %s', err.message);
         res.status(400).send({ error: err.message });
       });
   });
@@ -104,7 +120,7 @@ module.exports = (Router, Service, Logger, App) => {
       .catch((err) => {
         res.status(500).send({
           error:
-            err.response.data && err.response.data.error
+            err.response && err.response.data && err.response.data.error
               ? err.response.data.error
               : 'Internal server error'
         });

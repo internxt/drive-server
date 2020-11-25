@@ -1,4 +1,4 @@
-const InternxtMailer = require('storj-service-mailer');
+const InternxtMailer = require('inxt-service-mailer');
 
 module.exports = (Model, App) => {
   const mailInstance = () => new InternxtMailer({
@@ -14,11 +14,31 @@ module.exports = (Model, App) => {
     from: 'hello@internxt.com'
   });
 
+  const mailInstance = () => {
+    const mailConfig = {
+      host: process.env.INXT_MAILER_HOST,
+      port: process.env.INXT_MAILER_PORT,
+      secure: process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production',
+      auth: {
+        user: process.env.INXT_MAILER_USERNAME,
+        pass: process.env.INXT_MAILER_PASSWORD,
+      },
+      from: 'hello@internxt.com',
+    }
+
+    if (process.env.SENDGRID_API_KEY) {
+      mailConfig.sendgrid = {
+        api_key: process.env.SENDGRID_API_KEY
+      }
+    }
+
+    return new InternxtMailer(mailConfig);
+  }
   const sendInvitationMail = (emailTo, user) => {
     const mailer = mailInstance();
 
     return new Promise((resolve, reject) => {
-      mailer.dispatch(
+      mailer.dispatchSendGrid(
         emailTo,
         'referral',
         {

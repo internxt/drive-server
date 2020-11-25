@@ -6,6 +6,7 @@ const axios = require('axios');
 const shortid = require('shortid');
 const { Environment } = require('storj');
 const mime = require('mime');
+const prettysize = require('prettysize')
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -38,7 +39,7 @@ module.exports = (Model, App) => {
         bridgeUser: email,
         bridgePass: password,
         encryptionKey: mnemonic,
-        logLevel: 3
+        logLevel: 0,
       });
     } catch (error) {
       log.error('[NODE-LIB getEnvironment]', error);
@@ -120,12 +121,11 @@ module.exports = (Model, App) => {
     storj.storeFile(bucketId, filePath, {
       filename: fileName,
       progressCallback(progress, uploadedBytes, totalBytes) {
-        log.info(
-          '[NODE-LIB %s] Upload Progress: %s/%s (%s)',
+        log.warn(
+          '[NODE-LIB %s] Upload Progress: %s (%s%%)',
           user.email,
-          uploadedBytes,
-          totalBytes,
-          progress
+          prettysize(totalBytes),
+          (uploadedBytes * 100 / totalBytes).toFixed(2)
         );
       },
       finishedCallback(err, fileId) {
@@ -133,20 +133,18 @@ module.exports = (Model, App) => {
           log.error('[NODE-LIB storeFile]', err);
           reject(err);
         } else {
-          log.info('[NODE-LIB storeFile] File complete:', fileId);
+          log.warn('[NODE-LIB storeFile] File upload finished');
           storj.destroy();
           resolve({ fileId, size: actualFileSize });
         }
-      }
+      },
     });
   });
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads';
     const shortFileName = file.fileId;
-    const downloadFile = `${downloadDir}/${shortFileName}${
-      file.type ? `.${file.type}` : ''
-    }`;
+    const downloadFile = `${downloadDir}/${shortFileName}${file.type ? `.${file.type}` : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
       fs.mkdirSync(downloadDir);
@@ -160,15 +158,13 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic);
       log.info(`Resolving file ${file.name}...`);
 
-      // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.info(
-            '[NODE-LIB %s] Download file progress: %s/%s (%s)',
+          log.warn(
+            '[NODE-LIB %s] Download Progress: %s (%s%%)',
             user.email,
-            downloadedBytes,
-            totalBytes,
-            progress
+            prettysize(totalBytes),
+            (downloadedBytes * 100 / totalBytes).toFixed(2)
           );
         },
         finishedCallback: (err) => {
@@ -183,9 +179,9 @@ module.exports = (Model, App) => {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            log.info('[NODE-LIB %s] File resolved!', user.email);
-            resolve({ filestream, mimetype, downloadFile });
+            log.warn('[NODE-LIB %s] File resolved!', user.email);
             storj.destroy();
+            resolve({ filestream, mimetype, downloadFile });
           }
         }
       });
@@ -215,7 +211,7 @@ module.exports = (Model, App) => {
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.info(
+          log.warn(
             '[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
@@ -230,9 +226,9 @@ module.exports = (Model, App) => {
             const mimetype = mime.getType(downloadFile);
             const filestream = fs.createReadStream(downloadFile);
 
-            log.info('[NODE-LIB] File resolved!');
-            resolve({ filestream, mimetype, downloadFile });
+            log.warn('[NODE-LIB] File resolved!');
             storj.destroy();
+            resolve({ filestream, mimetype, downloadFile });
           }
         }
       });

@@ -34,7 +34,8 @@ module.exports = (App, Config) => {
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
     windowMs: 24 * 60 * 60 * 1000,
-    max: 1
+    max: 3,
+    keyGenerator: limiterKeyGenerator
   }));
 
   App.express.use('/api/user/invite', rateLimit({
@@ -42,6 +43,11 @@ module.exports = (App, Config) => {
     max: 10,
     keyGenerator: limiterKeyGenerator
   }));
+
+  App.express.use('/api/register', rateLimit({
+    windowMs: 10 * 1000, max: 1,
+    keyGenerator: limiterKeyGenerator
+  }))
 
   var downloadLimiter = slowDown({
     delayAfter: 2,
@@ -139,7 +145,7 @@ module.exports = (App, Config) => {
       }
     }
     App.logger.info(
-      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? '\t' + user : ''}`,
+      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ' ' + user : ''}`,
     );
     next();
   });

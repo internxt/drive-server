@@ -82,6 +82,10 @@ module.exports = (sequelize, DataTypes) => {
       credit: {
         type: DataTypes.INTEGER,
         defaultValue: 0
+      },
+      welcomePack: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
       }
     },
     {

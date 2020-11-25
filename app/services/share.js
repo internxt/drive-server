@@ -11,11 +11,11 @@ module.exports = (Model, App) => {
   const FindOne = (token) => new Promise((resolve, reject) => {
     Model.shares
       .findOne({
-        where: { token: { [Op.eq]: token } }
+        where: { token: { [Op.eq]: token } },
       })
       .then((result) => {
         if (result) {
-          if (result.views == 1) {
+          if (result.views === 1) {
             console.log('Token %s removed', token);
             result.destroy();
           } else {
@@ -48,7 +48,7 @@ module.exports = (Model, App) => {
 
     Model.shares
       .findAll({
-        where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
+        where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } },
       })
       .then((shareInstanceDB) => {
         if (shareInstanceDB && shareInstanceDB.length > 0) {
@@ -62,9 +62,9 @@ module.exports = (Model, App) => {
             method: 'POST',
             headers: {
               'x-api-key': `${process.env.SHORTER_API_KEY}`,
-              'Content-type': 'application/json'
+              'Content-type': 'application/json',
             },
-            body: JSON.stringify({ target: `${url}`, reuse })
+            body: JSON.stringify({ target: `${url}`, reuse }),
           })
             .then((res) => res.json())
             .then(resolve)
@@ -97,12 +97,12 @@ module.exports = (Model, App) => {
     if (isFolder === 'true') {
       // Check if folder exists
       itemExists = await Model.folder.findOne({
-        where: { id: { [Op.eq]: fileIdInBucket } }
+        where: { id: { [Op.eq]: fileIdInBucket } },
       });
     } else {
       // Check if file exists
       itemExists = await Model.file.findOne({
-        where: { fileId: { [Op.eq]: fileIdInBucket } }
+        where: { fileId: { [Op.eq]: fileIdInBucket } },
       });
     }
 
@@ -144,7 +144,7 @@ module.exports = (Model, App) => {
 
     Model.shares
       .findOne({
-        where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } }
+        where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } },
       })
       .then((tokenData) => {
         if (tokenData) {
@@ -154,10 +154,10 @@ module.exports = (Model, App) => {
               token: newToken,
               mnemonic,
               is_folder: isFolder,
-              views
+              views,
             },
             {
-              where: { id: { [Op.eq]: tokenData.id } }
+              where: { id: { [Op.eq]: tokenData.id } },
             }
           );
           resolve({ token: newToken });
@@ -169,7 +169,7 @@ module.exports = (Model, App) => {
               file: fileIdInBucket,
               user,
               is_folder: isFolder,
-              views
+              views,
             })
             .then((ok) => {
               resolve({ token: newToken });

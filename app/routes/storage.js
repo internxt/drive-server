@@ -1,11 +1,15 @@
 const fs = require('fs');
+const path = require('path');
 
 const rimraf = require('rimraf');
 const _ = require('lodash');
 const contentDisposition = require('content-disposition');
+const async = require('async');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
+const prettySize = require('prettysize')
+const mimeTypes = require('mime-types')
 
 const { passportAuth } = passport;
 
@@ -66,10 +70,7 @@ module.exports = (Router, Service, Logger, App) => {
    *       500:
    *         description: Error updating folder
    */
-  Router.post('/storage/folder/:folderid/meta', passportAuth, (
-    req,
-    res
-  ) => {
+  Router.post('/storage/folder/:folderid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
@@ -168,14 +169,22 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Uploaded object
    */
-  Router.post(
-    '/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
-      let { user } = req;
-      // Set mnemonic to decrypted mnemonic
-      user.mnemonic = req.headers['internxt-mnemonic'];
-      const xfile = req.file;
-      const folderId = req.params.id;
+  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
+    const { user } = req;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    const xfile = req.file;
+    const folderId = req.params.id;
 
+    const extension = path.extname(xfile.originalname);
+        Service.Analytics.track({
+          userId: req.user.uuid,
+          event: 'file-upload-finished',
+          properties: {
+            file_size: xfile.size,
+            email: req.user.email,
+            file_type: extension
+          }
       Service.Folder.isFolderOfTeam(folderId).then((folder) => {
         console.log('------ UPLOAD ------');
         Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
@@ -227,35 +236,38 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(500).json(error);
       });
   });
+
   /**
    * @swagger
-   * /storage/file:
-   *   post:
-   *     description: Create file entry on DB for an existing bucketentry
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: file
-   *         description: file object with properties
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: File created successfully
-   *       400:
-   *         description: Bad request. Any data is not passed on request.
+   * description: Create file entry on DB for an existing file on the network
+   * Suitable for Desktop app.
    */
   Router.post('/storage/file', passportAuth, (req, res) => {
     const { user } = req;
     const { file } = req.body;
-    Service.Files.CreateFile(user, file)
-      .then((result) => {
-        res.status(200).json(result);
+
+    Service.Files.CreateFile(user, file).then((result) => {
+      res.status(200).json(result);
+      const NOW = (new Date()).toISOString()
+      Service.Analytics.track({
+        userId: req.user.uuid,
+        event: 'file-upload-finished',
+        platform: 'desktop',
+        properties: {
+          platform: 'desktop',
+          email: req.user.email,
+          file_id: file.fileId,
+          file_size: file.size,
+          date: NOW,
+          file_mime_type: mimeTypes.lookup(file.type),
+          file_type: file.type,
+          file_size_readable: prettySize(file.size)
+        }
       })
-      .catch((error) => {
-        Logger.error(error);
-        res.status(400).json({ message: error.message });
-      });
+    }).catch((error) => {
+      Logger.error(error);
+      res.status(400).json({ message: error.message });
+    });
   });
 
   /**
@@ -275,7 +287,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Uploaded object
    */
   Router.get('/storage/file/:id', passportAuth, (req, res) => {
-    let { user } = req;
+    const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const fileIdInBucket = req.params.id;
@@ -285,34 +297,30 @@ module.exports = (Router, Service, Logger, App) => {
 
     let filePath;
 
-    console.log('------- DOWNLOAD -------');
+    return Service.Files.Download(user, fileIdInBucket)
+      .then(({
+        filestream, mimetype, downloadFile, folderId, name, type
+      }) => {
+        filePath = downloadFile;
+        const fileName = downloadFile.split('/')[2];
+        const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
-    return Service.Files.Download(user, fileIdInBucket).then(({
-          filestream, mimetype, downloadFile, folderId, name, type
-        }) => {
-          filePath = downloadFile;
-          const fileName = downloadFile.split('/')[2];
-          const decryptedFileName = App.services.Crypt.decryptName(
-            name,
-            folderId
-          );
+        const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
+        const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
-          const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''
-            }`;
-          const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
-          res.setHeader(
-            'content-disposition',
-            contentDisposition(fileNameDecrypted));
-          res.setHeader('content-type', mimetype);
-          res.set('x-file-name', decryptedFileNameB64);
-          filestream.pipe(res);
-          fs.unlink(filePath, (error) => {
-            if (error) throw error;
-          });
-        }).catch((err) => {
+        res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
+        res.setHeader('content-type', mimetype);
+        res.set('x-file-name', decryptedFileNameB64);
+        filestream.pipe(res);
+        fs.unlink(filePath, (error) => {
+          if (error) throw error;
+        });
+      })
+      .catch((err) => {
         if (err.message === 'Bridge rate limit error') {
           return res.status(402).json({ message: err.message });
         }
+
         return res.status(500).json({ message: err.message });
       });
 
@@ -346,11 +354,11 @@ module.exports = (Router, Service, Logger, App) => {
     const { metadata } = req.body;
 
     Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
-        res.status(200).json(result);
-      }).catch((err) => {
-        Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
-      });
+      res.status(200).json(result);
+    }).catch((err) => {
+      Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+      res.status(500).json(err.message);
+    });
   });
 
   /**
@@ -380,64 +388,71 @@ module.exports = (Router, Service, Logger, App) => {
     const { destination } = req.body;
     const { user } = req;
 
-    Service.Files.MoveFile(user, fileId, destination).then((result) => {
-        res.status(200).json(result);
-      }).catch((error) => {
-        res.status(500).json(error);
-      });
+    Service.Files.MoveFile(user, fileId, destination)
+      .then((result) => { res.status(200).json(result) })
+      .catch((error) => { res.status(500).json(error) });
   });
 
   /*
    * Delete file by bridge (mongodb) ids
    */
-  Router.delete('/storage/bucket/:bucketid/file/:fileid',passportAuth,(req, res) => {
-      if (req.params.bucketid === 'null') {
-        return res.status(500).json({ error: 'No bucket ID provided' });
-      }
-
-      if (req.params.fileid === 'null') {
-        return res.status(500).json({ error: 'No file ID provided' });
-      }
-
-      const { user } = req;
-      const bucketId = req.params.bucketid;
-      const fileIdInBucket = req.params.fileid;
-
-      return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
-          res.status(200).json({ deleted: true });
-        }).catch((err) => {
-          Logger.error(err.stack);
-          res.status(500).json({ error: err.message });
-        });
+  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, (req, res) => {
+    if (req.params.bucketid === 'null') {
+      return res.status(500).json({ error: 'No bucket ID provided' });
     }
-  );
+
+    if (req.params.fileid === 'null') {
+      return res.status(500).json({ error: 'No file ID provided' });
+    }
+
+    const { user } = req;
+    const bucketId = req.params.bucketid;
+    const fileIdInBucket = req.params.fileid;
+
+    return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
+      res.status(200).json({ deleted: true });
+    }).catch((err) => {
+      Logger.error(err.stack);
+      res.status(500).json({ error: err.message });
+    });
+  });
 
   /*
    * Delete file by database ids (mysql)
    */
-  Router.delete('/storage/folder/:folderid/file/:fileid',passportAuth,(req, res) => {
-      Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid).then(() => {
-          res.status(200).json({ deleted: true });
-        }).catch((err) => {
-          console.error('Error deleting file:', err.message);
-          res.status(500).json({ error: err.message });
-        });
-    }
-  );
+  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
+    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
+      .then(() => {
+        res.status(200).json({ deleted: true });
+      })
+      .catch((err) => {
+        console.error('Error deleting file:', err.message);
+        res.status(500).json({ error: err.message });
+      });
+  });
 
   Router.post('/storage/shortLink', passportAuth, (req, res) => {
     const user = req.user.email;
     const { url } = req.body;
 
-    Service.Share.GenerateShortLink(user, url).then((shortLink) => {
-        res.status(200).json(shortLink);
-      }).catch((err) => {
-        res.status(500).json({ error: err.message });
-      });
+    Service.Share.GenerateShortLink(user, url)
+      .then((shortLink) => { res.status(200).json(shortLink) })
+      .catch((err) => { res.status(500).json({ error: err.message }) });
   });
 
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
+
+    if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
+      if (!req.body.views) {
+        Service.Analytics.track({
+          userId: req.user.uuid, event: 'file-download-finished', properties: {
+            platform: 'mobile',
+            file_id: req.params.id
+          }
+        })
+      }
+    }
 
     Service.Share.GenerateToken(
       user,
@@ -446,10 +461,10 @@ module.exports = (Router, Service, Logger, App) => {
       req.body.isFolder,
       req.body.views
     ).then((result) => {
-        res.status(200).send(result);
-      }).catch((err) => {
-        res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
-      });
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
+    });
   });
 
   Router.get('/storage/share/:token', (req, res) => {
@@ -483,8 +498,14 @@ module.exports = (Router, Service, Logger, App) => {
                           `./downloads/${tree.id}/${folderName}.zip`
                         );
 
+                      rimraf(`./downloads/${tree.id}`, () => {
+                        console.log('Folder removed after send zip');
+                      });
+                    })
+                    .catch((err) => {
+                      if (fs.existsSync(`./downloads/${tree.id}`)) {
                         rimraf(`./downloads/${tree.id}`, () => {
-                          console.log('Folder removed after send zip');
+                          console.log('Folder removed after fail folder download');
                         });
                       }).catch((err) => {
                         if (fs.existsSync(`./downloads/${tree.id}`)) {
@@ -523,7 +544,23 @@ module.exports = (Router, Service, Logger, App) => {
                       folderId
                     );
 
-                    res.setHeader('Content-type', mimetype);
+                      res
+                        .status(402)
+                        .json({ error: 'Error downloading folder' });
+                    });
+                } else {
+                  res.status(402).json({ error: 'Folder too large' });
+                }
+              })
+              .catch((err) => {
+                res.status(402).json({ error: 'Error downloading folder' });
+              });
+          } else {
+            Service.Files.Download(userData, fileIdInBucket)
+              .then(({
+                filestream, mimetype, downloadFile, folderId, name, type
+              }) => {
+                const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
                     const decryptedFileNameB64 = Buffer.from(
                       `${decryptedFileName}${type ? `.${type}` : ''}`
@@ -532,11 +569,8 @@ module.exports = (Router, Service, Logger, App) => {
                       `${decryptedFileName}${type ? `.${type}` : ''}`
                     );
 
-                    res.setHeader(
-                      'content-disposition',
-                      contentDisposition(encodedFileName)
-                    );
-                    res.set('x-file-name', decryptedFileNameB64);
+                const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
+                const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
 
                     filestream.pipe(res);
                     fs.unlink(downloadFile, (error) => {
@@ -563,18 +597,16 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   Router.post('/storage/sftp/list', passportAuth, (req, res) => {
-    const fs_path = req.body.path;
+    const fsPath = req.body.path;
 
-    if (!fs_path) {
-      return res.status(200).send({});
-    }
+    if (!fsPath) { return res.status(200).send({}); }
 
-    const replaced_path = fs_path.replace('\\', '/');
-    const normalized_path = path.normalize(replaced_path);
-    const splitted_path = normalized_path.split('/');
-    const filtered_path = splitted_path.filter((x) => x !== '');
+    const replacedPath = fsPath.replace('\\', '/');
+    const normalizedPath = path.normalize(replacedPath);
+    const splittedPath = normalizedPath.split('/');
+    const filteredPath = splittedPath.filter((x) => x !== '');
 
-    if (filtered_path.length === 0) {
+    if (filteredPath.length === 0) {
       return Service.Folder.GetContent(req.user.root_folder_id, req.user)
         .then((result) => {
           if (result == null) {
@@ -588,58 +620,49 @@ module.exports = (Router, Service, Logger, App) => {
         });
     }
 
-    console.log('Sub-folders request is under construction', filtered_path);
+    console.log('Sub-folders request is under construction', filteredPath);
 
     const position = 0;
 
     const findFolder = (folders, targetName) => new Promise((resolve, reject) => {
-      async.eachSeries(
-        folders,
-        (folder, nextFolder) => {
-          if (folder.name === targetName) {
-            nextFolder('found', folder);
-          } else {
-            nextFolder();
-          }
-        },
-        (err, folder) => {
-          if (err === 'found') {
-            resolve(folder);
-          } else {
-            reject();
-          }
-        }
-      );
+      async.eachSeries(folders, (folder, nextFolder) => {
+        if (folder.name === targetName) { nextFolder('found', folder); } else { nextFolder(); }
+      }, (err, folder) => {
+        if (err === 'found') { resolve(folder); } else { reject(); }
+      });
     });
 
     const getSubFolders = (folderId) => new Promise((resolve, reject) => {
       Service.Folder.GetContent(folderId, req.user).then((result) => {
-          resolve(result.children);
-        }).catch((err) => {
-          reject(err);
-        });
+        resolve(result.children);
+      }).catch((err) => {
+        reject(err);
+      });
     });
 
     const testUntil = (next) => {
-      next(null, position < filtered_path.length);
+      next(null, position < filteredPath.length);
     };
 
     const currentFolderId = req.user.root_folder_id;
 
-    async.doDuring(
-      (err) => {
-        getSubFolders(currentFolderId).then((children) => {
-          findFolder(folders, filtered_path[position]).then((result) => { 
-          }).catch((err) => { });
+    return 0;
+
+    /*
+    async.doDuring((err) => {
+      getSubFolders(currentFolderId).then((children) => {
+        findFolder(folders, filteredPath[position]).then((result) => {
+        }).catch((err1) => {
+          (() => { })(err1);
         });
-      },
-      testUntil,
-      (err) => {
-        if (err) {
-          res.status(500).send({ error: 'Folder does not exists' });
-        } else {
-        }
+      });
+    }, testUntil, (err2) => {
+      if (err2) {
+        res.status(500).send({ error: 'Folder does not exists' });
+      } else {
+        (() => { })();
       }
-    );
+    });
+    */
   });
 };

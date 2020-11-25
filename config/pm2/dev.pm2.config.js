@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'xcloud_staging',
+      name: 'drive-server-dev',
       script: './app.js',
       env: {
         NODE_ENV: 'development',

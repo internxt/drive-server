@@ -2,6 +2,8 @@ const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
 const useragent = require('useragent');
 const uuid = require('uuid');
+const Analytics = require('analytics-node');
+const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
@@ -10,6 +12,7 @@ const StripeRoutes = require('./stripe');
 const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
+const ExtraRoutes = require('./extra');
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -46,6 +49,8 @@ module.exports = (Router, Service, Logger, App) => {
   MobileRoutes(Router, Service, Logger, App);
   // Routes to create, edit and delete the 2-factor-authentication
   TwoFactorRoutes(Router, Service, Logger, App);
+  // Extra routes uncategorized
+  ExtraRoutes(Router, Service, Logger, App);
 
   TeamsRoutes(Router, Service, Logger, App);
   TeamsMembersRoutes(Router, Service, Logger, App);
@@ -68,7 +73,6 @@ module.exports = (Router, Service, Logger, App) => {
    *       204:
    *         description: Wrong username or password
    */
-
   Router.post('/login', (req, res) => {
     req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
@@ -164,14 +168,12 @@ module.exports = (Router, Service, Logger, App) => {
 
 
     // Call user service to find or create user
-    Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
-      if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({
-          error:
-            'Your account has been blocked for security reasons. Please reach out to us'
-        })
-        return;
-      }
+    Service.User.FindUserByEmail(req.body.email)
+      .then((userData) => {
+        if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+          res.status(500).send({
+            error: 'Your account has been blocked for security reasons. Please reach out to us'
+          });
 
       keys = await Service.Keyserver.keysExists(userData)
 
@@ -244,6 +246,14 @@ module.exports = (Router, Service, Logger, App) => {
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
 
+          Service.User.LoginFailed(req.body.email, false);
+          Service.User.UpdateAccountActivity(req.body.email);
+
+          Service.Analytics.trackAll(req, userData, 'user-signin', {
+            properties: {
+              email: userData.email
+            }
+          })
         if (userTeam) {
           const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
             internxtClient === 'x-cloud-web' || internxtClient === 'drive-web')
@@ -252,10 +262,10 @@ module.exports = (Router, Service, Logger, App) => {
               userId: userData.userId,
               mnemonic: userData.mnemonic,
               root_folder_id: userData.root_folder_id,
-              storeMnemonic: userData.storeMnemonic,
               name: userData.name,
               lastname: userData.lastname,
               uuid: userData.uuid,
+              createdAt: userData.createdAt
               credit: userData.credit,
               publicKey: keys.public_key,
               privateKey: keys.private_key,
@@ -266,6 +276,7 @@ module.exports = (Router, Service, Logger, App) => {
             teamRol,
             tokenTeam
           });
+
         } else {
           res.status(200).json({
             user: {
@@ -287,20 +298,10 @@ module.exports = (Router, Service, Logger, App) => {
 
           });
         }
-      } else {
-        // Wrong password
-        if (pass !== userData.password.toString()) {
-          Service.User.LoginFailed(req.body.email, true);
-        }
-
-        res.status(400).json({ error: 'Wrong email/password' });
-      }
-
-    }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.status(400).send({
-        error: 'User not found on Cloud database',
-        message: err.message
+      })
+      .catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
       });
     });
   });
@@ -326,26 +327,30 @@ module.exports = (Router, Service, Logger, App) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
-      Logger.warn(
-        'Register request for %s from %s',
-        req.body.email,
-        req.headers['X-Forwarded-For']
-      );
+      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For']);
 
       const newUser = req.body;
       newUser.credit = 0;
 
       const { referral } = req.body;
 
+      let hasReferral = false;
+      let referrer = null
+
       if (uuid.validate(referral)) {
-        await Service.User.FindUserByUuid(referral).then((userData) => {
-          if (userData === null) {
-            // Don't exists referral user
-          } else {
-            newUser.credit = 5;
-            Service.User.UpdateCredit(referral);
-          }
-        }).catch((err) => console.log(err));
+        await Service.User
+          .FindUserByUuid(referral)
+          .then((userData) => {
+            if (userData === null) { // Don't exists referral user
+              console.log('UUID not found');
+            } else {
+              newUser.credit = 5;
+              hasReferral = true;
+              referrer = userData;
+              Service.User.UpdateCredit(referral);
+            }
+          })
+          .catch((err) => console.log(err));
       }
       const { privateKey, publicKey, revocationKey } = req.body
       // Call user service to find or create user
@@ -353,29 +358,23 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            const agent = useragent.parse(req.headers['user-agent']);
-            const client = useragent.parse(req.headers['internxt-client']);
-            if (client && client.source === '') {
-              client.source = 'x-cloud-mobile';
-            }
-
-            Service.Statistics.Insert({
-              name: client.source,
-              user: userData.email,
-              userAgent: agent.source,
-              action: 'register'
-            }).then(() => {
-            }).catch((err) => {
-              console.log('Error creating register statistics:', err);
-            });
+            Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
+              properties: {
+                referrer: {
+                  email: referrer.email,
+                  userId: referrer.uuid,
+                },
+                referee: {
+                  email: userData.email,
+                  userId: userData.uuid
+                }
+              }
+            } : {});
 
             // Successfull register
-            const token = passport.Sign(
-              userData.email,
-              App.config.get('secrets').JWT
-            );
+            const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
             const user = { email: userData.email };
-            res.status(200).send({ token, user });
+            res.status(200).send({ token, user, uuid: userData.uuid });
           } else {
             // This account already exists
             res.status(400).send({ message: 'This account already exists' });
@@ -409,24 +408,40 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
-    Service.User.InitializeUser(req.body).then((userData) => {
-      // Process user data and answer API call
-      if (userData.root_folder_id) {
-        // Successfull initialization
-        const user = {
-          email: userData.email,
-          mnemonic: userData.mnemonic,
-          root_folder_id: userData.root_folder_id
-        };
-        res.status(200).send({ user });
-      } else {
-        // User initialization unsuccessful
-        res.status(400).send({ message: "Your account can't be initialized" });
-      }
-    }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.send(err.message);
-    });
+    Service.User.InitializeUser(req.body)
+      .then(async (userData) => {
+        // Process user data and answer API call
+        if (userData.root_folder_id) {
+          // Successfull initialization
+          const user = {
+            email: userData.email,
+            mnemonic: userData.mnemonic,
+            root_folder_id: userData.root_folder_id,
+          };
+
+          try {
+            const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id)
+            const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id)
+            personalFolder.iconId = 1;
+            personalFolder.color = 'pink';
+            familyFolder.iconId = 18;
+            familyFolder.color = 'yellow';
+            await personalFolder.save()
+            await familyFolder.save()
+          } catch (e) {
+            Logger.error('Cannot initialize welcome folders: %s', e.message)
+          } finally {
+            res.status(200).send({ user });
+          }
+        } else {
+          // User initialization unsuccessful
+          res.status(400).send({ message: "Your account can't be initialized" });
+        }
+      })
+      .catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        res.send(err.message);
+      });
   });
 
   Router.put('/auth/mnemonic', passportAuth, (req, res) => {
@@ -472,16 +487,23 @@ module.exports = (Router, Service, Logger, App) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
       to: 'hello@internxt.com',
-      from: req.user.email,
+      from: 'hello@internxt.com',
       subject: 'New credit request',
-      text:
-        'Hello Internxt! I am ready to receive my credit for referring friends.'
+      text: 'Hello Internxt! I am ready to receive my credit for referring friends. My email is ' + req.user.email
     };
-    sgMail.send(msg).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(500).send(err);
-    });
+    if (req.user.credit > 0) {
+      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', properties: { credit: req.user.credit } })
+      sgMail
+        .send(msg)
+        .then(() => {
+          res.status(200).send({});
+        })
+        .catch((err) => {
+          res.status(500).send(err);
+        });
+    } else {
+      res.status(500).send({ error: 'No credit' })
+    }
   });
 
   Router.post('/user/invite', passportAuth, (req, res) => {
@@ -490,53 +512,34 @@ module.exports = (Router, Service, Logger, App) => {
     Service.User.FindUserObjByEmail(email).then((user) => {
       if (user === null) {
         Service.Mail.sendInvitationMail(email, req.user).then(() => {
-          Logger.info(
-            'Usuario %s envia invitación a %s',
-            req.user.email,
-            req.body.email
-          );
+          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
           res.status(200).send({});
         }).catch((err) => {
-          Logger.error(
-            'Error: Send mail from %s to %s',
-            req.user.email,
-            req.body.email
-          );
+          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
           res.status(200).send({});
         });
       } else {
-        Logger.warn(
-          'Error: Send mail from %s to %s, already registered',
-          req.user.email,
-          req.body.email
-        );
+        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
         res.status(200).send({});
       }
     }).catch((err) => {
-      Logger.error(
-        'Error: Send mail from %s to %s, SMTP error',
-        req.user.email,
-        req.body.email,
-        err.message
-      );
+      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
       res.status(200).send({});
     });
   });
 
   Router.get('/user/referred', passportAuth, (req, res) => {
-    const { uuid } = req.user;
+    const refUuid = req.user.uuid;
 
-    Service.User.FindUsersByReferred(uuid).then((users) => res.status(200).send({
-      total: users
-    })).catch((message) => {
-      Logger.error(message);
-      res.status(500).send({ error: 'No users' });
-    });
+    Service.User.FindUsersByReferred(refUuid)
+      .then((users) => res.status(200).send({ total: users })).catch((message) => {
+        Logger.error(message);
+        res.status(500).send({ error: 'No users' });
+      });
   });
 
   Router.get('/user/credit', passportAuth, (req, res) => {
     const { user } = req;
-
     return res.status(200).send({ userCredit: user.credit });
   });
 

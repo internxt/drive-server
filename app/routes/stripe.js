@@ -157,7 +157,8 @@ module.exports = (Router, Service, Logger, App) => {
             metadata: {},
             customer_email: user,
             customer: customerId,
-            billing_address_collection: 'required'
+            allow_promotion_codes: true,
+            billing_address_collection: 'required',
           };
 
           if (sessionType && sessionType === 'team') {
@@ -214,20 +215,17 @@ module.exports = (Router, Service, Logger, App) => {
             delete sessionParams.customer;
           }
 
-          stripe.checkout.sessions.create(sessionParams).then((result) => {
-              next(null, result);
-            }).catch((err) => {
-              next(err);
-
-            });
-        }
+          stripe.checkout.sessions
+            .create(sessionParams)
+            .then((result) => { next(null, result) })
+            .catch((err) => { next(err) });
+        },
       ],
       (err, result) => {
         if (err) {
           console.log('Error', err.message);
           res.status(500).send({ error: err.message });
         } else {
-          console.log('Correct', result);
           res.status(200).send(result);
         }
       }
@@ -240,13 +238,21 @@ module.exports = (Router, Service, Logger, App) => {
    * Required metadata:
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
-    const test = req.query.test || false;
-
-    Service.Stripe.getStorageProducts(test).then((products) => {
-        res.status(200).send(products);
-      }).catch((err) => {
+    const stripe = require('stripe')(
+      req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
+      { apiVersion: '2020-03-02' }
+    );
+    stripe.products.list({ limit: 100 }, (err, products) => {
+      if (err) {
         res.status(500).send({ error: err });
-      });
+      } else {
+        const productsMin = products.data
+          .filter((p) => !!p.metadata.size_bytes)
+          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
+          .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
+        res.status(200).send(productsMin);
+      }
+    });
   });
 
   Router.get('/stripe/teams/products', passportAuth, (req, res) => {
@@ -267,11 +273,27 @@ module.exports = (Router, Service, Logger, App) => {
     const stripeProduct = req.body.product;
     const test = req.body.test || false;
 
-    Service.Stripe.getStoragePlans(stripeProduct, test).then((plans) => {
-        res.status(200).send(plans);
-      }).catch((err) => {
-        res.status(500).send({ error: err });
-      });
+    stripe.plans.list(
+      {
+        product: stripeProduct,
+      },
+      (err, plans) => {
+        if (err) {
+          res.status(500).send({ error: err.message });
+        } else {
+          const plansMin = plans.data
+            .map((p) => ({
+              id: p.id,
+              price: p.amount,
+              name: p.nickname,
+              interval: p.interval,
+              interval_count: p.interval_count,
+            }))
+            .sort((a, b) => a.price * 1 - b.price * 1);
+          res.status(200).send(plansMin);
+        }
+      }
+    );
   });
 
   Router.post('/stripe/teams/plans', passportAuth, (req, res) => {

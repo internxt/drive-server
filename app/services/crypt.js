@@ -123,7 +123,8 @@ module.exports = (Model, App) => {
     return encryptName(textToEncrypt, salt);
   }
 
-  // Method to hash password. If salt is passed, use it, in other case use crypto lib for generate salt
+  // Method to hash password.
+  // If salt is passed, use it, in other case use crypto lib for generate salt
   function passToHash(passObject) {
     try {
       const salt = passObject.salt

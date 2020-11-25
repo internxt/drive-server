@@ -6,75 +6,72 @@ const SanitizeFilename = require('sanitize-filename');
 const async = require('async');
 
 const AesUtil = require('../../lib/AesUtil');
+const AnalyticsService = require('./analytics')
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const log = App.logger;
+  const analyticsService = AnalyticsService(Model, App)
 
   const CreateFile = (user, file) => new Promise(async (resolve, reject) => {
-    if (
-      !file
-        || !file.fileId
-        || !file.bucket
-        || !file.size
-        || !file.folder_id
-        || !file.name
-    ) {
+    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       return reject(new Error('Invalid metadata for new file'));
     }
 
-    return Model.folder
-      .findOne({
+    return Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: file.folder_id },
+        user_id: { [Op.eq]: user.id },
+      },
+    }).then(async (folder) => {
+      if (!folder) {
+        return reject(new Error('Folder not found / Is not your folder'));
+      }
+
+      const fileExists = await Model.file.findOne({
         where: {
-          id: { [Op.eq]: file.folder_id },
-          user_id: { [Op.eq]: user.id }
-        }
-      })
-      .then(async (folder) => {
-        if (!folder) {
-          return reject(new Error('Folder not found / Is not your folder'));
-        }
+          name: { [Op.eq]: file.name },
+          folder_id: { [Op.eq]: folder.id },
+          type: { [Op.eq]: file.type },
+        },
+      });
 
-        const fileExists = await Model.file.findOne({
-          where: {
-            name: { [Op.eq]: file.name },
-            folder_id: { [Op.eq]: folder.id },
-            type: { [Op.eq]: file.type }
-          }
+      if (fileExists) {
+        return reject(new Error('File entry already exists'));
+      }
+
+      const fileInfo = {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        folder_id: folder.id,
+        fileId: file.file_id,
+        bucket: file.bucket,
+        encrypt_version: file.encrypt_version
+      };
+
+      try {
+        AesUtil.decrypt(file.name, file.file_id);
+        fileInfo.encrypt_version = '03-aes';
+      } catch (e) {
+        (() => { })(e);
+      }
+
+      if (file.date) {
+        fileInfo.createdAt = file.date;
+      }
+
+      return Model.file
+        .create(fileInfo)
+        .then(resolve)
+        .catch((err) => {
+          console.log('Error creating entry', err);
+          reject('Unable to create file in database');
         });
-
-        if (fileExists) {
-          return reject(new Error('File entry already exists'));
-        }
-
-        const fileInfo = {
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          folder_id: folder.id,
-          fileId: file.file_id,
-          bucket: file.bucket,
-          encrypt_version: file.encrypt_version
-        };
-
-        try {
-          AesUtil.decrypt(file.name, file.file_id);
-          fileInfo.encrypt_version = '03-aes';
-        } catch (e) {}
-
-        if (file.date) {
-          fileInfo.createdAt = file.date;
-        }
-
-        return Model.file
-          .create(fileInfo)
-          .then(resolve)
-          .catch((err) => {
-            reject('Unable to create file in database');
-          });
-      })
+    })
       .catch((err) => {
+        console.log('Other error', err);
         reject(`Cannot find bucket ${file.folder_id}`);
       });
   });
@@ -94,10 +91,10 @@ module.exports = (Model, App) => {
       log.info(`Starting file upload: ${fileName}`);
 
       const rootFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: user.root_folder_id } }
+        where: { id: { [Op.eq]: user.root_folder_id } },
       });
       const folder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: folderId } }
+        where: { id: { [Op.eq]: folderId } },
       });
 
       if (!rootFolder.bucket) return reject('Missing file bucket');
@@ -105,10 +102,7 @@ module.exports = (Model, App) => {
       // Separate filename from extension
       const fileNameParts = path.parse(fileName);
 
-      let encryptedFileName = App.services.Crypt.encryptName(
-        fileNameParts.name,
-        folderId
-      );
+      let encryptedFileName = App.services.Crypt.encryptName(fileNameParts.name, folderId);
 
       const fileExt = fileNameParts.ext ? fileNameParts.ext.substring(1) : '';
 
@@ -117,8 +111,8 @@ module.exports = (Model, App) => {
         where: {
           name: { [Op.eq]: encryptedFileName },
           folder_id: { [Op.eq]: folderId },
-          type: { [Op.eq]: fileExt }
-        }
+          type: { [Op.eq]: fileExt },
+        },
       });
 
       // Change name if exists
@@ -134,10 +128,8 @@ module.exports = (Model, App) => {
       }
 
       originalEncryptedFileName = originalEncryptedFileName
-          || App.services.Crypt.encryptName(fileNameParts.name, folderId);
-      const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${
-        fileExt ? `.${fileExt}` : ''
-      }`;
+        || App.services.Crypt.encryptName(fileNameParts.name, folderId);
+      const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
       log.info('Uploading file to network');
 
       return App.services.Storj.StoreFile(
@@ -145,30 +137,35 @@ module.exports = (Model, App) => {
         rootFolder.bucket,
         originalEncryptedFileNameWithExt,
         filePath
-      )
-        .then(async ({ fileId, size }) => {
-          if (!fileId) return reject(Error('Missing file id'));
+      ).then(async ({ fileId, size }) => {
+        if (!fileId) return reject(Error('Missing file id'));
 
-          if (!size) return reject(Error('Missing file size'));
+        if (!size) return reject(Error('Missing file size'));
 
-          const newFileInfo = {
-            name: encryptedFileName,
-            type: fileExt,
-            fileId,
-            bucket: rootFolder.bucket,
-            size
-          };
+        const newFileInfo = {
+          name: encryptedFileName,
+          type: fileExt,
+          fileId,
+          bucket: rootFolder.bucket,
+          size,
+        };
 
-          try {
-            AesUtil.decrypt(encryptedFileName, folderId);
-            newFileInfo.encrypt_version = '03-aes';
-          } catch (e) {}
+        try {
+          AesUtil.decrypt(encryptedFileName, folderId);
+          newFileInfo.encrypt_version = '03-aes';
+        } catch (e) {
+          (() => { })(e);
+        }
 
-          const addedFile = await Model.file.create(newFileInfo);
+        const addedFile = await Model.file.create(newFileInfo);
+        try {
           const result = await folder.addFile(addedFile);
+        } catch (e) {
+          log.error('Cannot add file to non existent folder')
+        }
 
-          return resolve(addedFile);
-        })
+        return resolve(addedFile);
+      })
         .catch((err) => {
           log.error(err.message);
           reject(err.message);
@@ -180,35 +177,9 @@ module.exports = (Model, App) => {
     } finally {
       fs.unlink(filePath, (error) => {
         if (error) throw error;
-
         console.log(`Deleted:  ${filePath}`);
       });
     }
-  });
-
-  const isFileOfTeamFolder = (fileId) => new Promise((resolve, reject) => {
-    Model.file
-      .findOne({
-        where: {
-          file_id: { [Op.eq]: fileId }
-        },
-        include: [
-          {
-            model: Model.folder,
-            where: {
-              id_team: { [Op.ne]: null }
-            }
-          }
-        ]
-      })
-      .then((file) => {
-        if (!file) {
-          throw Error('File not found on database, please refresh');
-        }
-
-        resolve(file);
-      })
-      .catch(reject);
   });
 
   const Download = (user, fileId) => {
@@ -230,10 +201,7 @@ module.exports = (Model, App) => {
           App.services.Storj.ResolveFile(user, file)
             .then((result) => {
               resolve({
-                ...result,
-                folderId: file.folder_id,
-                name: file.name,
-                type: file.type
+                ...result, folderId: file.folder_id, name: file.name, type: file.type
               });
             })
             .catch((err) => {
@@ -252,7 +220,7 @@ module.exports = (Model, App) => {
     });
   };
 
-  const DownloadFolderFile = (user, fileId, path) => new Promise((resolve, reject) => {
+  const DownloadFolderFile = (user, fileId, localPath) => new Promise((resolve, reject) => {
     if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
     Model.file
@@ -262,7 +230,7 @@ module.exports = (Model, App) => {
           throw Error('File not found on database, please refresh');
         }
 
-        App.services.Storj.ResolveFolderFile(user, file, path)
+        App.services.Storj.ResolveFolderFile(user, file, localPath)
           .then((result) => {
             resolve({ ...result, folderId: file.folder_id });
           })
@@ -281,7 +249,7 @@ module.exports = (Model, App) => {
     App.services.Storj.DeleteFile(user, bucket, fileId)
       .then(async (result) => {
         const file = await Model.file.findOne({
-          where: { fileId: { [Op.eq]: fileId } }
+          where: { fileId: { [Op.eq]: fileId } },
         });
         if (file) {
           const isDestroyed = await file.destroy();
@@ -358,8 +326,8 @@ module.exports = (Model, App) => {
             .findOne({
               where: {
                 id: { [Op.eq]: file.folder_id },
-                user_id: { [Op.eq]: user.id }
-              }
+                user_id: { [Op.eq]: user.id },
+              },
             })
             .then((folder) => {
               if (!folder) {
@@ -385,8 +353,8 @@ module.exports = (Model, App) => {
               where: {
                 folder_id: { [Op.eq]: file.folder_id },
                 name: { [Op.eq]: cryptoFileName },
-                type: { [Op.eq]: file.type }
-              }
+                type: { [Op.eq]: file.type },
+              },
             })
             .then((duplicateFile) => {
               if (duplicateFile) {
@@ -408,7 +376,7 @@ module.exports = (Model, App) => {
           } else {
             next();
           }
-        }
+        },
       ],
       (err, result) => {
         if (err) {

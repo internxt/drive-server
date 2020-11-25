@@ -8,19 +8,6 @@ const { passportAuth } = require('../middleware/passport');
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
     const { user } = req;
-    const agent = useragent.parse(req.headers['user-agent']);
-
-    if (agent && agent.family === 'Electron') {
-      Service.Statistics.Insert({
-        name: 'X Cloud Desktop',
-        user: user.email,
-        userAgent: agent.source
-      })
-        .then(() => {})
-        .catch((err) => {
-          console.log('Error creating statistics:', err);
-        });
-    }
 
     Service.User.UpdateAccountActivity(user.email);
 
@@ -60,13 +47,11 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.delete('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
-    Service.User.UnlockSync(user)
-      .then(() => {
-        res.status(200).send();
-      })
-      .catch((err) => {
-        res.status(500).send();
-      });
+    Service.User.UnlockSync(user).then(() => {
+      res.status(200).send();
+    }).catch((err) => {
+      res.status(500).send();
+    });
   });
 
   Router.post('/storage/exists', passportAuth, (req, res) => {
@@ -83,11 +68,7 @@ module.exports = (Router, Service, Logger, App) => {
     targetPath = path.win32.normalize(targetPath);
 
     // If is a relative path, and is not ref to root folder, is an invalid path
-    if (
-      targetPath.substring(0, 1) === '.'
-      && targetPath !== '.'
-      && targetPath !== '.\\'
-    ) {
+    if (targetPath.substring(0, 1) === '.' && targetPath !== '.' && targetPath !== '.\\') {
       return res.status(501).send({ error: 'Invalid path' });
     }
 
@@ -104,117 +85,90 @@ module.exports = (Router, Service, Logger, App) => {
 
     const GetChildren = async (folderId, match) => new Promise((resolve, reject) => {
       Service.Folder.GetChildren(req.user, folderId).then((result) => {
-        async.eachSeries(
-          result,
-          (folder, nextItem) => {
-            const name = Service.Crypt.decryptName(folder.name, folderId);
-            if (name === match) {
-              folder.name = name;
-              nextItem(folder);
-            } else {
-              nextItem();
-            }
-          },
-          (err) => {
-            if (err) {
-              if (typeof err === 'object') {
-                resolve(err);
-              } else {
-                reject(err);
-              }
-            } else {
-              reject();
-            }
+        async.eachSeries(result, (folder, nextItem) => {
+          const name = Service.Crypt.decryptName(folder.name, folderId);
+          if (name === match) {
+            folder.name = name;
+            nextItem(folder);
+          } else {
+            nextItem();
           }
-        );
+        }, (err) => {
+          if (err) {
+            if (typeof err === 'object') { resolve(err); } else { reject(err); }
+          } else {
+            reject();
+          }
+        });
       });
     });
 
-    const GetFiles = async (folderId, match) =>
-      // console.log('GET FILES')
-      new Promise((resolve, reject) => {
-        Service.Folder.GetContent(folderId, req.user).then((result) => {
-          async.eachSeries(
-            result.files,
-            (file, nextFile) => {
-              const fileName = file.name + (file.type ? `.${file.type}` : '');
-              if (fileName === match) {
-                nextFile(file);
-              } else {
-                // console.log('No match %s', fileName)
-                nextFile();
-              }
-            },
-            (err) => {
-              if (err) {
-                if (typeof err === 'object') {
-                  resolve(err);
-                } else {
-                  reject(err);
-                }
-              } else {
-                reject();
-              }
-            }
-          );
+    const GetFiles = async (folderId, match) => new Promise((resolve, reject) => {
+      Service.Folder.GetContent(folderId, req.user).then((result) => {
+        async.eachSeries(result.files, (file, nextFile) => {
+          const fileName = file.name + (file.type ? `.${file.type}` : '');
+          if (fileName === match) {
+            nextFile(file);
+          } else {
+            // console.log('No match %s', fileName)
+            nextFile();
+          }
+        }, (err) => {
+          if (err) {
+            if (typeof err === 'object') { resolve(err); } else { reject(err); }
+          } else {
+            reject();
+          }
         });
       });
+    });
+
     let lastFolderId = rootFolderId;
     let i = 0;
     const pathResults = [];
-    async.eachSeries(
-      splitted,
-      (targetFolder, nextFolder) => {
-        // console.log('Searching for %s on folder %s', targetFolder, lastFolderId)
-        const isLastElement = i === splitted.length - 1;
-        i++;
 
-        (!isLastElement || !findFile)
-          && GetChildren(lastFolderId, targetFolder)
-            .then((result) => {
+    return async.eachSeries(splitted, (targetFolder, nextFolder) => {
+      // console.log('Searching for %s on folder %s', targetFolder, lastFolderId)
+      const isLastElement = i === splitted.length - 1;
+      i += 1;
+
+      if (!isLastElement || !findFile) {
+        GetChildren(lastFolderId, targetFolder).then((result) => {
+          lastFolderId = result.id;
+          result.isFile = false;
+          pathResults.push(result);
+          nextFolder();
+        }).catch((err) => {
+          if (mkdirp) {
+            Service.Folder.Create(req.user, targetFolder, lastFolderId).then((result) => {
               lastFolderId = result.id;
-              result.isFile = false;
-              pathResults.push(result);
               nextFolder();
-            })
-            .catch((err) => {
-              if (mkdirp) {
-                Service.Folder.Create(req.user, targetFolder, lastFolderId)
-                  .then((result) => {
-                    lastFolderId = result.id;
-                    nextFolder();
-                  })
-                  .catch((err) => {
-                    nextFolder(err);
-                  });
-              } else {
-                nextFolder(Error('Folder does not exists'));
-              }
+            }).catch((err1) => {
+              nextFolder(err1);
             });
-
-        isLastElement
-          && findFile
-          && GetFiles(lastFolderId, targetFolder)
-            .then((result) => {
-              result.dataValues.isFile = true;
-              pathResults.push(result);
-              nextFolder();
-            })
-            .catch((err) => {
-              nextFolder(Error('File does not exists'));
-            });
-      },
-      (err) => {
-        // console.log('FIN')
-        if (err) {
-          res.status(501).send({ error: err.message });
-        } else {
-          // console.log(pathResults)
-          res
-            .status(200)
-            .send({ result: 'ok', isRoot: false, path: pathResults });
-        }
+          } else {
+            nextFolder(Error('Folder does not exists'));
+          }
+        });
       }
-    );
+
+      if (isLastElement && findFile) {
+        GetFiles(lastFolderId, targetFolder).then((result) => {
+          result.dataValues.isFile = true;
+          pathResults.push(result);
+          nextFolder();
+        }).catch((err) => {
+          nextFolder(Error('File does not exists'));
+        });
+      }
+    }, (err) => {
+      // console.log('FIN')
+      if (err) {
+        res.status(501).send({ error: err.message });
+      } else {
+        // console.log(pathResults)
+        res.status(200).send({ result: 'ok', isRoot: false, path: pathResults });
+      }
+    });
   });
 };

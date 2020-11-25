@@ -444,6 +444,13 @@ module.exports = (Model, App) => {
             .update(newMeta)
             .then((result) => next(null, result))
             .catch(next);
+        },
+      ],
+      (err, result) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(result);
         }
       ],
       (err, result) => {

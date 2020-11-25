@@ -14,6 +14,7 @@
     "plugin:import/warnings",
     "plugin:node/recommended"
   ],
+  "plugins": [],
   "env": {
     "node": true,
     "commonjs": true,
