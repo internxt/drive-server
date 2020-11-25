@@ -30,14 +30,14 @@ module.exports = (sequelize, DataTypes) => {
             },
             encrypt_version: {
                 type: DataTypes.STRING
-              }
+            }
         },
         {
             timestamps: true,
             underscored: true,
             freezeTableName: true,
 
-          },
+        },
     );
 
     return keyserver;
