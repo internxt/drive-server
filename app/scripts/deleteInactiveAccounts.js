@@ -109,9 +109,6 @@ const init = () => {
             if (user.root_folder_id) {
               getBucket(user.root_folder_id)
                 .then((bucketId) => {
-                  console.log('kkkkkkkkkkkkk');
-                  console.log(bucketId);
-
                   deleteRootBucket(user, bucketId)
                     .then((res) => {
                       console.log(res);

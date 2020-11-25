@@ -84,7 +84,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     const totalUsers = await Service.TeamsMembers.getPeople(idTeam)
     const plans = await Service.Team.getPlans(user)
-    console.log('plans', plans)
 
     if (totalUsers.length >= 10 && plans.maxSpaceBytes == '214748364800') {
       return res.status(500).send({ error: 'No puedes invitar a mas' })
@@ -128,7 +127,6 @@ module.exports = (Router, Service, Logger, App) => {
                 })
               }).catch((err) => {
                 Logger.error('Error: Send invitation mail from %s to %s 3', req.user.email, req.body.email)
-                console.log(err)
                 res.status(500).send({})
               })
             }).catch(err => {
@@ -139,7 +137,6 @@ module.exports = (Router, Service, Logger, App) => {
         })
       }).catch(err => {
         Logger.error('The user %s not have a public key', email)
-        console.log(err)
         res.status(500).send({})
       })
     }).catch(err => {
@@ -190,35 +187,6 @@ Router.post('/teams/join/:token', (req, res) => {
 
 });
 
-Router.delete('/teams-members/', passportAuth, (req, res) => {
-  const { members } = req.body;
-  const { idTeam } = req.body;
-  const { user } = req;
-
-  Service.Team.getTeamByIdUser(user.email)
-    .then((team) => {
-      if (idTeam == team.id) {
-        Service.TeamsMembers.remove(members, team.id)
-          .then(() => {
-            Service.TeamInvitations.remove(members[0])
-              .then(() => {
-                res.status(200).json({ message: 'team member removed' });
-              })
-              .catch((err) => {
-                res.status(500).json({ error: err });
-              });
-          })
-          .catch((err) => {
-            res.status(500).json({ error: err });
-          });
-      } else {
-        res.status(500).json({ error: "it's not your team" });
-      }
-    })
-    .catch((err) => {
-      res.status(500).json({ error: "it's not your team" });
-    });
-});
 
 Router.get('/teams-members/:user', passportAuth, (req, res) => {
   const userEmail = req.params.user;
@@ -237,8 +205,8 @@ Router.get('/teams-members/:user', passportAuth, (req, res) => {
 
 Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
   const { idTeam } = req.params;
-  const {user} = req.user.email
   const members = await Service.TeamsMembers.getPeople(idTeam);
+  const admin = await Service.Team.getTeamByIdUser(req.user.email)
   res.status(200).send(members)
 });
 
@@ -255,16 +223,12 @@ Router.delete('/teams/member', passportAuth, (req, res) => {
       Service.TeamsMembers.removeMembers(removeUser).then(() => {
         res.status(200).send({ info: 'The user is removed ' })
       }).catch((err) => {
-        console.log(err)
         res.status(500).json({ error: err });
       });
     } else {
-      console.log(err)
       res.status(500).send({ info: 'You not have permissions 1' })
     }
   }).catch((err) => {
-    console.log(err)
-
     res.status(500).send({ info: 'You not have permissions 2' })
   });
 
@@ -280,28 +244,38 @@ Router.delete('/teams/invitation', passportAuth, (req, res) => {
       Service.TeamInvitations.removeInvitations(removeUser).then(() => {
         res.status(200).send({ info: 'The user is removed ' })
       }).catch((err) => {
-        console.log(err)
         res.status(500).json({ error: err });
       });
     } else {
-      console.log(err)
       res.status(500).send({ info: 'You not have permissions' })
     }
   }).catch((err) => {
-    console.log(err)
     res.status(500).send({ info: 'You not have permissions' })
   });
 });
 
 Router.get('/deactivateTeam', passportAuth, (req, res) => {
   const user = req.user.email;
-
-  Service.User.DeactivateUser(user)
+  Service.Team.DeactivateTeam(user)
     .then((bridgeRes) => {
       res.status(200).send({ error: null, message: 'User deactivated' });
     })
     .catch((err) => {
       res.status(500).send({ error: err.message });
+    });
+});
+
+Router.get('/confirmDeactivationTeam/:token', (req, res) => {
+  const { token } = req.params;
+  console.log('TOKEN ROUTE',token)
+
+  Service.Team.ConfirmDeactivateTeam(token)
+    .then((resConfirm) => {
+      res.status(resConfirm.status).send(req.data);
+    })
+    .catch((err) => {
+      console.log('Deactivation request to Server failed');
+      res.status(400).send({ error: err.message });
     });
 });
 

@@ -24,20 +24,6 @@ module.exports = (Model, App) => {
     });
   };
 
-  const remove = (user) => new Promise((resolve, reject) => {
-    Model.team_invitations
-      .destroy({
-        where: {
-          user: { [Op.eq]: user }
-        }
-      })
-      .then(() => {
-        resolve();
-      })
-      .catch((err) => {
-        reject(err);
-      });
-  });
 
   const getByToken = (token) => {
     return new Promise((resolve, reject) => {
@@ -65,25 +51,6 @@ module.exports = (Model, App) => {
       Model.team_invitations
         .findOne({
           where: { id: { [Op.eq]: idInvitation } },
-        })
-        .then((invitation) => {
-          if (invitation) {
-            resolve(invitation);
-          } else {
-            reject('Team invitation does not exists');
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          reject('Error querying database');
-        });
-    });
-  }
-
-  const getinvitationsidTeam = (idTeam) => {
-    return new Promise((resolve, reject) => {
-      Model.team_invitations.findOne({
-          where: { id_team: { [Op.eq]: idTeam } },
         })
         .then((invitation) => {
           if (invitation) {
@@ -138,14 +105,10 @@ module.exports = (Model, App) => {
   return {
     Name: 'TeamInvitations',
     save,
-    remove,
     getByToken,
     getTeamInvitationByIdUser,
     getTeamInvitationById,
     removeInvitations,
-    getinvitationsidTeam
-    
-   
     
   };
 };

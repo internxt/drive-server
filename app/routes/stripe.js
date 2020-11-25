@@ -227,7 +227,7 @@ module.exports = (Router, Service, Logger, App) => {
           console.log('Error', err.message);
           res.status(500).send({ error: err.message });
         } else {
-          console.log('Correcto', result);
+          console.log('Correct', result);
           res.status(200).send(result);
         }
       }

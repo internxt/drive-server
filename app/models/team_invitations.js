@@ -1,4 +1,3 @@
-const { mnemonicToEntropy } = require("bip39");
 
 module.exports = (sequelize, DataTypes) => {
   const TeamInvitations = sequelize.define(

@@ -124,7 +124,6 @@ module.exports = (Router, Service, Logger, App) => {
     const revocationKey = req.body.revocationKey;
 
     Service.User.FindUserByEmail(email).then((user) => {
-      console.log(user)
       Service.Keyserver.addKeysLogin(user, publicKey, privateKey, revocationKey).then((userKey) => {
 
       }).catch((err) => {
@@ -342,7 +341,6 @@ module.exports = (Router, Service, Logger, App) => {
         await Service.User.FindUserByUuid(referral).then((userData) => {
           if (userData === null) {
             // Don't exists referral user
-            console.log('No existe la uuid de referencia');
           } else {
             newUser.credit = 5;
             Service.User.UpdateCredit(referral);
@@ -353,7 +351,6 @@ module.exports = (Router, Service, Logger, App) => {
       // Call user service to find or create user
       Service.User.FindOrCreate(newUser)
         .then((userData) => {
-          console.log(userData)
           // Process user data and answer API call
           if (userData.isCreated) {
             const agent = useragent.parse(req.headers['user-agent']);
@@ -548,7 +545,6 @@ module.exports = (Router, Service, Logger, App) => {
     const user = req.params.user
     Service.User.FindUserByEmail(user).then((userKeys) => {
       Service.Keyserver.keysExists(userKeys).then((keys) => {
-        console.log('aqui si')
         res.status(200).send({ publicKey: keys.public_key })
       }).catch(async (err) => {
         const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({

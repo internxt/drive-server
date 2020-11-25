@@ -1,8 +1,6 @@
-const crypto = require('crypto');
 
 const async = require('async');
 const sequelize = require('sequelize');
-const fetch = require('node-fetch');
 const InternxtMailer = require('storj-service-mailer');
 const teams_members = require('./../models/teams_members');
 const teams = require('./../routes/teams');
@@ -12,32 +10,6 @@ const _ = require('lodash')
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const CryptService = require('./crypt')(Model, App);
-
-  const remove = (members) => {
-    return new Promise((resolve, reject) => {
-      async.eachSeries(members, (member, next) => {
-        if (member) {
-          Model.teams_members.destroy({
-            where: {
-              user: { [Op.eq]: member },
-            }
-          }).then((removedTeamMember) => {
-            next();
-          }).catch((err) => {
-            next('Unable to create new teams members on db');
-          });
-        } else {
-          next();
-        }
-      },
-        (err) => {
-          err ? reject(err) : resolve();
-        }
-      );
-    });
-  };
-
 
   const removeMembers = (member) => {
     return new Promise((resolve, reject) => {
@@ -83,6 +55,20 @@ module.exports = (Model, App) => {
       });
     });
   }
+  const getTeamsAdminById = (idTeam) => new Promise((resolve, reject) => {
+    Model.teams
+      .findOne({
+        where: { id: { [Op.eq]: idTeam } }
+      })
+      .then((team) => {
+        resolve(team);
+      })
+      .catch((err) => {
+        console.error(err);
+        reject('Error querying database');
+      });
+  });
+
 
   const getMembersByIdTeam = (idTeam) => {
     return new Promise((resolve, reject) => {
@@ -126,10 +112,12 @@ module.exports = (Model, App) => {
     const result = []
     const members = await getMembersByIdTeam(idTeam)
     const invitations = await getInvitationsByIdTeam(idTeam)
+    const admin = await getTeamsAdminById(idTeam)
+    _.remove(members, function(member) {
+      return member.dataValues.user == admin.dataValues.admin; 
+  })
     members.forEach(m => result.push({ isMember: true, isInvitation: false, user: m.user }))
     invitations.forEach(m => result.push({ isMember: false, isInvitation: true, user: m.user }))
-    console.log(result)
-    console.log(typeof result)
     return result
   }
 
@@ -164,7 +152,6 @@ module.exports = (Model, App) => {
           user: { [Op.eq]: userEmail },
         }
       }).then((teamMember) => {
-        console.log(teamMember)
         if (teamMember) {
           reject();
         }
@@ -211,7 +198,6 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'TeamsMembers',
-    remove,
     getMembersByIdTeam,
     addTeamMember,
     saveMembersFromInvitations,
@@ -219,6 +205,7 @@ module.exports = (Model, App) => {
     getMemberByIdTeam,
     getInvitationsByIdTeam,
     getPeople,
-    removeMembers
+    removeMembers,
+    getTeamsAdminById
   };
 };

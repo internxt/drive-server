@@ -67,10 +67,8 @@ module.exports = (Model, App) => {
           
         }, (err) => {   
         if (!err) {
-          console.log(member);
           resolve(`Mail team's invitation send to ${member}!`);
           Logger.info("Teams: Team invitation mail sent to", member);
-          console.log(member);
         } else {
           reject(`Error sending mail team's invitation to ${member}`);
         }

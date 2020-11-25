@@ -71,12 +71,10 @@ module.exports = (Model, App) => {
           .create(fileInfo)
           .then(resolve)
           .catch((err) => {
-            console.log('Error creating entry', err);
             reject('Unable to create file in database');
           });
       })
       .catch((err) => {
-        console.log('Other error', err);
         reject(`Cannot find bucket ${file.folder_id}`);
       });
   });

@@ -102,7 +102,6 @@ module.exports = (Model, App) => {
       return new Error('Folder does not exists');
     }
 
-    console.log(folder.id);
     if (folder.id === user.root_folder_id) {
       return new Error('Cannot delete root folder');
     }

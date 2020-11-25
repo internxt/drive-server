@@ -92,7 +92,6 @@ module.exports = (Router, Service, Logger, App) => {
       })
       .catch((err) => {
         console.log('Deactivation request to Server failed');
-        console.log(err);
         res.status(400).send({ error: err.message });
       });
   });
