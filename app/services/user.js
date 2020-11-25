@@ -6,13 +6,6 @@ const { Sequelize } = require('sequelize');
 const { keys } = require('lodash');
 const Analytics = require('./analytics')
 const crypto = require('crypto-js');
-
-<<<<<<<
-
-
-=======
-
->>>>>>>
 const { Op } = sequelize;
 
 const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
@@ -23,27 +16,15 @@ module.exports = (Model, App) => {
   const analytics = Analytics(Model, App);
 
   const FindOrCreate = (user) => {
-<<<<<<<
-
-=======
-
->>>>>>>
     // Create password hashed pass only when a pass is given
     const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
     const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
-<<<<<<<
-
-
-=======
-
->>>>>>>
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
       throw new Error('Wrong user registration data');
     }
 
-<<<<<<<
     return Model.users.sequelize.transaction(async (t) =>
       Model.users
         .findOrCreate({
@@ -55,9 +36,10 @@ module.exports = (Model, App) => {
             mnemonic: user.mnemonic,
             hKey: userSalt,
             referral: user.referral,
-            uuid: uuid.v4(),
+            uuid: null,
             referred: user.referred,
-            credit: user.credit
+            credit: user.credit,
+            welcomePack: true
           },
           transaction: t
         })
@@ -79,64 +61,25 @@ module.exports = (Model, App) => {
             }
 
             // Create bridge pass using email (because id is unconsistent)
-            const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
-=======
-    return Model.users.sequelize.transaction(async (t) => Model.users
-      .findOrCreate({
-        where: { email: user.email },
-        defaults: {
-          name: user.name,
-          lastname: user.lastname,
-          password: userPass,
-          mnemonic: user.mnemonic,
-          hKey: userSalt,
-          referral: user.referral,
-          uuid: null,
-          referred: user.referred,
-          credit: user.credit,
-          welcomePack: true
-        },
-        transaction: t,
-      })
-      .spread(async (userResult, created) => {
-        if (created) {
-          // Create bridge pass using email (because id is unconsistent)
-          const bcryptId = await App.services.Storj.IdToBcrypt(
-            userResult.email
-          );
-
-          const bridgeUser = await App.services.Storj.RegisterBridgeUser(
-            userResult.email,
-            bcryptId
-          );
-
-          if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
-            throw Error(bridgeUser.response.data.error);
-          }
->>>>>>>
+            const bcryptId = await App.services.Storj.IdToBcrypt(
+              userResult.email
+            );
+  
+            const bridgeUser = await App.services.Storj.RegisterBridgeUser(
+              userResult.email,
+              bcryptId
+            );
+  
+            if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
+              throw Error(bridgeUser.response.data.error);
+            }
 
           if (!bridgeUser.data) {
             throw new Error('Error creating bridge user');
           }
 
-<<<<<<<
-            if (
-              bridgeUser
-              && bridgeUser.response
-              && bridgeUser.response.status === 500
-            ) {
-              throw Error(bridgeUser.response.data.error);
-            }
-=======
           Logger.info('User Service | created brigde user: %s', userResult.email);
->>>>>>>
 
-<<<<<<<
-
-            if (!bridgeUser.data) {
-              throw new Error('Error creating bridge user');
-            }
-=======
           const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
           // Store bcryptid on user register
           await userResult.update({
@@ -144,7 +87,6 @@ module.exports = (Model, App) => {
             isFreeTier: freeTier,
             uuid: bridgeUser.data.uuid
           }, { transaction: t });
->>>>>>>
 
           // Set created flag for Frontend management
           Object.assign(userResult, { isCreated: created });
@@ -161,16 +103,9 @@ module.exports = (Model, App) => {
           Logger.error(err.stack);
         }
 
-<<<<<<<
-            // Set created flag for Frontend management
-            Object.assign(userResult, { isCreated: created });
-
-          }
-=======
         throw new Error(err);
       })); // end transaction
   };
->>>>>>>
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
     .findOne({ where: { email: { [Op.eq]: user.email } } })
@@ -178,101 +113,36 @@ module.exports = (Model, App) => {
       if (userData.root_folder_id) {
         userData.mnemonic = user.mnemonic;
 
-<<<<<<<
-          throw new Error(err);
-        })
-
-    ); // end transaction
-  };
-=======
         return userData;
       }
->>>>>>>
 
-<<<<<<<
-  const InitializeUser = (user) => Model.users.sequelize.transaction((t) =>
-=======
       const rootBucket = await App.services.Storj.CreateBucket(userData.email, userData.userId, user.mnemonic);
       Logger.info('User init | root bucket created %s', rootBucket.name);
->>>>>>>
 
-<<<<<<<
-    Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
-      if (userData.root_folder_id) {
-        userData.mnemonic = user.mnemonic;
-=======
       const rootFolderName = await App.services.Crypt.encryptName(`${rootBucket.name}`);
->>>>>>>
 
-<<<<<<<
-        return userData;
-      }
-      const rootBucket = await App.services.Storj.CreateBucket(
-        userData.email,
-        userData.userId,
-        user.mnemonic
-      );
-      Logger.info('User init | root bucket created %s', rootBucket.name);
-=======
       const rootFolder = await userData.createFolder({ name: rootFolderName, bucket: rootBucket.id });
->>>>>>>
 
-<<<<<<<
-      const rootFolderName = await App.services.Crypt.encryptName(
-        `${rootBucket.name}`
-      );
-=======
       Logger.info('User init | root folder created, id: %s', rootFolder.id);
->>>>>>>
 
-<<<<<<<
-      const rootFolder = await userData.createFolder({
-        name: rootFolderName,
-        bucket: rootBucket.id
-      });
-      Logger.info('User init | root folder created, mysql id:', rootFolder.id);
-=======
       // Update user register with root folder Id
       await userData.update(
         { root_folder_id: rootFolder.id },
         { transaction: t }
       );
->>>>>>>
 
-<<<<<<<
-      // Update user register with root folder Id
-      await userData.update(
-        { root_folder_id: rootFolder.id },
-        { transaction: t }
-      );
-=======
-      // Set decrypted mnemonic to returning object
-      const updatedUser = userData;
-      updatedUser.mnemonic = user.mnemonic;
->>>>>>>
-
-<<<<<<<
       // Set decrypted mnemonic to returning object
       const updatedUser = userData;
       updatedUser.mnemonic = user.mnemonic;
       updatedUser.root_folder_id = rootFolder.id;
-=======
+
       return updatedUser;
     })
     .catch((error) => {
       Logger.error(error.stack);
       throw new Error(error);
     }));
->>>>>>>
 
-<<<<<<<
-      return updatedUser;
-    })
-      .catch((error) => {
-        Logger.error(error.stack);
-        throw new Error(error);
-      }));
-=======
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => Model.users
     .findOne({ where: { email: { [Op.eq]: email } } })
@@ -309,32 +179,13 @@ module.exports = (Model, App) => {
       })
       .catch((err) => reject(err));
   });
->>>>>>>
 
-<<<<<<<
-  // Get an email and option (true/false) and set storeMnemonic option for user with this email
-  const UpdateStorageOption = (email, option) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } })
-    .then((userData) => {
-      if (userData) {
-        return userData.update({ storeMnemonic: option });
-      }
-=======
   const FindUserByUuid = (userUuid) => Model.users.findOne({
     where: {
       uuid: { [Op.eq]: userUuid }
     }
   });
->>>>>>>
 
-<<<<<<<
-      throw new Error('UpdateStorageOption: User not found');
-    })
-    .catch((error) => {
-      Logger.error(error.stack);
-      throw new Error(error);
-    });
-=======
   const FindUsersByReferred = (referredUuid) => new Promise((resolve, reject) => {
     Model.users
       .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
@@ -349,70 +200,19 @@ module.exports = (Model, App) => {
       email: { [Op.eq]: email }
     }
   });
->>>>>>>
 
-<<<<<<<
-  const GetUserById = (id) => Model.users.findOne({ where: { id: { [Op.eq]: id } } }).then((response) => response.dataValues);
-=======
   const GetUserCredit = (userUuid) => Model.users.findOne({
     where: {
       uuid: { [Op.eq]: userUuid }
     }
   }).then((response) => response.dataValues);
->>>>>>>
 
-<<<<<<<
-  const FindUserByEmail = (email) => {
-    return new Promise((resolve, reject) => {
-      Model.users.findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
-        if (userData) {
-          const user = userData.dataValues;
-          if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-          resolve(user);
-        } else {
-          reject('User not found on X Cloud database');
-        }
-      })
-        .catch((err) => reject(err));
-    });
-  };
-=======
   const GetUsersRootFolder = (id) => Model.users
     .findAll({
       include: [Model.folder],
     })
     .then((user) => user.dataValues);
->>>>>>>
 
-<<<<<<<
-  const FindUserByUuid = (uuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: uuid } } });
-
-  const FindUsersByReferred = (referredUuid) => new Promise((resolve, reject) => {
-    Model.users
-      .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
-      .then((response) => {
-        resolve(response);
-      })
-      .catch((err) => reject(err));
-  });
-
-  const FindUserObjByEmail = (email) => {
-    return Model.users.findOne({ where: { email: { [Op.eq]: email } } });
-  }
-
-  const GetUserCredit = (uuid) => Model.users
-    .findOne({ where: { uuid: { [Op.eq]: uuid } } })
-    .then((response) => response.dataValues);
-
-  const GetUsersRootFolder = (id) => Model.users
-    .findAll({
-      include: [Model.folder]
-    })
-    .then((user) => user.dataValues);
-
-=======
-
->>>>>>>
   const UpdateMnemonic = async (userEmail, mnemonic) => {
     const found = FindUserByEmail(userEmail);
     if (found) {
@@ -431,12 +231,6 @@ module.exports = (Model, App) => {
     }
   };
 
-<<<<<<<
-  const UpdateCredit = async (userUuid) => await Model.users.update(
-    { credit: Sequelize.literal('credit + 5') },
-    { where: { uuid: { [Op.eq]: userUuid } } }
-  );
-=======
   const UpdateCredit = (userUuid) => {
     // Logger.info("€5 added to ", referral);
     Logger.info('€5 added to user with UUID %s', userUuid);
@@ -446,14 +240,7 @@ module.exports = (Model, App) => {
       { where: { uuid: { [Op.eq]: userUuid } } }
     );
   };
->>>>>>>
 
-<<<<<<<
-  const DecrementCredit = async (userUuid) => await Model.users.update(
-    { credit: Sequelize.literal('credit - 5') },
-    { where: { uuid: { [Op.eq]: userUuid } } }
-  );
-=======
   const DecrementCredit = (userUuid) => {
     Logger.info('€5 decremented to user with UUID %s', userUuid);
 
@@ -462,7 +249,6 @@ module.exports = (Model, App) => {
       { where: { uuid: { [Op.eq]: userUuid } } }
     );
   };
->>>>>>>
 
   const DeactivateUser = (email) => new Promise(async (resolve, reject) => {
     const shouldSend = await ShouldSendEmail(email);
@@ -475,60 +261,6 @@ module.exports = (Model, App) => {
 
     SetEmailSended(email);
 
-<<<<<<<
-    Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } })
-      .then((user) => {
-        const crypto = require('crypto-js');
-        const password = crypto.SHA256(user.userId).toString();
-        const auth = Buffer.from(`${user.email}:${password}`).toString(
-          'base64'
-        );
-
-        axios.delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/json'
-          }
-        })
-          .then((data) => {
-            resolve(data);
-          })
-          .catch((err) => {
-            Logger.warn(err.response.data);
-            reject(err);
-          });
-      })
-      .catch(reject);
-  });
-
-  const ConfirmDeactivateUser = (token) => new Promise((resolve, reject) => {
-    async.waterfall(
-      [
-        (next) => {
-          axios
-            .get(
-              `${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-              {
-                headers: { 'Content-Type': 'application/json' }
-              }
-            )
-            .then((res) => {
-              console.log('User deleted from bridge');
-              next(null, res);
-            })
-            .catch((err) => {
-              console.log('Error user deleted from bridge');
-              next(err);
-            });
-        },
-        (data, next) => {
-          const userEmail = data.data.email;
-          Model.users
-            .findOne({ where: { email: { [Op.eq]: userEmail } } })
-            .then((user) => {
-              console.log('User found on sql');
-=======
     return Model.users
       .findOne({ where: { email: { [Op.eq]: email } } })
       .then((user) => {
@@ -536,28 +268,7 @@ module.exports = (Model, App) => {
         const auth = Buffer.from(`${user.email}:${password}`).toString(
           'base64'
         );
->>>>>>>
 
-<<<<<<<
-              const referralUuid = user.referral;
-              if (uuid.validate(referralUuid)) {
-                DecrementCredit(referralUuid);
-                console.log('referral decremented');
-              }
-
-              user
-                .destroy()
-                .then((result) => {
-                  console.log('User deleted on sql', userEmail);
-                  next(null, data);
-                })
-                .catch((err) => {
-                  console.log('Error deleting user on sql');
-                  next(err);
-                });
-            })
-            .catch(next);
-=======
         axios
           .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
             headers: {
@@ -627,55 +338,18 @@ module.exports = (Model, App) => {
           reject(err);
         } else {
           resolve(result);
->>>>>>>
-        }
-<<<<<<<
-      ],
-      (err, result) => {
-        if (err) {
-          console.log('Error waterfall', err);
-          reject(err);
-        } else {
-          resolve(result);
         }
       }
     );
   });
-=======
-      }
-    );
-  });
->>>>>>>
 
-<<<<<<<
-  const ResetPassword = (email) =>
-    //  Reset password should check ShouldSendEmail
-    new Promise((resolve, reject) => {
-      Model.user
-        .findOne({ where: { email: { [Op.eq]: email } } })
-        .then((user) => {
-          const crypto = require('crypto-js');
-          const password = crypto.SHA256(user.userId).toString();
-          const auth = Buffer.from(`${user.email}:${password}`).toString(
-            'base64'
-          );
-=======
   const Store2FA = (user, key) => new Promise((resolve, reject) => {
     Model.users
       .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } })
       .then(resolve)
       .catch(reject);
   });
->>>>>>>
 
-<<<<<<<
-          axios
-            .patch(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-              headers: {
-                Authorization: `Basic ${auth}`,
-                'Content-Type': 'application/json'
-              }
-=======
   const Delete2FA = (user) => new Promise((resolve, reject) => {
     Model.users
       .update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } })
@@ -702,17 +376,11 @@ module.exports = (Model, App) => {
             .then((res) => {
               Logger.info('Updated', res);
               resolve();
->>>>>>>
             })
             .catch((err) => {
               Logger.error('error updating', err);
               reject({ error: 'Error updating info' });
             });
-<<<<<<<
-        })
-        .catch(reject);
-    });
-=======
         }
       })
       .catch((err) => {
@@ -720,34 +388,13 @@ module.exports = (Model, App) => {
         reject({ error: 'Internal server error' });
       });
   });
->>>>>>>
 
-<<<<<<<
-  const ConfirmResetPassword = (email, token, newPassword) => new Promise((resolve, reject) => {
-    axios
-      .post(`${App.config.get('STORJ_BRIDGE')}/resets/${token}`, {
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword })
-      })
-      .then(resolve)
-      .catch(reject);
-  });
-=======
   const LoginFailed = (user, loginFailed) => new Promise((resolve, reject) => {
     Model.users.update({
       errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0,
     }, { where: { email: user } }).then((res) => resolve()).catch(reject);
   });
->>>>>>>
 
-<<<<<<<
-  const Store2FA = (user, key) => new Promise((resolve, reject) => {
-    Model.users
-      .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } })
-      .then(resolve)
-      .catch(reject);
-  });
-=======
   const ShouldSendEmail = (email) => new Promise((resolve, reject) => {
     Model.users.findOne({ where: { email: { [Op.eq]: email } } })
       .then((user) => {
@@ -757,159 +404,32 @@ module.exports = (Model, App) => {
         if (!user.lastResend) {
           return resolve(true); // Field is null, send email
         }
->>>>>>>
 
-<<<<<<<
-  const Delete2FA = (user) => new Promise((resolve, reject) => {
-    Model.users
-      .update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } })
-      .then(resolve)
-      .catch(reject);
-  });
-=======
         const dateDiff = new Date() - user.lastResend;
->>>>>>>
 
-<<<<<<<
-  const UpdatePasswordMnemonic = (
-    user,
-    currentPassword,
-    newPassword,
-    newSalt,
-    mnemonic
-  ) => new Promise((resolve, reject) => {
-    FindUserByEmail(user)
-      .then((userData) => {
-        console.log('Found on database');
-=======
         return resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL);
       }).catch(reject);
   });
->>>>>>>
 
-<<<<<<<
-        const storedPassword = userData.password.toString();
-
-        if (storedPassword !== currentPassword) {
-          console.log('Invalid password');
-          reject({ error: 'Invalid password' });
-        } else {
-          console.log('Valid password');
-
-          resolve();
-
-          Model.users
-            .update(
-              {
-                password: newPassword,
-                mnemonic,
-                hKey: newSalt
-              },
-              { where: { email: { [Op.eq]: user } } }
-            )
-            .then((res) => {
-              console.log('Updated', res);
-              resolve();
-            })
-            .catch((err) => {
-              console.log('error updating', err);
-              reject({ error: 'Error updating info' });
-            });
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        reject({ error: 'Internal server error' });
-      });
-  });
-=======
   const SetEmailSended = (email) => Model.users.update({
     lastResend: new Date()
   }, { where: { email: { [Op.eq]: email } } });
->>>>>>>
 
-<<<<<<<
-  const LoginFailed = (user, loginFailed) => new Promise((resolve, reject) => {
-    Model.users
-      .update(
-        {
-          errorLoginCount: loginFailed
-            ? sequelize.literal('error_login_count + 1')
-            : 0
-        },
-        { where: { email: user } }
-      )
-      .then((res) => resolve())
-      .catch(reject);
-  });
-=======
   const ResendActivationEmail = async (user) => {
     const shouldSend = await ShouldSendEmail(user);
     if (shouldSend) {
       return resolve(); // noop
     }
->>>>>>>
-
-<<<<<<<
-  const ShouldSendEmail = (email) => new Promise((resolve, reject) => {
-    Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } })
-      .then((user) => {
-        if (!user.lastResend) {
-          return resolve(true); // Field is null, send email
-        }
-=======
-    SetEmailSended(user);
->>>>>>>
-
-<<<<<<<
-        const dateDiff = new Date() - user.lastResend;
-        resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL);
-      })
-      .catch(reject);
-  });
-
-  const SetEmailSended = (email) => Model.users.update(
-    {
-      lastResend: new Date()
-    },
-    { where: { email: { [Op.eq]: email } } }
-  );
-
-  const ResendActivationEmail = (user) => new Promise(async (resolve, reject) => {
-    const shouldSend = await ShouldSendEmail(user);
-    if (shouldSend) {
-      return resolve(); // noop
-    }
 
     SetEmailSended(user);
-    axios
-      .post(`${process.env.STORJ_BRIDGE}/activations`, {
-        email: user
-      })
-      .then((res) => resolve())
-      .catch(reject);
-  });
-=======
+
     return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user })
   };
->>>>>>>
 
-<<<<<<<
-  const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
-    Model.users
-      .update({ updated_at: new Date() }, { where: { email: user } })
-      .then((res) => {
-        resolve();
-      })
-      .catch(reject);
-  });
-=======
   const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
     Model.users.update({ updated_at: new Date() }, { where: { email: user } })
       .then((res) => { resolve(); }).catch(reject);
   });
->>>>>>>
 
   const getSyncDate = () => {
     let syncDate = Date.now();
@@ -976,19 +496,12 @@ module.exports = (Model, App) => {
     return !userSyncEnded;
   };
 
-<<<<<<<
-  const UnlockSync = async (user) => await Model.users.update(
-    { syncDate: null },
-    { where: { email: user.email } }
-  );
-=======
   const UnlockSync = (user) => Model.users.update({ syncDate: null },
     { where: { email: user.email } });
 
   const ActivateUser = (token) => {
     return axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`)
   }
->>>>>>>
 
   return {
     Name: 'User',
@@ -1016,9 +529,6 @@ module.exports = (Model, App) => {
     GetOrSetUserSync,
     UpdateUserSync,
     UnlockSync,
-    ResetPassword,
-    ConfirmResetPassword,
-    RegisterNewUser
     ActivateUser
   };
 };

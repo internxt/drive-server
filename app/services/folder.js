@@ -452,13 +452,6 @@ module.exports = (Model, App) => {
         } else {
           resolve(result);
         }
-      ],
-      (err, result) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(result);
-        }
       },
       (folder, next) => {
         // Set optional changes

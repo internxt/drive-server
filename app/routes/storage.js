@@ -175,8 +175,10 @@ module.exports = (Router, Service, Logger, App) => {
     user.mnemonic = req.headers['internxt-mnemonic'];
     const xfile = req.file;
     const folderId = req.params.id;
-
     const extension = path.extname(xfile.originalname);
+
+    Service.Folder.isFolderOfTeam(folderId).then((folder) => {
+      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
         Service.Analytics.track({
           userId: req.user.uuid,
           event: 'file-upload-finished',
@@ -185,22 +187,21 @@ module.exports = (Router, Service, Logger, App) => {
             email: req.user.email,
             file_type: extension
           }
-      Service.Folder.isFolderOfTeam(folderId).then((folder) => {
-        console.log('------ UPLOAD ------');
-        Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
-          res.status(201).json(result);
-        }).catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          if (err.includes('Bridge rate limit error')) {
-            res.status(402).json({ message: err });
-            return;
-          }
-          res.status(500).json({ message: err });
         });
+        res.status(201).json(result);
+      }).catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        if (err.includes && err.includes('Bridge rate limit error')) {
+          res.status(402).json({ message: err });
+          return;
+        }
+        res.status(500).json({ message: err });
       });
-    }
-  );
-
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.status(500).json({ message: err });
+    });
+  });
   /**
    * @swagger
    * /storage/moveFolder:
@@ -471,87 +472,52 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Share.FindOne(req.params.token)
       .then((result) => {
         Service.User.FindUserByEmail(result.user).then((userData) => {
-            const fileIdInBucket = result.file;
-            const isFolder = result.is_folder;
+          const fileIdInBucket = result.file;
+          const isFolder = result.is_folder;
 
-            userData.mnemonic = result.mnemonic;
+          userData.mnemonic = result.mnemonic;
 
-            if (isFolder) {
-              Service.Folder.GetTree({ email: result.user }, result.file).then((tree) => {
-                  const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
-                  const treeSize = Service.Folder.GetTreeSize(tree);
+          if (isFolder) {
+            Service.Folder.GetTree({ email: result.user }, result.file).then((tree) => {
+              const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+              const treeSize = Service.Folder.GetTreeSize(tree);
 
-                  if (treeSize <= maxAcceptableSize) {
-                    Service.Folder.Download(tree, userData).then(() => {
-                        const folderName = App.services.Crypt.decryptName(
-                          tree.name,
-                          tree.parentId
-                        );
+              if (treeSize <= maxAcceptableSize) {
+                Service.Folder.Download(tree, userData).then(() => {
+                  const folderName = App.services.Crypt.decryptName(
+                    tree.name,
+                    tree.parentId
+                  );
 
-                        Service.Folder.CreateZip(
-                          `./downloads/${tree.id}/${folderName}.zip`,
-                          [`downloads/${tree.id}/${folderName}`]
-                        );
+                  Service.Folder.CreateZip(
+                    `./downloads/${tree.id}/${folderName}.zip`,
+                    [`downloads/${tree.id}/${folderName}`]
+                  );
 
-                        res.set('x-file-name', `${folderName}.zip`);
-                        res.download(
-                          `./downloads/${tree.id}/${folderName}.zip`
-                        );
+                  res.set('x-file-name', `${folderName}.zip`);
+                  res.download(
+                    `./downloads/${tree.id}/${folderName}.zip`
+                  );
 
-                      rimraf(`./downloads/${tree.id}`, () => {
-                        console.log('Folder removed after send zip');
-                      });
-                    })
-                    .catch((err) => {
-                      if (fs.existsSync(`./downloads/${tree.id}`)) {
-                        rimraf(`./downloads/${tree.id}`, () => {
-                          console.log('Folder removed after fail folder download');
-                        });
-                      }).catch((err) => {
-                        if (fs.existsSync(`./downloads/${tree.id}`)) {
-                          rimraf(`./downloads/${tree.id}`, () => {
-                            console.log(
-                              'Folder removed after fail folder download'
-                            );
-                          });
-                        }
-                        res.status(402).json({ error: 'Error downloading folder' });
-                      });
-                  } else {
-                    res.status(402).json({ error: 'Folder too large' });
-                  }
+                  rimraf(`./downloads/${tree.id}`, () => {
+                    console.log('Folder removed after send zip');
+                  });
                 })
-                .catch((err) => {
-                  // if (fs.existsSync(`./downloads/${tree.id}`)) {
-                  //   rimraf(`./downloads/${tree.id}`, function () {
-                  //     console.log('Folder removed after fail folder download');
-                  //   });
-                  // }
-                  res.status(402).json({ error: 'Error downloading folder' });
-                });
-            } else {
-              Service.Files.Download(userData, fileIdInBucket).then(
-                  ({
-                    filestream,
-                    mimetype,
-                    downloadFile,
-                    folderId,
-                    name,
-                    type
-                  }) => {
-                    const decryptedFileName = App.services.Crypt.decryptName(
-                      name,
-                      folderId
-                    );
+                  .catch((err) => {
+                    if (fs.existsSync(`./downloads/${tree.id}`)) {
+                      rimraf(`./downloads/${tree.id}`, () => {
+                        console.log('Folder removed after fail folder download');
+                      });
+                    }
 
-                      res
-                        .status(402)
-                        .json({ error: 'Error downloading folder' });
-                    });
-                } else {
-                  res.status(402).json({ error: 'Folder too large' });
-                }
-              })
+                    res
+                      .status(402)
+                      .json({ error: 'Error downloading folder' });
+                  });
+              } else {
+                res.status(402).json({ error: 'Folder too large' });
+              }
+            })
               .catch((err) => {
                 res.status(402).json({ error: 'Error downloading folder' });
               });
@@ -562,35 +528,36 @@ module.exports = (Router, Service, Logger, App) => {
               }) => {
                 const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
-                    const decryptedFileNameB64 = Buffer.from(
-                      `${decryptedFileName}${type ? `.${type}` : ''}`
-                    ).toString('base64');
-                    const encodedFileName = encodeURI(
-                      `${decryptedFileName}${type ? `.${type}` : ''}`
-                    );
+                res.setHeader('Content-type', mimetype);
 
                 const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
                 const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
 
-                    filestream.pipe(res);
-                    fs.unlink(downloadFile, (error) => {
-                      if (error) throw error;
-                    });
-                  }
-                ).catch(({ message }) => {
-                  if (message === 'Bridge rate limit error') {
-                    res.status(402).json({ message });
+                res.setHeader('content-disposition', contentDisposition(encodedFileName));
+                res.set('x-file-name', decryptedFileNameB64);
 
-                    return;
-                  }
-                  res.status(500).json({ message });
+                filestream.pipe(res);
+                fs.unlink(downloadFile, (error) => {
+                  if (error) throw error;
                 });
-            }
-          }).catch((err) => {
+              })
+              .catch(({ message }) => {
+                if (message === 'Bridge rate limit error') {
+                  res.status(402).json({ message });
+
+                  return;
+                }
+
+                res.status(500).json({ message });
+              });
+          }
+        })
+          .catch((err) => {
             console.error(err);
             res.status(500).send({ error: 'User not found' });
           });
-      }).catch((err) => {
+      })
+      .catch((err) => {
         console.error('Error', err);
         res.status(500).send({ error: 'Invalid token' });
       });

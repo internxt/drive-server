@@ -1,19 +1,6 @@
 const InternxtMailer = require('inxt-service-mailer');
 
 module.exports = (Model, App) => {
-  const mailInstance = () => new InternxtMailer({
-    host: process.env.STORJ_MAILER_HOST,
-    port: process.env.STORJ_MAILER_PORT,
-    secure:
-        process.env.NODE_ENV === 'staging'
-        || process.env.NODE_ENV === 'production',
-    auth: {
-      user: process.env.STORJ_MAILER_USERNAME,
-      pass: process.env.STORJ_MAILER_PASSWORD
-    },
-    from: 'hello@internxt.com'
-  });
-
   const mailInstance = () => {
     const mailConfig = {
       host: process.env.INXT_MAILER_HOST,
@@ -30,6 +17,8 @@ module.exports = (Model, App) => {
       mailConfig.sendgrid = {
         api_key: process.env.SENDGRID_API_KEY
       }
+      return new InternxtMailer(mailConfig);
+
     }
 
     return new InternxtMailer(mailConfig);

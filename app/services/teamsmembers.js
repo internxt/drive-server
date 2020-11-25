@@ -1,7 +1,6 @@
 
 const async = require('async');
 const sequelize = require('sequelize');
-const InternxtMailer = require('storj-service-mailer');
 const teams_members = require('./../models/teams_members');
 const teams = require('./../routes/teams');
 const _ = require('lodash');
