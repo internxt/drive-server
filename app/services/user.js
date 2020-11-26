@@ -64,47 +64,47 @@ module.exports = (Model, App) => {
             const bcryptId = await App.services.Storj.IdToBcrypt(
               userResult.email
             );
-  
+
             const bridgeUser = await App.services.Storj.RegisterBridgeUser(
               userResult.email,
               bcryptId
             );
-  
+
             if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
               throw Error(bridgeUser.response.data.error);
             }
 
-          if (!bridgeUser.data) {
-            throw new Error('Error creating bridge user');
+            if (!bridgeUser.data) {
+              throw new Error('Error creating bridge user');
+            }
+
+            Logger.info('User Service | created brigde user: %s', userResult.email);
+
+            const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
+            // Store bcryptid on user register
+            await userResult.update({
+              userId: bcryptId,
+              isFreeTier: freeTier,
+              uuid: bridgeUser.data.uuid
+            }, { transaction: t });
+
+            // Set created flag for Frontend management
+            Object.assign(userResult, { isCreated: created });
           }
 
-          Logger.info('User Service | created brigde user: %s', userResult.email);
+          // TODO: proveriti userId kao pass
+          return userResult;
+        })
+        .catch((err) => {
+          if (err.response) {
+            // This happens when email is registered in bridge
+            Logger.error(err.response.data);
+          } else {
+            Logger.error(err.stack);
+          }
 
-          const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
-          // Store bcryptid on user register
-          await userResult.update({
-            userId: bcryptId,
-            isFreeTier: freeTier,
-            uuid: bridgeUser.data.uuid
-          }, { transaction: t });
-
-          // Set created flag for Frontend management
-          Object.assign(userResult, { isCreated: created });
-        }
-
-        // TODO: proveriti userId kao pass
-        return userResult;
-      })
-      .catch((err) => {
-        if (err.response) {
-          // This happens when email is registered in bridge
-          Logger.error(err.response.data);
-        } else {
-          Logger.error(err.stack);
-        }
-
-        throw new Error(err);
-      })); // end transaction
+          throw new Error(err);
+        })); // end transaction
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
@@ -195,11 +195,15 @@ module.exports = (Model, App) => {
       .catch((err) => reject(err));
   });
 
-  const FindUserObjByEmail = (email) => Model.users.findOne({
-    where: {
-      email: { [Op.eq]: email }
-    }
-  });
+  const FindUserObjByEmail = (email) => {
+    return new Promise((resolve, reject) => {
+      Model.users.findOne({
+        where: {
+          email: { [Op.eq]: email }
+        }
+      }).then(resolve).catch(reject);
+    })
+  }
 
   const GetUserCredit = (userUuid) => Model.users.findOne({
     where: {

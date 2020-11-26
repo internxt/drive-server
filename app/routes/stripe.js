@@ -1,5 +1,4 @@
 const async = require('async');
-const { default: Stripe } = require('stripe');
 const crypto = require('crypto');
 
 const passport = require('../middleware/passport');
@@ -181,8 +180,8 @@ module.exports = (Router, Service, Logger, App) => {
                                 salt: encryptedSalt,
                                 referral: ''
                             }
-                        ).then(async (userData)  => {
-              
+                        ).then(async (userData) => {
+
                             if (!userData.isCreated) {
                                 next({ message: 'This account already exists' });
                             } else {
@@ -194,7 +193,7 @@ module.exports = (Router, Service, Logger, App) => {
                                     bridge_mnemonic: userData.mnemonic
                                 }).then((team) => {
 
-                  
+
                                     const teamId = team.id;
                                     const teamAdmin = team.admin;
                                     const teamBridgePassword = team.bridge_password;
@@ -270,8 +269,11 @@ module.exports = (Router, Service, Logger, App) => {
    * TODO: cache plans to avoid repetitive api calls
    */
     Router.post('/stripe/plans', passportAuth, (req, res) => {
+        const stripe = require('stripe')(
+            req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
+            { apiVersion: '2020-03-02' }
+        );
         const stripeProduct = req.body.product;
-        const test = req.body.test || false;
 
         stripe.plans.list(
             {
@@ -295,6 +297,7 @@ module.exports = (Router, Service, Logger, App) => {
             }
         );
     });
+
 
     Router.post('/stripe/teams/plans', passportAuth, (req, res) => {
         const stripeProduct = req.body.product;
