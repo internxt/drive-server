@@ -406,8 +406,8 @@ module.exports = (Model, App) => {
               .findOne({
                 where: {
                   parentId: { [Op.eq]: folder.parentId },
-                  name: { [Op.eq]: cryptoFolderName }
-                }
+                  name: { [Op.eq]: cryptoFolderName },
+                },
               })
               .then((isDuplicated) => {
                 if (isDuplicated) {
@@ -417,7 +417,9 @@ module.exports = (Model, App) => {
                   try {
                     AesUtil.decrypt(cryptoFolderName, folder.parentId);
                     newMeta.encrypt_version = '03-aes';
-                  } catch (e) {}
+                  } catch (e) {
+                    (() => {})();
+                  }
                   next(null, folder);
                 }
               })
