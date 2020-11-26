@@ -361,32 +361,57 @@ module.exports = (Model, App) => {
       .catch(reject);
   });
 
-  const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic) => new Promise((resolve, reject) => {
-    FindUserByEmail(user)
-      .then((userData) => {
-        const storedPassword = userData.password.toString();
-        if (storedPassword !== currentPassword) {
-          Logger.error('Invalid password');
-          reject({ error: 'Invalid password' });
-        } else {
-          resolve();
+  const updatePrivateKey = (user, privateKey) => new Promise((resolve, reject) => {
+    FindUserByEmail(user).then((userData) => {
+      const idUser = userData.id
+        Model.keyserver
+          .update({
+            private_key: privateKey,
+          }, { where: { user_id: { [Op.eq]: idUser } } })
+          .then((res) => {
+            Logger.info('Updated', res);
+            resolve();
+          })
+          .catch((err) => {
+            Logger.error('error updating', err);
+            reject({ error: 'Error updating info' });
+          });
+    })
+      .catch((err) => {
+        Logger.error(err);
+        reject({ error: 'Internal server error' });
+      });
+  })
 
-          Model.users
-            .update({
-              password: newPassword,
-              mnemonic,
-              hKey: newSalt,
-            }, { where: { email: { [Op.eq]: user } } })
-            .then((res) => {
-              Logger.info('Updated', res);
-              resolve();
-            })
-            .catch((err) => {
-              Logger.error('error updating', err);
-              reject({ error: 'Error updating info' });
-            });
-        }
-      })
+
+  const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => new Promise((resolve, reject) => {
+    FindUserByEmail(user).then((userData) => {
+      const storedPassword = userData.password.toString();
+      if (storedPassword !== currentPassword) {
+        Logger.error('Invalid password');
+        reject({ error: 'Invalid password' });
+      } else {
+        resolve();
+
+        Model.users
+          .update({
+            password: newPassword,
+            mnemonic,
+            hKey: newSalt,
+          }, { where: { email: { [Op.eq]: user } } })
+          .then((res) => {
+            updatePrivateKey(user, privateKey)
+            Logger.info('Updated', res);
+            resolve();
+          })
+          .catch((err) => {
+            Logger.error('error updating', err);
+            reject({ error: 'Error updating info' });
+          });
+
+
+      }
+    })
       .catch((err) => {
         Logger.error(err);
         reject({ error: 'Internal server error' });

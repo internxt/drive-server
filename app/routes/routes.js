@@ -204,7 +204,6 @@ module.exports = (Router, Service, Logger, App) => {
           }
           resolve();
         }).catch((error) => {
-          console.log('1', error)
           Logger.error(error.stack);
           reject()
         });
@@ -232,13 +231,7 @@ module.exports = (Router, Service, Logger, App) => {
           App.config.get('secrets').JWT,
           internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
         );
-        let teamRol = '';
-        if (userTeam && userTeam.admin === req.body.email) {
-          teamRol = 'admin';
-        } else if (userTeam) {
-          teamRol = 'member';
-        }
-
+       
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
 
@@ -247,6 +240,14 @@ module.exports = (Router, Service, Logger, App) => {
             email: userData.email
           }
         })
+
+        let teamRol = '';
+        if (userTeam && userTeam.admin === req.body.email) {
+          teamRol = 'admin';
+        } else if (userTeam) {
+          teamRol = 'member';
+        }
+
         const user = {
           userId: userData.userId,
           mnemonic: userData.mnemonic,
@@ -280,6 +281,13 @@ module.exports = (Router, Service, Logger, App) => {
             teamRol
           });
         }
+      } else {
+        // Wrong password
+        if (pass !== userData.password.toString()) {
+          Service.User.LoginFailed(req.body.email, true);
+        }
+
+        res.status(400).json({ error: 'Wrong email/password' });
       }
 
     }).catch((err) => {
@@ -447,16 +455,19 @@ module.exports = (Router, Service, Logger, App) => {
     const currentPassword = App.services.Crypt.decryptText(
       req.body.currentPassword
     );
+
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const { mnemonic } = req.body;
+    const privateKey = req.body.privateKey
 
     Service.User.UpdatePasswordMnemonic(
       user,
       currentPassword,
       newPassword,
       newSalt,
-      mnemonic
+      mnemonic,
+      privateKey
     ).then((result) => {
       res.status(200).send({});
     }).catch((err) => {
