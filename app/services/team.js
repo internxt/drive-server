@@ -145,8 +145,6 @@ module.exports = (Model, App) => {
 
     const DeactivateTeam = (email) => new Promise(async (resolve, reject) => {
         const shouldSend = await ShouldSendEmailTeam(email);
-        console.log('shouldsend', shouldSend);
-
         if (!shouldSend) {
             Logger.info('Do not resend deactivation email to %s', email);
 
@@ -181,7 +179,6 @@ module.exports = (Model, App) => {
     });
 
     const ConfirmDeactivateTeam = (token) => new Promise((resolve, reject) => {
-        console.log('token',token);
         async.waterfall(
             [
                 (next) => {
@@ -202,7 +199,6 @@ module.exports = (Model, App) => {
                         });
                 },
                 (data, next) => {
-                    console.log('email', data.data.email);
                     const userEmail = data.data.email;
         
                     Model.teams

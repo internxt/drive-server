@@ -35,7 +35,6 @@ module.exports = (Model, App) => {
                 revocation_key: revocationKey
 
             }).then((userKeys) => {
-                console.log('New keys added', userKeys);
             }).catch((err) => {
                 console.error(err);
                 reject('Error querying database');

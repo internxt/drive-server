@@ -133,12 +133,8 @@ module.exports = (Router, Service, Logger, App) => {
       }).catch((err) => {
         console.log('The keys could not be saved')
       });
-
     }).catch((err) => {
-      console.log('The user is not in DB')
-
     });
-
   });
 
 
@@ -332,7 +328,6 @@ module.exports = (Router, Service, Logger, App) => {
           .FindUserByUuid(referral)
           .then((userData) => {
             if (userData === null) { // Don't exists referral user
-              console.log('UUID not found');
             } else {
               newUser.credit = 5;
               hasReferral = true;

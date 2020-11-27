@@ -67,7 +67,6 @@ const deleteRootBucket = (user, bucketId) => new Promise((resolve, reject) => {
             console.error(err);
             reject(err);
         } else {
-            console.log(result);
             updateUser(user.email)
                 .then((res) => resolve(res))
                 .catch(reject);
@@ -105,7 +104,6 @@ const init = () => {
                 .then((users) => {
                     users.forEach((user) => {
                         console.log(user.email);
-
                         if (user.root_folder_id) {
                             getBucket(user.root_folder_id)
                                 .then((bucketId) => {
