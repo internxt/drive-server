@@ -178,15 +178,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
       .then((result) => {
-        Service.Analytics.track({
-          userId: req.user.uuid,
-          event: 'file-upload-finished',
-          properties: {
-            file_size: xfile.size,
-            email: req.user.email,
-            file_type: extension
-          }
-        });
         res.status(201).json(result);
       })
       .catch((err) => {
@@ -249,21 +240,6 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
       const NOW = (new Date()).toISOString()
-      Service.Analytics.track({
-        userId: req.user.uuid,
-        event: 'file-upload-finished',
-        platform: 'desktop',
-        properties: {
-          platform: 'desktop',
-          email: req.user.email,
-          file_id: file.fileId,
-          file_size: file.size,
-          date: NOW,
-          file_mime_type: mimeTypes.lookup(file.type),
-          file_type: file.type,
-          file_size_readable: prettySize(file.size)
-        }
-      })
     }).catch((error) => {
       Logger.error(error);
       res.status(400).json({ message: error.message });
