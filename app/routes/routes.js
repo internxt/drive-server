@@ -96,13 +96,10 @@ module.exports = (Router, Service, Logger, App) => {
           );
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
           Service.Keyserver.keysExists(userData).then((userKey) => {
-            const publicKeyExists = true;
-            const privateKeyExists = true;
-
-            res.status(200).send({ publicKeyExists: publicKeyExists, privateKeyExists: privateKeyExists, sKey: encSalt, tfa: required2FA });
+            res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
           }).catch((err) => {
             console.error(err);
-            res.status(200).send({ sKey: encSalt, tfa: required2FA });
+            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
           })
         }
       }).catch((err) => {
@@ -121,21 +118,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.post('/user/generateKey', (req, res) => {
-    const email = req.body.email;
-    const publicKey = req.body.publicKey;
-    const privateKey = req.body.privateKey;
-    const revocationKey = req.body.revocationKey;
-
-    Service.User.FindUserByEmail(email).then((user) => {
-      Service.Keyserver.addKeysLogin(user, publicKey, privateKey, revocationKey).then((userKey) => {
-
-      }).catch((err) => {
-        console.log('The keys could not be saved')
-      });
-    }).catch((err) => {
-    });
-  });
+  
 
 
   /**
@@ -170,8 +153,6 @@ module.exports = (Router, Service, Logger, App) => {
 
         return;
       }
-
-      keys = await Service.Keyserver.keysExists(userData)
 
       let responseTeam = null;
       // Check if user has a team
@@ -227,7 +208,7 @@ module.exports = (Router, Service, Logger, App) => {
           App.config.get('secrets').JWT,
           internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
         );
-       
+
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
 
@@ -244,6 +225,18 @@ module.exports = (Router, Service, Logger, App) => {
           teamRol = 'member';
         }
 
+       
+
+        let keys = false;
+        try {
+          keys = await Service.Keyserver.keysExists(userData)
+        } catch (e) { }
+
+        if (!keys && req.body.publicKey) {
+          await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey)
+          keys = await Service.Keyserver.keysExists(userData)
+        }
+
         const user = {
           userId: userData.userId,
           mnemonic: userData.mnemonic,
@@ -253,9 +246,9 @@ module.exports = (Router, Service, Logger, App) => {
           uuid: userData.uuid,
           createdAt: userData.createdAt,
           credit: userData.credit,
-          publicKey: keys.public_key,
-          privateKey: keys.private_key,
-          revocationKey: keys.revocation_key
+          privateKey: keys ? keys.private_key : null,
+          publicKey: keys ? keys.public_key : null,
+          revocateKey: keys ? keys.revocation_key : null
         }
 
         if (userTeam) {

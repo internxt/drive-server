@@ -27,7 +27,6 @@ module.exports = (Model, App) => {
 
     const addKeysLogin = (userData,publicKey,privateKey,revocationKey) => {
         return new Promise((resolve, reject) => {
-
             Model.keyserver.create({
                 user_id: userData.id,
                 public_key: publicKey,
@@ -35,6 +34,7 @@ module.exports = (Model, App) => {
                 revocation_key: revocationKey
 
             }).then((userKeys) => {
+                resolve(userKeys)
             }).catch((err) => {
                 console.error(err);
                 reject('Error querying database');
