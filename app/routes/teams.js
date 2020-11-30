@@ -3,6 +3,8 @@ const { passportAuth } = require('../middleware/passport');
 const crypto = require('crypto');
 const user = require('../services/user');
 const axios = require('axios');
+const sgMail = require('@sendgrid/mail');
+
 
 module.exports = (Router, Service, Logger, App) => {
     Router.get('/teams/:user', passportAuth, async (req, res) => {
@@ -238,52 +240,21 @@ module.exports = (Router, Service, Logger, App) => {
 
     });
 
-    Router.delete('/teams/invitation', passportAuth, (req, res) => {
-        const user = req.user;
-        const idTeam = req.body.idTeam;
-        const removeUser = req.body.item.user;
-
-        Service.Team.getTeamByIdUser(user.email).then((team) => {
-            if (idTeam == team.id) {
-                Service.TeamInvitations.removeInvitations(removeUser).then(() => {
-                    res.status(200).send({ info: 'The user is removed ' });
-                }).catch((err) => {
-                    res.status(500).json({ error: err });
-                });
-            } else {
-                res.status(500).send({ info: 'You not have permissions' });
-            }
+   
+  Router.post('/teams/deleteAccount', passportAuth, (req, res) => {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const msg = {
+      to: 'hello@internxt.com',
+      from: 'hello@internxt.com',
+      subject: 'Delete Teams Account',
+      text: 'Hello Internxt! I need to delete my team account ' + req.user.email
+    };
+      sgMail.send(msg).then(() => {
+          res.status(200).send({});
         }).catch((err) => {
-            res.status(500).send({ info: 'You not have permissions' });
+          res.status(500).send(err);
         });
-    });
-
-    Router.get('/deactivateTeam', passportAuth, (req, res) => {
-        const user = req.user.email;
-        Service.Team.DeactivateTeam(user)
-            .then((bridgeRes) => {
-                res.status(200).send({ error: null, message: 'User deactivated' });
-            })
-            .catch((err) => {
-                res.status(500).send({ error: err.message });
-            });
-    });
-
-    Router.get('/confirmDeactivationTeam/:token', (req, res) => {
-        const { token } = req.params;
-        console.log('TOKEN ROUTE', token);
-
-        Service.Team.ConfirmDeactivateTeam(token)
-            .then((resConfirm) => {
-                res.status(resConfirm.status).send(req.data);
-            })
-            .catch((err) => {
-                console.log('Deactivation request to Server failed');
-                res.status(400).send({ error: err.message });
-            });
-    });
-
-
+  });
 
     return Router;
 
