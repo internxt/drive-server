@@ -124,7 +124,6 @@ module.exports = (Router, Service, Logger, App) => {
                                 bridge_password: Encryptbridge_password,
                                 mnemonic: Encryptmnemonic
                             }).then((user) => {
-                                Logger.info('The user is', user)
                                 Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
                                     Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
                                     res.status(200).send({});
