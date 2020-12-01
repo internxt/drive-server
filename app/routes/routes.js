@@ -118,7 +118,7 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  
+
 
 
   /**
@@ -165,6 +165,12 @@ module.exports = (Router, Service, Logger, App) => {
             if (responseTeam) {
               member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
               if (member) {
+                let isAdmin = false;
+                getAdmin = await Service.Team.getTeamByIdUser(req.body.email)
+                if(getAdmin){
+                  isAdmin = true
+                }
+             
                 isTeamActivated = responseTeam.data.activated;
                 userTeam = {
                   idTeam: team.id,
@@ -173,7 +179,8 @@ module.exports = (Router, Service, Logger, App) => {
                   bridge_mnemonic: member.bridge_mnemonic,
                   admin: userTeam.admin,
                   root_folder_id: rootFolderId,
-                  isActivated: isTeamActivated
+                  isActivated: isTeamActivated,
+                  isAdmin: isAdmin
                 };
                 resolve();
               }
@@ -225,7 +232,7 @@ module.exports = (Router, Service, Logger, App) => {
           teamRol = 'member';
         }
 
-       
+
 
         let keys = false;
         try {
