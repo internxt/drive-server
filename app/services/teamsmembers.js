@@ -152,7 +152,7 @@ module.exports = (Model, App) => {
                 }
             }).then((teamMember) => {
                 if (teamMember) {
-                    reject();
+                    return reject();
                 }
                 Model.teams_members.create({
                     id_team: idTeam,
@@ -162,6 +162,7 @@ module.exports = (Model, App) => {
                 }).then((newMember) => {
                     resolve(newMember);
                 }).catch(reject);
+               
             }).catch(reject);
         });
     };

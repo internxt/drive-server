@@ -66,7 +66,7 @@ module.exports = (Model, App) => {
         const passwd = CryptService.encryptText(dateNow, process.env.CRYPTO_KEY);
 
         return {
-            email: `${dateNow}team@internxt.com`,
+            bridge_user: `${dateNow}team@internxt.com`,
             password: passwd
         };
     };
