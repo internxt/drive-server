@@ -49,38 +49,38 @@ module.exports = (Model, App) => {
     });
   };
 
-  
+
 
   const sendEmailTeamsMember = (member, cryptedToken, teamName) => {
     const mailer = mailInstance();
     return new Promise((resolve, reject) => {
-      mailer.dispatch(
-        member, 
-        'join-team', 
+      mailer.dispatchSendGrid(
+        member,
+        'join-team',
         {
           template: 'join-team',
           go: { in: 'here' },
           memberName: member.user,
           teamName: teamName,
           urlAcceptInvitation: `${process.env.HOST_DRIVE_WEB}/teams/join/${cryptedToken}`
-          
-        }, (err) => {   
-        if (!err) {
-          resolve(`Mail team's invitation send to ${member}!`);
-          Logger.info("Teams: Team invitation mail sent to", member);
-        } else {
-          reject(`Error sending mail team's invitation to ${member}`);
-        }
-      });
+
+        }, (err) => {
+          if (!err) {
+            resolve(`Mail team's invitation send to ${member}!`);
+            Logger.info("Teams: Team invitation mail sent to", member);
+          } else {
+            reject(`Error sending mail team's invitation to ${member}`);
+          }
+        });
     });
   }
 
-   
+
 
   return {
     Name: 'Mail',
     sendInvitationMail,
     sendEmailTeamsMember
-    
+
   }
 }
