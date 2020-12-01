@@ -62,7 +62,7 @@ module.exports = (Model, App) => {
           go: { in: 'here' },
           memberName: member.user,
           teamName: teamName,
-          urlAcceptInvitation: `${process.env.HOST_DRIVE_WEB}/teams/join/${cryptedToken}`
+          urlAcceptInvitation: `https://teams.internxt.com/teams/join/${cryptedToken}`
 
         }, (err) => {
           if (!err) {
