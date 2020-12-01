@@ -257,8 +257,8 @@ module.exports = (Router, Service, Logger, App) => {
 
                     const sessionParams = {
                         payment_method_types: ['card'],
-                        success_url: process.env.HOST_DRIVE_WEB,
-                        cancel_url: successUrl,
+                        success_url:'https://drive.internxt.com/',
+                        cancel_url: 'https://drive.internxt.com/',
                         subscription_data: {
                             items: [{ plan: req.body.plan }],
                             trial_period_days: 30,
