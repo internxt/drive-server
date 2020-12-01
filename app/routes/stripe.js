@@ -194,11 +194,53 @@ module.exports = (Router, Service, Logger, App) => {
                         console.debug('Payload', subscription);
 
                         if (subscription) {
-                            next(Error('Already subscribed'));
+                            Service.Stripe.getStorageProducts(test)
+                            .then((storageProducts) => {
+                              Service.Stripe.getTeamProducts(test)
+                                .then((teamProducts) => {
+                                  if (
+                                    storageProducts.find(
+                                      (storageProduct) => storageProduct.id === subscription.plan.product
+                                    )
+                                  ) {
+                                    if (
+                                      storageProducts.find(
+                                        (storageProduct) => storageProduct.id === productToSubscribe
+                                      )
+                                    ) {
+                                      next(Error('Already subscribed in a storage plan'));
+                                    } else {
+                                      next(null, customer);
+                                    }
+                                  } else if (
+                                    teamProducts.find(
+                                      (teamProduct) => teamProduct.id === subscription.plan.product
+                                    )
+                                  ) {
+                                    if (
+                                      teamProducts.find(
+                                        (teamProduct) => teamProduct.id === productToSubscribe
+                                      )
+                                    ) {
+                                      next(Error('Already subscribed in a team plan'));
+                                    } else {
+                                      next(null, customer);
+                                    }
+                                  } else {
+                                    next(Error('Already subscribed'));
+                                  }
+                                })
+                                .catch((err) => {
+                                  next(Error('Already subscribed'));
+                                });
+                            })
+                            .catch((err) => {
+                              next(Error('Already subscribed'));
+                            });
                         } else {
-                            next(null, customer);
+                          next(null, customer);
                         }
-                    }
+                      }
                 },
                 async (customer, next) => {
 
@@ -215,8 +257,8 @@ module.exports = (Router, Service, Logger, App) => {
 
                     const sessionParams = {
                         payment_method_types: ['card'],
-                        success_url: 'https://drive.internxt.com/',
-                        cancel_url: 'https://drive.internxt.com/',
+                        success_url: process.env.HOST_DRIVE_WEB,
+                        cancel_url: successUrl,
                         subscription_data: {
                             items: [{ plan: req.body.plan }],
                             trial_period_days: 30,
