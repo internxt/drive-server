@@ -85,7 +85,6 @@ module.exports = (Router, Service, Logger, App) => {
         const user = req.user.email;
         const idTeam = req.body.idTeam;
         //Datas for the 10-person limit
-
         const totalUsers = await Service.TeamsMembers.getPeople(idTeam);
         const plans = await Service.Team.getPlans(user);
 
@@ -93,102 +92,83 @@ module.exports = (Router, Service, Logger, App) => {
             return res.status(500).send({ error: 'You cannot exceed the limit of 10 members' });
         }
 
-        //Rest
-        Service.User.FindUserByEmail(email).then((userData) => {
-            Service.Keyserver.keysExists(userData).then(() => {
-                Service.TeamInvitations.getTeamInvitationByIdUser(email).then((teamInvitation) => {
-                    if (teamInvitation) {
-                        Service.Mail.sendEmailTeamsMember(email, teamInvitation.token, req.team).then((team) => {
-                            Logger.info('The email is forwarded to the user %s', email);
-                            res.status(200).send({});
-                        }).catch((err) => {
-                            Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email);
-                            res.status(500).send({ error: 'Error: Send invitation mail' });
-                        });
-                    }
-                }).catch(err => {
-                    Logger.info('The user %s not have a team Invitation', email);
-                    Service.Team.getIdTeamByUser(email).then((responseMember) => {
-                        if (responseMember.status === 200) {
-                            res.status(200).send({});
-                        } else {
-                            res.status(400).send({ error: 'This user is alredy a member' });
-                        }
-                    }).catch((err) => {
-                        Logger.info('The user %s is not a member', email);
-                        Service.Team.getTeamBridgeUser(req.user.email).then(team => {
-                            Service.TeamInvitations.save({
-                                id_team: team.id,
-                                user: email,
-                                token: token,
-                                bridge_password: Encryptbridge_password,
-                                mnemonic: Encryptmnemonic
-                            }).then((user) => {
-                                Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
-                                    Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
-                                    res.status(200).send({});
-                                }).catch((err) => {
-                                    Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email);
-                                    res.status(500).send({});
-                                });
-                            }).catch((err) => {
-                                Logger.error('Error: Send invitation mail from %s to %s 3', req.user.email, req.body.email);
-                                res.status(500).send({});
-                            });
-                        }).catch(err => {
-                            Logger.error('The user %s not have a team Invitation', req.user.email);
-                            res.status(500).send({});
-                        });
-                    });
+        const existsUser = await Service.User.FindUserByEmail(email);
+        const existsKeys = await Service.Keyserver.keysExists(existsUser)
+        if (!existsUser && !existsKeys) {
+            return res.status(500).send({ error: 'You can not invite this user' })
+        }
+        const existsInvitation = await Service.TeamInvitations.getTeamInvitationByIdUser(email);
+         console.log(existsInvitation)
+        if (!existsInvitation) {
+            const existsMember = await Service.Team.getIdTeamByUser(email)
+            if (!existsMember) {
+                const existsBridgeUser = await Service.Team.getTeamBridgeUser(req.user.email);
+                if (!existsBridgeUser) {
+                    return res.status(500).send({ error: 'You are not allow to invite' })
+                }
+                const saveInvitations = await Service.TeamInvitations.save({
+                    id_team: existsBridgeUser.id,
+                    user: email,
+                    token: token,
+                    bridge_password: Encryptbridge_password,
+                    mnemonic: Encryptmnemonic
+                })
+                if (!saveInvitations) {
+                    return res.status(500).send({ error: 'The invitation can not saved' })
+                }
+
+                Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
+                    Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
+                    res.status(200).send({});
+                }).catch((err) => {
+                    Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email);
+                    res.status(500).send({});
                 });
-            }).catch(err => {
-                Logger.error('The user %s not have a public key', email);
-                res.status(500).send({});
-            });
-        }).catch(err => {
-            Logger.error('The user %s not have a team', req.user.email);
-            res.status(500).send({});
+            }
+            if (existsMember.status == 200) {
+                res.status(200).send({});
+            } else {
+                res.status(400).send({ error: 'This user is alredy a member' });
+            }
+        }
+
+        Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then((team) => {
+            Logger.info('The email is forwarded to the user %s', email);
+            res.status(200).send({});
+        }).catch((err) => {
+            Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email);
+            res.status(500).send({ error: 'Error: Send invitation mail' });
         });
     });
 
-    Router.post('/teams/join/:token', (req, res) => {
+     
+
+    Router.post('/teams/join/:token', async (req, res) => {
         const { token } = req.params;
 
-        Service.TeamInvitations.getByToken(token).then((teamInvitation) => {
-            Service.Team.getTeamById(teamInvitation.id_team).then(() => {
-                Service.User.FindUserByEmail(teamInvitation.user).then((userId) => {
-                    Service.Keyserver.keysExists(userId).then(async () => {
-                        Service.TeamsMembers.saveMembersFromInvitations({
-                            id_team: teamInvitation.id_team,
-                            user: teamInvitation.user,
-                            bridge_password: teamInvitation.bridge_password,
-                            bridge_mnemonic: teamInvitation.mnemonic
-                        }).then((newMember) => {
-                            Logger.info('Miembro %s save in teamsMembers', teamInvitation.user);
-                            teamInvitation.destroy().then(() => {
-                                res.status(200).send({});
-                            }).catch(err => {
-                                res.status(500).send({ error: 'The invitation could not be destroyed' });
-                            });
-                        }).catch((err) => {
-                            Logger.error('Error: User %s could not be saved in teamMember ', teamInvitation.user);
-                            res.status(500).send({ error: 'The invitation is not saved' });
-                        });
-                    }).catch((err) => {
-                        res.status(500).json({ error: 'Invalid Team invitation link' });
-                        Logger.error('Keys not exists');
-                    });
-                }).catch((err) => {
-                    res.status(500).json({ error: 'Invalid Team invitation link' });
-                    Logger.error('User not exists');
-                });
-
-            }).catch((err) => {
-                res.status(500).json({ error: 'Invalid Team invitation link' });
-            });
-        }).catch((err) => {
-            res.status(500).json({ error: 'Invalid Team invitation link' });
+        const getToken = await Service.TeamInvitations.getByToken(token);
+        const getTeam = await Service.Team.getTeamById(getToken.id_team);
+        const findUser = await Service.User.FindUserByEmail(getToken.user);
+        const keysExists = await Service.Keyserver.keysExists(findUser);
+        if(!getToken && !getTeam && !findUser && !keysExists){
             Logger.error('Token %s doesn\'t exists', token);
+            return res.status(500).send({error: 'Invalid Team invitation link'})
+        }
+
+        const saveMember = await Service.TeamsMembers.saveMembersFromInvitations({
+            id_team: getToken.id_team,
+            user: getToken.user,
+            bridge_password: getToken.bridge_password,
+            bridge_mnemonic: getToken.mnemonic
+        })
+        if(!saveMember){
+            Logger.error('Error: User %s could not be saved in teamMember ', getToken.user);
+           return res.status(500).send({error: 'Invalid Team invitation link'}) 
+        }
+        getToken.destroy().then(() => {
+            res.status(200).send({});
+        }).catch(err => {
+            res.status(500).send({ error: 'The invitation could not be destroyed' });
         });
 
     });
@@ -240,21 +220,21 @@ module.exports = (Router, Service, Logger, App) => {
 
     });
 
-   
-  Router.post('/teams/deleteAccount', passportAuth, (req, res) => {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const msg = {
-      to: 'hello@internxt.com',
-      from: 'hello@internxt.com',
-      subject: 'Delete Teams Account',
-      text: 'Hello Internxt! I need to delete my team account ' + req.user.email
-    };
-      sgMail.send(msg).then(() => {
-          res.status(200).send({});
+
+    Router.post('/teams/deleteAccount', passportAuth, (req, res) => {
+        sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+        const msg = {
+            to: 'hello@internxt.com',
+            from: 'hello@internxt.com',
+            subject: 'Delete Teams Account',
+            text: 'Hello Internxt! I need to delete my team account ' + req.user.email
+        };
+        sgMail.send(msg).then(() => {
+            res.status(200).send({});
         }).catch((err) => {
-          res.status(500).send(err);
+            res.status(500).send(err);
         });
-  });
+    });
 
     return Router;
 

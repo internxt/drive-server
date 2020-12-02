@@ -6,7 +6,7 @@ const user = require('../models/user');
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  
+
     const save = (teamInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -17,7 +17,7 @@ module.exports = (Model, App) => {
                     bridge_password: teamInvitation.bridge_password,
                     mnemonic: teamInvitation.mnemonic
                 }).then((newTeamInvitation) => {
-                    resolve({teamInvitation: newTeamInvitation});
+                    resolve({ teamInvitation: newTeamInvitation });
                 }).catch((err) => {
                     reject(err);
                 });
@@ -45,7 +45,7 @@ module.exports = (Model, App) => {
                 });
         });
     };
-  
+
     const getTeamInvitationById = (idInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -73,11 +73,7 @@ module.exports = (Model, App) => {
                     where: { user: { [Op.eq]: user } },
                 })
                 .then((teaminvitations) => {
-                    if (teaminvitations) {
-                        resolve(teaminvitations);
-                    } else {
-                        reject('Team invitation does not exists');
-                    }
+                    resolve(teaminvitations);
                 })
                 .catch((err) => {
                     reject('Error querying database');
@@ -85,7 +81,7 @@ module.exports = (Model, App) => {
         });
     };
 
-  
+
     const removeInvitations = (userInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations.destroy({
@@ -101,7 +97,7 @@ module.exports = (Model, App) => {
         });
     };
 
-  
+
     return {
         Name: 'TeamInvitations',
         save,
@@ -109,6 +105,6 @@ module.exports = (Model, App) => {
         getTeamInvitationByIdUser,
         getTeamInvitationById,
         removeInvitations,
-    
+
     };
 };
