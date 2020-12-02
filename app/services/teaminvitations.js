@@ -7,6 +7,10 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
 
+    /**
+     * @swagger
+     * Function: Method to save the invitations in DB
+     */
     const save = (teamInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -24,7 +28,10 @@ module.exports = (Model, App) => {
         });
     };
 
-
+    /**
+     * @swagger
+     * Function: Method get info invitation with the Token
+     */
     const getByToken = (token) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -42,6 +49,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method get info invitations with id invitation
+     */
     const getTeamInvitationById = (idInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -58,6 +69,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method get info invitations with user
+     */
     const getTeamInvitationByUser = (user) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
@@ -73,7 +88,10 @@ module.exports = (Model, App) => {
         });
     };
 
-
+    /**
+     * @swagger
+     * Function: Method remove invitations of DB
+     */
     const removeInvitations = (userInvitation) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations.destroy({

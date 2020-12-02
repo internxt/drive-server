@@ -10,6 +10,10 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
 
+    /**
+     * @swagger
+     * Function: Method remove members of DB
+     */
     const removeMembers = (member) => {
         return new Promise((resolve, reject) => {
             Model.teams_members.destroy({
@@ -24,6 +28,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method update DB teams members
+     */
     const update = (props) => {
         return new Promise((resolve, reject) => {
             Model.teams_members.findOne({
@@ -50,7 +58,11 @@ module.exports = (Model, App) => {
             });
         });
     };
-    
+
+    /**
+     * @swagger
+     * Function: Method get info team with the idTeam
+     */
     const getTeamsAdminById = (idTeam) => new Promise((resolve, reject) => {
         Model.teams
             .findOne({
@@ -65,7 +77,10 @@ module.exports = (Model, App) => {
             });
     });
 
-
+    /**
+     * @swagger
+     * Function: Method get info all team members with idTeam
+     */
     const getMembersByIdTeam = (idTeam) => {
         return new Promise((resolve, reject) => {
             Model.teams_members.findAll({
@@ -81,6 +96,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method get info all invitations with idTeam
+     */
     const getInvitationsByIdTeam = (idTeam) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations.findAll({
@@ -96,6 +115,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method get members and invitations for the list of manage team for the admin
+     */
     const getPeople = async (idTeam) => {
         const result = [];
         const members = await getMembersByIdTeam(idTeam);
@@ -109,8 +132,10 @@ module.exports = (Model, App) => {
         return result;
     };
 
-
-
+    /**
+     * @swagger
+     * Function: Method get info team members with the idTeam and the user (this method is used in the access)
+     */
     const getMemberByIdTeam = (idTeam, email) => {
         return new Promise((resolve, reject) => {
             return Model.teams_members.findOne({
@@ -127,7 +152,10 @@ module.exports = (Model, App) => {
         });
     };
 
-
+    /**
+     * @swagger
+     * Function: Method to add a team member(inclusive admin)
+     */
     const addTeamMember = (idTeam, userEmail, bridge_password, bridge_mnemonic) => {
         return new Promise((resolve, reject) => {
             Model.teams_members.findOne({
@@ -155,6 +183,10 @@ module.exports = (Model, App) => {
         });
     };
 
+    /**
+     * @swagger
+     * Function: Method to save the emails that are coming from of the invitations
+     */
     const saveMembersFromInvitations = (invitedMembers) => {
         return new Promise((resolve, reject) => {
             Model.teams_members.findOne({

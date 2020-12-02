@@ -10,6 +10,12 @@ module.exports = (Model, App) => {
     const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
     const Logger = App.logger;
 
+
+
+    /**
+   * @swagger
+   * Function: Method to create a Team in DB
+   */
     const create = async (team) => {
         return await new Promise((resolve, reject) => {
             Model.teams
@@ -29,6 +35,11 @@ module.exports = (Model, App) => {
         });
     };
 
+
+    /**
+    * @swagger
+    * Function: Method to get info team with the email of admin
+    */
     const getTeamByIdUser = (user) => new Promise((resolve, reject) => {
         Model.teams
             .findOne({
@@ -42,6 +53,10 @@ module.exports = (Model, App) => {
             });
     });
 
+    /**
+    * @swagger
+    * Function: Method to get info team with the idTeam
+    */
     const getTeamById = (idTeam) => new Promise((resolve, reject) => {
         Model.teams
             .findOne({
@@ -56,6 +71,10 @@ module.exports = (Model, App) => {
             });
     });
 
+    /**
+    * @swagger
+    * Function: Method to generete a random email FOR STRIPE
+    */
     const randomEmailBridgeUserTeam = () => {
         const dateNow = new Date().toISOString().split('.')[0].replace(/[-:T]/g, '');
         const passwd = CryptService.encryptText(dateNow, process.env.CRYPTO_KEY);
@@ -66,6 +85,11 @@ module.exports = (Model, App) => {
         };
     };
 
+    
+     /**
+    * @swagger
+    * Function: Method to get info in TEAM MEMBERS with a user
+    */
     const getIdTeamByUser = (user) => new Promise((resolve, reject) => {
         Model.teams_members
             .findOne({
@@ -82,6 +106,11 @@ module.exports = (Model, App) => {
             });
     });
 
+    
+    /**
+    * @swagger
+    * Function: Method to get Plans, this method is used for the limit and usage and to control teams invitations with 200GB plan
+    */
     const getPlans = async (user) => {
         const dataBridge = await getTeamBridgeUser(user);
         const pwd = dataBridge.bridge_password;
@@ -97,6 +126,10 @@ module.exports = (Model, App) => {
         return limit;
     };
 
+    /**
+    * @swagger
+    * Function: Method to get info of the team with the bridge_user team
+    */
     const getTeamBridgeUser = (user) => new Promise((resolve, reject) => {
         Model.teams
             .findOne({
@@ -113,6 +146,10 @@ module.exports = (Model, App) => {
             });
     });
 
+    /**
+    * @swagger
+    * Function: Method to get the object team
+    */
     const getTeamByMember = function (userEmail) {
         return new Promise(function (resolve, reject) {
             getIdTeamByUser(userEmail).then(function (team) {
