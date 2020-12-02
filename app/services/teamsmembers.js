@@ -175,10 +175,7 @@ module.exports = (Model, App) => {
                 }).then((newMember) => {
                     resolve(newMember);
                 }).catch();
-                reject(err);
-
             }).catch();
-            reject(err);
 
         });
     };
