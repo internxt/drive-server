@@ -16,7 +16,6 @@ const ExtraRoutes = require('./extra');
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
-const TeamsMembersRoutes = require('./teamsMembers');
 const TeamsRoutes = require('./teams');
 const team = require('./../services/team');
 const crypto = require('crypto');
@@ -53,7 +52,6 @@ module.exports = (Router, Service, Logger, App) => {
   ExtraRoutes(Router, Service, Logger, App);
 
   TeamsRoutes(Router, Service, Logger, App);
-  TeamsMembersRoutes(Router, Service, Logger, App);
 
 
   /**
@@ -167,10 +165,10 @@ module.exports = (Router, Service, Logger, App) => {
               if (member) {
                 let isAdmin = false;
                 getAdmin = await Service.Team.getTeamByIdUser(req.body.email)
-                if(getAdmin){
+                if (getAdmin) {
                   isAdmin = true
                 }
-             
+
                 isTeamActivated = responseTeam.data.activated;
                 userTeam = {
                   idTeam: team.id,
@@ -450,7 +448,6 @@ module.exports = (Router, Service, Logger, App) => {
     const currentPassword = App.services.Crypt.decryptText(
       req.body.currentPassword
     );
-
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const { mnemonic } = req.body;
@@ -532,27 +529,53 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
 
-  Router.get('/user/keys/:user', passportAuth, (req, res) => {
+    /**
+   * @swagger
+   * /user/keys/:user:
+   *   get:
+   *     description: check that the invited user has public passwords .
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - description: user object all info
+   *         in: url
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Successfull get public keys
+   *       204:
+   *         description: User not has keys
+   *      additional info:
+   *        If the user does not have a public key he will send a random one for security, this
+   *        is used in web for invitations
+   */
+  Router.get('/user/keys/:user', passportAuth, async (req, res) => {
     const user = req.params.user
-    Service.User.FindUserByEmail(user).then((userKeys) => {
-      Service.Keyserver.keysExists(userKeys).then((keys) => {
-        res.status(200).send({ publicKey: keys.public_key })
-      }).catch(async (err) => {
-        const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
-          userIds: [{ email: 'inxt@inxt.com' }],
-          curve: 'ed25519',
-        });
-        const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-        Logger.error(message);
-        res.status(200).send({ publicKey: codpublicKey });
-        Logger.error('Error: The user not have keys')
-        res.status(500).send({})
-      })
-    }).catch((err) => {
+    
+    //If the user does not exist, he is not registered
+    const findUser = await Service.User.FindUserByEmail(user);
+    if (!findUser) {
       Logger.error('Error: The user invited is not register')
-      console.log(err)
+      return res.status(500).send({Error: 'The user invited is not register'})
+    }
+    //check that the invited user has public passwords
+    const keys = await Service.User.keysExists(findUser);
+    //If it exists, just pass the public key
+    if (keys) {
+      return res.status(200).send({ publicKey: keys.public_key })
+      //Otherwise, we generate a public key for system security and just pass it
+    } else {
+      const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
+        userIds: [{ email: 'inxt@inxt.com' }],
+        curve: 'ed25519',
+      });
+      const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
+      Logger.error(message);
+      res.status(200).send({ publicKey: codpublicKey });
+      Logger.error('Error: The user not have keys')
       res.status(500).send({})
-    })
+    }
+
   });
 
 

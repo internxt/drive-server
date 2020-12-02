@@ -250,7 +250,7 @@ module.exports = (Router, Service, Logger, App) => {
                     const bridgeUser = await Service.Team.getTeamByIdUser(req.user.email)
 
                     if (!bridgeUser) {
-                        newBridgeUser = await Service.Team.generateBridgeTeamUser();
+                        newBridgeUser = await Service.Team.randomEmailBridgeUserTeam();
                     } else {
                         newBridgeUser = bridgeUser.dataValues
                     }

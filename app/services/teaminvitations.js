@@ -34,11 +34,7 @@ module.exports = (Model, App) => {
                     }
                 })
                 .then((teamInvitation) => {
-                    if (teamInvitation) {
-                        resolve(teamInvitation);
-                    } else {
-                        reject('Team invitation does not exists');
-                    }
+                    resolve(teamInvitation);
                 })
                 .catch((err) => {
                     reject('Error querying database');
@@ -53,11 +49,7 @@ module.exports = (Model, App) => {
                     where: { id: { [Op.eq]: idInvitation } },
                 })
                 .then((invitation) => {
-                    if (invitation) {
-                        resolve(invitation);
-                    } else {
-                        reject('Team invitation does not exists');
-                    }
+                    resolve(invitation);
                 })
                 .catch((err) => {
                     console.error(err);
@@ -66,7 +58,7 @@ module.exports = (Model, App) => {
         });
     };
 
-    const getTeamInvitationByIdUser = (user) => {
+    const getTeamInvitationByUser = (user) => {
         return new Promise((resolve, reject) => {
             Model.team_invitations
                 .findOne({
@@ -102,7 +94,7 @@ module.exports = (Model, App) => {
         Name: 'TeamInvitations',
         save,
         getByToken,
-        getTeamInvitationByIdUser,
+        getTeamInvitationByUser,
         getTeamInvitationById,
         removeInvitations,
 

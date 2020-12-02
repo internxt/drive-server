@@ -12,7 +12,6 @@ module.exports = (Model, App) => {
 
     const removeMembers = (member) => {
         return new Promise((resolve, reject) => {
-
             Model.teams_members.destroy({
                 where: {
                     user: { [Op.eq]: member },
@@ -22,10 +21,7 @@ module.exports = (Model, App) => {
             }).catch((err) => {
                 reject(err);
             });
-
         });
-
-
     };
 
     const update = (props) => {
@@ -54,6 +50,7 @@ module.exports = (Model, App) => {
             });
         });
     };
+    
     const getTeamsAdminById = (idTeam) => new Promise((resolve, reject) => {
         Model.teams
             .findOne({
@@ -76,11 +73,7 @@ module.exports = (Model, App) => {
                     id_team: { [Op.eq]: idTeam }
                 }
             }).then((teamMembers) => {
-                if (teamMembers) {
-                    resolve(teamMembers);
-                } else {
-                    reject('Team members does not exists');
-                }
+                resolve(teamMembers);
             }).catch((err) => {
                 console.error(err);
                 reject('Error querying database');
@@ -95,11 +88,7 @@ module.exports = (Model, App) => {
                     id_team: { [Op.eq]: idTeam }
                 }
             }).then((membersInvitations) => {
-                if (membersInvitations) {
-                    resolve(membersInvitations);
-                } else {
-                    reject('Member invitations does not exists');
-                }
+                resolve(membersInvitations);
             }).catch((err) => {
                 console.error(err);
                 reject('Error querying database');
@@ -112,8 +101,8 @@ module.exports = (Model, App) => {
         const members = await getMembersByIdTeam(idTeam);
         const invitations = await getInvitationsByIdTeam(idTeam);
         const admin = await getTeamsAdminById(idTeam);
-        _.remove(members, function(member) {
-            return member.dataValues.user == admin.dataValues.admin; 
+        _.remove(members, function (member) {
+            return member.dataValues.user == admin.dataValues.admin;
         });
         members.forEach(m => result.push({ isMember: true, isInvitation: false, user: m.user }));
         invitations.forEach(m => result.push({ isMember: false, isInvitation: true, user: m.user }));
@@ -130,11 +119,7 @@ module.exports = (Model, App) => {
                     user: { [Op.eq]: email },
                 }
             }).then((member) => {
-                if (member) {
-                    resolve(member);
-                } else {
-                    reject('Team member does not exist');
-                }
+                resolve(member);
             }).catch((err) => {
                 console.error(err);
                 reject('Error querying database');
@@ -161,9 +146,12 @@ module.exports = (Model, App) => {
                     bridge_mnemonic: bridge_mnemonic
                 }).then((newMember) => {
                     resolve(newMember);
-                }).catch(reject);
-               
-            }).catch(reject);
+                }).catch();
+                reject(err);
+
+            }).catch();
+            reject(err);
+
         });
     };
 

@@ -38,7 +38,6 @@ module.exports = (Model, App) => {
                 resolve(team);
             })
             .catch((err) => {
-                console.error(err);
                 reject('Error querying database');
             });
     });
@@ -49,11 +48,7 @@ module.exports = (Model, App) => {
                 where: { id: { [Op.eq]: idTeam } }
             })
             .then((team) => {
-                if (team) {
-                    resolve(team);
-                } else {
-                    reject('Team does not exists');
-                }
+                resolve(team);
             })
             .catch((err) => {
                 console.error(err);
@@ -61,7 +56,7 @@ module.exports = (Model, App) => {
             });
     });
 
-    const generateBridgeTeamUser = () => {
+    const randomEmailBridgeUserTeam = () => {
         const dateNow = new Date().toISOString().split('.')[0].replace(/[-:T]/g, '');
         const passwd = CryptService.encryptText(dateNow, process.env.CRYPTO_KEY);
 
@@ -110,7 +105,6 @@ module.exports = (Model, App) => {
                 }
             })
             .then((team) => {
-
                 resolve(team);
             })
             .catch((err) => {
@@ -136,137 +130,16 @@ module.exports = (Model, App) => {
         });
     };
 
-    const SetEmailSendedTeam = (email) => Model.users.update(
-        {
-            lastResend: new Date()
-        },
-        { where: { email: { [Op.eq]: email } } }
-    );
-
-    const DeactivateTeam = (email) => new Promise(async (resolve, reject) => {
-        const shouldSend = await ShouldSendEmailTeam(email);
-        if (!shouldSend) {
-            Logger.info('Do not resend deactivation email to %s', email);
-
-            return resolve(); // noop
-        }
-
-        SetEmailSendedTeam(email);
-
-        Model.teams
-            .findOne({ where: { bridge_user: { [Op.eq]: email } } })
-            .then((user) => {
-                const password = crypto.SHA256(user.bridge_password).toString();
-                const auth = Buffer.from(`${user.bridge_user}:${password}`).toString(
-                    'base64'
-                );
-
-                axios.delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-                    headers: {
-                        Authorization: `Basic ${auth}`,
-                        'Content-Type': 'application/json'
-                    }
-                })
-                    .then((data) => {
-                        resolve(data);
-                    })
-                    .catch((err) => {
-                        Logger.warn(err.response.data);
-                        reject(err);
-                    });
-            })
-            .catch(reject);
-    });
-
-    const ConfirmDeactivateTeam = (token) => new Promise((resolve, reject) => {
-        async.waterfall(
-            [
-                (next) => {
-                    axios
-                        .get(
-                            `${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-                            {
-                                headers: { 'Content-Type': 'application/json' }
-                            }
-                        )
-                        .then((res) => {
-                            console.log('User deleted from bridge');
-                            next(null, res);
-                        })
-                        .catch((err) => {
-                            console.log('Error user deleted from bridge');
-                            next(err);
-                        });
-                },
-                (data, next) => {
-                    const userEmail = data.data.email;
-        
-                    Model.teams
-                        .findOne({ where: { bridge_user: { [Op.eq]: userEmail } } })
-                        .then((user) => {
-                            console.log('User found on sql');
-
-                            const referralUuid = user.referral;
-                            if (uuid.validate(referralUuid)) {
-                                DecrementCredit(referralUuid);
-                                console.log('referral decremented');
-                            }
-
-                            user
-                                .destroy()
-                                .then((result) => {
-                                    console.log('User deleted on sql', userEmail);
-                                    next(null, data);
-                                })
-                                .catch((err) => {
-                                    console.log('Error deleting user on sql');
-                                    next(err);
-                                });
-                        })
-                        .catch(next);
-                }
-            ],
-            (err, result) => {
-                if (err) {
-                    console.log('Error waterfall', err);
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
-            }
-        );
-    });
-
-    const ShouldSendEmailTeam = (email) => new Promise((resolve, reject) => {
-        Model.teams
-            .findOne({ where: { bridge_user: { [Op.eq]: email } } })
-            .then((user) => {
-                if (!user.lastResend) {
-                    return resolve(true); // Field is null, send email
-                }
-
-                const dateDiff = new Date() - user.lastResend;
-                resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL);
-            })
-            .catch(reject);
-    });
-
-
-
     return {
         Name: 'Team',
         create,
         getTeamByIdUser,
         getTeamById,
-        generateBridgeTeamUser,
+        randomEmailBridgeUserTeam,
         getIdTeamByUser,
         getTeamByMember,
         getTeamBridgeUser,
         getPlans,
-        DeactivateTeam,
-        ConfirmDeactivateTeam,
-        ShouldSendEmailTeam,
-        SetEmailSendedTeam
 
     };
 };
