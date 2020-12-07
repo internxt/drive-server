@@ -31,9 +31,6 @@ module.exports = (sequelize, DataTypes) => {
           return this.getDataValue('userId');
         },
       },
-      color: {
-        type: DataTypes.STRING,
-      },
       encrypt_version: {
         type: DataTypes.STRING
       }
