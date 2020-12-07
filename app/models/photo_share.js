@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       user_id: DataTypes.INTEGER,
       photo: DataTypes.STRING(24),
       mnemonic: DataTypes.STRING,
-      is_folder: {
+      is_album: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
