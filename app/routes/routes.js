@@ -2,8 +2,8 @@ const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
 const useragent = require('useragent');
 const uuid = require('uuid');
-const Analytics = require('analytics-node');
-const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
+//const Analytics = require('analytics-node');
+//const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -246,7 +246,7 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
+            /*Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
               properties: {
                 referrer: {
                   email: referrer.email,
@@ -257,7 +257,7 @@ module.exports = (Router, Service, Logger, App) => {
                   userId: userData.uuid
                 }
               }
-            } : {});
+            } : {});*/
 
             // Successfull register
             const token = passport.Sign(userData.email, App.config.get('secrets').JWT);

@@ -7,7 +7,7 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/user/activations/:token', (req, res) => {
     Service.User.ActivateUser(req.params.token).then((response) => {
       const body = response.data;
-      Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } })
+      //Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } })
       res.status(200).send(body);
     }).catch(err => {
       res.status(err.response.status).send(err.response.data)
@@ -36,7 +36,7 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.User.DeactivateUser(user)
       .then(() => {
-        Service.Analytics.track({ userId: req.user.uuid, event: 'user-deactivation-request', properties: { email: user } })
+        //Service.Analytics.track({ userId: req.user.uuid, event: 'user-deactivation-request', properties: { email: user } })
         res.status(200).send({ error: null, message: 'User deactivated' });
       })
       .catch((err) => {

@@ -6,13 +6,13 @@ const SanitizeFilename = require('sanitize-filename');
 const async = require('async');
 
 const AesUtil = require('../../lib/AesUtil');
-const AnalyticsService = require('./analytics')
+//const AnalyticsService = require('./analytics')
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const log = App.logger;
-  const analyticsService = AnalyticsService(Model, App)
+  //const analyticsService = AnalyticsService(Model, App)
 
   const CreateFile = (user, file) => new Promise(async (resolve, reject) => {
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {

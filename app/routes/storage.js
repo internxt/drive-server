@@ -420,12 +420,12 @@ module.exports = (Router, Service, Logger, App) => {
 
     if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
       if (!req.body.views) {
-        Service.Analytics.track({
+        /*Service.Analytics.track({
           userId: req.user.uuid, event: 'file-download-finished', properties: {
             platform: 'mobile',
             file_id: req.params.id
           }
-        })
+        })*/
       }
     }
 

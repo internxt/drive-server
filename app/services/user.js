@@ -3,7 +3,7 @@ const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
-const Analytics = require('./analytics')
+//const Analytics = require('./analytics')
 const crypto = require('crypto-js');
 
 const { Op } = sequelize;
@@ -13,7 +13,7 @@ const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
-  const analytics = Analytics(Model, App);
+  //const analytics = Analytics(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
