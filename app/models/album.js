@@ -43,7 +43,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   album.associate = function (models) {
-    album.hasOne(models.album_metadata);
     album.hasMany(models.photo);
     album.belongsTo(models.users);
   };
