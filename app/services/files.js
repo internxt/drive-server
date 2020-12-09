@@ -198,21 +198,18 @@ module.exports = (Model, App) => {
             throw Error('File too large');
           }
 
-          App.services.Storj.ResolveFile(user, file)
-            .then((result) => {
-              resolve({
-                ...result, folderId: file.folder_id, name: file.name, type: file.type
-              });
-            })
-            .catch((err) => {
-              if (err.message === 'File already exists') {
-                resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
-              } else {
-                reject(err);
-              }
+          App.services.Storj.ResolveFile(user, file).then((result) => {
+            resolve({
+              ...result, folderId: file.folder_id, name: file.name, type: file.type, raw: file, size: file.size
             });
-        })
-        .catch(reject);
+          }).catch((err) => {
+            if (err.message === 'File already exists') {
+              resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
+            } else {
+              reject(err);
+            }
+          });
+        }).catch(reject);
     });
   };
 

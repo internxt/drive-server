@@ -271,32 +271,25 @@ module.exports = (Router, Service, Logger, App) => {
       return res.status(500).send({ message: 'Missing file id' });
     }
 
-    let filePath;
-
     return Service.Files.Download(user, fileIdInBucket)
-      .then(({
-        filestream, mimetype, downloadFile, folderId, name, type
-      }) => {
-        filePath = downloadFile;
-        const fileName = downloadFile.split('/')[2];
+      .then(({ filestream, mimetype, downloadFile, folderId, name, type, raw, size }) => {
         const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
         const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
         const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
+        res.setHeader('content-length', size);
         res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
         res.setHeader('content-type', mimetype);
         res.set('x-file-name', decryptedFileNameB64);
         filestream.pipe(res);
-        fs.unlink(filePath, (error) => {
+        fs.unlink(downloadFile, (error) => {
           if (error) throw error;
         });
-      })
-      .catch((err) => {
+      }).catch((err) => {
         if (err.message === 'Bridge rate limit error') {
           return res.status(402).json({ message: err.message });
         }
-
         return res.status(500).json({ message: err.message });
       });
   });

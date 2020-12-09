@@ -49,6 +49,11 @@ module.exports = (App, Config) => {
     keyGenerator: limiterKeyGenerator
   }))
 
+  App.express.use('/api/user/resend', rateLimit({
+    windowMs: 10 * 1000, max: 1,
+    keyGenerator: limiterKeyGenerator
+  }))
+
   var downloadLimiter = slowDown({
     delayAfter: 2,
     delayMs: 10000,
@@ -64,7 +69,14 @@ module.exports = (App, Config) => {
   // enables cors
   App.express.use(
     cors({
-      allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'method', 'internxt-version', 'internxt-client', 'internxt-mnemonic'],
+      allowedHeaders: [
+        'sessionId',
+        'Content-Type',
+        'Authorization',
+        'method',
+        'internxt-version',
+        'internxt-client',
+        'internxt-mnemonic'],
       exposedHeaders: ['sessionId'],
       origin: '*',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
