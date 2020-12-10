@@ -121,7 +121,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Wrong username or password
    */
   Router.post('/access', (req, res) => {
-    const MAX_LOGIN_FAIL_ATTEMPTS = 3;
+    const MAX_LOGIN_FAIL_ATTEMPTS = 5;
 
     console.log('/access', req.body.email)
     // Call user service to find or create user
