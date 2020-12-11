@@ -94,7 +94,11 @@ module.exports = (Router, Service, Logger, App) => {
         const totalUsers = await Service.TeamsMembers.getPeople(idTeam);
         const plans = await Service.Team.getPlans(user);
 
-        if (totalUsers.length >= 10 && plans.maxSpaceBytes == '214748364800') {
+        if (totalUsers.length >= 5 && plans.maxSpaceBytes == '214748364800') {
+            return res.status(500).send({ error: 'You cannot exceed the limit of 5 members' });
+        }
+        
+        if (totalUsers.length >= 10 && plans.maxSpaceBytes == '2199023255552') {
             return res.status(500).send({ error: 'You cannot exceed the limit of 10 members' });
         }
 
