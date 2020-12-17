@@ -246,18 +246,15 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
-              properties: {
-                referrer: {
-                  email: referrer.email,
-                  userId: referrer.uuid,
-                },
-                referee: {
-                  email: userData.email,
-                  userId: userData.uuid
+            if (hasReferral) {
+              Service.Analytics.identify({
+                userId: userData.uuid,
+                traits: {
+                  referred_by: referrer.uuid,
                 }
-              }
-            } : {});
+              });
+            }
+
 
             // Successfull register
             const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
