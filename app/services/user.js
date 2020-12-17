@@ -399,13 +399,6 @@ module.exports = (Model, App) => {
   }, { where: { email: { [Op.eq]: email } } });
 
   const ResendActivationEmail = async (user) => {
-    const shouldSend = await ShouldSendEmail(user);
-    if (shouldSend) {
-      return resolve(); // noop
-    }
-
-    SetEmailSended(user);
-
     return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user })
   };
 
