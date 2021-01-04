@@ -1,9 +1,9 @@
-const Analytics = require('analytics-node')
-const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
+/*const Analytics = require('analytics-node')
+const analytics = new Analytics(process.env.APP_SEGMENT_KEY);*/
 
 module.exports = (Model, App) => {
 
-  const track = (...params) => {
+  /*const track = (...params) => {
     return analytics.track(...params);
   }
 
@@ -69,16 +69,16 @@ module.exports = (Model, App) => {
       props.properties.platform = device;
     }
     return trackEvent(req, user, eventName, { ...props, platform: device })
-  }
+  }*/
 
   return {
     Name: 'Analytics',
-    track,
+    /*track,
     trackEvent,
     determineClient,
     trackIfDesktop,
     trackIfMobile,
     trackAll,
-    identify
+    identify*/
   }
 }

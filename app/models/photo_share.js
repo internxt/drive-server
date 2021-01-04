@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  Share.associate = function (models) {
+  photo_share.associate = function (models) {
     // associations can be defined here
   };
 
