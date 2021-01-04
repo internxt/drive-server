@@ -121,12 +121,10 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Wrong username or password
    */
   Router.post('/access', (req, res) => {
-    const MAX_LOGIN_FAIL_ATTEMPTS = 3;
-
-    console.log('/access', req.body.email)
+    const MAX_LOGIN_FAIL_ATTEMPTS = 5;
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
+      .then(async (userData) => {
         if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
           res.status(500).send({
             error: 'Your account has been blocked for security reasons. Please reach out to us'
@@ -164,6 +162,7 @@ module.exports = (Router, Service, Logger, App) => {
 
           Service.User.LoginFailed(req.body.email, false);
           Service.User.UpdateAccountActivity(req.body.email);
+          const userBucket = await Service.User.GetUserBucket(userData)
 
           res.status(200).json({
             user: {
@@ -174,7 +173,8 @@ module.exports = (Router, Service, Logger, App) => {
               lastname: userData.lastname,
               uuid: userData.uuid,
               credit: userData.credit,
-              createdAt: userData.createdAt
+              createdAt: userData.createdAt,
+              bucket: userBucket
             },
             token
           });
@@ -246,18 +246,15 @@ module.exports = (Router, Service, Logger, App) => {
         .then((userData) => {
           // Process user data and answer API call
           if (userData.isCreated) {
-            /*Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
-              properties: {
-                referrer: {
-                  email: referrer.email,
-                  userId: referrer.uuid,
-                },
-                referee: {
-                  email: userData.email,
-                  userId: userData.uuid
+            if (hasReferral) {
+              Service.Analytics.identify({
+                userId: userData.uuid,
+                traits: {
+                  referred_by: referrer.uuid,
                 }
-              }
-            } : {});*/
+              });
+            }
+
 
             // Successfull register
             const token = passport.Sign(userData.email, App.config.get('secrets').JWT);

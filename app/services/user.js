@@ -399,13 +399,6 @@ module.exports = (Model, App) => {
   }, { where: { email: { [Op.eq]: email } } });
 
   const ResendActivationEmail = async (user) => {
-    const shouldSend = await ShouldSendEmail(user);
-    if (shouldSend) {
-      return resolve(); // noop
-    }
-
-    SetEmailSended(user);
-
     return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user })
   };
 
@@ -447,6 +440,15 @@ module.exports = (Model, App) => {
     const userSyncDate = await Model.users.findOne(opts);
 
     return userSyncDate.syncDate;
+  };
+
+  const GetUserBucket = (userObject) => {
+    return Model.folder.findOne({
+        where: {
+          id: { [Op.eq]: userObject.root_folder_id }
+        },
+        attributes: ['bucket'],
+      }).then(folder => folder.bucket).catch(() => null)
   };
 
   // TODO: Check transaction is actually running
@@ -512,6 +514,7 @@ module.exports = (Model, App) => {
     GetOrSetUserSync,
     UpdateUserSync,
     UnlockSync,
-    ActivateUser
+    ActivateUser,
+    GetUserBucket
   };
 };

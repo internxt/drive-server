@@ -9,9 +9,19 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
     const { user } = req;
 
-    Service.User.UpdateAccountActivity(user.email);
-
     Service.Folder.GetTree(user)
+      .then((result) => {
+        res.status(200).send(result);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
+  });
+
+  Router.get('/desktop/tree', passportAuth, (req, res) => {
+    const { user } = req;
+
+    Service.Folder.GetFolders(user)
       .then((result) => {
         res.status(200).send(result);
       })

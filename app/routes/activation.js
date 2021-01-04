@@ -74,6 +74,7 @@ module.exports = (Router, Service, Logger, App) => {
         res.status(200).send({ message: 'ok' });
       })
       .catch((err) => {
+        Logger.error('Resend activation email error %s', err ? err.message : err)
         res.status(500).send({
           error:
             err.response && err.response.data && err.response.data.error
