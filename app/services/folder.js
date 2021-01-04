@@ -267,6 +267,29 @@ module.exports = (Model, App) => {
     });
   };
 
+  const GetFolders = (user) => {
+    const username = user.email;
+
+    return new Promise(async (resolve, reject) => {
+      const userObject = user
+
+      const folders = await Model.folder.findAll({
+        where: { user_id: { [Op.eq]: userObject.id } },
+        // where: { user_id: 21810 },
+        attributes: ['id','parent_id','name','bucket','updated_at']
+      })
+      const foldersId = folders.map(result => result.id);
+      const files = await Model.file.findAll({
+        where: { folder_id:{ [Op.in]: foldersId} }
+      })
+      result = {
+        folders: folders,
+        files: files
+      }
+      resolve(result);
+    });
+  };
+
   const mapChildrenNames = (folder = []) => folder.map((child) => {
     child.name = App.services.Crypt.decryptName(child.name, child.parentId);
     child.children = mapChildrenNames(child.children);
@@ -561,6 +584,7 @@ module.exports = (Model, App) => {
     MoveFolder,
     Download,
     CreateZip,
-    GetBucket
+    GetBucket,
+    GetFolders
   };
 };
