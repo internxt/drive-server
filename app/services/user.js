@@ -425,59 +425,43 @@ module.exports = (Model, App) => {
     return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
   };
 
-  const GetUserSync = async (user, t) => {
-    const opts = {
+  const GetUserSync = async (user) => {
+    const userSyncDate = await Model.users.findOne({
       where: { email: { [Op.eq]: user } },
       attributes: ['syncDate'],
       raw: true
-    };
-
-    if (t) {
-      opts.lock = t.LOCK.UPDATE;
-      opts.transaction = t;
-    }
-
-    const userSyncDate = await Model.users.findOne(opts);
+    });
 
     return userSyncDate.syncDate;
   };
 
-  // TODO: Check transaction is actually running
-  const UpdateUserSync = async (user, toNull, t) => {
+  const UpdateUserSync = async (user, toNull) => {
     let sync = null;
     if (!toNull) {
       sync = getSyncDate();
     }
 
-    const opts = { where: { email: user } };
-    if (t) {
-      opts.transaction = t;
-    }
-
-    await Model.users.update({ syncDate: sync }, opts);
+    await Model.users.update({ syncDate: sync }, { where: { email: user } });
 
     return sync;
   };
 
   const GetOrSetUserSync = async (user) => {
-    const t = await Model.users.sequelize.transaction();
-    const currentSync = await GetUserSync(user, t);
+    const currentSync = await GetUserSync(user);
     const userSyncEnded = hasUserSyncEnded(currentSync);
     if (!currentSync || userSyncEnded) {
-      await UpdateUserSync(user, false, t);
+      await UpdateUserSync(user, false);
     }
-
-    await t.commit();
 
     return !userSyncEnded;
   };
 
-  const UnlockSync = (user) => Model.users.update({ syncDate: null },
-    { where: { email: user.email } });
-
-  const ActivateUser = (token) => {
-    return axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`)
+  const UnlockSync = (user) => {
+    user.syncDate = null
+    return user.save()
   }
+
+  const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`)
 
   return {
     Name: 'User',
