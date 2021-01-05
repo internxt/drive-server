@@ -96,8 +96,8 @@ module.exports = (Router, Service, Logger, App) => {
 
           const sessionParams = {
             payment_method_types: ['card'],
-            success_url: 'https://drive.internxt.com/',
-            cancel_url: 'https://drive.internxt.com/',
+            success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
+            cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
             subscription_data: {
               items: [{ plan: req.body.plan }],
               trial_period_days: 30,
