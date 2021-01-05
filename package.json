@@ -56,8 +56,8 @@
     "test": "./node_modules/.bin/mocha test/**/*.js",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
-    "lint": "eslint --format 'node_modules/eslint-friendly-formatter' ./lib/**/*.js ./app/**/*.js",
-    "lint:fix": "eslint --format 'node_modules/eslint-friendly-formatter' ./lib/**/*.js ./app/**/*.js --fix"
+    "lint": "eslint ./lib/**/*.js ./app/**/*.js",
+    "lint:fix": "eslint ./lib/**/*.js ./app/**/*.js --fix"
   },
   "devDependencies": {
     "axios-debug-log": "^0.6.2",
