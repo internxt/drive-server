@@ -89,7 +89,7 @@ module.exports = (Model, App) => {
 
         return result;
       } catch (e) {
-        console.log('ERROR', e.message);
+        // console.log('ERROR', e.message);
       }
     }
 
