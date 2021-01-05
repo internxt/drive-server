@@ -14,16 +14,16 @@ module.exports = (sequelize, DataTypes) => {
             },
             user: {
                 type: DataTypes.STRING,
-                allowNull: false,
+                allowNull: false
             },
             bridge_password: {
                 type: DataTypes.STRING,
-                allowNull: false,
+                allowNull: false
             },
             bridge_mnemonic: {
                 type: DataTypes.STRING,
-                allowNull: false,
-            },
+                allowNull: false
+            }
 
         },
         {

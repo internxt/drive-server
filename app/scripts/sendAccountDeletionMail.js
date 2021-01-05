@@ -48,7 +48,7 @@ const sendMail = (emailTo) => {
         secure: true,
         auth: {
             user: process.env.INXT_MAILER_USERNAME,
-            pass: process.env.INXT_MAILER_PASSWORD,
+            pass: process.env.INXT_MAILER_PASSWORD
         },
         from: 'hello@internxt.com'
     });

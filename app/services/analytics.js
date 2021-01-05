@@ -1,22 +1,17 @@
 const Analytics = require('analytics-node');
+
 const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
 module.exports = (Model, App) => {
+    const track = (...params) => analytics.track(...params);
 
-    const track = (...params) => {
-        return analytics.track(...params);
-    };
-
-    const identify = (...params) => {
-        return analytics.identify(...params);
-    };
+    const identify = (...params) => analytics.identify(...params);
 
     const trackEvent = (req, user, eventName, props) => {
         if (user && typeof user === 'string') {
             return analytics.track({ userId: user, event: eventName, ...props });
-        } else {
-            return analytics.track({ userId: user.uuid, event: eventName, ...props });
         }
+        return analytics.track({ userId: user.uuid, event: eventName, ...props });
     };
 
     const trackIfDesktop = (req, user, eventName, props) => {

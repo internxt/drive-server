@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.INTEGER,
                 primaryKey: true,
                 allowNull: false,
-                autoIncrement: true,
+                autoIncrement: true
             },
             user_id: {
                 type: DataTypes.INTEGER,
@@ -18,15 +18,15 @@ module.exports = (sequelize, DataTypes) => {
             },
             public_key: {
                 type: DataTypes.STRING(920),
-                allowNull: false,
+                allowNull: false
             },
             private_key: {
                 type: DataTypes.STRING(1356),
-                allowNull: false,
+                allowNull: false
             },
             revocation_key: {
                 type: DataTypes.STRING(476),
-                allowNull: false,
+                allowNull: false
             },
             encrypt_version: {
                 type: DataTypes.STRING
@@ -35,9 +35,9 @@ module.exports = (sequelize, DataTypes) => {
         {
             timestamps: true,
             underscored: true,
-            freezeTableName: true,
+            freezeTableName: true
 
-        },
+        }
     );
 
     return keyserver;

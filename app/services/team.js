@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
+
 const { Op } = sequelize;
 const async = require('async');
 const axios = require('axios');
@@ -11,29 +12,26 @@ module.exports = (Model, App) => {
     const Logger = App.logger;
 
 
-
     /**
    * @swagger
    * Function: Method to create a Team in DB
    */
-    const create = async (team) => {
-        return await new Promise((resolve, reject) => {
-            Model.teams
-                .create({
-                    admin: team.admin,
-                    name: team.name,
-                    bridge_user: team.bridge_user,
-                    bridge_password: team.bridge_password,
-                    bridge_mnemonic: team.bridge_mnemonic
-                })
-                .then((newTeam) => {
-                    resolve(newTeam.dataValues);
-                })
-                .catch((err) => {
-                    reject({ error: 'Unable to create new team on db' });
-                });
-        });
-    };
+    const create = async (team) => await new Promise((resolve, reject) => {
+        Model.teams
+            .create({
+                admin: team.admin,
+                name: team.name,
+                bridge_user: team.bridge_user,
+                bridge_password: team.bridge_password,
+                bridge_mnemonic: team.bridge_mnemonic
+            })
+            .then((newTeam) => {
+                resolve(newTeam.dataValues);
+            })
+            .catch((err) => {
+                reject({ error: 'Unable to create new team on db' });
+            });
+    });
 
 
     /**
@@ -85,8 +83,8 @@ module.exports = (Model, App) => {
         };
     };
 
-    
-     /**
+
+    /**
     * @swagger
     * Function: Method to get info in TEAM MEMBERS with a user
     */
@@ -106,7 +104,7 @@ module.exports = (Model, App) => {
             });
     });
 
-    
+
     /**
     * @swagger
     * Function: Method to get Plans, this method is used for the limit and usage and to control teams invitations with 200GB plan
@@ -119,10 +117,10 @@ module.exports = (Model, App) => {
         const limit = await axios.get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Basic ${credential}`,
-            },
-        }).then(res => res.data)
-            .catch(err => null);
+                Authorization: `Basic ${credential}`
+            }
+        }).then((res) => res.data)
+            .catch((err) => null);
         return limit;
     };
 
@@ -151,12 +149,12 @@ module.exports = (Model, App) => {
     * Function: Method to get the object team
     */
     const getTeamByMember = function (userEmail) {
-        return new Promise(function (resolve, reject) {
-            getIdTeamByUser(userEmail).then(function (team) {
+        return new Promise(((resolve, reject) => {
+            getIdTeamByUser(userEmail).then((team) => {
                 if (!team) {
                     return resolve();
                 }
-                getTeamById(team.id_team).then(function (team2) {
+                getTeamById(team.id_team).then((team2) => {
                     resolve(team2);
                 }).catch((err) => {
                     reject();
@@ -164,7 +162,7 @@ module.exports = (Model, App) => {
             }).catch((err) => {
                 reject('TEAM NOT FOUND');
             });
-        });
+        }));
     };
 
     return {
@@ -176,7 +174,7 @@ module.exports = (Model, App) => {
         getIdTeamByUser,
         getTeamByMember,
         getTeamBridgeUser,
-        getPlans,
+        getPlans
 
     };
 };

@@ -22,8 +22,8 @@ module.exports = (Model, App) => {
         return Model.folder.findOne({
             where: {
                 id: { [Op.eq]: file.folder_id },
-                user_id: { [Op.eq]: user.id },
-            },
+                user_id: { [Op.eq]: user.id }
+            }
         }).then(async (folder) => {
             if (!folder) {
                 return reject(new Error('Folder not found / Is not your folder'));
@@ -33,8 +33,8 @@ module.exports = (Model, App) => {
                 where: {
                     name: { [Op.eq]: file.name },
                     folder_id: { [Op.eq]: folder.id },
-                    type: { [Op.eq]: file.type },
-                },
+                    type: { [Op.eq]: file.type }
+                }
             });
 
             if (fileExists) {
@@ -91,10 +91,10 @@ module.exports = (Model, App) => {
             log.info(`Starting file upload: ${fileName}`);
 
             const rootFolder = await Model.folder.findOne({
-                where: { id: { [Op.eq]: user.root_folder_id } },
+                where: { id: { [Op.eq]: user.root_folder_id } }
             });
             const folder = await Model.folder.findOne({
-                where: { id: { [Op.eq]: folderId } },
+                where: { id: { [Op.eq]: folderId } }
             });
 
             if (!rootFolder.bucket) return reject('Missing file bucket');
@@ -111,8 +111,8 @@ module.exports = (Model, App) => {
                 where: {
                     name: { [Op.eq]: encryptedFileName },
                     folder_id: { [Op.eq]: folderId },
-                    type: { [Op.eq]: fileExt },
-                },
+                    type: { [Op.eq]: fileExt }
+                }
             });
 
             // Change name if exists
@@ -147,7 +147,7 @@ module.exports = (Model, App) => {
                     type: fileExt,
                     fileId,
                     bucket: rootFolder.bucket,
-                    size,
+                    size
                 };
 
                 try {
@@ -249,7 +249,7 @@ module.exports = (Model, App) => {
         App.services.Storj.DeleteFile(user, bucket, fileId)
             .then(async (result) => {
                 const file = await Model.file.findOne({
-                    where: { fileId: { [Op.eq]: fileId } },
+                    where: { fileId: { [Op.eq]: fileId } }
                 });
                 if (file) {
                     const isDestroyed = await file.destroy();
@@ -326,8 +326,8 @@ module.exports = (Model, App) => {
                         .findOne({
                             where: {
                                 id: { [Op.eq]: file.folder_id },
-                                user_id: { [Op.eq]: user.id },
-                            },
+                                user_id: { [Op.eq]: user.id }
+                            }
                         })
                         .then((folder) => {
                             if (!folder) {
@@ -353,8 +353,8 @@ module.exports = (Model, App) => {
                             where: {
                                 folder_id: { [Op.eq]: file.folder_id },
                                 name: { [Op.eq]: cryptoFileName },
-                                type: { [Op.eq]: file.type },
-                            },
+                                type: { [Op.eq]: file.type }
+                            }
                         })
                         .then((duplicateFile) => {
                             if (duplicateFile) {
@@ -376,7 +376,7 @@ module.exports = (Model, App) => {
                     } else {
                         next();
                     }
-                },
+                }
             ],
             (err, result) => {
                 if (err) {
@@ -478,28 +478,28 @@ module.exports = (Model, App) => {
 
     const isFileOfTeamFolder = (fileId) => new Promise((resolve, reject) => {
         Model.file
-          .findOne({
-            where: {
-              file_id: { [Op.eq]: fileId }
-            },
-            include: [
-              {
-                model: Model.folder,
+            .findOne({
                 where: {
-                  id_team: { [Op.ne]: null }
+                    file_id: { [Op.eq]: fileId }
+                },
+                include: [
+                    {
+                        model: Model.folder,
+                        where: {
+                            id_team: { [Op.ne]: null }
+                        }
+                    }
+                ]
+            })
+            .then((file) => {
+                if (!file) {
+                    throw Error('File not found on database, please refresh');
                 }
-              }
-            ]
-          })
-          .then((file) => {
-            if (!file) {
-              throw Error('File not found on database, please refresh');
-            }
-    
-            resolve(file);
-          })
-          .catch(reject);
-      });
+
+                resolve(file);
+            })
+            .catch(reject);
+    });
 
     return {
         Name: 'Files',

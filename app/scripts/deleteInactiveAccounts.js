@@ -24,7 +24,7 @@ const Folder = FolderModel(sequelize, Sequelize);
 
 const getBucket = (folderId) => new Promise((resolve, reject) => {
     Folder.findOne({
-        where: { id: { [Op.eq]: folderId } },
+        where: { id: { [Op.eq]: folderId } }
     })
         .then((res) => resolve(res.bucket))
         .catch(reject);
@@ -54,7 +54,7 @@ const deleteRootBucket = (user, bucketId) => new Promise((resolve, reject) => {
             bridgeUrl: process.env.STORJ_BRIDGE,
             bridgeUser: user.email,
             bridgePass: user.userId,
-            logLevel: 3,
+            logLevel: 3
         });
     } catch (error) {
         console.error('[NODE-LIB getEnvironment]', error);

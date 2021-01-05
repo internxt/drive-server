@@ -21,7 +21,6 @@ module.exports = (Model, App) => {
         log.info('Services loaded');
 
         return services;
-    
     } catch (error) {
         log.error(error);
         throw new Error(error);

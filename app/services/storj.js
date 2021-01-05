@@ -39,7 +39,7 @@ module.exports = (Model, App) => {
                 bridgeUser: email,
                 bridgePass: password,
                 encryptionKey: mnemonic,
-                logLevel: 0,
+                logLevel: 0
             });
         } catch (error) {
             log.error('[NODE-LIB getEnvironment]', error);
@@ -137,7 +137,7 @@ module.exports = (Model, App) => {
                     storj.destroy();
                     resolve({ fileId, size: actualFileSize });
                 }
-            },
+            }
         });
     });
 
