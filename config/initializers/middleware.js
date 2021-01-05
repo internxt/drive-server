@@ -44,10 +44,12 @@ module.exports = (App, Config) => {
     keyGenerator: limiterKeyGenerator
   }));
 
+  /*
   App.express.use('/api/register', rateLimit({
     windowMs: 10 * 1000, max: 1,
     keyGenerator: limiterKeyGenerator
   }))
+  */
 
   App.express.use('/api/user/resend', rateLimit({
     windowMs: 10 * 1000, max: 1,
@@ -63,8 +65,10 @@ module.exports = (App, Config) => {
     skip: limitSkipper
   })
 
+  /*
   App.express.use('/api/storage/share/', downloadLimiter);
   App.express.use('/api/storage/file/', downloadLimiter);
+  */
 
   // enables cors
   App.express.use(
@@ -124,7 +128,6 @@ module.exports = (App, Config) => {
       App.services.User.FindUserObjByEmail(email)
         .then((user) => done(null, user))
         .catch((err) => {
-          console.log('Unauthorized %s', email)
           done(err)
         });
     }),
@@ -148,6 +151,7 @@ module.exports = (App, Config) => {
 
       }
     }
+
     App.logger.info(
       `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ' ' + user : ''}`,
     );

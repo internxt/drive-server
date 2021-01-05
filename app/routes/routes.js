@@ -122,11 +122,9 @@ module.exports = (Router, Service, Logger, App) => {
    */
   Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 5;
-
-    console.log('/access', req.body.email)
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
+      .then(async (userData) => {
         if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
           res.status(500).send({
             error: 'Your account has been blocked for security reasons. Please reach out to us'
@@ -164,6 +162,7 @@ module.exports = (Router, Service, Logger, App) => {
 
           Service.User.LoginFailed(req.body.email, false);
           Service.User.UpdateAccountActivity(req.body.email);
+          const userBucket = await Service.User.GetUserBucket(userData)
 
           res.status(200).json({
             user: {
@@ -174,7 +173,8 @@ module.exports = (Router, Service, Logger, App) => {
               lastname: userData.lastname,
               uuid: userData.uuid,
               credit: userData.credit,
-              createdAt: userData.createdAt
+              createdAt: userData.createdAt,
+              bucket: userBucket
             },
             token
           });

@@ -435,7 +435,17 @@ module.exports = (Model, App) => {
     return userSyncDate.syncDate;
   };
 
-  const UpdateUserSync = async (user, toNull) => {
+  const GetUserBucket = (userObject) => {
+    return Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: userObject.root_folder_id }
+      },
+      attributes: ['bucket'],
+    }).then(folder => folder.bucket).catch(() => null)
+  };
+
+  // TODO: Check transaction is actually running
+  const UpdateUserSync = async (user, toNull, t) => {
     let sync = null;
     if (!toNull) {
       sync = getSyncDate();
@@ -489,6 +499,7 @@ module.exports = (Model, App) => {
     GetOrSetUserSync,
     UpdateUserSync,
     UnlockSync,
-    ActivateUser
+    ActivateUser,
+    GetUserBucket
   };
 };
