@@ -3,7 +3,6 @@ const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
-const { keys } = require('lodash');
 const crypto = require('crypto-js');
 const Analytics = require('./analytics');
 
@@ -17,7 +16,7 @@ module.exports = (Model, App) => {
     const analytics = Analytics(Model, App);
 
     const FindOrCreate = (user) => {
-    // Create password hashed pass only when a pass is given
+        // Create password hashed pass only when a pass is given
         const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
         const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
 
@@ -133,7 +132,6 @@ module.exports = (Model, App) => {
             // Set decrypted mnemonic to returning object
             const updatedUser = userData;
             updatedUser.mnemonic = user.mnemonic;
-            updatedUser.root_folder_id = rootFolder.id;
 
             return updatedUser;
         })
@@ -194,13 +192,10 @@ module.exports = (Model, App) => {
             .catch((err) => reject(err));
     });
 
-    const FindUserObjByEmail = (email) => new Promise((resolve, reject) => {
-        Model.users.findOne({
-            where: {
-                email: { [Op.eq]: email }
-            }
-        }).then(resolve)
-            .catch(reject);
+    const FindUserObjByEmail = (email) => Model.users.findOne({
+        where: {
+            email: { [Op.eq]: email }
+        }
     });
 
     const GetUserCredit = (userUuid) => Model.users.findOne({
@@ -234,7 +229,7 @@ module.exports = (Model, App) => {
     };
 
     const UpdateCredit = (userUuid) => {
-    // Logger.info("€5 added to ", referral);
+        // Logger.info("€5 added to ", referral);
         Logger.info('€5 added to user with UUID %s', userUuid);
 
         return Model.users.update(
@@ -335,14 +330,14 @@ module.exports = (Model, App) => {
                     .catch(next);
             }
         ],
-        (err, result) => {
-            if (err) {
-                Logger.error('Error waterfall', err);
-                reject(err);
-            } else {
-                resolve(result);
-            }
-        });
+            (err, result) => {
+                if (err) {
+                    Logger.error('Error waterfall', err);
+                    reject(err);
+                } else {
+                    resolve(result);
+                }
+            });
     });
 
     const Store2FA = (user, key) => new Promise((resolve, reject) => {
@@ -383,31 +378,32 @@ module.exports = (Model, App) => {
 
 
     const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => new Promise((resolve, reject) => {
-        FindUserByEmail(user).then((userData) => {
-            const storedPassword = userData.password.toString();
-            if (storedPassword !== currentPassword) {
-                Logger.error('Invalid password');
-                reject({ error: 'Invalid password' });
-            } else {
-                resolve();
+        FindUserByEmail(user)
+            .then((userData) => {
+                const storedPassword = userData.password.toString();
+                if (storedPassword !== currentPassword) {
+                    Logger.error('Invalid password');
+                    reject({ error: 'Invalid password' });
+                } else {
+                    resolve();
 
-                Model.users
-                    .update({
-                        password: newPassword,
-                        mnemonic,
-                        hKey: newSalt
-                    }, { where: { email: { [Op.eq]: user } } })
-                    .then((res) => {
-                        updatePrivateKey(user, privateKey);
-                        Logger.info('Updated', res);
-                        resolve();
-                    })
-                    .catch((err) => {
-                        Logger.error('error updating', err);
-                        reject({ error: 'Error updating info' });
-                    });
-            }
-        })
+                    Model.users
+                        .update({
+                            password: newPassword,
+                            mnemonic,
+                            hKey: newSalt
+                        }, { where: { email: { [Op.eq]: user } } })
+                        .then((res) => {
+                            updatePrivateKey(user, privateKey);
+                            Logger.info('Updated', res);
+                            resolve();
+                        })
+                        .catch((err) => {
+                            Logger.error('error updating', err);
+                            reject({ error: 'Error updating info' });
+                        });
+                }
+            })
             .catch((err) => {
                 Logger.error(err);
                 reject({ error: 'Internal server error' });
@@ -442,16 +438,7 @@ module.exports = (Model, App) => {
         lastResend: new Date()
     }, { where: { email: { [Op.eq]: email } } });
 
-    const ResendActivationEmail = async (user) => {
-        const shouldSend = await ShouldSendEmail(user);
-        if (shouldSend) {
-            return resolve(); // noop
-        }
-
-        SetEmailSended(user);
-
-        return axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
-    };
+    const ResendActivationEmail = async (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
     const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
         Model.users.update({ updated_at: new Date() }, { where: { email: user } })
@@ -477,22 +464,23 @@ module.exports = (Model, App) => {
         return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
     };
 
-    const GetUserSync = async (user, t) => {
-        const opts = {
+    const GetUserSync = async (user) => {
+        const userSyncDate = await Model.users.findOne({
             where: { email: { [Op.eq]: user } },
             attributes: ['syncDate'],
             raw: true
-        };
-
-        if (t) {
-            opts.lock = t.LOCK.UPDATE;
-            opts.transaction = t;
-        }
-
-        const userSyncDate = await Model.users.findOne(opts);
+        });
 
         return userSyncDate.syncDate;
     };
+
+    const GetUserBucket = (userObject) => Model.folder.findOne({
+        where: {
+            id: { [Op.eq]: userObject.root_folder_id }
+        },
+        attributes: ['bucket']
+    }).then((folder) => folder.bucket)
+        .catch(() => null);
 
     // TODO: Check transaction is actually running
     const UpdateUserSync = async (user, toNull, t) => {
@@ -501,31 +489,25 @@ module.exports = (Model, App) => {
             sync = getSyncDate();
         }
 
-        const opts = { where: { email: user } };
-        if (t) {
-            opts.transaction = t;
-        }
-
-        await Model.users.update({ syncDate: sync }, opts);
+        await Model.users.update({ syncDate: sync }, { where: { email: user } });
 
         return sync;
     };
 
     const GetOrSetUserSync = async (user) => {
-        const t = await Model.users.sequelize.transaction();
-        const currentSync = await GetUserSync(user, t);
+        const currentSync = await GetUserSync(user);
         const userSyncEnded = hasUserSyncEnded(currentSync);
         if (!currentSync || userSyncEnded) {
-            await UpdateUserSync(user, false, t);
+            await UpdateUserSync(user, false);
         }
-
-        await t.commit();
 
         return !userSyncEnded;
     };
 
-    const UnlockSync = (user) => Model.users.update({ syncDate: null },
-        { where: { email: user.email } });
+    const UnlockSync = (user) => {
+        user.syncDate = null;
+        return user.save();
+    };
 
     const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`);
 
@@ -555,6 +537,7 @@ module.exports = (Model, App) => {
         GetOrSetUserSync,
         UpdateUserSync,
         UnlockSync,
-        ActivateUser
+        ActivateUser,
+        GetUserBucket
     };
 };

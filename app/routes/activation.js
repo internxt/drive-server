@@ -3,6 +3,17 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
+    Router.get('/user/activations/:token', (req, res) => {
+        Service.User.ActivateUser(req.params.token).then((response) => {
+            const body = response.data;
+            Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } });
+            res.status(200).send(body);
+        })
+            .catch((err) => {
+                res.status(err.response.status).send(err.response.data);
+            });
+    });
+
     Router.get('/user/isactivated', passportAuth, (req, res) => {
         const user = req.user.email;
 
@@ -103,11 +114,12 @@ module.exports = (Router, Service, Logger, App) => {
                 res.status(200).send({ message: 'ok' });
             })
             .catch((err) => {
+                Logger.error('Resend activation email error %s', err ? err.message : err);
                 res.status(500).send({
                     error:
-            err.response && err.response.data && err.response.data.error
-                ? err.response.data.error
-                : 'Internal server error'
+                        err.response && err.response.data && err.response.data.error
+                            ? err.response.data.error
+                            : 'Internal server error'
                 });
             });
     });

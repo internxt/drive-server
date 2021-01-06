@@ -44,7 +44,14 @@ module.exports = (App, Config) => {
     keyGenerator: limiterKeyGenerator
   }));
 
+  /*
   App.express.use('/api/register', rateLimit({
+    windowMs: 10 * 1000, max: 1,
+    keyGenerator: limiterKeyGenerator
+  }))
+  */
+
+  App.express.use('/api/user/resend', rateLimit({
     windowMs: 10 * 1000, max: 1,
     keyGenerator: limiterKeyGenerator
   }))
@@ -58,8 +65,10 @@ module.exports = (App, Config) => {
     skip: limitSkipper
   })
 
+  /*
   App.express.use('/api/storage/share/', downloadLimiter);
   App.express.use('/api/storage/file/', downloadLimiter);
+  */
 
   App.express.use('/api/teams/team-invitations', rateLimit({
     windowMs: 30 * 60 * 1000,
@@ -70,7 +79,14 @@ module.exports = (App, Config) => {
   // enables cors
   App.express.use(
     cors({
-      allowedHeaders: ['sessionId', 'Content-Type', 'Authorization', 'method', 'internxt-version', 'internxt-client', 'internxt-mnemonic'],
+      allowedHeaders: [
+        'sessionId',
+        'Content-Type',
+        'Authorization',
+        'method',
+        'internxt-version',
+        'internxt-client',
+        'internxt-mnemonic'],
       exposedHeaders: ['sessionId'],
       origin: '*',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
@@ -118,7 +134,6 @@ module.exports = (App, Config) => {
       App.services.User.FindUserObjByEmail(email)
         .then((user) => done(null, user))
         .catch((err) => {
-          console.log('Unauthorized %s', email)
           done(err)
         });
     }),
@@ -142,6 +157,7 @@ module.exports = (App, Config) => {
 
       }
     }
+
     App.logger.info(
       `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ' ' + user : ''}`,
     );

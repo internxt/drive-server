@@ -79,38 +79,39 @@ module.exports = (Router, Service, Logger, App) => {
         }
 
         // Call user service to find user
-        return Service.User.FindUserByEmail(req.body.email).then((userData) => {
-            if (!userData) {
-                // Wrong user
-
-                return res.status(400).json({ error: 'Wrong email/password' });
-            }
-
-            return Service.Storj.IsUserActivated(req.body.email).then((resActivation) => {
-                if (!resActivation.data.activated) {
-                    res.status(400).send({ error: 'User is not activated' });
-                } else {
-                    const encSalt = App.services.Crypt.encryptText(
-                        userData.hKey.toString()
-                    );
-                    const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-                    Service.Keyserver.keysExists(userData).then((userKey) => {
-                        res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-                    })
-                        .catch((err) => {
-                            console.error(err);
-                            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
-                        });
+        return Service.User.FindUserByEmail(req.body.email)
+            .then((userData) => {
+                if (!userData) {
+                    // Wrong user
+                    return res.status(400).json({ error: 'Wrong email/password' });
                 }
-            })
-                .catch((err) => {
-                    console.error(err);
-                    res.status(400).send({
-                        error: 'User not found on Bridge database',
-                        message: err.response ? err.response.data : err
+
+                return Service.Storj.IsUserActivated(req.body.email)
+                    .then((resActivation) => {
+                        if (!resActivation.data.activated) {
+                            res.status(400).send({ error: 'User is not activated' });
+                        } else {
+                            const encSalt = App.services.Crypt.encryptText(
+                                userData.hKey.toString()
+                            );
+                            const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+                            Service.Keyserver.keysExists(userData).then((userKey) => {
+                                res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
+                            })
+                                .catch((err) => {
+                                    console.error(err);
+                                    res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
+                                });
+                        }
+                    })
+                    .catch((err) => {
+                        console.error(err);
+                        res.status(400).send({
+                            error: 'User not found on Bridge database',
+                            message: err.response ? err.response.data : err
+                        });
                     });
-                });
-        })
+            })
             .catch((err) => {
                 Logger.error(`${err}: ${req.body.email}`);
                 res.status(400).send({
@@ -119,7 +120,6 @@ module.exports = (Router, Service, Logger, App) => {
                 });
             });
     });
-
 
     /**
    * @swagger
@@ -139,128 +139,82 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Wrong username or password
    */
     Router.post('/access', (req, res) => {
-        const MAX_LOGIN_FAIL_ATTEMPTS = 3;
+        const MAX_LOGIN_FAIL_ATTEMPTS = 5;
 
         let isTeamActivated = false;
         let rootFolderId = 0;
         let userTeam = null;
         // Call user service to find or create user
-        Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
-            if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-                res.status(500).send({
-                    error: 'Your account has been blocked for security reasons. Please reach out to us'
-                });
-
-                return;
-            }
-
-            let responseTeam = null;
-            // Check if user has a team
-            await new Promise((resolve, reject) => {
-                Service.Team.getTeamByMember(req.body.email).then(async (team) => {
-                    userTeam = team;
-                    if (team !== undefined) {
-                        rootFolderId = (await Service.User.FindUserByEmail(team.bridge_user)).root_folder_id;
-                        responseTeam = await Service.Storj.IsUserActivated(team.bridge_user);
-                        if (responseTeam) {
-                            member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.body.email);
-                            if (member) {
-                                let isAdmin = false;
-                                getAdmin = await Service.Team.getTeamByIdUser(req.body.email);
-                                if (getAdmin) {
-                                    isAdmin = true;
-                                }
-
-                                isTeamActivated = responseTeam.data.activated;
-                                userTeam = {
-                                    idTeam: team.id,
-                                    bridge_user: userTeam.bridge_user,
-                                    bridge_password: userTeam.bridge_password,
-                                    bridge_mnemonic: member.bridge_mnemonic,
-                                    admin: userTeam.admin,
-                                    root_folder_id: rootFolderId,
-                                    isActivated: isTeamActivated,
-                                    isAdmin
-                                };
-                                resolve();
-                            }
-                        }
-                    }
-                    resolve();
-                })
-                    .catch((error) => {
-                        Logger.error(error.stack);
-                        reject();
+        Service.User.FindUserByEmail(req.body.email)
+            .then(async (userData) => {
+                if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+                    res.status(500).send({
+                        error: 'Your account has been blocked for security reasons. Please reach out to us'
                     });
-            });
-            // Process user data and answer API call
-            const pass = App.services.Crypt.decryptText(req.body.password);
-            // 2-Factor Auth. Verification
-            const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
-            let tfaResult = true;
-            if (needsTfa) {
-                tfaResult = speakeasy.totp.verifyDelta({
-                    secret: userData.secret_2FA,
-                    token: req.body.tfa,
-                    encoding: 'base32',
-                    window: 2
-                });
-            }
-            if (!tfaResult) {
-                res.status(400).send({ error: 'Wrong 2-factor auth code' });
-            } else if (pass === userData.password.toString() && tfaResult) {
-                // Successfull login
-                const internxtClient = req.headers['internxt-client'];
-                const token = passport.Sign(
-                    userData.email,
-                    App.config.get('secrets').JWT,
-                    internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
-                );
 
-                Service.User.LoginFailed(req.body.email, false);
-                Service.User.UpdateAccountActivity(req.body.email);
+                    return;
+                }
 
-                Service.Analytics.trackAll(req, userData, 'user-signin', {
-                    properties: {
-                        email: userData.email
+                // Process user data and answer API call
+                const pass = App.services.Crypt.decryptText(req.body.password);
+                // 2-Factor Auth. Verification
+                const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
+                let tfaResult = true;
+                if (needsTfa) {
+                    tfaResult = speakeasy.totp.verifyDelta({
+                        secret: userData.secret_2FA,
+                        token: req.body.tfa,
+                        encoding: 'base32',
+                        window: 2
+                    });
+                }
+                if (!tfaResult) {
+                    res.status(400).send({ error: 'Wrong 2-factor auth code' });
+                } else if (pass === userData.password.toString() && tfaResult) {
+                    // Successfull login
+                    const internxtClient = req.headers['internxt-client'];
+                    const token = passport.Sign(
+                        userData.email,
+                        App.config.get('secrets').JWT,
+                        internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
+                    );
+
+                    Service.User.LoginFailed(req.body.email, false);
+                    Service.User.UpdateAccountActivity(req.body.email);
+                    const userBucket = await Service.User.GetUserBucket(userData);
+
+                    let teamRol = '';
+                    if (userTeam && userTeam.admin === req.body.email) {
+                        teamRol = 'admin';
+                    } else if (userTeam) {
+                        teamRol = 'member';
                     }
-                });
 
-                let teamRol = '';
-                if (userTeam && userTeam.admin === req.body.email) {
-                    teamRol = 'admin';
-                } else if (userTeam) {
-                    teamRol = 'member';
-                }
+                    let keys = false;
+                    try {
+                        keys = await Service.Keyserver.keysExists(userData);
+                    } catch (e) { }
 
+                    if (!keys && req.body.publicKey) {
+                        await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+                        keys = await Service.Keyserver.keysExists(userData);
+                    }
 
-                let keys = false;
-                try {
-                    keys = await Service.Keyserver.keysExists(userData);
-                } catch (e) { }
+                    const user = {
+                        userId: userData.userId,
+                        mnemonic: userData.mnemonic,
+                        root_folder_id: userData.root_folder_id,
+                        name: userData.name,
+                        lastname: userData.lastname,
+                        uuid: userData.uuid,
+                        credit: userData.credit,
+                        createdAt: userData.createdAt,
+                        privateKey: keys ? keys.private_key : null,
+                        publicKey: keys ? keys.public_key : null,
+                        revocateKey: keys ? keys.revocation_key : null,
+                        bucket: userBucket
+                    };
 
-                if (!keys && req.body.publicKey) {
-                    await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-                    keys = await Service.Keyserver.keysExists(userData);
-                }
-
-                const user = {
-                    userId: userData.userId,
-                    mnemonic: userData.mnemonic,
-                    root_folder_id: userData.root_folder_id,
-                    name: userData.name,
-                    lastname: userData.lastname,
-                    uuid: userData.uuid,
-                    createdAt: userData.createdAt,
-                    credit: userData.credit,
-                    privateKey: keys ? keys.private_key : null,
-                    publicKey: keys ? keys.public_key : null,
-                    revocateKey: keys ? keys.revocation_key : null
-                };
-
-                if (userTeam) {
-                    const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
-                        internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
                     res.status(200).json({
                         user,
                         token,
@@ -275,16 +229,15 @@ module.exports = (Router, Service, Logger, App) => {
                         userTeam,
                         teamRol
                     });
-                }
-            } else {
-                // Wrong password
-                if (pass !== userData.password.toString()) {
-                    Service.User.LoginFailed(req.body.email, true);
-                }
+                } else {
+                    // Wrong password
+                    if (pass !== userData.password.toString()) {
+                        Service.User.LoginFailed(req.body.email, true);
+                    }
 
-                res.status(400).json({ error: 'Wrong email/password' });
-            }
-        })
+                    res.status(400).json({ error: 'Wrong email/password' });
+                }
+            })
             .catch((err) => {
                 Logger.error(`${err.message}\n${err.stack}`);
                 res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
@@ -309,7 +262,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: User with this email exists
    */
     Router.post('/register', async (req, res) => {
-    // Data validation for process only request with all data
+        // Data validation for process only request with all data
         if (req.body.email && req.body.password) {
             req.body.email = req.body.email.toLowerCase().trim();
             Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For']);
@@ -327,6 +280,7 @@ module.exports = (Router, Service, Logger, App) => {
                     .FindUserByUuid(referral)
                     .then((userData) => {
                         if (userData === null) { // Don't exists referral user
+                            console.log('UUID not found');
                         } else {
                             newUser.credit = 5;
                             hasReferral = true;
@@ -342,18 +296,15 @@ module.exports = (Router, Service, Logger, App) => {
                 .then((userData) => {
                     // Process user data and answer API call
                     if (userData.isCreated) {
-                        Service.Analytics.trackAll(req, userData, 'user-signup', hasReferral ? {
-                            properties: {
-                                referrer: {
-                                    email: referrer.email,
-                                    userId: referrer.uuid
-                                },
-                                referee: {
-                                    email: userData.email,
-                                    userId: userData.uuid
+                        if (hasReferral) {
+                            Service.Analytics.identify({
+                                userId: userData.uuid,
+                                traits: {
+                                    referred_by: referrer.uuid
                                 }
-                            }
-                        } : {});
+                            });
+                        }
+
 
                         // Successfull register
                         const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
@@ -373,7 +324,6 @@ module.exports = (Router, Service, Logger, App) => {
         }
     });
 
-
     /**
    * @swagger
    * /initialize:
@@ -392,7 +342,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: User needs to be activated
    */
     Router.post('/initialize', (req, res) => {
-    // Call user service to find or create user
+        // Call user service to find or create user
         Service.User.InitializeUser(req.body)
             .then(async (userData) => {
                 // Process user data and answer API call

@@ -17,11 +17,12 @@ module.exports = (Model, App) => {
             mailConfig.sendgrid = {
                 api_key: process.env.SENDGRID_API_KEY
             };
-            return new InternxtMailer(mailConfig);
         }
 
         return new InternxtMailer(mailConfig);
     };
+
+
     const sendInvitationMail = (emailTo, user) => {
         const mailer = mailInstance();
 
@@ -41,6 +42,7 @@ module.exports = (Model, App) => {
                         resolve();
                     } else {
                         console.error(`Error sending mail to ${emailTo}`);
+                        console.error(err);
                         reject(err);
                     }
                 }

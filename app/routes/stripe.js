@@ -17,6 +17,11 @@ module.exports = (Router, Service, Logger, App) => {
                 res.status(400).json({ message: 'Error retrieving list of plans' });
             });
     });
+
+    /**
+   * Should create a new Stripe Session token.
+   * Stripe Session is neccesary to perform a new payment
+   */
     Router.post('/stripe/session', passportAuth, (req, res) => {
         const planToSubscribe = req.body.plan;
 
@@ -78,10 +83,10 @@ module.exports = (Router, Service, Logger, App) => {
                         if (subscription) {
                             // Delete subscription (must be improved in the future)
                             /*
-                          stripe.subscriptions.del(subscription.id, (err, result) => {
-                            next(err, customer);
-                          });
-                          */
+            stripe.subscriptions.del(subscription.id, (err, result) => {
+              next(err, customer);
+            });
+            */
                             next(Error('Already subscribed'));
                         } else {
                             next(null, customer);
@@ -94,8 +99,8 @@ module.exports = (Router, Service, Logger, App) => {
 
                     const sessionParams = {
                         payment_method_types: ['card'],
-                        success_url: 'https://drive.internxt.com/',
-                        cancel_url: 'https://drive.internxt.com/',
+                        success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
+                        cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
                         subscription_data: {
                             items: [{ plan: req.body.plan }],
                             trial_period_days: 30

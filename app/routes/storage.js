@@ -111,7 +111,7 @@ module.exports = (Router, Service, Logger, App) => {
         const { user } = req;
         user.mnemonic = req.headers['internxt-mnemonic'];
 
-        Service.Folder.Create(user, folderName, parentFolderId, teamId)
+        Service.Folder.Create(user, folderName, parentFolderId)
             .then((result) => {
                 res.status(201).json(result);
             })
@@ -175,35 +175,28 @@ module.exports = (Router, Service, Logger, App) => {
         user.mnemonic = req.headers['internxt-mnemonic'];
         const xfile = req.file;
         const folderId = req.params.id;
+
+
         const extension = path.extname(xfile.originalname);
 
         Service.Folder.isFolderOfTeam(folderId).then((folder) => {
             Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
-                Service.Analytics.track({
-                    userId: req.user.uuid,
-                    event: 'file-upload-finished',
-                    properties: {
-                        file_size: xfile.size,
-                        email: req.user.email,
-                        file_type: extension
-                    }
-                });
                 res.status(201).json(result);
-            })
-                .catch((err) => {
-                    Logger.error(`${err.message}\n${err.stack}`);
-                    if (err.includes && err.includes('Bridge rate limit error')) {
-                        res.status(402).json({ message: err });
-                        return;
-                    }
-                    res.status(500).json({ message: err });
-                });
+            }).catch((err) => {
+                Logger.error(`${err.message}\n${err.stack}`);
+                if (err.includes && err.includes('Bridge rate limit error')) {
+                    res.status(402).json({ message: err });
+                    return;
+                }
+                res.status(500).json({ message: err });
+            });
         })
             .catch((err) => {
                 Logger.error(`${err.message}\n${err.stack}`);
                 res.status(500).json({ message: err });
             });
     });
+
     /**
    * @swagger
    * /storage/moveFolder:
@@ -252,21 +245,6 @@ module.exports = (Router, Service, Logger, App) => {
         Service.Files.CreateFile(user, file).then((result) => {
             res.status(200).json(result);
             const NOW = (new Date()).toISOString();
-            Service.Analytics.track({
-                userId: req.user.uuid,
-                event: 'file-upload-finished',
-                platform: 'desktop',
-                properties: {
-                    platform: 'desktop',
-                    email: req.user.email,
-                    file_id: file.fileId,
-                    file_size: file.size,
-                    date: NOW,
-                    file_mime_type: mimeTypes.lookup(file.type),
-                    file_type: file.type,
-                    file_size_readable: prettySize(file.size)
-                }
-            });
         })
             .catch((error) => {
                 Logger.error(error);
@@ -299,24 +277,21 @@ module.exports = (Router, Service, Logger, App) => {
             return res.status(500).send({ message: 'Missing file id' });
         }
 
-        let filePath;
-
         return Service.Files.Download(user, fileIdInBucket)
             .then(({
-                filestream, mimetype, downloadFile, folderId, name, type
+                filestream, mimetype, downloadFile, folderId, name, type, raw, size
             }) => {
-                filePath = downloadFile;
-                const fileName = downloadFile.split('/')[2];
                 const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
                 const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
                 const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
+                res.setHeader('content-length', size);
                 res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
                 res.setHeader('content-type', mimetype);
                 res.set('x-file-name', decryptedFileNameB64);
                 filestream.pipe(res);
-                fs.unlink(filePath, (error) => {
+                fs.unlink(downloadFile, (error) => {
                     if (error) throw error;
                 });
             })
@@ -324,7 +299,6 @@ module.exports = (Router, Service, Logger, App) => {
                 if (err.message === 'Bridge rate limit error') {
                     return res.status(402).json({ message: err.message });
                 }
-
                 return res.status(500).json({ message: err.message });
             });
     });
@@ -450,14 +424,6 @@ module.exports = (Router, Service, Logger, App) => {
 
         if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
             if (!req.body.views) {
-                Service.Analytics.track({
-                    userId: req.user.uuid,
-                    event: 'file-download-finished',
-                    properties: {
-                        platform: 'mobile',
-                        file_id: req.params.id
-                    }
-                });
             }
         }
 
@@ -476,55 +442,57 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
     Router.get('/storage/share/:token', (req, res) => {
-        Service.Share.FindOne(req.params.token)
-            .then((result) => {
-                Service.User.FindUserByEmail(result.user).then((userData) => {
+        Service.Share.FindOne(req.params.token).then((result) => {
+            Service.User.FindUserByEmail(result.user)
+                .then((userData) => {
                     const fileIdInBucket = result.file;
                     const isFolder = result.is_folder;
 
                     userData.mnemonic = result.mnemonic;
 
                     if (isFolder) {
-                        Service.Folder.GetTree({ email: result.user }, result.file).then((tree) => {
-                            const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
-                            const treeSize = Service.Folder.GetTreeSize(tree);
+                        Service.Folder.GetTree({ email: result.user }, result.file)
+                            .then((tree) => {
+                                const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+                                const treeSize = Service.Folder.GetTreeSize(tree);
 
-                            if (treeSize <= maxAcceptableSize) {
-                                Service.Folder.Download(tree, userData).then(() => {
-                                    const folderName = App.services.Crypt.decryptName(
-                                        tree.name,
-                                        tree.parentId
-                                    );
+                                if (treeSize <= maxAcceptableSize) {
+                                    Service.Folder.Download(tree, userData)
+                                        .then(() => {
+                                            const folderName = App.services.Crypt.decryptName(
+                                                tree.name,
+                                                tree.parentId
+                                            );
 
-                                    Service.Folder.CreateZip(
-                                        `./downloads/${tree.id}/${folderName}.zip`,
-                                        [`downloads/${tree.id}/${folderName}`]
-                                    );
+                                            Service.Folder.CreateZip(
+                                                `./downloads/${tree.id}/${folderName}.zip`,
+                                                [`downloads/${tree.id}/${folderName}`]
+                                            );
 
-                                    res.set('x-file-name', `${folderName}.zip`);
-                                    res.download(
-                                        `./downloads/${tree.id}/${folderName}.zip`
-                                    );
+                                            res.set('x-file-name', `${folderName}.zip`);
+                                            res.download(
+                                                `./downloads/${tree.id}/${folderName}.zip`
+                                            );
 
-                                    rimraf(`./downloads/${tree.id}`, () => {
-                                        console.log('Folder removed after send zip');
-                                    });
-                                })
-                                    .catch((err) => {
-                                        if (fs.existsSync(`./downloads/${tree.id}`)) {
                                             rimraf(`./downloads/${tree.id}`, () => {
-                                                console.log('Folder removed after fail folder download');
+                                                console.log('Folder removed after send zip');
                                             });
-                                        }
+                                        })
+                                        .catch((err) => {
+                                            if (fs.existsSync(`./downloads/${tree.id}`)) {
+                                                rimraf(`./downloads/${tree.id}`, () => {
+                                                    console.log('Folder removed after fail folder download');
+                                                });
+                                            }
 
-                                        res
-                                            .status(402)
-                                            .json({ error: 'Error downloading folder' });
-                                    });
-                            } else {
-                                res.status(402).json({ error: 'Folder too large' });
-                            }
-                        })
+                                            res
+                                                .status(402)
+                                                .json({ error: 'Error downloading folder' });
+                                        });
+                                } else {
+                                    res.status(402).json({ error: 'Folder too large' });
+                                }
+                            })
                             .catch((err) => {
                                 res.status(402).json({ error: 'Error downloading folder' });
                             });
@@ -559,11 +527,11 @@ module.exports = (Router, Service, Logger, App) => {
                             });
                     }
                 })
-                    .catch((err) => {
-                        console.error(err);
-                        res.status(500).send({ error: 'User not found' });
-                    });
-            })
+                .catch((err) => {
+                    console.error(err);
+                    res.status(500).send({ error: 'User not found' });
+                });
+        })
             .catch((err) => {
                 console.error('Error', err);
                 res.status(500).send({ error: 'Invalid token' });
@@ -624,21 +592,21 @@ module.exports = (Router, Service, Logger, App) => {
 
         return 0;
 
-    /*
-    async.doDuring((err) => {
-      getSubFolders(currentFolderId).then((children) => {
-        findFolder(folders, filteredPath[position]).then((result) => {
-        }).catch((err1) => {
-          (() => { })(err1);
+        /*
+        async.doDuring((err) => {
+          getSubFolders(currentFolderId).then((children) => {
+            findFolder(folders, filteredPath[position]).then((result) => {
+            }).catch((err1) => {
+              (() => { })(err1);
+            });
+          });
+        }, testUntil, (err2) => {
+          if (err2) {
+            res.status(500).send({ error: 'Folder does not exists' });
+          } else {
+            (() => { })();
+          }
         });
-      });
-    }, testUntil, (err2) => {
-      if (err2) {
-        res.status(500).send({ error: 'Folder does not exists' });
-      } else {
-        (() => { })();
-      }
-    });
-    */
+        */
     });
 };

@@ -68,12 +68,16 @@ module.exports = (Model, App) => {
             });
 
             if (exists) {
-                // TODO: If the folder already exists, return the folder data to make desktop incorporate new info to its database
+                // TODO: If the folder already exists,
+                // return the folder data to make desktop
+                // incorporate new info to its database
                 throw Error('Folder with the same name already exists');
             }
 
             // Since we upload everything in the same bucket, this line is no longer needed
-            // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+            // const bucket = await App
+            // .services.Storj
+            // .CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
             const xCloudFolder = await user.createFolder({
                 name: cryptoFolderName,
@@ -102,6 +106,7 @@ module.exports = (Model, App) => {
             return new Error('Folder does not exists');
         }
 
+        console.log(folder.id);
         if (folder.id === user.root_folder_id) {
             return new Error('Cannot delete root folder');
         }
@@ -278,6 +283,29 @@ module.exports = (Model, App) => {
         });
     };
 
+    const GetFolders = (user) => {
+        const username = user.email;
+
+        return new Promise(async (resolve, reject) => {
+            const userObject = user;
+
+            const folders = await Model.folder.findAll({
+                where: { user_id: { [Op.eq]: userObject.id } },
+                // where: { user_id: 21810 },
+                attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
+            });
+            const foldersId = folders.map((result) => result.id);
+            const files = await Model.file.findAll({
+                where: { folder_id: { [Op.in]: foldersId } }
+            });
+            result = {
+                folders,
+                files
+            };
+            resolve(result);
+        });
+    };
+
     const mapChildrenNames = (folder = []) => folder.map((child) => {
         child.name = App.services.Crypt.decryptName(child.name, child.parentId);
         child.children = mapChildrenNames(child.children);
@@ -302,7 +330,8 @@ module.exports = (Model, App) => {
 
         const result = await Model.folder.findOne({
             where: {
-                id: { [Op.eq]: folderId }
+                id: { [Op.eq]: folderId },
+                user_id: user.id
             },
             include: [
                 {
@@ -327,21 +356,14 @@ module.exports = (Model, App) => {
             ]
         });
 
-
         // Null result implies empty folder.
         // TODO: Should send an error to be handled and showed on website.
 
         if (result !== null) {
-            result.name = App.services.Crypt.decryptName(
-                result.name,
-                result.parentId
-            );
+            result.name = App.services.Crypt.decryptName(result.name, result.parentId);
             result.children = mapChildrenNames(result.children);
             result.files = result.files.map((file) => {
-                file.name = `${App.services.Crypt.decryptName(
-                    file.name,
-                    file.folder_id
-                )}`;
+                file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`;
 
                 return file;
             });
@@ -418,7 +440,7 @@ module.exports = (Model, App) => {
                                         AesUtil.decrypt(cryptoFolderName, folder.parentId);
                                         newMeta.encrypt_version = '03-aes';
                                     } catch (e) {
-                                        (() => {})();
+                                        (() => { })();
                                     }
                                     next(null, folder);
                                 }
@@ -587,16 +609,12 @@ module.exports = (Model, App) => {
     };
 
     const GetBucket = (user, folderId) => new Promise((resolve, reject) => {
-        Model.folder
-            .findOne({
-                where: {
-                    id: { [Op.eq]: folderId },
-                    user_id: { [Op.eq]: user.id }
-                }
-            })
-            .then((folder) => {
-                resolve(folder);
-            })
+        Model.folder.findOne({
+            where: {
+                id: { [Op.eq]: folderId },
+                user_id: { [Op.eq]: user.id }
+            }
+        }).then((folder) => { resolve(folder); })
             .catch(reject);
     });
 
@@ -615,6 +633,7 @@ module.exports = (Model, App) => {
         Download,
         CreateZip,
         GetBucket,
+        GetFolders,
         isFolderOfTeam
     };
 };

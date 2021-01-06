@@ -128,7 +128,7 @@ module.exports = (Model, App) => {
             }
 
             originalEncryptedFileName = originalEncryptedFileName
-        || App.services.Crypt.encryptName(fileNameParts.name, folderId);
+                || App.services.Crypt.encryptName(fileNameParts.name, folderId);
             const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
             log.info('Uploading file to network');
 
@@ -198,19 +198,14 @@ module.exports = (Model, App) => {
                         throw Error('File too large');
                     }
 
-                    App.services.Storj.ResolveFile(user, file)
-                        .then((result) => {
-                            resolve({
-                                ...result, folderId: file.folder_id, name: file.name, type: file.type
-                            });
-                        })
+                    App.services.Storj.ResolveFile(user, file).then((result) => {
+                        resolve({
+                            ...result, folderId: file.folder_id, name: file.name, type: file.type, raw: file, size: file.size
+                        });
+                    })
                         .catch((err) => {
                             if (err.message === 'File already exists') {
-                                resolve({
-                                    file: {
-                                        name: `${file.name}${file.type ? `${file.type}` : ''}`
-                                    }
-                                });
+                                resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
                             } else {
                                 reject(err);
                             }

@@ -170,11 +170,7 @@ module.exports = (Model, App) => {
                 },
                 finishedCallback: (err) => {
                     if (err) {
-                        log.error(
-                            '[NODE-LIB %s] 1. Error resolving file: %s',
-                            user.email,
-                            err.message
-                        );
+                        log.error('[NODE-LIB %s] 1. Error resolving file: %s', user.email, err.message);
                         reject(err);
                     } else {
                         const mimetype = mime.getType(downloadFile);
