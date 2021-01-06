@@ -354,9 +354,10 @@ module.exports = (Router, Service, Logger, App) => {
 
         Service.Stripe.getTeamProducts(test).then((products) => {
             res.status(200).send(products);
-        }).catch((err) => {
-            res.status(500).send({ error: err });
-        });
+        })
+            .catch((err) => {
+                res.status(500).send({ error: err });
+            });
     });
 
     /**
@@ -400,8 +401,9 @@ module.exports = (Router, Service, Logger, App) => {
 
         Service.Stripe.getTeamPlans(stripeProduct, test).then((plans) => {
             res.status(200).send(plans);
-        }).catch((err) => {
-            res.status(500).send({ error: err.message });
-        });
+        })
+            .catch((err) => {
+                res.status(500).send({ error: err.message });
+            });
     });
 };

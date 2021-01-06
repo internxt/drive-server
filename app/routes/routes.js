@@ -96,25 +96,28 @@ module.exports = (Router, Service, Logger, App) => {
                     const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
                     Service.Keyserver.keysExists(userData).then((userKey) => {
                         res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-                    }).catch((err) => {
-                        console.error(err);
-                        res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
-                    });
+                    })
+                        .catch((err) => {
+                            console.error(err);
+                            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
+                        });
                 }
-            }).catch((err) => {
-                console.error(err);
+            })
+                .catch((err) => {
+                    console.error(err);
+                    res.status(400).send({
+                        error: 'User not found on Bridge database',
+                        message: err.response ? err.response.data : err
+                    });
+                });
+        })
+            .catch((err) => {
+                Logger.error(`${err}: ${req.body.email}`);
                 res.status(400).send({
-                    error: 'User not found on Bridge database',
-                    message: err.response ? err.response.data : err
+                    error: 'User not found on Cloud database',
+                    message: err.message
                 });
             });
-        }).catch((err) => {
-            Logger.error(`${err}: ${req.body.email}`);
-            res.status(400).send({
-                error: 'User not found on Cloud database',
-                message: err.message
-            });
-        });
     });
 
 
@@ -184,10 +187,11 @@ module.exports = (Router, Service, Logger, App) => {
                         }
                     }
                     resolve();
-                }).catch((error) => {
-                    Logger.error(error.stack);
-                    reject();
-                });
+                })
+                    .catch((error) => {
+                        Logger.error(error.stack);
+                        reject();
+                    });
             });
             // Process user data and answer API call
             const pass = App.services.Crypt.decryptText(req.body.password);
@@ -280,10 +284,11 @@ module.exports = (Router, Service, Logger, App) => {
 
                 res.status(400).json({ error: 'Wrong email/password' });
             }
-        }).catch((err) => {
-            Logger.error(`${err.message}\n${err.stack}`);
-            res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
-        });
+        })
+            .catch((err) => {
+                Logger.error(`${err.message}\n${err.stack}`);
+                res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+            });
     });
 
     /**
@@ -358,7 +363,8 @@ module.exports = (Router, Service, Logger, App) => {
                         // This account already exists
                         res.status(400).send({ message: 'This account already exists' });
                     }
-                }).catch((err) => {
+                })
+                .catch((err) => {
                     Logger.error(`${err.message}\n${err.stack}`);
                     res.status(500).send({ message: err.message });
                 });
@@ -432,7 +438,8 @@ module.exports = (Router, Service, Logger, App) => {
                 res.status(200).json({
                     message: 'Successfully updated user with mnemonic'
                 });
-            }).catch(({ message }) => {
+            })
+            .catch(({ message }) => {
                 Logger.error(message);
                 res.status(400).json({ message, code: 400 });
             });
@@ -458,10 +465,11 @@ module.exports = (Router, Service, Logger, App) => {
             privateKey
         ).then((result) => {
             res.status(200).send({});
-        }).catch((err) => {
-            console.log(err);
-            res.status(500).send(err);
-        });
+        })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).send(err);
+            });
     });
 
     Router.post('/user/claim', passportAuth, (req, res) => {
@@ -495,25 +503,28 @@ module.exports = (Router, Service, Logger, App) => {
                 Service.Mail.sendInvitationMail(email, req.user).then(() => {
                     Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
                     res.status(200).send({});
-                }).catch((err) => {
-                    Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
-                    res.status(200).send({});
-                });
+                })
+                    .catch((err) => {
+                        Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
+                        res.status(200).send({});
+                    });
             } else {
                 Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
                 res.status(200).send({});
             }
-        }).catch((err) => {
-            Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
-            res.status(200).send({});
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
+                res.status(200).send({});
+            });
     });
 
     Router.get('/user/referred', passportAuth, (req, res) => {
         const refUuid = req.user.uuid;
 
         Service.User.FindUsersByReferred(refUuid)
-            .then((users) => res.status(200).send({ total: users })).catch((message) => {
+            .then((users) => res.status(200).send({ total: users }))
+            .catch((message) => {
                 Logger.error(message);
                 res.status(500).send({ error: 'No users' });
             });
@@ -550,21 +561,23 @@ module.exports = (Router, Service, Logger, App) => {
         Service.User.FindUserByEmail(user).then((userKeys) => {
             Service.Keyserver.keysExists(userKeys).then((keys) => {
                 res.status(200).send({ publicKey: keys.public_key });
-            }).catch(async (err) => {
-                const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
-                    userIds: [{ email: 'inxt@inxt.com' }],
-                    curve: 'ed25519'
+            })
+                .catch(async (err) => {
+                    const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
+                        userIds: [{ email: 'inxt@inxt.com' }],
+                        curve: 'ed25519'
+                    });
+                    const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
+                    Logger.error(message);
+                    res.status(200).send({ publicKey: codpublicKey });
+                    Logger.error('Error: The user not have keys');
+                    res.status(500).send({});
                 });
-                const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-                Logger.error(message);
-                res.status(200).send({ publicKey: codpublicKey });
-                Logger.error('Error: The user not have keys');
+        })
+            .catch((err) => {
+                Logger.error('Error: The user is not register');
                 res.status(500).send({});
             });
-        }).catch((err) => {
-            Logger.error('Error: The user is not register');
-            res.status(500).send({});
-        });
     });
 
 

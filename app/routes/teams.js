@@ -52,12 +52,14 @@ module.exports = (Router, Service, Logger, App) => {
                 userData.root_folder_id = teamUser.root_folder_id;
 
                 res.status(200).send({ userData });
-            }).catch((err) => {
+            })
+                .catch((err) => {
+                });
+        })
+            .catch((err) => {
+                Logger.error(`${err.message}\n${err.stack}`);
+                res.status(500).send(err.message);
             });
-        }).catch((err) => {
-            Logger.error(`${err.message}\n${err.stack}`);
-            res.status(500).send(err.message);
-        });
     });
 
     /**
@@ -133,10 +135,11 @@ module.exports = (Router, Service, Logger, App) => {
                 Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
                     Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
                     res.status(200).send({});
-                }).catch((err) => {
-                    Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email);
-                    res.status(500).send({});
-                });
+                })
+                    .catch((err) => {
+                        Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email);
+                        res.status(500).send({});
+                    });
             }
             // Check that the member's status is 200
             if (existsMember.status == 200) {
@@ -149,10 +152,11 @@ module.exports = (Router, Service, Logger, App) => {
         Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then((team) => {
             Logger.info('The email is forwarded to the user %s', email);
             res.status(200).send({});
-        }).catch((err) => {
-            Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email);
-            res.status(500).send({ error: 'Error: Send invitation mail' });
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email);
+                res.status(500).send({ error: 'Error: Send invitation mail' });
+            });
     });
 
     /**
@@ -202,10 +206,11 @@ module.exports = (Router, Service, Logger, App) => {
         // Destroy the invitation
         getToken.destroy().then(() => {
             res.status(200).send({});
-        }).catch((err) => {
-            Logger.error('Error:The invitation could not be destroyed');
-            res.status(500).send({ error: 'The invitation could not be destroyed' });
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error:The invitation could not be destroyed');
+                res.status(500).send({ error: 'The invitation could not be destroyed' });
+            });
     });
 
     /**
@@ -235,7 +240,8 @@ module.exports = (Router, Service, Logger, App) => {
             .then((team) => {
                 Service.Team.getTeamById(team.id_team).then((team2) => {
                     res.status(200).json(team2.dataValues);
-                }).catch((err) => { Logger.error('Error: Team not exists'); });
+                })
+                    .catch((err) => { Logger.error('Error: Team not exists'); });
             })
             .catch((err) => {
                 Logger.error('Error: This user %s not is a member', userEmail);
@@ -298,17 +304,19 @@ module.exports = (Router, Service, Logger, App) => {
             if (idTeam == team.id) {
                 Service.TeamsMembers.removeMembers(removeUser).then(() => {
                     res.status(200).send({ info: 'The user is removed ' });
-                }).catch((err) => {
-                    res.status(500).json({ error: err });
-                });
+                })
+                    .catch((err) => {
+                        res.status(500).json({ error: err });
+                    });
             } else {
                 Logger.error('Error: This member is not of this team');
                 res.status(500).send({ info: 'You not have permissions' });
             }
-        }).catch((err) => {
-            Logger.error('Error: You not have permissions');
-            res.status(500).send({ info: 'You not have permissions' });
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error: You not have permissions');
+                res.status(500).send({ info: 'You not have permissions' });
+            });
     });
 
     /**
@@ -341,10 +349,11 @@ module.exports = (Router, Service, Logger, App) => {
         };
         sgMail.send(msg).then(() => {
             res.status(200).send({});
-        }).catch((err) => {
-            Logger.error('Error: Error send deactivation email teams account of user %s', req.user.email);
-            res.status(500).send(err);
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error: Error send deactivation email teams account of user %s', req.user.email);
+                res.status(500).send(err);
+            });
     });
 
     return Router;

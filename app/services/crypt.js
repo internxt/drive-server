@@ -146,7 +146,8 @@ module.exports = (Model, App) => {
     }
 
     function hashSha256(text) {
-        return crypto.createHash('sha256').update(text).digest('hex');
+        return crypto.createHash('sha256').update(text)
+            .digest('hex');
     }
 
     return {

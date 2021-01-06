@@ -19,7 +19,8 @@ module.exports = (Model, App) => {
                 mnemonic: teamInvitation.mnemonic
             }).then((newTeamInvitation) => {
                 resolve({ teamInvitation: newTeamInvitation });
-            }).catch((err) => {
+            })
+            .catch((err) => {
                 reject(err);
             });
     });
@@ -89,9 +90,10 @@ module.exports = (Model, App) => {
             }
         }).then((removedInvitation) => {
             resolve(removedInvitation);
-        }).catch((err) => {
-            reject(err);
-        });
+        })
+            .catch((err) => {
+                reject(err);
+            });
     });
 
 

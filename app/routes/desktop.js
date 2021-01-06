@@ -49,9 +49,10 @@ module.exports = (Router, Service, Logger, App) => {
         const { user } = req;
         Service.User.UnlockSync(user).then(() => {
             res.status(200).send();
-        }).catch((err) => {
-            res.status(500).send();
-        });
+        })
+            .catch((err) => {
+                res.status(500).send();
+            });
     });
 
     Router.post('/storage/exists', passportAuth, (req, res) => {
@@ -138,18 +139,20 @@ module.exports = (Router, Service, Logger, App) => {
                     result.isFile = false;
                     pathResults.push(result);
                     nextFolder();
-                }).catch((err) => {
-                    if (mkdirp) {
-                        Service.Folder.Create(req.user, targetFolder, lastFolderId).then((result) => {
-                            lastFolderId = result.id;
-                            nextFolder();
-                        }).catch((err1) => {
-                            nextFolder(err1);
-                        });
-                    } else {
-                        nextFolder(Error('Folder does not exists'));
-                    }
-                });
+                })
+                    .catch((err) => {
+                        if (mkdirp) {
+                            Service.Folder.Create(req.user, targetFolder, lastFolderId).then((result) => {
+                                lastFolderId = result.id;
+                                nextFolder();
+                            })
+                                .catch((err1) => {
+                                    nextFolder(err1);
+                                });
+                        } else {
+                            nextFolder(Error('Folder does not exists'));
+                        }
+                    });
             }
 
             if (isLastElement && findFile) {
@@ -157,9 +160,10 @@ module.exports = (Router, Service, Logger, App) => {
                     result.dataValues.isFile = true;
                     pathResults.push(result);
                     nextFolder();
-                }).catch((err) => {
-                    nextFolder(Error('File does not exists'));
-                });
+                })
+                    .catch((err) => {
+                        nextFolder(Error('File does not exists'));
+                    });
             }
         }, (err) => {
             // console.log('FIN')

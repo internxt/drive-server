@@ -20,9 +20,10 @@ module.exports = (Model, App) => {
             }
         }).then((removedTeamMember) => {
             resolve(removedTeamMember);
-        }).catch((err) => {
-            reject(err);
-        });
+        })
+            .catch((err) => {
+                reject(err);
+            });
     });
 
     /**
@@ -38,18 +39,22 @@ module.exports = (Model, App) => {
         }).then((teamMember) => {
             teamMember.update({}).then((teamMember) => {
                 resolve(teamMember);
-            }).catch((err) => {
-                reject(err);
-            });
-        }).catch((err) => {
-        }).then((teamMember) => {
-            teamMember.update({
-            }).then((teamMember) => {
-                resolve(teamMember);
-            }).catch((err) => {
-                reject(err);
-            });
+            })
+                .catch((err) => {
+                    reject(err);
+                });
         })
+            .catch((err) => {
+            })
+            .then((teamMember) => {
+                teamMember.update({
+                }).then((teamMember) => {
+                    resolve(teamMember);
+                })
+                    .catch((err) => {
+                        reject(err);
+                    });
+            })
             .catch((err) => {
                 reject(err);
             });
@@ -84,10 +89,11 @@ module.exports = (Model, App) => {
             }
         }).then((teamMembers) => {
             resolve(teamMembers);
-        }).catch((err) => {
-            console.error(err);
-            reject('Error querying database');
-        });
+        })
+            .catch((err) => {
+                console.error(err);
+                reject('Error querying database');
+            });
     });
 
     /**
@@ -101,10 +107,11 @@ module.exports = (Model, App) => {
             }
         }).then((membersInvitations) => {
             resolve(membersInvitations);
-        }).catch((err) => {
-            console.error(err);
-            reject('Error querying database');
-        });
+        })
+            .catch((err) => {
+                console.error(err);
+                reject('Error querying database');
+            });
     });
 
     /**
@@ -133,10 +140,11 @@ module.exports = (Model, App) => {
         }
     }).then((member) => {
         resolve(member);
-    }).catch((err) => {
-        console.error(err);
-        reject('Error querying database');
-    }));
+    })
+        .catch((err) => {
+            console.error(err);
+            reject('Error querying database');
+        }));
 
     /**
      * @swagger
@@ -159,8 +167,10 @@ module.exports = (Model, App) => {
                 bridge_mnemonic
             }).then((newMember) => {
                 resolve(newMember);
-            }).catch();
-        }).catch();
+            })
+                .catch();
+        })
+            .catch();
     });
 
     /**
@@ -186,12 +196,14 @@ module.exports = (Model, App) => {
                 bridge_mnemonic: invitedMembers.bridge_mnemonic
             }).then((newMember) => {
                 resolve(newMember);
-            }).catch((err) => {
+            })
+                .catch((err) => {
+                    reject(err);
+                });
+        })
+            .catch((err) => {
                 reject(err);
             });
-        }).catch((err) => {
-            reject(err);
-        });
     });
 
     return {

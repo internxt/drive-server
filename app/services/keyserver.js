@@ -16,10 +16,11 @@ module.exports = (Model, App) => {
             } else {
                 reject('Keys not exists');
             }
-        }).catch((err) => {
-            console.error(err);
-            reject('Error querying database');
-        });
+        })
+            .catch((err) => {
+                console.error(err);
+                reject('Error querying database');
+            });
     });
 
 
@@ -32,10 +33,11 @@ module.exports = (Model, App) => {
 
         }).then((userKeys) => {
             resolve(userKeys);
-        }).catch((err) => {
-            console.error(err);
-            reject('Error querying database');
-        });
+        })
+            .catch((err) => {
+                console.error(err);
+                reject('Error querying database');
+            });
     });
 
 

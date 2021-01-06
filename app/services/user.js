@@ -199,7 +199,8 @@ module.exports = (Model, App) => {
             where: {
                 email: { [Op.eq]: email }
             }
-        }).then(resolve).catch(reject);
+        }).then(resolve)
+            .catch(reject);
     });
 
     const GetUserCredit = (userUuid) => Model.users.findOne({
@@ -330,7 +331,8 @@ module.exports = (Model, App) => {
                                 Logger.error('Error deleting user on sql');
                                 next(err);
                             });
-                    }).catch(next);
+                    })
+                    .catch(next);
             }
         ],
         (err, result) => {
@@ -415,7 +417,8 @@ module.exports = (Model, App) => {
     const LoginFailed = (user, loginFailed) => new Promise((resolve, reject) => {
         Model.users.update({
             errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-        }, { where: { email: user } }).then((res) => resolve()).catch(reject);
+        }, { where: { email: user } }).then((res) => resolve())
+            .catch(reject);
     });
 
     const ShouldSendEmail = (email) => new Promise((resolve, reject) => {
@@ -431,7 +434,8 @@ module.exports = (Model, App) => {
                 const dateDiff = new Date() - user.lastResend;
 
                 return resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL);
-            }).catch(reject);
+            })
+            .catch(reject);
     });
 
     const SetEmailSended = (email) => Model.users.update({
@@ -451,7 +455,8 @@ module.exports = (Model, App) => {
 
     const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
         Model.users.update({ updated_at: new Date() }, { where: { email: user } })
-            .then((res) => { resolve(); }).catch(reject);
+            .then((res) => { resolve(); })
+            .catch(reject);
     });
 
     const getSyncDate = () => {

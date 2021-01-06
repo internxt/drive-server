@@ -189,18 +189,20 @@ module.exports = (Router, Service, Logger, App) => {
                     }
                 });
                 res.status(201).json(result);
-            }).catch((err) => {
+            })
+                .catch((err) => {
+                    Logger.error(`${err.message}\n${err.stack}`);
+                    if (err.includes && err.includes('Bridge rate limit error')) {
+                        res.status(402).json({ message: err });
+                        return;
+                    }
+                    res.status(500).json({ message: err });
+                });
+        })
+            .catch((err) => {
                 Logger.error(`${err.message}\n${err.stack}`);
-                if (err.includes && err.includes('Bridge rate limit error')) {
-                    res.status(402).json({ message: err });
-                    return;
-                }
                 res.status(500).json({ message: err });
             });
-        }).catch((err) => {
-            Logger.error(`${err.message}\n${err.stack}`);
-            res.status(500).json({ message: err });
-        });
     });
     /**
    * @swagger
@@ -265,10 +267,11 @@ module.exports = (Router, Service, Logger, App) => {
                     file_size_readable: prettySize(file.size)
                 }
             });
-        }).catch((error) => {
-            Logger.error(error);
-            res.status(400).json({ message: error.message });
-        });
+        })
+            .catch((error) => {
+                Logger.error(error);
+                res.status(400).json({ message: error.message });
+            });
     });
 
     /**
@@ -355,10 +358,11 @@ module.exports = (Router, Service, Logger, App) => {
 
         Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
             res.status(200).json(result);
-        }).catch((err) => {
-            Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-            res.status(500).json(err.message);
-        });
+        })
+            .catch((err) => {
+                Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+                res.status(500).json(err.message);
+            });
     });
 
     /**
@@ -411,10 +415,11 @@ module.exports = (Router, Service, Logger, App) => {
 
         return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
             res.status(200).json({ deleted: true });
-        }).catch((err) => {
-            Logger.error(err.stack);
-            res.status(500).json({ error: err.message });
-        });
+        })
+            .catch((err) => {
+                Logger.error(err.stack);
+                res.status(500).json({ error: err.message });
+            });
     });
 
     /*
@@ -464,9 +469,10 @@ module.exports = (Router, Service, Logger, App) => {
             req.body.views
         ).then((result) => {
             res.status(200).send(result);
-        }).catch((err) => {
-            res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
-        });
+        })
+            .catch((err) => {
+                res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
+            });
     });
 
     Router.get('/storage/share/:token', (req, res) => {
@@ -582,7 +588,8 @@ module.exports = (Router, Service, Logger, App) => {
                     } else {
                         res.status(200).json(result);
                     }
-                }).catch((err) => {
+                })
+                .catch((err) => {
                     Logger.error(`${err.message}\n${err.stack}`);
                     res.status(500).json(err);
                 });
@@ -603,9 +610,10 @@ module.exports = (Router, Service, Logger, App) => {
         const getSubFolders = (folderId) => new Promise((resolve, reject) => {
             Service.Folder.GetContent(folderId, req.user).then((result) => {
                 resolve(result.children);
-            }).catch((err) => {
-                reject(err);
-            });
+            })
+                .catch((err) => {
+                    reject(err);
+                });
         });
 
         const testUntil = (next) => {
