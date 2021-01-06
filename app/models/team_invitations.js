@@ -1,4 +1,3 @@
-
 module.exports = (sequelize, DataTypes) => {
     const TeamInvitations = sequelize.define(
         'team_invitations',

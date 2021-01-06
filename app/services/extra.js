@@ -1,4 +1,3 @@
-
 module.exports = (Model, App) => {
     /**
    * Sets welcome file value to the specified value.

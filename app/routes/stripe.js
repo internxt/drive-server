@@ -399,7 +399,6 @@ module.exports = (Router, Service, Logger, App) => {
         );
     });
 
-
     Router.post('/stripe/teams/plans', passportAuth, (req, res) => {
         const stripeProduct = req.body.product;
         const test = req.body.test || false;

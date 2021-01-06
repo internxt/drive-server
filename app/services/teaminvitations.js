@@ -1,7 +1,6 @@
 const sequelize = require('sequelize');
 const user = require('../models/user');
 
-
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
@@ -95,7 +94,6 @@ module.exports = (Model, App) => {
                 reject(err);
             });
     });
-
 
     return {
         Name: 'TeamInvitations',

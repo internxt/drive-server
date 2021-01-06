@@ -330,14 +330,14 @@ module.exports = (Model, App) => {
                     .catch(next);
             }
         ],
-            (err, result) => {
-                if (err) {
-                    Logger.error('Error waterfall', err);
-                    reject(err);
-                } else {
-                    resolve(result);
-                }
-            });
+        (err, result) => {
+            if (err) {
+                Logger.error('Error waterfall', err);
+                reject(err);
+            } else {
+                resolve(result);
+            }
+        });
     });
 
     const Store2FA = (user, key) => new Promise((resolve, reject) => {
@@ -375,7 +375,6 @@ module.exports = (Model, App) => {
                 reject({ error: 'Internal server error' });
             });
     });
-
 
     const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => new Promise((resolve, reject) => {
         FindUserByEmail(user)

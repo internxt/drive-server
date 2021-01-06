@@ -1,8 +1,6 @@
-
 const sequelize = require('sequelize');
 
 const { Op } = sequelize;
-
 
 module.exports = (Model, App) => {
     const keysExists = (user) => new Promise((resolve, reject) => {
@@ -23,7 +21,6 @@ module.exports = (Model, App) => {
             });
     });
 
-
     const addKeysLogin = (userData, publicKey, privateKey, revocationKey) => new Promise((resolve, reject) => {
         Model.keyserver.create({
             user_id: userData.id,
@@ -39,7 +36,6 @@ module.exports = (Model, App) => {
                 reject('Error querying database');
             });
     });
-
 
     return {
         Name: 'Keyserver',

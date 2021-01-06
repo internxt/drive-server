@@ -22,7 +22,6 @@ module.exports = (Model, App) => {
         return new InternxtMailer(mailConfig);
     };
 
-
     const sendInvitationMail = (emailTo, user) => {
         const mailer = mailInstance();
 
@@ -50,7 +49,6 @@ module.exports = (Model, App) => {
         });
     };
 
-
     const sendEmailTeamsMember = (member, cryptedToken, teamName) => {
         const mailer = mailInstance();
         return new Promise((resolve, reject) => {
@@ -75,7 +73,6 @@ module.exports = (Model, App) => {
             );
         });
     };
-
 
     return {
         Name: 'Mail',

@@ -11,7 +11,6 @@ module.exports = (Model, App) => {
     const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
     const Logger = App.logger;
 
-
     /**
    * @swagger
    * Function: Method to create a Team in DB
@@ -32,7 +31,6 @@ module.exports = (Model, App) => {
                 reject({ error: 'Unable to create new team on db' });
             });
     });
-
 
     /**
     * @swagger
@@ -84,7 +82,6 @@ module.exports = (Model, App) => {
         };
     };
 
-
     /**
     * @swagger
     * Function: Method to get info in TEAM MEMBERS with a user
@@ -104,7 +101,6 @@ module.exports = (Model, App) => {
                 reject('Error querying database');
             });
     });
-
 
     /**
     * @swagger

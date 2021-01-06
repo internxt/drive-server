@@ -1,10 +1,8 @@
-
 const async = require('async');
 const sequelize = require('sequelize');
 const _ = require('lodash');
 const teams_members = require('../models/teams_members');
 const teams = require('../routes/teams');
-
 
 const { Op } = sequelize;
 

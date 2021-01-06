@@ -1,10 +1,8 @@
-
 const crypto = require('crypto');
 const axios = require('axios');
 const sgMail = require('@sendgrid/mail');
 const user = require('../services/user');
 const { passportAuth } = require('../middleware/passport');
-
 
 module.exports = (Router, Service, Logger, App) => {
     /**
