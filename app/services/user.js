@@ -72,6 +72,7 @@ module.exports = (Model, App) => {
                         throw Error(bridgeUser.response.data.error);
                     }
 
+                    Logger.info('User Service | created brigde user: %s', userResult.email);
                     if (!bridgeUser.data) {
                         throw new Error('Error creating bridge user');
                     }
