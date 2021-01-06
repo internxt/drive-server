@@ -1,6 +1,7 @@
 module.exports = (Model, App) => {
     const Insert = (payload) => new Promise(async (resolve, reject) => {
-        Model.statistics.create(payload).then(resolve).catch(reject);
+        Model.statistics.create(payload).then(resolve)
+            .catch(reject);
     });
 
     return {

@@ -402,25 +402,28 @@ module.exports = (Router, Service, Logger, App) => {
                 Service.Mail.sendInvitationMail(email, req.user).then(() => {
                     Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
                     res.status(200).send({});
-                }).catch((err) => {
-                    Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
-                    res.status(200).send({});
-                });
+                })
+                    .catch((err) => {
+                        Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
+                        res.status(200).send({});
+                    });
             } else {
                 Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
                 res.status(200).send({});
             }
-        }).catch((err) => {
-            Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
-            res.status(200).send({});
-        });
+        })
+            .catch((err) => {
+                Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
+                res.status(200).send({});
+            });
     });
 
     Router.get('/user/referred', passportAuth, (req, res) => {
         const refUuid = req.user.uuid;
 
         Service.User.FindUsersByReferred(refUuid)
-            .then((users) => res.status(200).send({ total: users })).catch((message) => {
+            .then((users) => res.status(200).send({ total: users }))
+            .catch((message) => {
                 Logger.error(message);
                 res.status(500).send({ error: 'No users' });
             });

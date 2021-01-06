@@ -9,9 +9,10 @@ module.exports = (Router, Service, Logger, App) => {
         req.user.welcomePack = false;
         req.user.save().then(() => {
             res.status(200).send();
-        }).catch((err) => {
-            Logger.error('Cannot delete welcome files: %s', err.message);
-            res.status(500).send({ error: 'Welcome files cannot be deleted' });
-        });
+        })
+            .catch((err) => {
+                Logger.error('Cannot delete welcome files: %s', err.message);
+                res.status(500).send({ error: 'Welcome files cannot be deleted' });
+            });
     });
 };

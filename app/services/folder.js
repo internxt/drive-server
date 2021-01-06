@@ -458,7 +458,8 @@ module.exports = (Model, App) => {
     });
 
     const GetBucketList = (user) => new Promise((resolve, reject) => {
-        App.services.Storj.ListBuckets(user).then(resolve).catch(reject);
+        App.services.Storj.ListBuckets(user).then(resolve)
+            .catch(reject);
     });
 
     const GetChildren = async (user, folderId, options = {}) => {
@@ -567,7 +568,8 @@ module.exports = (Model, App) => {
                 id: { [Op.eq]: folderId },
                 user_id: { [Op.eq]: user.id }
             }
-        }).then((folder) => { resolve(folder); }).catch(reject);
+        }).then((folder) => { resolve(folder); })
+            .catch(reject);
     });
 
     return {

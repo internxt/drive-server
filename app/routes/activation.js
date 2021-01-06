@@ -8,9 +8,10 @@ module.exports = (Router, Service, Logger, App) => {
             const body = response.data;
             Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } });
             res.status(200).send(body);
-        }).catch((err) => {
-            res.status(err.response.status).send(err.response.data);
-        });
+        })
+            .catch((err) => {
+                res.status(err.response.status).send(err.response.data);
+            });
     });
 
     Router.get('/user/isactivated', passportAuth, (req, res) => {

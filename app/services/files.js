@@ -202,14 +202,16 @@ module.exports = (Model, App) => {
                         resolve({
                             ...result, folderId: file.folder_id, name: file.name, type: file.type, raw: file, size: file.size
                         });
-                    }).catch((err) => {
-                        if (err.message === 'File already exists') {
-                            resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
-                        } else {
-                            reject(err);
-                        }
-                    });
-                }).catch(reject);
+                    })
+                        .catch((err) => {
+                            if (err.message === 'File already exists') {
+                                resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
+                            } else {
+                                reject(err);
+                            }
+                        });
+                })
+                .catch(reject);
         });
     };
 
@@ -280,20 +282,23 @@ module.exports = (Model, App) => {
                 } else if (fileObj.fileId) {
                     App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId)
                         .then(() => {
-                            fileObj.destroy().then(resolve).catch(reject);
+                            fileObj.destroy().then(resolve)
+                                .catch(reject);
                         })
                         .catch((err) => {
                             const resourceNotFoundPattern = /Resource not found/;
 
                             if (resourceNotFoundPattern.exec(err.message)) {
-                                fileObj.destroy().then(resolve).catch(reject);
+                                fileObj.destroy().then(resolve)
+                                    .catch(reject);
                             } else {
                                 log.error('Error deleting file from bridge:', err.message);
                                 reject(err);
                             }
                         });
                 } else {
-                    fileObj.destroy().then(resolve).catch(reject);
+                    fileObj.destroy().then(resolve)
+                        .catch(reject);
                 }
             })
             .catch((err) => {

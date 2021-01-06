@@ -239,10 +239,11 @@ module.exports = (Router, Service, Logger, App) => {
         Service.Files.CreateFile(user, file).then((result) => {
             res.status(200).json(result);
             const NOW = (new Date()).toISOString();
-        }).catch((error) => {
-            Logger.error(error);
-            res.status(400).json({ message: error.message });
-        });
+        })
+            .catch((error) => {
+                Logger.error(error);
+                res.status(400).json({ message: error.message });
+            });
     });
 
     /**
@@ -287,7 +288,8 @@ module.exports = (Router, Service, Logger, App) => {
                 fs.unlink(downloadFile, (error) => {
                     if (error) throw error;
                 });
-            }).catch((err) => {
+            })
+            .catch((err) => {
                 if (err.message === 'Bridge rate limit error') {
                     return res.status(402).json({ message: err.message });
                 }
@@ -324,10 +326,11 @@ module.exports = (Router, Service, Logger, App) => {
 
         Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
             res.status(200).json(result);
-        }).catch((err) => {
-            Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-            res.status(500).json(err.message);
-        });
+        })
+            .catch((err) => {
+                Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+                res.status(500).json(err.message);
+            });
     });
 
     /**
@@ -380,10 +383,11 @@ module.exports = (Router, Service, Logger, App) => {
 
         return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
             res.status(200).json({ deleted: true });
-        }).catch((err) => {
-            Logger.error(err.stack);
-            res.status(500).json({ error: err.message });
-        });
+        })
+            .catch((err) => {
+                Logger.error(err.stack);
+                res.status(500).json({ error: err.message });
+            });
     });
 
     /*
@@ -425,9 +429,10 @@ module.exports = (Router, Service, Logger, App) => {
             req.body.views
         ).then((result) => {
             res.status(200).send(result);
-        }).catch((err) => {
-            res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
-        });
+        })
+            .catch((err) => {
+                res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
+            });
     });
 
     Router.get('/storage/share/:token', (req, res) => {
@@ -567,9 +572,10 @@ module.exports = (Router, Service, Logger, App) => {
         const getSubFolders = (folderId) => new Promise((resolve, reject) => {
             Service.Folder.GetContent(folderId, req.user).then((result) => {
                 resolve(result.children);
-            }).catch((err) => {
-                reject(err);
-            });
+            })
+                .catch((err) => {
+                    reject(err);
+                });
         });
 
         const testUntil = (next) => {
