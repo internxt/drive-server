@@ -54,7 +54,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     TeamsRoutes(Router, Service, Logger, App);
 
-
     /**
    * @swagger
    * /login:
@@ -141,9 +140,9 @@ module.exports = (Router, Service, Logger, App) => {
     Router.post('/access', (req, res) => {
         const MAX_LOGIN_FAIL_ATTEMPTS = 5;
 
-        let isTeamActivated = false;
-        let rootFolderId = 0;
-        let userTeam = null;
+        const isTeamActivated = false;
+        const rootFolderId = 0;
+        const userTeam = null;
         // Call user service to find or create user
         Service.User.FindUserByEmail(req.body.email)
             .then(async (userData) => {
@@ -215,20 +214,24 @@ module.exports = (Router, Service, Logger, App) => {
                         bucket: userBucket
                     };
 
-                    res.status(200).json({
-                        user,
-                        token,
-                        userTeam,
-                        teamRol,
-                        tokenTeam
-                    });
-                } else {
-                    res.status(200).json({
-                        user,
-                        token,
-                        userTeam,
-                        teamRol
-                    });
+                    if (userTeam) {
+                        const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
+                            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+                        res.status(200).json({
+                            user,
+                            token,
+                            userTeam,
+                            teamRol,
+                            tokenTeam
+                        });
+                    } else {
+                        res.status(200).json({
+                            user,
+                            token,
+                            userTeam,
+                            teamRol
+                        });
+                    }
                 } else {
                     // Wrong password
                     if (pass !== userData.password.toString()) {
@@ -245,22 +248,22 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
     /**
-   * @swagger
-   * /register:
-   *   post:
-   *     description: User registration. User is registered or created.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with all registration info
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull user registration
-   *       204:
-   *         description: User with this email exists
-   */
+    * @swagger
+    * /register:
+    *   post:
+    *     description: User registration. User is registered or created.
+    *     produces:
+    *       - application/json
+    *     parameters:
+    *       - description: user object with all registration info
+    *         in: body
+    *         required: true
+    *     responses:
+    *       200:
+    *         description: Successfull user registration
+    *       204:
+    *         description: User with this email exists
+    */
     Router.post('/register', async (req, res) => {
         // Data validation for process only request with all data
         if (req.body.email && req.body.password) {
@@ -305,7 +308,6 @@ module.exports = (Router, Service, Logger, App) => {
                             });
                         }
 
-
                         // Successfull register
                         const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
                         const user = { email: userData.email };
@@ -325,22 +327,22 @@ module.exports = (Router, Service, Logger, App) => {
     });
 
     /**
-   * @swagger
-   * /initialize:
-   *   post:
-   *     description: User bridge initialization (creation of bucket and folder).
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with all info
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull user initialization
-   *       204:
-   *         description: User needs to be activated
-   */
+    * @swagger
+    * /initialize:
+    *   post:
+    *     description: User bridge initialization (creation of bucket and folder).
+    *     produces:
+    *       - application/json
+    *     parameters:
+    *       - description: user object with all info
+    *         in: body
+    *         required: true
+    *     responses:
+    *       200:
+    *         description: Successfull user initialization
+    *       204:
+    *         description: User needs to be activated
+    */
     Router.post('/initialize', (req, res) => {
         // Call user service to find or create user
         Service.User.InitializeUser(req.body)
@@ -485,27 +487,26 @@ module.exports = (Router, Service, Logger, App) => {
         return res.status(200).send({ userCredit: user.credit });
     });
 
-
     /**
- * @swagger
- * /user/keys/:user:
- *   get:
- *     description: check that the invited user has public passwords .
- *     produces:
- *       - application/json
- *     parameters:
- *       - description: user object all info
- *         in: url
- *         required: true
- *     responses:
- *       200:
- *         description: Successfull get public keys
- *       204:
- *         description: User not has keys
- *      additional info:
- *        If the user does not have a public key he will send a random one for security, this
- *        is used in web for invitations
- */
+    * @swagger
+    * /user/keys/:user:
+    *   get:
+    *     description: check that the invited user has public passwords .
+    *     produces:
+    *       - application/json
+    *     parameters:
+    *       - description: user object all info
+    *         in: url
+    *         required: true
+    *     responses:
+    *       200:
+    *         description: Successfull get public keys
+    *       204:
+    *         description: User not has keys
+    *      additional info:
+    *        If the user does not have a public key he will send a random one for security, this
+    *        is used in web for invitations
+    */
     Router.get('/user/keys/:user', passportAuth, async (req, res) => {
         const { user } = req.params;
         Service.User.FindUserByEmail(user).then((userKeys) => {
@@ -529,7 +530,6 @@ module.exports = (Router, Service, Logger, App) => {
                 res.status(500).send({});
             });
     });
-
 
     return Router;
 };
