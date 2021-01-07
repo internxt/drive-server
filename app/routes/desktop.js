@@ -8,7 +8,6 @@ const { passportAuth } = require('../middleware/passport');
 module.exports = (Router, Service, Logger, App) => {
     Router.get('/storage/tree', passportAuth, (req, res) => {
         const { user } = req;
-
         Service.Folder.GetTree(user)
             .then((result) => {
                 res.status(200).send(result);

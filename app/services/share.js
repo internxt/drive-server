@@ -8,33 +8,23 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
     const FolderService = require('./folder')(Model, App);
 
-    const FindOne = (token) => new Promise((resolve, reject) => {
-        Model.shares
-            .findOne({
-                where: { token: { [Op.eq]: token } }
-            })
-            .then((result) => {
-                if (result) {
-                    if (result.views === 1) {
-                        console.log('Token %s removed', token);
-                        result.destroy();
-                    } else {
-                        Model.shares.update(
-                            { views: result.views - 1 },
-                            { where: { id: { [Op.eq]: result.id } } }
-                        );
-                    }
-
-                    resolve(result);
+    const FindOne = (token) => Model.shares
+        .findOne({ where: { token: { [Op.eq]: token } } }).then((result) => {
+            if (result) {
+                if (result.views === 1) {
+                    result.destroy();
                 } else {
-                    reject('Token does not exists');
+                    Model.shares.update(
+                        { views: result.views - 1 },
+                        { where: { id: { [Op.eq]: result.id } } }
+                    );
                 }
-            })
-            .catch((err) => {
-                console.error(err);
-                reject('Error querying database');
-            });
-    });
+
+                return result;
+            } else {
+                throw Error('Token does not exists');
+            }
+        })
 
     const GenerateShortLink = (user, url) => new Promise(async (resolve, reject) => {
         if (!user || !url) {
@@ -46,10 +36,7 @@ module.exports = (Model, App) => {
         const segmentedUrl = url.split('/');
         const token = segmentedUrl[segmentedUrl.length - 1];
 
-        Model.shares
-            .findAll({
-                where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
-            })
+        Model.shares.findAll({ where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } } })
             .then((shareInstanceDB) => {
                 if (shareInstanceDB && shareInstanceDB.length > 0) {
                     let reuse = 'false';
@@ -85,10 +72,9 @@ module.exports = (Model, App) => {
         isFolder = false,
         views = 1
     ) => new Promise(async (resolve, reject) => {
-    // Required mnemonic
+        // Required mnemonic
         if (!mnemonic) {
             reject('Mnemonic cannot be empty');
-
             return;
         }
 
@@ -108,81 +94,64 @@ module.exports = (Model, App) => {
 
         if (!itemExists) {
             reject('File not found');
-
             return;
         }
 
         const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
 
         if (isFolder === 'true') {
-            const tree = await FolderService.GetTree(
-                { email: user },
-                fileIdInBucket
-            );
+            const tree = await FolderService.GetTree({ email: user }, fileIdInBucket);
 
             if (tree) {
                 const treeSize = await FolderService.GetTreeSize(tree);
-
                 if (treeSize > maxAcceptableSize) {
-                    reject({ error: 'File too large' });
-
+                    reject(Error('File too large'));
                     return;
                 }
             } else {
                 reject();
-
                 return;
             }
         } else if (itemExists.size > maxAcceptableSize) {
-            reject({ error: 'File too large' });
-
+            reject(Error('File too large'));
             return;
         }
 
         // Generate a new token
         const newToken = crypto.randomBytes(5).toString('hex');
 
-        Model.shares
-            .findOne({
-                where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } }
-            })
-            .then((tokenData) => {
-                if (tokenData) {
-                    // Update token
-                    Model.shares.update(
-                        {
-                            token: newToken,
-                            mnemonic,
-                            is_folder: isFolder,
-                            views
-                        },
-                        {
-                            where: { id: { [Op.eq]: tokenData.id } }
-                        }
-                    );
+        Model.shares.findOne({
+            where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } }
+        }).then((tokenData) => {
+            if (tokenData) {
+                // Update token
+                Model.shares.update({
+                    token: newToken,
+                    mnemonic,
+                    is_folder: isFolder,
+                    views
+                }, {
+                    where: { id: { [Op.eq]: tokenData.id } }
+                });
+                resolve({ token: newToken });
+            } else {
+                Model.shares.create({
+                    token: newToken,
+                    mnemonic,
+                    file: fileIdInBucket,
+                    user,
+                    is_folder: isFolder,
+                    views
+                }).then((ok) => {
                     resolve({ token: newToken });
-                } else {
-                    Model.shares
-                        .create({
-                            token: newToken,
-                            mnemonic,
-                            file: fileIdInBucket,
-                            user,
-                            is_folder: isFolder,
-                            views
-                        })
-                        .then((ok) => {
-                            resolve({ token: newToken });
-                        })
-                        .catch((err) => {
-                            reject({ error: 'Unable to create new token on db' });
-                        });
-                }
-            })
-            .catch((err) => {
-                console.error(err);
-                reject('Error accesing to db');
-            });
+                }).catch((err) => {
+                    reject(Error('Unable to create new token on db'));
+                });
+            }
+        }).catch((err) => {
+            console.error(err);
+            reject('Error accesing to db');
+        });
     });
 
     return {
