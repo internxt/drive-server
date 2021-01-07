@@ -2,32 +2,10 @@ const Analytics = require('analytics-node');
 
 const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
-module.exports = (Model, App) => {
+module.exports = () => {
     const track = (...params) => analytics.track(...params);
 
     const identify = (...params) => analytics.identify(...params);
-
-    const trackEvent = (req, user, eventName, props) => {
-        if (user && typeof user === 'string') {
-            return analytics.track({ userId: user, event: eventName, ...props });
-        }
-        return analytics.track({ userId: user.uuid, event: eventName, ...props });
-    };
-
-    const trackIfDesktop = (req, user, eventName, props) => {
-        const device = determineClient(req);
-
-        if (device === 'desktop') {
-            return trackEvent(req, user, eventName, props);
-        }
-    };
-    const trackIfMobile = (req, user, eventName, props) => {
-        const device = determineClient(req);
-
-        if (device === 'mobile') {
-            return trackEvent(req, user, eventName, props);
-        }
-    };
 
     const determineClient = (req) => {
         let source = null;
@@ -50,6 +28,28 @@ module.exports = (Model, App) => {
         }
 
         return null;
+    };
+
+    const trackEvent = (req, user, eventName, props) => {
+        if (user && typeof user === 'string') {
+            return analytics.track({ userId: user, event: eventName, ...props });
+        }
+        return analytics.track({ userId: user.uuid, event: eventName, ...props });
+    };
+
+    const trackIfDesktop = (req, user, eventName, props) => {
+        const device = determineClient(req);
+
+        if (device === 'desktop') {
+            return trackEvent(req, user, eventName, props);
+        }
+    };
+    const trackIfMobile = (req, user, eventName, props) => {
+        const device = determineClient(req);
+
+        if (device === 'mobile') {
+            return trackEvent(req, user, eventName, props);
+        }
     };
 
     const trackAll = (req, user, eventName, props) => {

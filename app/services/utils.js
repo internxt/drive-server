@@ -1,8 +1,6 @@
 const getNewMoveName = (originalName, i) => `${originalName} (${i})`;
 
-module.exports = (Model, App) => {
-    const log = App.logger;
-
+module.exports = () => {
     const IsBucketId = (targetId) => {
         const bucketIdPattern = /^[a-z0-9]{24}$/;
         const isString = typeof targetId === 'string';

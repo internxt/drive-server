@@ -9,7 +9,6 @@ const Analytics = require('./analytics');
 const { Op } = sequelize;
 
 const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
-const LAST_MAIL_RESEND_INTERVAL = 1000 * 60 * 10; // 10 minutes
 
 module.exports = (Model, App) => {
     const Logger = App.logger;
@@ -115,12 +114,15 @@ module.exports = (Model, App) => {
                 return userData;
             }
 
-            const rootBucket = await App.services.Storj.CreateBucket(userData.email, userData.userId, user.mnemonic);
+            const { Storj, Crypt } = App.services;
+            const rootBucket = await Storj.CreateBucket(userData.email, userData.userId, user.mnemonic);
             Logger.info('User init | root bucket created %s', rootBucket.name);
 
-            const rootFolderName = await App.services.Crypt.encryptName(`${rootBucket.name}`);
-
-            const rootFolder = await userData.createFolder({ name: rootFolderName, bucket: rootBucket.id });
+            const rootFolderName = await Crypt.encryptName(`${rootBucket.name}`);
+            const rootFolder = await userData.createFolder({
+                name: rootFolderName,
+                bucket: rootBucket.id
+            });
 
             Logger.info('User init | root folder created, id: %s', rootFolder.id);
 
@@ -172,7 +174,7 @@ module.exports = (Model, App) => {
 
                     resolve(user);
                 } else {
-                    reject('User not found on X Cloud database');
+                    reject(Error('User not found on X Cloud database'));
                 }
             })
             .catch((err) => reject(err));
@@ -184,14 +186,8 @@ module.exports = (Model, App) => {
         }
     });
 
-    const FindUsersByReferred = (referredUuid) => new Promise((resolve, reject) => {
-        Model.users
-            .findAll({ where: { referred: { [Op.eq]: referredUuid } } })
-            .then((response) => {
-                resolve(response);
-            })
-            .catch((err) => reject(err));
-    });
+    const FindUsersByReferred = (referredUuid) => Model.users
+        .findAll({ where: { referred: { [Op.eq]: referredUuid } } });
 
     const FindUserObjByEmail = (email) => Model.users.findOne({
         where: {
@@ -205,7 +201,7 @@ module.exports = (Model, App) => {
         }
     }).then((response) => response.dataValues);
 
-    const GetUsersRootFolder = (id) => Model.users
+    const GetUsersRootFolder = () => Model.users
         .findAll({
             include: [Model.folder]
         })
@@ -248,42 +244,30 @@ module.exports = (Model, App) => {
         );
     };
 
-    const DeactivateUser = (email) => new Promise(async (resolve, reject) => {
-        const shouldSend = await ShouldSendEmail(email);
+    const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
+        .findOne({ where: { email: { [Op.eq]: email } } })
+        .then((user) => {
+            const password = crypto.SHA256(user.userId).toString();
+            const auth = Buffer.from(`${user.email}:${password}`).toString(
+                'base64'
+            );
 
-        if (!shouldSend) {
-            Logger.info('Do not resend deactivation email to %s', email);
-
-            return resolve(); // noop
-        }
-
-        SetEmailSended(email);
-
-        return Model.users
-            .findOne({ where: { email: { [Op.eq]: email } } })
-            .then((user) => {
-                const password = crypto.SHA256(user.userId).toString();
-                const auth = Buffer.from(`${user.email}:${password}`).toString(
-                    'base64'
-                );
-
-                axios
-                    .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-                        headers: {
-                            Authorization: `Basic ${auth}`,
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then((data) => {
-                        resolve(data);
-                    })
-                    .catch((err) => {
-                        Logger.warn(err.response.data);
-                        reject(err);
-                    });
-            })
-            .catch(reject);
-    });
+            axios
+                .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
+                    headers: {
+                        Authorization: `Basic ${auth}`,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then((data) => {
+                    resolve(data);
+                })
+                .catch((err) => {
+                    Logger.warn(err.response.data);
+                    reject(err);
+                });
+        })
+        .catch(reject));
 
     const ConfirmDeactivateUser = (token) => new Promise((resolve, reject) => {
         async.waterfall([
@@ -312,7 +296,7 @@ module.exports = (Model, App) => {
 
                         user
                             .destroy()
-                            .then((result) => {
+                            .then(() => {
                                 analytics.track({
                                     userId: user.uuid,
                                     event: 'user-deactivation-confirm',
@@ -330,8 +314,7 @@ module.exports = (Model, App) => {
                     })
                     .catch(next);
             }
-        ],
-        (err, result) => {
+        ], (err, result) => {
             if (err) {
                 Logger.error('Error waterfall', err);
                 reject(err);
@@ -341,19 +324,11 @@ module.exports = (Model, App) => {
         });
     });
 
-    const Store2FA = (user, key) => new Promise((resolve, reject) => {
-        Model.users
-            .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } })
-            .then(resolve)
-            .catch(reject);
-    });
+    const Store2FA = (user, key) => Model.users
+        .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
 
-    const Delete2FA = (user) => new Promise((resolve, reject) => {
-        Model.users
-            .update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } })
-            .then(resolve)
-            .catch(reject);
-    });
+    const Delete2FA = (user) => Model.users.update({ secret_2FA: null },
+        { where: { email: { [Op.eq]: user } } });
 
     const updatePrivateKey = (user, privateKey) => new Promise((resolve, reject) => {
         FindUserByEmail(user).then((userData) => {
@@ -368,12 +343,12 @@ module.exports = (Model, App) => {
                 })
                 .catch((err) => {
                     Logger.error('error updating', err);
-                    reject({ error: 'Error updating info' });
+                    reject(Error('Error updating info'));
                 });
         })
             .catch((err) => {
                 Logger.error(err);
-                reject({ error: 'Internal server error' });
+                reject(Error('Internal server error'));
             });
     });
 
@@ -383,7 +358,7 @@ module.exports = (Model, App) => {
                 const storedPassword = userData.password.toString();
                 if (storedPassword !== currentPassword) {
                     Logger.error('Invalid password');
-                    reject({ error: 'Invalid password' });
+                    reject(Error('Invalid password'));
                 } else {
                     resolve();
 
@@ -400,51 +375,23 @@ module.exports = (Model, App) => {
                         })
                         .catch((err) => {
                             Logger.error('error updating', err);
-                            reject({ error: 'Error updating info' });
+                            reject(Error('Error updating info'));
                         });
                 }
             })
             .catch((err) => {
                 Logger.error(err);
-                reject({ error: 'Internal server error' });
+                reject(Error('Internal server error'));
             });
     });
 
-    const LoginFailed = (user, loginFailed) => new Promise((resolve, reject) => {
-        Model.users.update({
-            errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-        }, { where: { email: user } }).then((res) => resolve())
-            .catch(reject);
-    });
+    const LoginFailed = (user, loginFailed) => Model.users.update({
+        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
+    }, { where: { email: user } });
 
-    const ShouldSendEmail = (email) => new Promise((resolve, reject) => {
-        Model.users.findOne({ where: { email: { [Op.eq]: email } } })
-            .then((user) => {
-                if (!user) {
-                    return resolve(false); // User doesn't exist
-                }
-                if (!user.lastResend) {
-                    return resolve(true); // Field is null, send email
-                }
+    const ResendActivationEmail = (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
-                const dateDiff = new Date() - user.lastResend;
-
-                return resolve(dateDiff > LAST_MAIL_RESEND_INTERVAL);
-            })
-            .catch(reject);
-    });
-
-    const SetEmailSended = (email) => Model.users.update({
-        lastResend: new Date()
-    }, { where: { email: { [Op.eq]: email } } });
-
-    const ResendActivationEmail = async (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
-
-    const UpdateAccountActivity = (user) => new Promise((resolve, reject) => {
-        Model.users.update({ updated_at: new Date() }, { where: { email: user } })
-            .then((res) => { resolve(); })
-            .catch(reject);
-    });
+    const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { email: user } });
 
     const getSyncDate = () => {
         let syncDate = Date.now();
@@ -483,7 +430,7 @@ module.exports = (Model, App) => {
         .catch(() => null);
 
     // TODO: Check transaction is actually running
-    const UpdateUserSync = async (user, toNull, t) => {
+    const UpdateUserSync = async (user, toNull) => {
         let sync = null;
         if (!toNull) {
             sync = getSyncDate();

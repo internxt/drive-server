@@ -25,6 +25,12 @@
             "error",
             "never"
         ],
-        "newline-per-chained-call": ["error", { "ignoreChainWithDepth": 2 }]
+        "max-len": [
+            "error",
+            {
+                "code": 150,
+                "ignoreComments": true
+            }
+        ]
     }
 }

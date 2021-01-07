@@ -7,10 +7,11 @@ const shortid = require('shortid');
 const { Environment } = require('storj');
 const mime = require('mime');
 const prettysize = require('prettysize');
+const CryptService = require('./crypt');
 
 module.exports = (Model, App) => {
     const log = App.logger;
-    const CryptService = require('./crypt')(Model, App);
+    const CryptServiceInstance = CryptService(Model, App);
 
     function pwdToHex(pwd) {
         try {
@@ -50,7 +51,7 @@ module.exports = (Model, App) => {
     }
 
     const RegisterBridgeUser = (email, password) => {
-    // Set variables
+        // Set variables
         const hashPwd = pwdToHex(password);
 
         // Set api call settings
@@ -68,7 +69,7 @@ module.exports = (Model, App) => {
     };
 
     const IsUserActivated = (email) => {
-    // Set api call settings
+        // Set api call settings
         const params = { headers: { 'Content-Type': 'application/json', email } };
 
         // Do api call
@@ -187,7 +188,7 @@ module.exports = (Model, App) => {
 
     const ResolveFolderFile = (user, file, path = './downloads') => {
         const downloadDir = path;
-        const decryptedFileName = CryptService.decryptName(
+        const decryptedFileName = CryptServiceInstance.decryptName(
             file.name,
             file.folder_id
         );
