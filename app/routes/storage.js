@@ -1,13 +1,8 @@
 const fs = require('fs');
-const path = require('path');
 
 const rimraf = require('rimraf');
-const _ = require('lodash');
 const contentDisposition = require('content-disposition');
-const async = require('async');
 
-const prettySize = require('prettysize');
-const mimeTypes = require('mime-types');
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
 
@@ -98,9 +93,7 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Array of folder items
    */
   Router.post('/storage/folder', passportAuth, (req, res) => {
-    const { folderName } = req.body;
-    const { parentFolderId } = req.body;
-    const { teamId } = req.body;
+    const { folderName, parentFolderId } = req.body;
 
     const { user } = req;
     user.mnemonic = req.headers['internxt-mnemonic'];
@@ -166,9 +159,7 @@ module.exports = (Router, Service, Logger, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-    const extension = path.extname(xfile.originalname);
-
-    Service.Folder.isFolderOfTeam(folderId).then((folder) => {
+    Service.Folder.isFolderOfTeam(folderId).then(() => {
       Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
         res.status(201).json(result);
       }).catch((err) => {
@@ -230,7 +221,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
-      const NOW = (new Date()).toISOString();
     }).catch((error) => {
       Logger.error(error);
       res.status(400).json({ message: error.message });
@@ -263,7 +253,7 @@ module.exports = (Router, Service, Logger, App) => {
     }
 
     return Service.Files.Download(user, fileIdInBucket).then(({
-      filestream, mimetype, downloadFile, folderId, name, type, raw, size
+      filestream, mimetype, downloadFile, folderId, name, type, size
     }) => {
       const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
@@ -348,7 +338,11 @@ module.exports = (Router, Service, Logger, App) => {
     const { destination } = req.body;
     const { user } = req;
 
-    Service.Files.MoveFile(user, fileId, destination).then((result) => { res.status(200).json(result); }).catch((error) => { res.status(500).json(error); });
+    Service.Files.MoveFile(user, fileId, destination).then((result) => {
+      res.status(200).json(result);
+    }).catch((error) => {
+      res.status(500).json(error);
+    });
   });
 
   /*
@@ -382,7 +376,6 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid).then(() => {
       res.status(200).json({ deleted: true });
     }).catch((err) => {
-      console.error('Error deleting file:', err.message);
       res.status(500).json({ error: err.message });
     });
   });
@@ -424,14 +417,10 @@ module.exports = (Router, Service, Logger, App) => {
                 res.set('x-file-name', `${folderName}.zip`);
                 res.download(`./downloads/${tree.id}/${folderName}.zip`);
 
-                rimraf(`./downloads/${tree.id}`, () => {
-                  console.log('Folder removed after send zip');
-                });
-              }).catch((err) => {
+                rimraf(`./downloads/${tree.id}`);
+              }).catch(() => {
                 if (fs.existsSync(`./downloads/${tree.id}`)) {
-                  rimraf(`./downloads/${tree.id}`, () => {
-                    console.log('Folder removed after fail folder download');
-                  });
+                  rimraf(`./downloads/${tree.id}`);
                 }
 
                 res
@@ -441,7 +430,7 @@ module.exports = (Router, Service, Logger, App) => {
             } else {
               res.status(402).json({ error: 'Folder too large' });
             }
-          }).catch((err) => {
+          }).catch(() => {
             res.status(402).json({ error: 'Error downloading folder' });
           });
         } else {
@@ -465,89 +454,16 @@ module.exports = (Router, Service, Logger, App) => {
           }).catch(({ message }) => {
             if (message === 'Bridge rate limit error') {
               res.status(402).json({ message });
-
               return;
             }
-
             res.status(500).json({ message });
           });
         }
-      }).catch((err) => {
-        console.error(err);
+      }).catch(() => {
         res.status(500).send({ error: 'User not found' });
       });
-    }).catch((err) => {
-      console.error('Error', err);
+    }).catch(() => {
       res.status(500).send({ error: 'Invalid token' });
     });
-  });
-
-  Router.post('/storage/sftp/list', passportAuth, (req, res) => {
-    const fsPath = req.body.path;
-
-    if (!fsPath) { return res.status(200).send({}); }
-
-    const replacedPath = fsPath.replace('\\', '/');
-    const normalizedPath = path.normalize(replacedPath);
-    const splittedPath = normalizedPath.split('/');
-    const filteredPath = splittedPath.filter((x) => x !== '');
-
-    if (filteredPath.length === 0) {
-      return Service.Folder.GetContent(req.user.root_folder_id, req.user).then((result) => {
-        if (result == null) {
-          res.status(500).send([]);
-        } else {
-          res.status(200).json(result);
-        }
-      }).catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).json(err);
-      });
-    }
-
-    console.log('Sub-folders request is under construction', filteredPath);
-
-    const position = 0;
-
-    const findFolder = (folders, targetName) => new Promise((resolve, reject) => {
-      async.eachSeries(folders, (folder, nextFolder) => {
-        if (folder.name === targetName) { nextFolder('found', folder); } else { nextFolder(); }
-      }, (err, folder) => {
-        if (err === 'found') { resolve(folder); } else { reject(); }
-      });
-    });
-
-    const getSubFolders = (folderId) => new Promise((resolve, reject) => {
-      Service.Folder.GetContent(folderId, req.user).then((result) => {
-        resolve(result.children);
-      }).catch((err) => {
-        reject(err);
-      });
-    });
-
-    const testUntil = (next) => {
-      next(null, position < filteredPath.length);
-    };
-
-    const currentFolderId = req.user.root_folder_id;
-
-    return 0;
-
-    /*
-        async.doDuring((err) => {
-          getSubFolders(currentFolderId).then((children) => {
-            findFolder(folders, filteredPath[position]).then((result) => {
-            }).catch((err1) => {
-              (() => { })(err1);
-            });
-          });
-        }, testUntil, (err2) => {
-          if (err2) {
-            res.status(500).send({ error: 'Folder does not exists' });
-          } else {
-            (() => { })();
-          }
-        });
-        */
   });
 };

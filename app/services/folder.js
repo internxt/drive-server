@@ -12,73 +12,69 @@ module.exports = (Model, App) => {
   const FileServiceInstance = FileService(Model, App);
 
   // Create folder entry, for web/mobile & desktop
-  const Create = (user, folderName, parentFolderId, teamId = null) => new Promise(async (resolve, reject) => {
-    try {
-      // parent folder is yours?
-      const whereCondition = { where: null };
+  const Create = async (user, folderName, parentFolderId, teamId = null) => {
+    // parent folder is yours?
+    const whereCondition = { where: null };
 
-      if (teamId) {
-        whereCondition.where = {
-          id: { [Op.eq]: parentFolderId },
-          id_team: { [Op.eq]: teamId }
-        };
-      } else {
-        whereCondition.where = {
-          id: { [Op.eq]: parentFolderId },
-          user_id: { [Op.eq]: user.id }
-        };
-      }
-
-      const existsParentFolder = await Model.folder.findOne({ whereCondition });
-
-      if (!existsParentFolder) {
-        throw Error('Parent folder is not yours');
-      }
-
-      // Prevent strange folder names from being created
-      const sanitizedFoldername = SanitizeFilename(folderName);
-
-      if (folderName === '' || sanitizedFoldername !== folderName) {
-        throw Error('Invalid folder name');
-      }
-
-      if (user.mnemonic === 'null') {
-        // throw Error('Your mnemonic is invalid');
-      }
-
-      // Encrypt folder name, TODO: use versioning for encryption
-      const cryptoFolderName = App.services.Crypt.encryptName(folderName,
-        parentFolderId);
-
-      const exists = await Model.folder.findOne({
-        where: {
-          parentId: { [Op.eq]: parentFolderId },
-          name: { [Op.eq]: cryptoFolderName }
-        }
-      });
-
-      if (exists) {
-        // TODO: If the folder already exists,
-        // return the folder data to make desktop
-        // incorporate new info to its database
-        throw Error('Folder with the same name already exists');
-      }
-
-      // Since we upload everything in the same bucket, this line is no longer needed
-      // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
-      const xCloudFolder = await user.createFolder({
-        name: cryptoFolderName,
-        bucket: null,
-        parentId: parentFolderId || null,
-        id_team: teamId
-      });
-
-      resolve(xCloudFolder);
-    } catch (error) {
-      reject(error);
+    if (teamId) {
+      whereCondition.where = {
+        id: { [Op.eq]: parentFolderId },
+        id_team: { [Op.eq]: teamId }
+      };
+    } else {
+      whereCondition.where = {
+        id: { [Op.eq]: parentFolderId },
+        user_id: { [Op.eq]: user.id }
+      };
     }
-  });
+
+    const existsParentFolder = await Model.folder.findOne({ whereCondition });
+
+    if (!existsParentFolder) {
+      throw Error('Parent folder is not yours');
+    }
+
+    // Prevent strange folder names from being created
+    const sanitizedFoldername = SanitizeFilename(folderName);
+
+    if (folderName === '' || sanitizedFoldername !== folderName) {
+      throw Error('Invalid folder name');
+    }
+
+    if (user.mnemonic === 'null') {
+      // throw Error('Your mnemonic is invalid');
+    }
+
+    // Encrypt folder name, TODO: use versioning for encryption
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName,
+      parentFolderId);
+
+    const exists = await Model.folder.findOne({
+      where: {
+        parentId: { [Op.eq]: parentFolderId },
+        name: { [Op.eq]: cryptoFolderName }
+      }
+    });
+
+    if (exists) {
+      // TODO: If the folder already exists,
+      // return the folder data to make desktop
+      // incorporate new info to its database
+      throw Error('Folder with the same name already exists');
+    }
+
+    // Since we upload everything in the same bucket, this line is no longer needed
+    // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+
+    const xCloudFolder = await user.createFolder({
+      name: cryptoFolderName,
+      bucket: null,
+      parentId: parentFolderId || null,
+      id_team: teamId
+    });
+
+    return xCloudFolder;
+  };
 
   const Delete = async (user, folderId) => {
     if (user.mnemonic === 'null') {
@@ -135,7 +131,7 @@ module.exports = (Model, App) => {
     zip.writeZip(zipFileName);
   };
 
-  const Download = (tree, userData) => new Promise(async (resolve, reject) => {
+  const Download = async (tree, userData) => {
     const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
     const rootPath = `./downloads/${tree.id}/${rootFolder}`;
     const listFilesToDownload = [];
@@ -174,14 +170,14 @@ module.exports = (Model, App) => {
       traverseChildren(tree.children);
     }
 
-    async.eachSeries(listFilesToDownload, (file, next) => {
+    return async.eachSeries(listFilesToDownload, (file, next) => {
       FileServiceInstance.DownloadFolderFile(userData, file.id, file.path).then(() => {
         next();
       }).catch((err) => {
         next(err);
       });
-    }, (err) => (err ? reject(err) : resolve()));
-  });
+    });
+  };
 
   const GetTreeSize = (tree) => {
     let treeSize = 0;
@@ -215,61 +211,52 @@ module.exports = (Model, App) => {
     return treeSize;
   };
 
-  const GetTree = (user, rootFolderId = null) => {
+  const GetTree = async (user, rootFolderId = null) => {
     const username = user.email;
 
-    return new Promise(async (resolve, reject) => {
-      const userObject = await Model.users.findOne({
-        where: { email: { [Op.eq]: username } }
-      });
-      rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
+    const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
+    rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
 
-      const rootFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: rootFolderId } },
-        include: [
-          {
-            model: Model.folder,
-            as: 'descendents',
-            hierarchy: true,
-            include: [
-              {
-                model: Model.file,
-                as: 'files'
-              }
-            ]
-          },
-          {
-            model: Model.file,
-            as: 'files'
-          }
-        ]
-      });
-
-      resolve(rootFolder);
+    const rootFolder = await Model.folder.findOne({
+      where: { id: { [Op.eq]: rootFolderId } },
+      include: [
+        {
+          model: Model.folder,
+          as: 'descendents',
+          hierarchy: true,
+          include: [
+            {
+              model: Model.file,
+              as: 'files'
+            }
+          ]
+        },
+        {
+          model: Model.file,
+          as: 'files'
+        }
+      ]
     });
+
+    return rootFolder;
   };
 
-  const GetFolders = (user) => {
-    const username = user.email;
+  const GetFolders = async (user) => {
+    const userObject = user;
 
-    return new Promise(async (resolve, reject) => {
-      const userObject = user;
-
-      const folders = await Model.folder.findAll({
-        where: { user_id: { [Op.eq]: userObject.id } },
-        // where: { user_id: 21810 },
-        attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
-      });
-      const foldersId = folders.map((result) => result.id);
-      const files = await Model.file.findAll({
-        where: { folder_id: { [Op.in]: foldersId } }
-      });
-      result = {
-        folders,
-        files
-      };
-      resolve(result);
+    const folders = await Model.folder.findAll({
+      where: { user_id: { [Op.eq]: userObject.id } },
+      // where: { user_id: 21810 },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
     });
+    const foldersId = folders.map((result) => result.id);
+    const files = await Model.file.findAll({
+      where: { folder_id: { [Op.in]: foldersId } }
+    });
+    return {
+      folders,
+      files
+    };
   };
 
   const mapChildrenNames = (folder = []) => folder.map((child) => {
@@ -280,7 +267,7 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
-    const teamMember = null;
+    let teamMember = null;
     if (teamId) {
       teamMember = await Model.teams_members.findOne({
         where: {
@@ -424,15 +411,13 @@ module.exports = (Model, App) => {
         folder
           .update(newMeta).then((result) => next(null, result)).catch(next);
       }
-    ],
-    (err, result) => {
+    ], (err, result) => {
       if (err) {
         reject(err);
       } else {
         resolve(result);
       }
-    },
-    (folder, next) => {
+    }, (folder, next) => {
       // Set optional changes
       if (metadata.color) {
         newMeta.color = metadata.color;
@@ -447,17 +432,13 @@ module.exports = (Model, App) => {
       }
 
       next(null, folder);
-    },
-    (folder, next) => {
+    }, (folder, next) => {
       // Perform the update
-      folder
-        .update(newMeta).then((result) => next(null, result)).catch(next);
+      folder.update(newMeta).then((result) => next(null, result)).catch(next);
     });
   });
 
-  const GetBucketList = (user) => new Promise((resolve, reject) => {
-    App.services.Storj.ListBuckets(user).then(resolve).catch(reject);
-  });
+  const GetBucketList = (user) => App.services.Storj.ListBuckets(user);
 
   const GetChildren = async (user, folderId, options = {}) => {
     const query = {
@@ -531,13 +512,13 @@ module.exports = (Model, App) => {
 
     // Move
     const result = await folder.update({
-      parentId: parseInt(destination, 0),
+      parentId: parseInt(destination, 10),
       name: destinationName
     });
     // we don't want ecrypted name on front
     folder.setDataValue('name',
       App.services.Crypt.decryptName(destinationName, destination));
-    folder.setDataValue('parentId', parseInt(destination, 0));
+    folder.setDataValue('parentId', parseInt(destination, 10));
     const response = {
       result,
       item: folder,

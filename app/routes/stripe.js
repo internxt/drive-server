@@ -1,5 +1,10 @@
 const async = require('async');
 const crypto = require('crypto');
+const Stripe = require('stripe');
+
+const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
+const StripeTest = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
+
 const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
@@ -18,17 +23,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Stripe Session is neccesary to perform a new payment
    */
   Router.post('/stripe/session', passportAuth, (req, res) => {
-    const planToSubscribe = req.body.plan;
-
-    let stripe = require('stripe')(process.env.STRIPE_SK, {
-      apiVersion: '2020-03-02'
-    });
-
-    if (req.body.test) {
-      stripe = require('stripe')(process.env.STRIPE_SK_TEST, {
-        apiVersion: '2020-03-02'
-      });
-    }
+    const stripe = req.body.test ? StripeTest : StripeProduction;
 
     const user = req.user.email;
 
@@ -38,8 +33,7 @@ module.exports = (Router, Service, Logger, App) => {
         stripe.customers.list({
           limit: 1,
           email: user
-        },
-        (err, customers) => {
+        }, (err, customers) => {
           next(err, customers.data[0]);
         });
       },
@@ -47,16 +41,13 @@ module.exports = (Router, Service, Logger, App) => {
         if (!customer) {
           // The customer does not exists
           // Procede to the subscription
-          console.debug('Customer does not exists, won\'t check any subcription');
           next(null, undefined);
         } else {
           // Get subscriptions
           const subscriptions = customer.subscriptions.data;
           if (subscriptions.length === 0) {
-            console.log('Customer exists, but doesn\'t have a subscription');
             next(null, { customer, subscription: null });
           } else {
-            console.log('Customer already has a subscription');
             const subscription = subscriptions[0];
             next(null, { customer, subscription });
           }
@@ -64,19 +55,11 @@ module.exports = (Router, Service, Logger, App) => {
       },
       (payload, next) => {
         if (!payload) {
-          console.debug('Customer does not exists');
           next(null, {});
         } else {
           const { customer, subscription } = payload;
-          console.debug('Payload', subscription);
 
           if (subscription) {
-            // Delete subscription (must be improved in the future)
-            /*
-          stripe.subscriptions.del(subscription.id, (err, result) => {
-            next(err, customer);
-          });
-          */
             next(Error('Already subscribed'));
           } else {
             next(null, customer);
@@ -110,8 +93,7 @@ module.exports = (Router, Service, Logger, App) => {
         stripe.checkout.sessions
           .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
       }
-    ],
-    (err, result) => {
+    ], (err, result) => {
       if (err) {
         res.status(500).send({ error: err.message });
       } else {
@@ -125,20 +107,10 @@ module.exports = (Router, Service, Logger, App) => {
    * Stripe Session is neccesary to perform a new payment
    */
   Router.post('/stripe/teams/session', passportAuth, async (req, res) => {
-    const productToSubscribe = req.body.product;
-    const sessionType = req.body.sessionType || null;
     const test = req.body.test || false;
+    const stripe = test ? StripeTest : StripeProduction;
 
-    let stripe = require('stripe')(process.env.STRIPE_SK, {
-      apiVersion: '2020-03-02'
-    });
-
-    if (test) {
-      stripe = require('stripe')(process.env.STRIPE_SK_TEST, {
-        apiVersion: '2020-03-02'
-      });
-    }
-
+    const productToSubscribe = req.body.product;
     const user = req.user.email;
 
     async.waterfall([
@@ -147,8 +119,7 @@ module.exports = (Router, Service, Logger, App) => {
         stripe.customers.list({
           limit: 1,
           email: user
-        },
-        (err, customers) => {
+        }, (err, customers) => {
           next(err, customers.data[0]);
         });
       },
@@ -156,16 +127,13 @@ module.exports = (Router, Service, Logger, App) => {
         if (!customer) {
           // The customer does not exists
           // Procede to the subscription
-          console.debug('Customer does not exists, won\'t check any subcription');
           next(null, undefined);
         } else {
           // Get subscriptions
           const subscriptions = customer.subscriptions.data;
           if (subscriptions.length === 0) {
-            console.log('Customer exists, but doesn\'t have a subscription');
             next(null, { customer, subscription: null });
           } else {
-            console.log('Customer already has a subscription');
             const subscription = subscriptions[0];
             next(null, { customer, subscription });
           }
@@ -173,11 +141,9 @@ module.exports = (Router, Service, Logger, App) => {
       },
       (payload, next) => {
         if (!payload) {
-          console.debug('Customer does not exists');
           next(null, {});
         } else {
           const { customer, subscription } = payload;
-          console.debug('Payload', subscription);
 
           if (subscription) {
             Service.Stripe.getStorageProducts(test).then((storageProducts) => {
@@ -210,7 +176,7 @@ module.exports = (Router, Service, Logger, App) => {
           }
         }
       },
-      async (customer, next) => {
+      async (customer) => {
         // Open session
         const customerId = customer !== null ? customer.id || null : null;
         let newBridgeUser = null;
@@ -269,7 +235,7 @@ module.exports = (Router, Service, Logger, App) => {
           const teamBridgePassword = team.bridge_password;
           const teamBridgeMnemonic = team.bridge_mnemonic;
 
-          const newMember = await Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic);
+          await Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic);
         }
 
         if (sessionParams.customer) {
@@ -282,8 +248,7 @@ module.exports = (Router, Service, Logger, App) => {
 
         return result;
       }
-    ],
-    (err, result) => {
+    ], (err, result) => {
       if (err) {
         res.status(500).send({ error: err.message });
       } else {
@@ -298,8 +263,7 @@ module.exports = (Router, Service, Logger, App) => {
    * Required metadata:
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
-    const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' });
+    const stripe = req.query.test ? StripeTest : StripeProduction;
     stripe.products.list({ limit: 100 }, (err, products) => {
       if (err) {
         res.status(500).send({ error: err });
@@ -328,14 +292,12 @@ module.exports = (Router, Service, Logger, App) => {
    * TODO: cache plans to avoid repetitive api calls
    */
   Router.post('/stripe/plans', passportAuth, (req, res) => {
-    const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' });
+    const stripe = req.body.test ? StripeTest : StripeProduction;
     const stripeProduct = req.body.product;
 
     stripe.plans.list({
       product: stripeProduct
-    },
-    (err, plans) => {
+    }, (err, plans) => {
       if (err) {
         res.status(500).send({ error: err.message });
       } else {

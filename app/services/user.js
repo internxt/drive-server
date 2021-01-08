@@ -316,34 +316,22 @@ module.exports = (Model, App) => {
     });
   });
 
-  const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => new Promise((resolve, reject) => {
-    FindUserByEmail(user).then((userData) => {
-      const storedPassword = userData.password.toString();
-      if (storedPassword !== currentPassword) {
-        Logger.error('Invalid password');
-        reject(Error('Invalid password'));
-      } else {
-        resolve();
+  const UpdatePasswordMnemonic = async (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => {
+    const storedPassword = user.password.toString();
+    if (storedPassword !== currentPassword) {
+      throw Error('Invalid password');
+    }
 
-        Model.users
-          .update({
-            password: newPassword,
-            mnemonic,
-            hKey: newSalt
-          }, { where: { email: { [Op.eq]: user } } }).then((res) => {
-            updatePrivateKey(user, privateKey);
-            Logger.info('Updated', res);
-            resolve();
-          }).catch((err) => {
-            Logger.error('error updating', err);
-            reject(Error('Error updating info'));
-          });
-      }
-    }).catch((err) => {
-      Logger.error(err);
-      reject(Error('Internal server error'));
+    await Model.users.update({
+      password: newPassword,
+      mnemonic,
+      hKey: newSalt
+    }, {
+      where: { email: { [Op.eq]: user } }
     });
-  });
+
+    await updatePrivateKey(user, privateKey);
+  };
 
   const LoginFailed = (user, loginFailed) => Model.users.update({
     errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0

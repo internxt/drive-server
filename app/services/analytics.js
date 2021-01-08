@@ -43,6 +43,8 @@ module.exports = () => {
     if (device === 'desktop') {
       return trackEvent(req, user, eventName, props);
     }
+
+    return null;
   };
   const trackIfMobile = (req, user, eventName, props) => {
     const device = determineClient(req);
@@ -50,6 +52,8 @@ module.exports = () => {
     if (device === 'mobile') {
       return trackEvent(req, user, eventName, props);
     }
+
+    return null;
   };
 
   const trackAll = (req, user, eventName, props) => {

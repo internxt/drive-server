@@ -12,9 +12,9 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const log = App.logger;
 
-  const CreateFile = (user, file) => new Promise(async (resolve, reject) => {
+  const CreateFile = async (user, file) => {
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
-      return reject(new Error('Invalid metadata for new file'));
+      throw Error('Invalid metadata for new file');
     }
 
     return Model.folder.findOne({
@@ -24,7 +24,7 @@ module.exports = (Model, App) => {
       }
     }).then(async (folder) => {
       if (!folder) {
-        return reject(new Error('Folder not found / Is not your folder'));
+        throw Error('Folder not found / Is not your folder');
       }
 
       const fileExists = await Model.file.findOne({
@@ -36,7 +36,7 @@ module.exports = (Model, App) => {
       });
 
       if (fileExists) {
-        return reject(new Error('File entry already exists'));
+        throw Error('File entry already exists');
       }
 
       const fileInfo = {
@@ -60,14 +60,35 @@ module.exports = (Model, App) => {
         fileInfo.createdAt = file.date;
       }
 
-      return Model.file
-        .create(fileInfo).then(resolve).catch((err) => {
-          reject(Error('Unable to create file in database'));
-        });
+      return Model.file.create(fileInfo);
     });
-  });
+  };
 
-  const Upload = (user, folderId, fileName, filePath) => new Promise(async (resolve, reject) => {
+  const GetNewMoveName = async (destination, originalName, type) => {
+    let exists = true;
+    let i = 1;
+    let nextName;
+    let nextCryptedName;
+    while (exists) {
+      nextName = App.services.Utils.getNewMoveName(originalName, i);
+      nextCryptedName = App.services.Crypt.encryptName(App.services.Utils.getNewMoveName(originalName, i),
+        destination);
+      // eslint-disable-next-line no-await-in-loop
+      exists = !!(await Model.file.findOne({
+        where: {
+          folder_id: { [Op.eq]: destination },
+          name: { [Op.eq]: nextCryptedName },
+          type: { [Op.eq]: type }
+        },
+        raw: true
+      }));
+      i += 1;
+    }
+
+    return { cryptedName: nextCryptedName, name: nextName };
+  };
+
+  const Upload = async (user, folderId, fileName, filePath) => {
     try {
       if (user.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
@@ -88,7 +109,7 @@ module.exports = (Model, App) => {
         where: { id: { [Op.eq]: folderId } }
       });
 
-      if (!rootFolder.bucket) return reject(Error('Missing file bucket'));
+      if (!rootFolder.bucket) throw Error('Missing file bucket');
 
       // Separate filename from extension
       const fileNameParts = path.parse(fileName);
@@ -116,18 +137,14 @@ module.exports = (Model, App) => {
           folderId);
       }
 
-      originalEncryptedFileName = originalEncryptedFileName
-        || App.services.Crypt.encryptName(fileNameParts.name, folderId);
+      originalEncryptedFileName = originalEncryptedFileName || App.services.Crypt.encryptName(fileNameParts.name, folderId);
       const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
       log.info('Uploading file to network');
 
-      return App.services.Storj.StoreFile(user,
-        rootFolder.bucket,
-        originalEncryptedFileNameWithExt,
-        filePath).then(async ({ fileId, size }) => {
-        if (!fileId) return reject(Error('Missing file id'));
+      return App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath).then(async ({ fileId, size }) => {
+        if (!fileId) throw Error('Missing file id');
 
-        if (!size) return reject(Error('Missing file size'));
+        if (!size) throw Error('Missing file size');
 
         const newFileInfo = {
           name: encryptedFileName,
@@ -151,21 +168,14 @@ module.exports = (Model, App) => {
           log.error('Cannot add file to non existent folder');
         }
 
-        return resolve(addedFile);
-      }).catch((err) => {
-        log.error(err.message);
-        reject(err.message);
+        return addedFile;
       });
-    } catch (err) {
-      log.error(err.message);
-
-      return reject(err.message);
     } finally {
       fs.unlink(filePath, (error) => {
         if (error) throw error;
       });
     }
-  });
+  };
 
   const Download = (user, fileId) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
@@ -333,8 +343,7 @@ module.exports = (Model, App) => {
           next();
         }
       }
-    ],
-    (err, result) => {
+    ], (err, result) => {
       if (err) {
         reject(err);
       } else {
@@ -342,30 +351,6 @@ module.exports = (Model, App) => {
       }
     });
   });
-
-  const GetNewMoveName = async (destination, originalName, type) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(App.services.Utils.getNewMoveName(originalName, i),
-        destination);
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.file.findOne({
-        where: {
-          folder_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          type: { [Op.eq]: type }
-        },
-        raw: true
-      }));
-      i += 1;
-    }
-
-    return { cryptedName: nextCryptedName, name: nextName };
-  };
 
   const MoveFile = async (user, fileId, destination) => {
     const file = await Model.file.findOne({
@@ -398,13 +383,13 @@ module.exports = (Model, App) => {
 
     // Move
     const result = await file.update({
-      folder_id: parseInt(destination, 0),
+      folder_id: parseInt(destination, 10),
       name: destinationName
     });
     // we don't want ecrypted name on front
     file.setDataValue('name',
       App.services.Crypt.decryptName(destinationName, destination));
-    file.setDataValue('folder_id', parseInt(destination, 0));
+    file.setDataValue('folder_id', parseInt(destination, 10));
     const response = {
       result,
       item: file,

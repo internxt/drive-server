@@ -1,12 +1,10 @@
 const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
-const useragent = require('useragent');
 const uuid = require('uuid');
 const Analytics = require('analytics-node');
 
 const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
 
-const crypto = require('crypto');
 const openpgp = require('openpgp');
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
@@ -20,13 +18,9 @@ const ExtraRoutes = require('./extra');
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsRoutes = require('./teams');
-const team = require('../services/team');
-const AesUtil = require('../../lib/AesUtil');
 
 const { passportAuth } = passport;
-const isTeamActivated = false;
 const userTeam = null;
-const rootFolderId = 0;
 
 module.exports = (Router, Service, Logger, App) => {
   // Documentation
@@ -90,15 +84,13 @@ module.exports = (Router, Service, Logger, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.Keyserver.keysExists(userData).then((userKey) => {
+          Service.Keyserver.keysExists(userData).then(() => {
             res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-          }).catch((err) => {
-            console.error(err);
+          }).catch(() => {
             res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
           });
         }
       }).catch((err) => {
-        console.error(err);
         res.status(400).send({
           error: 'User not found on Bridge database',
           message: err.response ? err.response.data : err
@@ -133,16 +125,10 @@ module.exports = (Router, Service, Logger, App) => {
   Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 5;
 
-    const isTeamActivated = false;
-    const rootFolderId = 0;
-    const userTeam = null;
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({
-          error: 'Your account has been blocked for security reasons. Please reach out to us'
-        });
-
+        res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
         return;
       }
 
@@ -182,7 +168,9 @@ module.exports = (Router, Service, Logger, App) => {
         let keys = false;
         try {
           keys = await Service.Keyserver.keysExists(userData);
-        } catch (e) { }
+        } catch (e) {
+          // no op
+        }
 
         if (!keys && req.body.publicKey) {
           await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
@@ -208,18 +196,11 @@ module.exports = (Router, Service, Logger, App) => {
           const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
             internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
           res.status(200).json({
-            user,
-            token,
-            userTeam,
-            teamRol,
-            tokenTeam
+            user, token, userTeam, teamRol, tokenTeam
           });
         } else {
           res.status(200).json({
-            user,
-            token,
-            userTeam,
-            teamRol
+            user, token, userTeam, teamRol
           });
         }
       } else {
@@ -268,19 +249,18 @@ module.exports = (Router, Service, Logger, App) => {
       let referrer = null;
 
       if (uuid.validate(referral)) {
-        await Service.User
-          .FindUserByUuid(referral).then((userData) => {
-            if (userData === null) { // Don't exists referral user
-              console.log('UUID not found');
-            } else {
-              newUser.credit = 5;
-              hasReferral = true;
-              referrer = userData;
-              Service.User.UpdateCredit(referral);
-            }
-          }).catch((err) => console.log(err));
+        await Service.User.FindUserByUuid(referral).then((userData) => {
+          if (userData === null) {
+            // Don't exists referral user
+          } else {
+            newUser.credit = 5;
+            hasReferral = true;
+            referrer = userData;
+            Service.User.UpdateCredit(referral);
+          }
+        });
       }
-      const { privateKey, publicKey, revocationKey } = req.body;
+
       // Call user service to find or create user
       Service.User.FindOrCreate(newUser).then((userData) => {
         // Process user data and answer API call
@@ -364,38 +344,15 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.put('/auth/mnemonic', passportAuth, (req, res) => {
-    const {
-      body: { email, mnemonic }
-    } = req;
-    Service.User.UpdateMnemonic(email, mnemonic).then(() => {
-      res.status(200).json({
-        message: 'Successfully updated user with mnemonic'
-      });
-    }).catch(({ message }) => {
-      Logger.error(message);
-      res.status(400).json({ message, code: 400 });
-    });
-  });
-
   Router.patch('/user/password', passportAuth, (req, res) => {
-    const user = req.user.email;
-
     const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
-    const { mnemonic } = req.body;
-    const { privateKey } = req.body;
+    const { mnemonic, privateKey } = req.body;
 
-    Service.User.UpdatePasswordMnemonic(user,
-      currentPassword,
-      newPassword,
-      newSalt,
-      mnemonic,
-      privateKey).then((result) => {
-      res.status(200).send({});
+    Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(() => {
+      res.status(200).send();
     }).catch((err) => {
-      console.log(err);
       res.status(500).send(err);
     });
   });
@@ -429,7 +386,7 @@ module.exports = (Router, Service, Logger, App) => {
         Service.Mail.sendInvitationMail(email, req.user).then(() => {
           Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
           res.status(200).send({});
-        }).catch((err) => {
+        }).catch(() => {
           Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
           res.status(200).send({});
         });
@@ -482,19 +439,17 @@ module.exports = (Router, Service, Logger, App) => {
     Service.User.FindUserByEmail(user).then((userKeys) => {
       Service.Keyserver.keysExists(userKeys).then((keys) => {
         res.status(200).send({ publicKey: keys.public_key });
-      }).catch(async (err) => {
-        const { privateKeyArmored, publicKeyArmored, revocationCertificate } = await openpgp.generateKey({
+      }).catch(async () => {
+        const { publicKeyArmored } = await openpgp.generateKey({
           userIds: [{ email: 'inxt@inxt.com' }],
           curve: 'ed25519'
         });
         const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-        Logger.error(message);
         res.status(200).send({ publicKey: codpublicKey });
         Logger.error('Error: The user not have keys');
         res.status(500).send({});
       });
-    }).catch((err) => {
-      Logger.error('Error: The user is not register');
+    }).catch(() => {
       res.status(500).send({});
     });
   });

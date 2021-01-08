@@ -77,7 +77,7 @@ module.exports = (Router, Service, Logger) => {
     // Datas
     const { email } = req.body;
     const token = crypto.randomBytes(20).toString('hex');
-    const Encryptbridge_password = req.body.bridgePass;
+    const bridgePassword = req.body.bridgePass;
     const Encryptmnemonic = req.body.mnemonicTeam;
     const user = req.user.email;
     const { idTeam } = req.body;
@@ -116,7 +116,7 @@ module.exports = (Router, Service, Logger) => {
           id_team: existsBridgeUser.id,
           user: email,
           token,
-          bridge_password: Encryptbridge_password,
+          bridge_password: bridgePassword,
           mnemonic: Encryptmnemonic
         });
         if (!saveInvitations) {
@@ -139,7 +139,7 @@ module.exports = (Router, Service, Logger) => {
       }
     }
     // Forward email
-    Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then(() => {
+    return Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then(() => {
       Logger.info('The email is forwarded to the user %s', email);
       res.status(200).send({});
     }).catch(() => {
@@ -193,7 +193,7 @@ module.exports = (Router, Service, Logger) => {
       return res.status(500).send({ error: 'Invalid Team invitation link' });
     }
     // Destroy the invitation
-    getToken.destroy().then(() => {
+    return getToken.destroy().then(() => {
       res.status(200).send({});
     }).catch(() => {
       Logger.error('Error:The invitation could not be destroyed');
@@ -257,7 +257,6 @@ module.exports = (Router, Service, Logger) => {
   Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
     const { idTeam } = req.params;
     const members = await Service.TeamsMembers.getPeople(idTeam);
-    const admin = await Service.Team.getTeamByIdUser(req.user.email);
     res.status(200).send(members);
   });
 

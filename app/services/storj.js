@@ -154,7 +154,7 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic);
       log.info(`Resolving file ${file.name}...`);
 
-      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
+      storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           log.warn('[NODE-LIB %s] Download Progress: %s (%s%%)',
             user.email,
@@ -197,7 +197,7 @@ module.exports = (Model, App) => {
       log.info(`Resolving file ${file.name}...`);
 
       // Storj call
-      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
+      storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           log.warn('[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,

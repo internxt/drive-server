@@ -71,7 +71,9 @@ module.exports = (Model, App) => {
     if (tokenData) {
       // Update token
       Model.shares.update(
-        { token: newToken, mnemonic, is_folder: isFolder, views },
+        {
+          token: newToken, mnemonic, is_folder: isFolder, views
+        },
         { where: { id: { [Op.eq]: tokenData.id } } }
       );
       return newToken;
