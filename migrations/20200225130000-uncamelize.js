@@ -12,8 +12,8 @@ module.exports = {
       queryInterface.renameColumn(
         'users',
         'errorLoginCount',
-        'error_login_count',
-      ),
+        'error_login_count'
+      )
     ]);
   },
 
@@ -30,8 +30,8 @@ module.exports = {
       queryInterface.renameColumn(
         'users',
         'error_login_count',
-        'errorLoginCount',
-      ),
+        'errorLoginCount'
+      )
     ]);
-  },
+  }
 };

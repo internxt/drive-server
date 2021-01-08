@@ -13,8 +13,7 @@ module.exports = (Model, App) => {
     Model.shares
       .findOne({
         where: { token: { [Op.eq]: token } }
-      })
-      .then((result) => {
+      }).then((result) => {
         if (result) {
           if (result.views === 1) {
             result.destroy();
@@ -47,8 +46,7 @@ module.exports = (Model, App) => {
     Model.shares
       .findAll({
         where: { token: { [Op.eq]: token }, user: { [Op.eq]: user } }
-      })
-      .then((shareInstanceDB) => {
+      }).then((shareInstanceDB) => {
         if (shareInstanceDB && shareInstanceDB.length > 0) {
           let reuse = 'false';
 
@@ -63,9 +61,7 @@ module.exports = (Model, App) => {
               'Content-type': 'application/json'
             },
             body: JSON.stringify({ target: `${url}`, reuse })
-          })
-            .then((res) => res.json())
-            .then(resolve).catch(reject);
+          }).then((res) => res.json()).then(resolve).catch(reject);
         } else {
           reject(Error('url requested not valid'));
         }
@@ -140,8 +136,7 @@ module.exports = (Model, App) => {
     Model.shares
       .findOne({
         where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } }
-      })
-      .then((tokenData) => {
+      }).then((tokenData) => {
         if (tokenData) {
           // Update token
           Model.shares.update(
@@ -165,8 +160,7 @@ module.exports = (Model, App) => {
               user,
               is_folder: isFolder,
               views
-            })
-            .then(() => {
+            }).then(() => {
               resolve({ token: newToken });
             }).catch(() => {
               reject(Error('Unable to create new token on db'));

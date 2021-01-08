@@ -5,27 +5,27 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       user: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       name: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       bridge_user: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       bridge_password: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       bridge_email: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       }
     });
   },
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('teams');
-  },
+  }
 };

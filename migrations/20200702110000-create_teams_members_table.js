@@ -5,13 +5,13 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       id_team: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       user: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       is_active: {
         type: Sequelize.BOOLEAN
@@ -21,5 +21,5 @@ module.exports = {
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('teams_members');
-  },
+  }
 };

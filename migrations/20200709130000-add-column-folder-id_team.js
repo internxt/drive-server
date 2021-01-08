@@ -2,7 +2,7 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return Promise.all([
-      queryInterface.addColumn('folders', 'id_team', { type: Sequelize.INTEGER }),
+      queryInterface.addColumn('folders', 'id_team', { type: Sequelize.INTEGER })
     ]);
   },
 
@@ -10,5 +10,5 @@ module.exports = {
     return Promise.all([
       queryInterface.removeColumn('folders', 'id_team')
     ]);
-  },
+  }
 };

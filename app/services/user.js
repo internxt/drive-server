@@ -105,8 +105,7 @@ module.exports = (Model, App) => {
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } } })
-    .then(async (userData) => {
+    .findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
       if (userData.root_folder_id) {
         userData.mnemonic = user.mnemonic;
 
@@ -143,8 +142,7 @@ module.exports = (Model, App) => {
 
   // Get an email and option (true/false) and set storeMnemonic option for user with this email
   const UpdateStorageOption = (email, option) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } })
-    .then((userData) => {
+    .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
       if (userData) {
         return userData.update({ storeMnemonic: option });
       }
@@ -163,8 +161,7 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } })
-      .then((userData) => {
+      .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
         if (userData) {
           const user = userData.dataValues;
           if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
@@ -200,8 +197,7 @@ module.exports = (Model, App) => {
   const GetUsersRootFolder = () => Model.users
     .findAll({
       include: [Model.folder]
-    })
-    .then((user) => user.dataValues);
+    }).then((user) => user.dataValues);
 
   const UpdateMnemonic = async (userEmail, mnemonic) => {
     const found = FindUserByEmail(userEmail);
@@ -241,8 +237,7 @@ module.exports = (Model, App) => {
   };
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } })
-    .then((user) => {
+    .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
       const password = crypto.SHA256(user.userId).toString();
       const auth = Buffer.from(`${user.email}:${password}`).toString(
         'base64'
@@ -254,8 +249,7 @@ module.exports = (Model, App) => {
             Authorization: `Basic ${auth}`,
             'Content-Type': 'application/json'
           }
-        })
-        .then((data) => {
+        }).then((data) => {
           resolve(data);
         }).catch((err) => {
           Logger.warn(err.response.data);
@@ -268,8 +262,7 @@ module.exports = (Model, App) => {
       (next) => {
         axios
           .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-            { headers: { 'Content-Type': 'application/json' } })
-          .then((res) => {
+            { headers: { 'Content-Type': 'application/json' } }).then((res) => {
             Logger.info('User deleted from bridge');
             next(null, res);
           }).catch((err) => {
@@ -280,8 +273,7 @@ module.exports = (Model, App) => {
       (data, next) => {
         const userEmail = data.data.email;
         Model.users
-          .findOne({ where: { email: { [Op.eq]: userEmail } } })
-          .then((user) => {
+          .findOne({ where: { email: { [Op.eq]: userEmail } } }).then((user) => {
             const referralUuid = user.referral;
             if (uuid.validate(referralUuid)) {
               DecrementCredit(referralUuid);
@@ -325,8 +317,7 @@ module.exports = (Model, App) => {
       Model.keyserver
         .update({
           private_key: privateKey
-        }, { where: { user_id: { [Op.eq]: idUser } } })
-        .then((res) => {
+        }, { where: { user_id: { [Op.eq]: idUser } } }).then((res) => {
           Logger.info('Updated', res);
           resolve();
         }).catch((err) => {
@@ -340,34 +331,32 @@ module.exports = (Model, App) => {
   });
 
   const UpdatePasswordMnemonic = (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => new Promise((resolve, reject) => {
-    FindUserByEmail(user)
-      .then((userData) => {
-        const storedPassword = userData.password.toString();
-        if (storedPassword !== currentPassword) {
-          Logger.error('Invalid password');
-          reject(Error('Invalid password'));
-        } else {
-          resolve();
+    FindUserByEmail(user).then((userData) => {
+      const storedPassword = userData.password.toString();
+      if (storedPassword !== currentPassword) {
+        Logger.error('Invalid password');
+        reject(Error('Invalid password'));
+      } else {
+        resolve();
 
-          Model.users
-            .update({
-              password: newPassword,
-              mnemonic,
-              hKey: newSalt
-            }, { where: { email: { [Op.eq]: user } } })
-            .then((res) => {
-              updatePrivateKey(user, privateKey);
-              Logger.info('Updated', res);
-              resolve();
-            }).catch((err) => {
-              Logger.error('error updating', err);
-              reject(Error('Error updating info'));
-            });
-        }
-      }).catch((err) => {
-        Logger.error(err);
-        reject(Error('Internal server error'));
-      });
+        Model.users
+          .update({
+            password: newPassword,
+            mnemonic,
+            hKey: newSalt
+          }, { where: { email: { [Op.eq]: user } } }).then((res) => {
+            updatePrivateKey(user, privateKey);
+            Logger.info('Updated', res);
+            resolve();
+          }).catch((err) => {
+            Logger.error('error updating', err);
+            reject(Error('Error updating info'));
+          });
+      }
+    }).catch((err) => {
+      Logger.error(err);
+      reject(Error('Internal server error'));
+    });
   });
 
   const LoginFailed = (user, loginFailed) => Model.users.update({

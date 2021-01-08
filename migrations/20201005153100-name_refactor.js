@@ -4,7 +4,7 @@ module.exports = {
       queryInterface.renameColumn('teams', 'bridge_email', 'bridge_mnemonic'),
       queryInterface.renameColumn('teams', 'user', 'admin'),
       queryInterface.removeColumn('team_invitations', 'is_used'),
-      queryInterface.removeColumn('teams_members', 'is_active'),
+      queryInterface.removeColumn('teams_members', 'is_active')
     ]);
   },
 
@@ -17,9 +17,7 @@ module.exports = {
         type: Sequelize.BOOLEAN
       }),
       queryInterface.renameColumn('teams', 'admin', 'user'),
-      queryInterface.renameColumn('teams', 'bridge_mnemonic', 'bridge_email'),
+      queryInterface.renameColumn('teams', 'bridge_mnemonic', 'bridge_email')
     ]);
-  },
+  }
 };
-
-

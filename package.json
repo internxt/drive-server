@@ -57,14 +57,13 @@
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./lib/**/*.js ./app/**/*.js",
-    "lint:fix": "eslint ./lib/**/*.js ./app/**/*.js --fix"
+    "lint:fix": "npm run lint  --fix"
   },
   "devDependencies": {
     "axios-debug-log": "^0.6.2",
     "chai": "^4.2.0",
     "eslint": "^7.10.0",
     "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-config-prettier": "^6.11.0",
     "eslint-friendly-formatter": "^4.0.1",
     "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.20.1",

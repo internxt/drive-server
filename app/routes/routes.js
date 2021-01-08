@@ -78,43 +78,41 @@ module.exports = (Router, Service, Logger, App) => {
     }
 
     // Call user service to find user
-    return Service.User.FindUserByEmail(req.body.email)
-      .then((userData) => {
-        if (!userData) {
-          // Wrong user
-          return res.status(400).json({ error: 'Wrong email/password' });
-        }
+    return Service.User.FindUserByEmail(req.body.email).then((userData) => {
+      if (!userData) {
+        // Wrong user
+        return res.status(400).json({ error: 'Wrong email/password' });
+      }
 
-        return Service.Storj.IsUserActivated(req.body.email)
-          .then((resActivation) => {
-            if (!resActivation.data.activated) {
-              res.status(400).send({ error: 'User is not activated' });
-            } else {
-              const encSalt = App.services.Crypt.encryptText(
-                userData.hKey.toString()
-              );
-              const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-              Service.Keyserver.keysExists(userData).then((userKey) => {
-                res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-              }).catch((err) => {
-                console.error(err);
-                res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
-              });
-            }
+      return Service.Storj.IsUserActivated(req.body.email).then((resActivation) => {
+        if (!resActivation.data.activated) {
+          res.status(400).send({ error: 'User is not activated' });
+        } else {
+          const encSalt = App.services.Crypt.encryptText(
+            userData.hKey.toString()
+          );
+          const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+          Service.Keyserver.keysExists(userData).then((userKey) => {
+            res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
           }).catch((err) => {
             console.error(err);
-            res.status(400).send({
-              error: 'User not found on Bridge database',
-              message: err.response ? err.response.data : err
-            });
+            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
           });
+        }
       }).catch((err) => {
-        Logger.error(`${err}: ${req.body.email}`);
+        console.error(err);
         res.status(400).send({
-          error: 'User not found on Cloud database',
-          message: err.message
+          error: 'User not found on Bridge database',
+          message: err.response ? err.response.data : err
         });
       });
+    }).catch((err) => {
+      Logger.error(`${err}: ${req.body.email}`);
+      res.status(400).send({
+        error: 'User not found on Cloud database',
+        message: err.message
+      });
+    });
   });
 
   /**
@@ -141,106 +139,105 @@ module.exports = (Router, Service, Logger, App) => {
     const rootFolderId = 0;
     const userTeam = null;
     // Call user service to find or create user
-    Service.User.FindUserByEmail(req.body.email)
-      .then(async (userData) => {
-        if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-          res.status(500).send({
-            error: 'Your account has been blocked for security reasons. Please reach out to us'
-          });
+    Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
+      if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+        res.status(500).send({
+          error: 'Your account has been blocked for security reasons. Please reach out to us'
+        });
 
-          return;
+        return;
+      }
+
+      // Process user data and answer API call
+      const pass = App.services.Crypt.decryptText(req.body.password);
+      // 2-Factor Auth. Verification
+      const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
+      let tfaResult = true;
+      if (needsTfa) {
+        tfaResult = speakeasy.totp.verifyDelta({
+          secret: userData.secret_2FA,
+          token: req.body.tfa,
+          encoding: 'base32',
+          window: 2
+        });
+      }
+      if (!tfaResult) {
+        res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      } else if (pass === userData.password.toString() && tfaResult) {
+        // Successfull login
+        const internxtClient = req.headers['internxt-client'];
+        const token = passport.Sign(
+          userData.email,
+          App.config.get('secrets').JWT,
+          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
+        );
+
+        Service.User.LoginFailed(req.body.email, false);
+        Service.User.UpdateAccountActivity(req.body.email);
+        const userBucket = await Service.User.GetUserBucket(userData);
+
+        let teamRol = '';
+        if (userTeam && userTeam.admin === req.body.email) {
+          teamRol = 'admin';
+        } else if (userTeam) {
+          teamRol = 'member';
         }
 
-        // Process user data and answer API call
-        const pass = App.services.Crypt.decryptText(req.body.password);
-        // 2-Factor Auth. Verification
-        const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
-        let tfaResult = true;
-        if (needsTfa) {
-          tfaResult = speakeasy.totp.verifyDelta({
-            secret: userData.secret_2FA,
-            token: req.body.tfa,
-            encoding: 'base32',
-            window: 2
-          });
+        let keys = false;
+        try {
+          keys = await Service.Keyserver.keysExists(userData);
+        } catch (e) { }
+
+        if (!keys && req.body.publicKey) {
+          await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+          keys = await Service.Keyserver.keysExists(userData);
         }
-        if (!tfaResult) {
-          res.status(400).send({ error: 'Wrong 2-factor auth code' });
-        } else if (pass === userData.password.toString() && tfaResult) {
-          // Successfull login
-          const internxtClient = req.headers['internxt-client'];
-          const token = passport.Sign(
-            userData.email,
-            App.config.get('secrets').JWT,
-            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
-          );
 
-          Service.User.LoginFailed(req.body.email, false);
-          Service.User.UpdateAccountActivity(req.body.email);
-          const userBucket = await Service.User.GetUserBucket(userData);
+        const user = {
+          userId: userData.userId,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id,
+          name: userData.name,
+          lastname: userData.lastname,
+          uuid: userData.uuid,
+          credit: userData.credit,
+          createdAt: userData.createdAt,
+          privateKey: keys ? keys.private_key : null,
+          publicKey: keys ? keys.public_key : null,
+          revocateKey: keys ? keys.revocation_key : null,
+          bucket: userBucket
+        };
 
-          let teamRol = '';
-          if (userTeam && userTeam.admin === req.body.email) {
-            teamRol = 'admin';
-          } else if (userTeam) {
-            teamRol = 'member';
-          }
-
-          let keys = false;
-          try {
-            keys = await Service.Keyserver.keysExists(userData);
-          } catch (e) { }
-
-          if (!keys && req.body.publicKey) {
-            await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-            keys = await Service.Keyserver.keysExists(userData);
-          }
-
-          const user = {
-            userId: userData.userId,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-            name: userData.name,
-            lastname: userData.lastname,
-            uuid: userData.uuid,
-            credit: userData.credit,
-            createdAt: userData.createdAt,
-            privateKey: keys ? keys.private_key : null,
-            publicKey: keys ? keys.public_key : null,
-            revocateKey: keys ? keys.revocation_key : null,
-            bucket: userBucket
-          };
-
-          if (userTeam) {
-            const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
-              internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
-            res.status(200).json({
-              user,
-              token,
-              userTeam,
-              teamRol,
-              tokenTeam
-            });
-          } else {
-            res.status(200).json({
-              user,
-              token,
-              userTeam,
-              teamRol
-            });
-          }
+        if (userTeam) {
+          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
+            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+          res.status(200).json({
+            user,
+            token,
+            userTeam,
+            teamRol,
+            tokenTeam
+          });
         } else {
-          // Wrong password
-          if (pass !== userData.password.toString()) {
-            Service.User.LoginFailed(req.body.email, true);
-          }
-
-          res.status(400).json({ error: 'Wrong email/password' });
+          res.status(200).json({
+            user,
+            token,
+            userTeam,
+            teamRol
+          });
         }
-      }).catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
-      });
+      } else {
+        // Wrong password
+        if (pass !== userData.password.toString()) {
+          Service.User.LoginFailed(req.body.email, true);
+        }
+
+        res.status(400).json({ error: 'Wrong email/password' });
+      }
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+    });
   });
 
   /**
@@ -276,8 +273,7 @@ module.exports = (Router, Service, Logger, App) => {
 
       if (uuid.validate(referral)) {
         await Service.User
-          .FindUserByUuid(referral)
-          .then((userData) => {
+          .FindUserByUuid(referral).then((userData) => {
             if (userData === null) { // Don't exists referral user
               console.log('UUID not found');
             } else {
@@ -290,31 +286,30 @@ module.exports = (Router, Service, Logger, App) => {
       }
       const { privateKey, publicKey, revocationKey } = req.body;
       // Call user service to find or create user
-      Service.User.FindOrCreate(newUser)
-        .then((userData) => {
-          // Process user data and answer API call
-          if (userData.isCreated) {
-            if (hasReferral) {
-              Service.Analytics.identify({
-                userId: userData.uuid,
-                traits: {
-                  referred_by: referrer.uuid
-                }
-              });
-            }
-
-            // Successfull register
-            const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-            const user = { email: userData.email };
-            res.status(200).send({ token, user, uuid: userData.uuid });
-          } else {
-            // This account already exists
-            res.status(400).send({ message: 'This account already exists' });
+      Service.User.FindOrCreate(newUser).then((userData) => {
+        // Process user data and answer API call
+        if (userData.isCreated) {
+          if (hasReferral) {
+            Service.Analytics.identify({
+              userId: userData.uuid,
+              traits: {
+                referred_by: referrer.uuid
+              }
+            });
           }
-        }).catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          res.status(500).send({ message: err.message });
-        });
+
+          // Successfull register
+          const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+          const user = { email: userData.email };
+          res.status(200).send({ token, user, uuid: userData.uuid });
+        } else {
+          // This account already exists
+          res.status(400).send({ message: 'This account already exists' });
+        }
+      }).catch((err) => {
+        Logger.error(`${err.message}\n${err.stack}`);
+        res.status(500).send({ message: err.message });
+      });
     } else {
       res.status(400).send({ message: 'You must provide registration data' });
     }
@@ -339,54 +334,52 @@ module.exports = (Router, Service, Logger, App) => {
     */
   Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
-    Service.User.InitializeUser(req.body)
-      .then(async (userData) => {
-        // Process user data and answer API call
-        if (userData.root_folder_id) {
-          // Successfull initialization
-          const user = {
-            email: userData.email,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id
-          };
+    Service.User.InitializeUser(req.body).then(async (userData) => {
+      // Process user data and answer API call
+      if (userData.root_folder_id) {
+        // Successfull initialization
+        const user = {
+          email: userData.email,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id
+        };
 
-          try {
-            const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id);
-            const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id);
-            personalFolder.iconId = 1;
-            personalFolder.color = 'pink';
-            familyFolder.iconId = 18;
-            familyFolder.color = 'yellow';
-            await personalFolder.save();
-            await familyFolder.save();
-          } catch (e) {
-            Logger.error('Cannot initialize welcome folders: %s', e.message);
-          } finally {
-            res.status(200).send({ user });
-          }
-        } else {
-          // User initialization unsuccessful
-          res.status(400).send({ message: 'Your account can\'t be initialized' });
+        try {
+          const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id);
+          const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id);
+          personalFolder.iconId = 1;
+          personalFolder.color = 'pink';
+          familyFolder.iconId = 18;
+          familyFolder.color = 'yellow';
+          await personalFolder.save();
+          await familyFolder.save();
+        } catch (e) {
+          Logger.error('Cannot initialize welcome folders: %s', e.message);
+        } finally {
+          res.status(200).send({ user });
         }
-      }).catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.send(err.message);
-      });
+      } else {
+        // User initialization unsuccessful
+        res.status(400).send({ message: 'Your account can\'t be initialized' });
+      }
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.send(err.message);
+    });
   });
 
   Router.put('/auth/mnemonic', passportAuth, (req, res) => {
     const {
       body: { email, mnemonic }
     } = req;
-    Service.User.UpdateMnemonic(email, mnemonic)
-      .then(() => {
-        res.status(200).json({
-          message: 'Successfully updated user with mnemonic'
-        });
-      }).catch(({ message }) => {
-        Logger.error(message);
-        res.status(400).json({ message, code: 400 });
+    Service.User.UpdateMnemonic(email, mnemonic).then(() => {
+      res.status(200).json({
+        message: 'Successfully updated user with mnemonic'
       });
+    }).catch(({ message }) => {
+      Logger.error(message);
+      res.status(400).json({ message, code: 400 });
+    });
   });
 
   Router.patch('/user/password', passportAuth, (req, res) => {
@@ -426,8 +419,7 @@ module.exports = (Router, Service, Logger, App) => {
     if (req.user.credit > 0) {
       analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', properties: { credit: req.user.credit } });
       sgMail
-        .send(msg)
-        .then(() => {
+        .send(msg).then(() => {
           res.status(200).send({});
         }).catch((err) => {
           res.status(500).send(err);
@@ -462,11 +454,10 @@ module.exports = (Router, Service, Logger, App) => {
   Router.get('/user/referred', passportAuth, (req, res) => {
     const refUuid = req.user.uuid;
 
-    Service.User.FindUsersByReferred(refUuid)
-      .then((users) => res.status(200).send({ total: users })).catch((message) => {
-        Logger.error(message);
-        res.status(500).send({ error: 'No users' });
-      });
+    Service.User.FindUsersByReferred(refUuid).then((users) => res.status(200).send({ total: users })).catch((message) => {
+      Logger.error(message);
+      res.status(500).send({ error: 'No users' });
+    });
   });
 
   Router.get('/user/credit', passportAuth, (req, res) => {

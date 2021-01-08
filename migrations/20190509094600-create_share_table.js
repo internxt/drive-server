@@ -5,24 +5,24 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       token: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       user: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       file: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       mnemonic: {
-        type: Sequelize.BLOB('medium'),
-      },
+        type: Sequelize.BLOB('medium')
+      }
     });
   },
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('shares');
-  },
+  }
 };

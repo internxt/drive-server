@@ -7,8 +7,8 @@ module.exports = {
         type: Sequelize.INTEGER,
         references: {
           model: 'users',
-          key: 'id',
-        },
+          key: 'id'
+        }
       },
       plan: {
         allowNull: false,
@@ -16,34 +16,34 @@ module.exports = {
         type: Sequelize.INTEGER,
         references: {
           model: 'plans',
-          key: 'id',
-        },
+          key: 'id'
+        }
       },
       creation_time: {
-        type: Sequelize.DATE,
+        type: Sequelize.DATE
       },
       stripe_customer_id: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       expiration: {
-        type: Sequelize.DATE,
+        type: Sequelize.DATE
       },
       is_active: {
-        type: Sequelize.BOOLEAN,
+        type: Sequelize.BOOLEAN
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE,
+        type: Sequelize.DATE
       },
       updatedAt: {
         allowNull: false,
-        type: Sequelize.DATE,
-      },
+        type: Sequelize.DATE
+      }
     });
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('subscriptions');
-  },
+  }
 };
 
 // sequelize model:generate --name subscription --attributes user:integer,plan:integer,creation_time:date,stripe_customer_id:string,expiration:date,is_active:boolean

@@ -32,6 +32,7 @@
                 "ignoreComments": true
             }
         ],
-        "no-param-reassign": "warn"
+        "no-param-reassign": "off",
+        "arrow-body-style": "off"
     }
 }

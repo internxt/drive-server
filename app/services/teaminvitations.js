@@ -1,9 +1,8 @@
 const sequelize = require('sequelize');
-const user = require('../models/user');
 
 const { Op } = sequelize;
 
-module.exports = (Model, App) => {
+module.exports = (Model) => {
   /**
      * @swagger
      * Function: Method to save the invitations in DB
@@ -27,13 +26,23 @@ module.exports = (Model, App) => {
      * @swagger
      * Function: Method get info invitation with the Token
      */
-  const getByToken = (token) => new Promise((resolve, reject) => {
+  const getByToken = (token) => Model.team_invitations.findOne({ where: { token: { [Op.eq]: token } } });
+
+  /**
+     * @swagger
+     * Function: Method get info invitations with id invitation
+     */
+  const getTeamInvitationById = (idInvitation) => Model.team_invitations.findOne({ where: { id: { [Op.eq]: idInvitation } } });
+
+  /**
+     * @swagger
+     * Function: Method get info invitations with user
+     */
+  const getTeamInvitationByUser = (user) => new Promise((resolve, reject) => {
     Model.team_invitations.findOne({
-      where: {
-        token: { [Op.eq]: token }
-      }
-    }).then((teamInvitation) => {
-      resolve(teamInvitation);
+      where: { user: { [Op.eq]: user } }
+    }).then((teaminvitations) => {
+      resolve(teaminvitations);
     }).catch(() => {
       reject(Error('Error querying database'));
     });
@@ -41,52 +50,9 @@ module.exports = (Model, App) => {
 
   /**
      * @swagger
-     * Function: Method get info invitations with id invitation
-     */
-  const getTeamInvitationById = (idInvitation) => new Promise((resolve, reject) => {
-    Model.team_invitations
-      .findOne({
-        where: { id: { [Op.eq]: idInvitation } }
-      })
-      .then((invitation) => {
-        resolve(invitation);
-      }).catch((err) => {
-        console.error(err);
-        reject(Error('Error querying database'));
-      });
-  });
-
-  /**
-     * @swagger
-     * Function: Method get info invitations with user
-     */
-  const getTeamInvitationByUser = (user) => new Promise((resolve, reject) => {
-    Model.team_invitations
-      .findOne({
-        where: { user: { [Op.eq]: user } }
-      })
-      .then((teaminvitations) => {
-        resolve(teaminvitations);
-      }).catch((err) => {
-        reject(Error('Error querying database'));
-      });
-  });
-
-  /**
-     * @swagger
      * Function: Method remove invitations of DB
      */
-  const removeInvitations = (userInvitation) => new Promise((resolve, reject) => {
-    Model.team_invitations.destroy({
-      where: {
-        user: { [Op.eq]: userInvitation }
-      }
-    }).then((removedInvitation) => {
-      resolve(removedInvitation);
-    }).catch((err) => {
-      reject(err);
-    });
-  });
+  const removeInvitations = (userInvitation) => Model.team_invitations.destroy({ where: { user: { [Op.eq]: userInvitation } } });
 
   return {
     Name: 'TeamInvitations',
@@ -95,6 +61,5 @@ module.exports = (Model, App) => {
     getTeamInvitationByUser,
     getTeamInvitationById,
     removeInvitations
-
   };
 };

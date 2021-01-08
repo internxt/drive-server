@@ -179,12 +179,11 @@ module.exports = (Model, App) => {
     }
 
     async.eachSeries(listFilesToDownload, (file, next) => {
-      FileServiceInstance.DownloadFolderFile(userData, file.id, file.path)
-        .then(() => {
-          next();
-        }).catch((err) => {
-          next(err);
-        });
+      FileServiceInstance.DownloadFolderFile(userData, file.id, file.path).then(() => {
+        next();
+      }).catch((err) => {
+        next(err);
+      });
     }, (err) => (err ? reject(err) : resolve()));
   });
 
@@ -373,8 +372,7 @@ module.exports = (Model, App) => {
         (next) => {
           // Get the target folder from database
           Model.folder
-            .findOne({ where: { id: { [Op.eq]: folderId } } })
-            .then((result) => next(null, result)).catch(next);
+            .findOne({ where: { id: { [Op.eq]: folderId } } }).then((result) => next(null, result)).catch(next);
         },
         (folder, next) => {
           // Check if user is the owner of that folder
@@ -398,8 +396,7 @@ module.exports = (Model, App) => {
                   parentId: { [Op.eq]: folder.parentId },
                   name: { [Op.eq]: cryptoFolderName }
                 }
-              })
-              .then((isDuplicated) => {
+              }).then((isDuplicated) => {
                 if (isDuplicated) {
                   next(Error('Folder with this name exists'));
                 } else {
@@ -432,8 +429,7 @@ module.exports = (Model, App) => {
         (folder, next) => {
           // Perform the update
           folder
-            .update(newMeta)
-            .then((result) => next(null, result)).catch(next);
+            .update(newMeta).then((result) => next(null, result)).catch(next);
         }
       ],
       (err, result) => {
@@ -462,8 +458,7 @@ module.exports = (Model, App) => {
       (folder, next) => {
         // Perform the update
         folder
-          .update(newMeta)
-          .then((result) => next(null, result)).catch(next);
+          .update(newMeta).then((result) => next(null, result)).catch(next);
       }
     );
   });

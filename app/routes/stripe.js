@@ -6,12 +6,11 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, Logger, App) => {
   Router.get('/plans', passportAuth, (req, res) => {
-    Service.Plan.ListAll()
-      .then((data) => {
-        res.status(200).json(data);
-      }).catch((e) => {
-        res.status(400).json({ message: 'Error retrieving list of plans' });
-      });
+    Service.Plan.ListAll().then((data) => {
+      res.status(200).json(data);
+    }).catch(() => {
+      res.status(400).json({ message: 'Error retrieving list of plans' });
+    });
   });
 
   /**
@@ -114,8 +113,7 @@ module.exports = (Router, Service, Logger, App) => {
           }
 
           stripe.checkout.sessions
-            .create(sessionParams)
-            .then((result) => { next(null, result); }).catch((err) => { next(err); });
+            .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
         }
       ],
       (err, result) => {
@@ -193,35 +191,33 @@ module.exports = (Router, Service, Logger, App) => {
             console.debug('Payload', subscription);
 
             if (subscription) {
-              Service.Stripe.getStorageProducts(test)
-                .then((storageProducts) => {
-                  Service.Stripe.getTeamProducts(test)
-                    .then((teamProducts) => {
-                      if (
-                        storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)
-                      ) {
-                        if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
-                          next(Error('Already subscribed in a storage plan'));
-                        } else {
-                          next(null, customer);
-                        }
-                      } else if (
-                        teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
-                      ) {
-                        if (teamProducts.find((teamProduct) => teamProduct.id === productToSubscribe)) {
-                          next(Error('Already subscribed in a team plan'));
-                        } else {
-                          next(null, customer);
-                        }
-                      } else {
-                        next(Error('Already subscribed'));
-                      }
-                    }).catch(() => {
-                      next(Error('Already subscribed'));
-                    });
+              Service.Stripe.getStorageProducts(test).then((storageProducts) => {
+                Service.Stripe.getTeamProducts(test).then((teamProducts) => {
+                  if (
+                    storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)
+                  ) {
+                    if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
+                      next(Error('Already subscribed in a storage plan'));
+                    } else {
+                      next(null, customer);
+                    }
+                  } else if (
+                    teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
+                  ) {
+                    if (teamProducts.find((teamProduct) => teamProduct.id === productToSubscribe)) {
+                      next(Error('Already subscribed in a team plan'));
+                    } else {
+                      next(null, customer);
+                    }
+                  } else {
+                    next(Error('Already subscribed'));
+                  }
                 }).catch(() => {
                   next(Error('Already subscribed'));
                 });
+              }).catch(() => {
+                next(Error('Already subscribed'));
+              });
             } else {
               next(null, customer);
             }

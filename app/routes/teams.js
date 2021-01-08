@@ -85,11 +85,11 @@ module.exports = (Router, Service, Logger) => {
     const totalUsers = await Service.TeamsMembers.getPeople(idTeam);
     const plans = await Service.Team.getPlans(user);
 
-    if (totalUsers.length >= 5 && plans.maxSpaceBytes == '214748364800') {
+    if (totalUsers.length >= 5 && plans.maxSpaceBytes === '214748364800') {
       return res.status(500).send({ error: 'You cannot exceed the limit of 5 members' });
     }
 
-    if (totalUsers.length >= 10 && plans.maxSpaceBytes == '2199023255552') {
+    if (totalUsers.length >= 10 && plans.maxSpaceBytes === '2199023255552') {
       return res.status(500).send({ error: 'You cannot exceed the limit of 10 members' });
     }
 
@@ -123,7 +123,7 @@ module.exports = (Router, Service, Logger) => {
           return res.status(500).send({ error: 'The invitation can not saved' });
         }
 
-        Service.Mail.sendEmailTeamsMember(email, token, req.team).then((team) => {
+        Service.Mail.sendEmailTeamsMember(email, token, req.team).then(() => {
           Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
           res.status(200).send({});
         }).catch(() => {
@@ -139,7 +139,7 @@ module.exports = (Router, Service, Logger) => {
       }
     }
     // Forward email
-    Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then((team) => {
+    Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then(() => {
       Logger.info('The email is forwarded to the user %s', email);
       res.status(200).send({});
     }).catch(() => {

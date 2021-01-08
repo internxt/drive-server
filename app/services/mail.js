@@ -61,7 +61,6 @@ module.exports = () => {
 
         }, (err) => {
           if (!err) {
-            Logger.info('Teams: Team invitation mail sent to', member);
             resolve(`Mail team's invitation send to ${member}!`);
           } else {
             reject(Error(`Error sending mail team's invitation to ${member}`));

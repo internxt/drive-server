@@ -10,11 +10,10 @@ module.exports = (config, Logger) => {
   });
 
   instance
-    .authenticate()
-    .then(() => Logger.info('Connected to database')).catch((err) => Logger.error(err));
+    .authenticate().then(() => Logger.info('Connected to database')).catch((err) => Logger.error(err));
 
   return {
     instance,
-    Sequelize,
+    Sequelize
   };
 };

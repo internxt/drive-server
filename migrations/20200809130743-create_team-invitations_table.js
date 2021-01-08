@@ -5,24 +5,24 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       id_team: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.INTEGER
       },
       user: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       token: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       is_used: {
-        type: Sequelize.BOOLEAN,
+        type: Sequelize.BOOLEAN
       }
     });
   },
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('team_invitations');
-  },
+  }
 };
