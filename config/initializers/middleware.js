@@ -132,8 +132,7 @@ module.exports = (App, Config) => {
       // const email = payload.email
 
       App.services.User.FindUserObjByEmail(email)
-        .then((user) => done(null, user))
-        .catch((err) => {
+        .then((user) => done(null, user)).catch((err) => {
           done(err)
         });
     }),

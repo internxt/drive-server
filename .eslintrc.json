@@ -7,7 +7,7 @@
     "rules": {
         "indent": [
             "error",
-            4
+            2
         ],
         "linebreak-style": [
             "error",
@@ -31,6 +31,7 @@
                 "code": 150,
                 "ignoreComments": true
             }
-        ]
+        ],
+        "no-param-reassign": "warn"
     }
 }

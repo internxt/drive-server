@@ -11,8 +11,7 @@ module.exports = (config, Logger) => {
 
   instance
     .authenticate()
-    .then(() => Logger.info('Connected to database'))
-    .catch((err) => Logger.error(err));
+    .then(() => Logger.info('Connected to database')).catch((err) => Logger.error(err));
 
   return {
     instance,
