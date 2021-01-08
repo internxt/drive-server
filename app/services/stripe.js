@@ -28,9 +28,7 @@ module.exports = () => {
         const productsMin = products.data
           .filter((p) => !!p.metadata.team_members)
           .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
-          .sort(
-            (a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1
-          );
+          .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
         resolve(productsMin);
       }
     });

@@ -2,7 +2,7 @@ const sequelize = require('sequelize');
 
 const { Op } = sequelize;
 
-module.exports = (Model, App) => {
+module.exports = (Model) => {
   const keysExists = (user) => new Promise((resolve, reject) => {
     Model.keyserver.findOne({
       where: {
@@ -14,8 +14,7 @@ module.exports = (Model, App) => {
       } else {
         reject(Error('Keys not exists'));
       }
-    }).catch((err) => {
-      console.error(err);
+    }).catch(() => {
       reject(Error('Error querying database'));
     });
   });
@@ -29,8 +28,7 @@ module.exports = (Model, App) => {
 
     }).then((userKeys) => {
       resolve(userKeys);
-    }).catch((err) => {
-      console.error(err);
+    }).catch(() => {
       reject(Error('Error querying database'));
     });
   });

@@ -26,8 +26,7 @@ module.exports = () => {
     const mailer = mailInstance();
 
     return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        emailTo,
+      mailer.dispatchSendGrid(emailTo,
         'referral',
         {
           template: 'referral',
@@ -41,16 +40,14 @@ module.exports = () => {
           } else {
             reject(err);
           }
-        }
-      );
+        });
     });
   };
 
   const sendEmailTeamsMember = (member, cryptedToken, teamName) => {
     const mailer = mailInstance();
     return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        member,
+      mailer.dispatchSendGrid(member,
         'join-team',
         {
           template: 'join-team',
@@ -65,8 +62,7 @@ module.exports = () => {
           } else {
             reject(Error(`Error sending mail team's invitation to ${member}`));
           }
-        }
-      );
+        });
     });
   };
 

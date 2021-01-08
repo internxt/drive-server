@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const keyserver = sequelize.define(
-    'keyserver',
+  const keyserver = sequelize.define('keyserver',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -37,8 +36,7 @@ module.exports = (sequelize, DataTypes) => {
       underscored: true,
       freezeTableName: true
 
-    }
-  );
+    });
 
   return keyserver;
 };

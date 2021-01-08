@@ -8,10 +8,8 @@ module.exports = (Model, App) => {
 
   function probabilisticEncryption(content) {
     try {
-      const b64 = CryptoJS.AES.encrypt(
-        content,
-        App.config.get('secrets').CRYPTO_SECRET
-      ).toString();
+      const b64 = CryptoJS.AES.encrypt(content,
+        App.config.get('secrets').CRYPTO_SECRET).toString();
       const e64 = CryptoJS.enc.Base64.parse(b64);
       const eHex = e64.toString(CryptoJS.enc.Hex);
 
@@ -40,9 +38,7 @@ module.exports = (Model, App) => {
 
   function deterministicEncryption(content, salt) {
     try {
-      const key = CryptoJS.enc.Hex.parse(
-        App.config.get('secrets').CRYPTO_SECRET
-      );
+      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
       const encrypt = CryptoJS.AES.encrypt(content, key, { iv }).toString();
@@ -57,9 +53,7 @@ module.exports = (Model, App) => {
 
   function deterministicDecryption(cipherText, salt) {
     try {
-      const key = CryptoJS.enc.Hex.parse(
-        App.config.get('secrets').CRYPTO_SECRET
-      );
+      const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
       const iv = salt ? CryptoJS.enc.Hex.parse(salt.toString()) : key;
 
       const reb64 = CryptoJS.enc.Hex.parse(cipherText);

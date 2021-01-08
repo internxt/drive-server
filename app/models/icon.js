@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const icon = sequelize.define(
-    'icon',
+  const icon = sequelize.define('icon',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -15,8 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: false,
       underscored: true
-    }
-  );
+    });
 
   return icon;
 };

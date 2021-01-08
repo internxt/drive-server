@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const TeamInvitations = sequelize.define(
-    'team_invitations',
+  const TeamInvitations = sequelize.define('team_invitations',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -16,8 +15,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       timestamps: false
-    }
-  );
+    });
 
   return TeamInvitations;
 };

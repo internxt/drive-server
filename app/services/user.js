@@ -58,14 +58,10 @@ module.exports = (Model, App) => {
           }
 
           // Create bridge pass using email (because id is unconsistent)
-          const bcryptId = await App.services.Storj.IdToBcrypt(
-            userResult.email
-          );
+          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
 
-          const bridgeUser = await App.services.Storj.RegisterBridgeUser(
-            userResult.email,
-            bcryptId
-          );
+          const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email,
+            bcryptId);
 
           if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
             throw Error(bridgeUser.response.data.error);
@@ -125,10 +121,8 @@ module.exports = (Model, App) => {
       Logger.info('User init | root folder created, id: %s', rootFolder.id);
 
       // Update user register with root folder Id
-      await userData.update(
-        { root_folder_id: rootFolder.id },
-        { transaction: t }
-      );
+      await userData.update({ root_folder_id: rootFolder.id },
+        { transaction: t });
 
       // Set decrypted mnemonic to returning object
       const updatedUser = userData;
@@ -203,10 +197,8 @@ module.exports = (Model, App) => {
     const found = FindUserByEmail(userEmail);
     if (found) {
       try {
-        const user = await Model.users.update(
-          { mnemonic },
-          { where: { email: { [Op.eq]: userEmail } }, validate: true }
-        );
+        const user = await Model.users.update({ mnemonic },
+          { where: { email: { [Op.eq]: userEmail } }, validate: true });
 
         return user;
       } catch (errorResponse) {
@@ -221,27 +213,21 @@ module.exports = (Model, App) => {
     // Logger.info("€5 added to ", referral);
     Logger.info('€5 added to user with UUID %s', userUuid);
 
-    return Model.users.update(
-      { credit: Sequelize.literal('credit + 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } }
-    );
+    return Model.users.update({ credit: Sequelize.literal('credit + 5') },
+      { where: { uuid: { [Op.eq]: userUuid } } });
   };
 
   const DecrementCredit = (userUuid) => {
     Logger.info('€5 decremented to user with UUID %s', userUuid);
 
-    return Model.users.update(
-      { credit: Sequelize.literal('credit - 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } }
-    );
+    return Model.users.update({ credit: Sequelize.literal('credit - 5') },
+      { where: { uuid: { [Op.eq]: userUuid } } });
   };
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
     .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
       const password = crypto.SHA256(user.userId).toString();
-      const auth = Buffer.from(`${user.email}:${password}`).toString(
-        'base64'
-      );
+      const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
 
       axios
         .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {

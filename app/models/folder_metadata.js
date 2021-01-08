@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const folderMetadata = sequelize.define(
-    'folder_metadata',
+  const folderMetadata = sequelize.define('folder_metadata',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -18,8 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: false,
       underscored: true
-    }
-  );
+    });
 
   return folderMetadata;
 };

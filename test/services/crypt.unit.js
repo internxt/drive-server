@@ -64,12 +64,10 @@ describe('# Crypto tools', function () {
       const saltString = '123';
       const saltNumber = 123;
 
-      const encryptNameString = crypt.deterministicEncryption(
-        'name',
+      const encryptNameString = crypt.deterministicEncryption('name',
         saltString,
       );
-      const encryptNameNumber = crypt.deterministicEncryption(
-        'name',
+      const encryptNameNumber = crypt.deterministicEncryption('name',
         saltNumber,
       );
 

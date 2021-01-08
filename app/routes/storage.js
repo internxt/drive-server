@@ -76,9 +76,7 @@ module.exports = (Router, Service, Logger, App) => {
     Service.Folder.UpdateMetadata(user, folderId, metadata).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
-      Logger.error(
-        `Error updating metadata from folder ${folderId} : ${err}`
-      );
+      Logger.error(`Error updating metadata from folder ${folderId} : ${err}`);
       res.status(500).json(err.message);
     });
   });
@@ -389,29 +387,14 @@ module.exports = (Router, Service, Logger, App) => {
     });
   });
 
-  Router.post('/storage/shortLink', passportAuth, (req, res) => {
-    const user = req.user.email;
-    const { url } = req.body;
-
-    Service.Share.GenerateShortLink(user, url).then((shortLink) => { res.status(200).json(shortLink); }).catch((err) => { res.status(500).json({ error: err.message }); });
-  });
-
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
+    const itemId = req.params.id;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const { isFolder, views } = req.body;
 
-    if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
-      if (!req.body.views) {
-      }
-    }
-
-    Service.Share.GenerateToken(
-      user,
-      req.params.id,
-      req.headers['internxt-mnemonic'],
-      req.body.isFolder,
-      req.body.views
-    ).then((result) => {
-      res.status(200).send(result);
+    Service.Share.GenerateToken(user, itemId, mnemonic, isFolder, views).then((result) => {
+      res.status(200).send({ token: result });
     }).catch((err) => {
       res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
     });
@@ -432,20 +415,14 @@ module.exports = (Router, Service, Logger, App) => {
 
             if (treeSize <= maxAcceptableSize) {
               Service.Folder.Download(tree, userData).then(() => {
-                const folderName = App.services.Crypt.decryptName(
-                  tree.name,
-                  tree.parentId
-                );
+                const folderName = App.services.Crypt.decryptName(tree.name,
+                  tree.parentId);
 
-                Service.Folder.CreateZip(
-                  `./downloads/${tree.id}/${folderName}.zip`,
-                  [`downloads/${tree.id}/${folderName}`]
-                );
+                Service.Folder.CreateZip(`./downloads/${tree.id}/${folderName}.zip`,
+                  [`downloads/${tree.id}/${folderName}`]);
 
                 res.set('x-file-name', `${folderName}.zip`);
-                res.download(
-                  `./downloads/${tree.id}/${folderName}.zip`
-                );
+                res.download(`./downloads/${tree.id}/${folderName}.zip`);
 
                 rimraf(`./downloads/${tree.id}`, () => {
                   console.log('Folder removed after send zip');

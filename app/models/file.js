@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const file = sequelize.define(
-    'file',
+  const file = sequelize.define('file',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -40,8 +39,7 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
       underscored: true,
       indexes: [{ name: 'name', fields: ['name'] }]
-    }
-  );
+    });
 
   file.associate = (models) => {
     file.belongsTo(models.folder);

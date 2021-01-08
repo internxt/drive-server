@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Statistics = sequelize.define(
-    'statistics',
+  const Statistics = sequelize.define('statistics',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -21,8 +20,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: true,
       underscored: true
-    }
-  );
+    });
 
   return Statistics;
 };

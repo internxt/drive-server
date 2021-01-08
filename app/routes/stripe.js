@@ -32,98 +32,92 @@ module.exports = (Router, Service, Logger, App) => {
 
     const user = req.user.email;
 
-    async.waterfall(
-      [
-        (next) => {
-          // Retrieve the customer by email, to check if already exists
-          stripe.customers.list(
-            {
-              limit: 1,
-              email: user
-            },
-            (err, customers) => {
-              next(err, customers.data[0]);
-            }
-          );
+    async.waterfall([
+      (next) => {
+        // Retrieve the customer by email, to check if already exists
+        stripe.customers.list({
+          limit: 1,
+          email: user
         },
-        (customer, next) => {
-          if (!customer) {
-            // The customer does not exists
-            // Procede to the subscription
-            console.debug(
-              'Customer does not exists, won\'t check any subcription'
-            );
-            next(null, undefined);
-          } else {
-            // Get subscriptions
-            const subscriptions = customer.subscriptions.data;
-            if (subscriptions.length === 0) {
-              console.log('Customer exists, but doesn\'t have a subscription');
-              next(null, { customer, subscription: null });
-            } else {
-              console.log('Customer already has a subscription');
-              const subscription = subscriptions[0];
-              next(null, { customer, subscription });
-            }
-          }
-        },
-        (payload, next) => {
-          if (!payload) {
-            console.debug('Customer does not exists');
-            next(null, {});
-          } else {
-            const { customer, subscription } = payload;
-            console.debug('Payload', subscription);
-
-            if (subscription) {
-              // Delete subscription (must be improved in the future)
-              /*
-            stripe.subscriptions.del(subscription.id, (err, result) => {
-              next(err, customer);
-            });
-            */
-              next(Error('Already subscribed'));
-            } else {
-              next(null, customer);
-            }
-          }
-        },
-        (customer, next) => {
-          // Open session
-          const customerId = customer !== null ? customer.id || null : null;
-
-          const sessionParams = {
-            payment_method_types: ['card'],
-            success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
-            cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
-            subscription_data: {
-              items: [{ plan: req.body.plan }],
-              trial_period_days: 30
-            },
-            customer_email: user,
-            customer: customerId,
-            allow_promotion_codes: true,
-            billing_address_collection: 'required'
-          };
-
-          if (sessionParams.customer) {
-            delete sessionParams.customer_email;
-          } else {
-            delete sessionParams.customer;
-          }
-
-          stripe.checkout.sessions
-            .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
-        }
-      ],
-      (err, result) => {
-        if (err) {
-          res.status(500).send({ error: err.message });
+        (err, customers) => {
+          next(err, customers.data[0]);
+        });
+      },
+      (customer, next) => {
+        if (!customer) {
+          // The customer does not exists
+          // Procede to the subscription
+          console.debug('Customer does not exists, won\'t check any subcription');
+          next(null, undefined);
         } else {
-          res.status(200).send(result);
+          // Get subscriptions
+          const subscriptions = customer.subscriptions.data;
+          if (subscriptions.length === 0) {
+            console.log('Customer exists, but doesn\'t have a subscription');
+            next(null, { customer, subscription: null });
+          } else {
+            console.log('Customer already has a subscription');
+            const subscription = subscriptions[0];
+            next(null, { customer, subscription });
+          }
         }
+      },
+      (payload, next) => {
+        if (!payload) {
+          console.debug('Customer does not exists');
+          next(null, {});
+        } else {
+          const { customer, subscription } = payload;
+          console.debug('Payload', subscription);
+
+          if (subscription) {
+            // Delete subscription (must be improved in the future)
+            /*
+          stripe.subscriptions.del(subscription.id, (err, result) => {
+            next(err, customer);
+          });
+          */
+            next(Error('Already subscribed'));
+          } else {
+            next(null, customer);
+          }
+        }
+      },
+      (customer, next) => {
+        // Open session
+        const customerId = customer !== null ? customer.id || null : null;
+
+        const sessionParams = {
+          payment_method_types: ['card'],
+          success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
+          cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
+          subscription_data: {
+            items: [{ plan: req.body.plan }],
+            trial_period_days: 30
+          },
+          customer_email: user,
+          customer: customerId,
+          allow_promotion_codes: true,
+          billing_address_collection: 'required'
+        };
+
+        if (sessionParams.customer) {
+          delete sessionParams.customer_email;
+        } else {
+          delete sessionParams.customer;
+        }
+
+        stripe.checkout.sessions
+          .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
       }
-    );
+    ],
+    (err, result) => {
+      if (err) {
+        res.status(500).send({ error: err.message });
+      } else {
+        res.status(200).send(result);
+      }
+    });
   });
 
   /**
@@ -147,163 +141,155 @@ module.exports = (Router, Service, Logger, App) => {
 
     const user = req.user.email;
 
-    async.waterfall(
-      [
-        (next) => {
-          // Retrieve the customer by email, to check if already exists
-          stripe.customers.list(
-            {
-              limit: 1,
-              email: user
-            },
-            (err, customers) => {
-              next(err, customers.data[0]);
-            }
-          );
+    async.waterfall([
+      (next) => {
+        // Retrieve the customer by email, to check if already exists
+        stripe.customers.list({
+          limit: 1,
+          email: user
         },
-        (customer, next) => {
-          if (!customer) {
-            // The customer does not exists
-            // Procede to the subscription
-            console.debug(
-              'Customer does not exists, won\'t check any subcription'
-            );
-            next(null, undefined);
+        (err, customers) => {
+          next(err, customers.data[0]);
+        });
+      },
+      (customer, next) => {
+        if (!customer) {
+          // The customer does not exists
+          // Procede to the subscription
+          console.debug('Customer does not exists, won\'t check any subcription');
+          next(null, undefined);
+        } else {
+          // Get subscriptions
+          const subscriptions = customer.subscriptions.data;
+          if (subscriptions.length === 0) {
+            console.log('Customer exists, but doesn\'t have a subscription');
+            next(null, { customer, subscription: null });
           } else {
-            // Get subscriptions
-            const subscriptions = customer.subscriptions.data;
-            if (subscriptions.length === 0) {
-              console.log('Customer exists, but doesn\'t have a subscription');
-              next(null, { customer, subscription: null });
-            } else {
-              console.log('Customer already has a subscription');
-              const subscription = subscriptions[0];
-              next(null, { customer, subscription });
-            }
+            console.log('Customer already has a subscription');
+            const subscription = subscriptions[0];
+            next(null, { customer, subscription });
           }
-        },
-        (payload, next) => {
-          if (!payload) {
-            console.debug('Customer does not exists');
-            next(null, {});
-          } else {
-            const { customer, subscription } = payload;
-            console.debug('Payload', subscription);
+        }
+      },
+      (payload, next) => {
+        if (!payload) {
+          console.debug('Customer does not exists');
+          next(null, {});
+        } else {
+          const { customer, subscription } = payload;
+          console.debug('Payload', subscription);
 
-            if (subscription) {
-              Service.Stripe.getStorageProducts(test).then((storageProducts) => {
-                Service.Stripe.getTeamProducts(test).then((teamProducts) => {
-                  if (
-                    storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)
-                  ) {
-                    if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
-                      next(Error('Already subscribed in a storage plan'));
-                    } else {
-                      next(null, customer);
-                    }
-                  } else if (
-                    teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
-                  ) {
-                    if (teamProducts.find((teamProduct) => teamProduct.id === productToSubscribe)) {
-                      next(Error('Already subscribed in a team plan'));
-                    } else {
-                      next(null, customer);
-                    }
+          if (subscription) {
+            Service.Stripe.getStorageProducts(test).then((storageProducts) => {
+              Service.Stripe.getTeamProducts(test).then((teamProducts) => {
+                if (storageProducts.find((storageProduct) => storageProduct.id === subscription.plan.product)
+                ) {
+                  if (storageProducts.find((storageProduct) => storageProduct.id === productToSubscribe)) {
+                    next(Error('Already subscribed in a storage plan'));
                   } else {
-                    next(Error('Already subscribed'));
+                    next(null, customer);
                   }
-                }).catch(() => {
+                } else if (teamProducts.find((teamProduct) => teamProduct.id === subscription.plan.product)
+                ) {
+                  if (teamProducts.find((teamProduct) => teamProduct.id === productToSubscribe)) {
+                    next(Error('Already subscribed in a team plan'));
+                  } else {
+                    next(null, customer);
+                  }
+                } else {
                   next(Error('Already subscribed'));
-                });
+                }
               }).catch(() => {
                 next(Error('Already subscribed'));
               });
-            } else {
-              next(null, customer);
-            }
-          }
-        },
-        async (customer, next) => {
-          // Open session
-          const customerId = customer !== null ? customer.id || null : null;
-          let newBridgeUser = null;
-          const bridgeUser = await Service.Team.getTeamByIdUser(req.user.email);
-
-          if (!bridgeUser) {
-            newBridgeUser = await Service.Team.randomEmailBridgeUserTeam();
+            }).catch(() => {
+              next(Error('Already subscribed'));
+            });
           } else {
-            newBridgeUser = bridgeUser.dataValues;
+            next(null, customer);
           }
+        }
+      },
+      async (customer, next) => {
+        // Open session
+        const customerId = customer !== null ? customer.id || null : null;
+        let newBridgeUser = null;
+        const bridgeUser = await Service.Team.getTeamByIdUser(req.user.email);
 
-          const sessionParams = {
-            payment_method_types: ['card'],
-            success_url: 'https://drive.internxt.com/',
-            cancel_url: 'https://drive.internxt.com/',
-            subscription_data: {
-              items: [{ plan: req.body.plan }],
-              trial_period_days: 30
-            },
-            metadata: {},
-            customer_email: user,
-            customer: customerId,
-            allow_promotion_codes: true,
-            billing_address_collection: 'required'
-          };
+        if (!bridgeUser) {
+          newBridgeUser = await Service.Team.randomEmailBridgeUserTeam();
+        } else {
+          newBridgeUser = bridgeUser.dataValues;
+        }
 
-          // Datas
-          sessionParams.metadata.team_email = newBridgeUser.bridge_user;
-          const salt = crypto.randomBytes(128 / 8).toString('hex');
-          const newPassword = App.services.Crypt.encryptText('team', salt);
-          const encryptedPassword = App.services.Crypt.encryptText(newPassword);
-          const encryptedSalt = App.services.Crypt.encryptText(salt);
-          const { mnemonicTeam } = req.body;
+        const sessionParams = {
+          payment_method_types: ['card'],
+          success_url: 'https://drive.internxt.com/',
+          cancel_url: 'https://drive.internxt.com/',
+          subscription_data: {
+            items: [{ plan: req.body.plan }],
+            trial_period_days: 30
+          },
+          metadata: {},
+          customer_email: user,
+          customer: customerId,
+          allow_promotion_codes: true,
+          billing_address_collection: 'required'
+        };
 
-          const userData = await Service.User.FindOrCreate({
-            name: newBridgeUser.bridge_user,
-            email: newBridgeUser.bridge_user,
-            mnemonic: mnemonicTeam,
-            lastname: '',
-            password: encryptedPassword,
-            salt: encryptedSalt,
-            referral: ''
+        // Datas
+        sessionParams.metadata.team_email = newBridgeUser.bridge_user;
+        const salt = crypto.randomBytes(128 / 8).toString('hex');
+        const newPassword = App.services.Crypt.encryptText('team', salt);
+        const encryptedPassword = App.services.Crypt.encryptText(newPassword);
+        const encryptedSalt = App.services.Crypt.encryptText(salt);
+        const { mnemonicTeam } = req.body;
+
+        const userData = await Service.User.FindOrCreate({
+          name: newBridgeUser.bridge_user,
+          email: newBridgeUser.bridge_user,
+          mnemonic: mnemonicTeam,
+          lastname: '',
+          password: encryptedPassword,
+          salt: encryptedSalt,
+          referral: ''
+        });
+
+        if (userData.isCreated) {
+          const team = await Service.Team.create({
+            name: 'My team',
+            admin: user,
+            bridge_user: userData.email,
+            bridge_password: userData.userId,
+            bridge_mnemonic: userData.mnemonic
           });
 
-          if (userData.isCreated) {
-            const team = await Service.Team.create({
-              name: 'My team',
-              admin: user,
-              bridge_user: userData.email,
-              bridge_password: userData.userId,
-              bridge_mnemonic: userData.mnemonic
-            });
+          const teamId = team.id;
+          const teamAdmin = team.admin;
+          const teamBridgePassword = team.bridge_password;
+          const teamBridgeMnemonic = team.bridge_mnemonic;
 
-            const teamId = team.id;
-            const teamAdmin = team.admin;
-            const teamBridgePassword = team.bridge_password;
-            const teamBridgeMnemonic = team.bridge_mnemonic;
-
-            const newMember = await Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic);
-          }
-
-          if (sessionParams.customer) {
-            delete sessionParams.customer_email;
-          } else {
-            delete sessionParams.customer;
-          }
-
-          const result = await stripe.checkout.sessions.create(sessionParams);
-
-          return result;
+          const newMember = await Service.TeamsMembers.addTeamMember(teamId, teamAdmin, teamBridgePassword, teamBridgeMnemonic);
         }
-      ],
-      (err, result) => {
-        if (err) {
-          res.status(500).send({ error: err.message });
+
+        if (sessionParams.customer) {
+          delete sessionParams.customer_email;
         } else {
-          res.status(200).send(result);
+          delete sessionParams.customer;
         }
+
+        const result = await stripe.checkout.sessions.create(sessionParams);
+
+        return result;
       }
-    );
+    ],
+    (err, result) => {
+      if (err) {
+        res.status(500).send({ error: err.message });
+      } else {
+        res.status(200).send(result);
+      }
+    });
   });
 
   /**
@@ -312,10 +298,8 @@ module.exports = (Router, Service, Logger, App) => {
    * Required metadata:
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
-    const stripe = require('stripe')(
-      req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' }
-    );
+    const stripe = require('stripe')(req.query.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
+      { apiVersion: '2020-03-02' });
     stripe.products.list({ limit: 100 }, (err, products) => {
       if (err) {
         res.status(500).send({ error: err });
@@ -344,33 +328,29 @@ module.exports = (Router, Service, Logger, App) => {
    * TODO: cache plans to avoid repetitive api calls
    */
   Router.post('/stripe/plans', passportAuth, (req, res) => {
-    const stripe = require('stripe')(
-      req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
-      { apiVersion: '2020-03-02' }
-    );
+    const stripe = require('stripe')(req.body.test ? process.env.STRIPE_SK_TEST : process.env.STRIPE_SK,
+      { apiVersion: '2020-03-02' });
     const stripeProduct = req.body.product;
 
-    stripe.plans.list(
-      {
-        product: stripeProduct
-      },
-      (err, plans) => {
-        if (err) {
-          res.status(500).send({ error: err.message });
-        } else {
-          const plansMin = plans.data
-            .map((p) => ({
-              id: p.id,
-              price: p.amount,
-              name: p.nickname,
-              interval: p.interval,
-              interval_count: p.interval_count
-            }))
-            .sort((a, b) => a.price * 1 - b.price * 1);
-          res.status(200).send(plansMin);
-        }
+    stripe.plans.list({
+      product: stripeProduct
+    },
+    (err, plans) => {
+      if (err) {
+        res.status(500).send({ error: err.message });
+      } else {
+        const plansMin = plans.data
+          .map((p) => ({
+            id: p.id,
+            price: p.amount,
+            name: p.nickname,
+            interval: p.interval,
+            interval_count: p.interval_count
+          }))
+          .sort((a, b) => a.price * 1 - b.price * 1);
+        res.status(200).send(plansMin);
       }
-    );
+    });
   });
 
   Router.post('/stripe/teams/plans', passportAuth, (req, res) => {

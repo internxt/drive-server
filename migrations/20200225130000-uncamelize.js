@@ -9,8 +9,7 @@ module.exports = {
       queryInterface.renameColumn('users', 'storeMnemonic', 'store_mnemonic'),
       queryInterface.renameColumn('users', 'hKey', 'h_key'),
       queryInterface.renameColumn('users', 'secret_2FA', 'secret_2_f_a'),
-      queryInterface.renameColumn(
-        'users',
+      queryInterface.renameColumn('users',
         'errorLoginCount',
         'error_login_count'
       )
@@ -27,8 +26,7 @@ module.exports = {
       queryInterface.renameColumn('users', 'store_mnemonic', 'storeMnemonic'),
       queryInterface.renameColumn('users', 'h_key', 'hKey'),
       queryInterface.renameColumn('users', 'secret_2_f_a', 'secret_2FA'),
-      queryInterface.renameColumn(
-        'users',
+      queryInterface.renameColumn('users',
         'error_login_count',
         'errorLoginCount'
       )

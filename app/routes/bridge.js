@@ -11,9 +11,7 @@ module.exports = (Router, Service, Logger, App) => {
     const pwd = userData.userId;
     const pwdHash = Service.Crypt.hashSha256(pwd);
 
-    const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString(
-      'base64'
-    );
+    const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString('base64');
 
     axios.get(`${App.config.get('STORJ_BRIDGE')}/usage`, {
       headers: {

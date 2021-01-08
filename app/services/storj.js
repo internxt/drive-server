@@ -71,10 +71,8 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json', email } };
 
     // Do api call
-    return axios.get(
-      `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params
-    );
+    return axios.get(`${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
+      params);
   };
 
   const CreateBucket = (email, password, mnemonic, name) => {
@@ -121,12 +119,10 @@ module.exports = (Model, App) => {
     storj.storeFile(bucketId, filePath, {
       filename: fileName,
       progressCallback(progress, uploadedBytes, totalBytes) {
-        log.warn(
-          '[NODE-LIB %s] Upload Progress: %s (%s%%)',
+        log.warn('[NODE-LIB %s] Upload Progress: %s (%s%%)',
           user.email,
           prettysize(totalBytes),
-          ((uploadedBytes * 100) / totalBytes).toFixed(2)
-        );
+          ((uploadedBytes * 100) / totalBytes).toFixed(2));
       },
       finishedCallback(err, fileId) {
         if (err) {
@@ -160,12 +156,10 @@ module.exports = (Model, App) => {
 
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.warn(
-            '[NODE-LIB %s] Download Progress: %s (%s%%)',
+          log.warn('[NODE-LIB %s] Download Progress: %s (%s%%)',
             user.email,
             prettysize(totalBytes),
-            ((downloadedBytes * 100) / totalBytes).toFixed(2)
-          );
+            ((downloadedBytes * 100) / totalBytes).toFixed(2));
         },
         finishedCallback: (err) => {
           if (err) {
@@ -186,10 +180,8 @@ module.exports = (Model, App) => {
 
   const ResolveFolderFile = (user, file, path = './downloads') => {
     const downloadDir = path;
-    const decryptedFileName = CryptServiceInstance.decryptName(
-      file.name,
-      file.folder_id
-    );
+    const decryptedFileName = CryptServiceInstance.decryptName(file.name,
+      file.folder_id);
     const downloadFile = `${downloadDir}/${decryptedFileName}.${file.type}`;
 
     if (!fs.existsSync(downloadDir)) {
@@ -207,12 +199,10 @@ module.exports = (Model, App) => {
       // Storj call
       const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.warn(
-            '[NODE-LIB] Download file progress: %s/%s (%s)',
+          log.warn('[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
-            progress
-          );
+            progress);
         },
         finishedCallback: (err) => {
           if (err) {

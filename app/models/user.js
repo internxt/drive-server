@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define(
-    'users',
+  const User = sequelize.define('users',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -96,8 +95,7 @@ module.exports = (sequelize, DataTypes) => {
       defaultScope: {
         attributes: { exclude: ['userId'] }
       }
-    }
-  );
+    });
 
   User.associate = (models) => {
     User.hasMany(models.folder);

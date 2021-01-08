@@ -1,6 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const folder = sequelize.define(
-    'folder',
+  const folder = sequelize.define('folder',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -46,8 +45,7 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
       underscored: true,
       indexes: [{ name: 'name', fields: ['name'] }]
-    }
-  );
+    });
 
   folder.associate = (models) => {
     folder.hasOne(models.folder_metadata);

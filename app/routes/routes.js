@@ -88,9 +88,7 @@ module.exports = (Router, Service, Logger, App) => {
         if (!resActivation.data.activated) {
           res.status(400).send({ error: 'User is not activated' });
         } else {
-          const encSalt = App.services.Crypt.encryptText(
-            userData.hKey.toString()
-          );
+          const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
           Service.Keyserver.keysExists(userData).then((userKey) => {
             res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
@@ -166,11 +164,9 @@ module.exports = (Router, Service, Logger, App) => {
       } else if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const internxtClient = req.headers['internxt-client'];
-        const token = passport.Sign(
-          userData.email,
+        const token = passport.Sign(userData.email,
           App.config.get('secrets').JWT,
-          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
-        );
+          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
 
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
@@ -385,22 +381,18 @@ module.exports = (Router, Service, Logger, App) => {
   Router.patch('/user/password', passportAuth, (req, res) => {
     const user = req.user.email;
 
-    const currentPassword = App.services.Crypt.decryptText(
-      req.body.currentPassword
-    );
+    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const { mnemonic } = req.body;
     const { privateKey } = req.body;
 
-    Service.User.UpdatePasswordMnemonic(
-      user,
+    Service.User.UpdatePasswordMnemonic(user,
       currentPassword,
       newPassword,
       newSalt,
       mnemonic,
-      privateKey
-    ).then((result) => {
+      privateKey).then((result) => {
       res.status(200).send({});
     }).catch((err) => {
       console.log(err);
