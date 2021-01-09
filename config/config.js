@@ -1,14 +1,16 @@
 const nconf = require('nconf');
 
 class Config {
+  static getInstance() {
+    if (!global.ConfigInstance) {
+      global.ConfigInstance = new Config();
+    }
+
+    return global.ConfigInstance;
+  }
+
   constructor() {
-    // Load environment variables in order below
-    //   1. Command-line arguments
-    //   2. Environment variables
-    //   3. A file located at 'path/to/config.json'
-    // Throw if required config is missing
     // eslint-disable-next-line global-require
-    require('dotenv').config();
     nconf.argv();
     nconf.env();
     nconf.required(['NODE_ENV']);
@@ -23,7 +25,6 @@ class Config {
   }
 
   get(key) {
-    // return this._nconf.get(key)
     return this.nconf.get(key);
   }
 }

@@ -1,5 +1,3 @@
-const assert = require('assert');
-
 const express = require('express');
 
 const Logger = require('../../lib/logger');
@@ -13,10 +11,8 @@ const Database = require('./database');
  */
 
 class Server {
-  constructor(config) {
-    assert(config instanceof Config, 'Invalid config supplied');
-
-    this.config = config;
+  constructor() {
+    this.config = Config.getInstance();
     this.logger = Logger(this.config.get('logger'));
     this.express = express();
     this.router = express.Router();
