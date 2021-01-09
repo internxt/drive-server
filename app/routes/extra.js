@@ -1,6 +1,9 @@
 const { passportAuth } = require('../middleware/passport');
+const logger = require('../../lib/logger');
 
-module.exports = (Router, Service, Logger) => {
+const Logger = logger.getInstance();
+
+module.exports = (Router) => {
   Router.get('/welcome', passportAuth, (req, res) => {
     res.status(200).send({ file_exists: !!req.user.welcomePack });
   });

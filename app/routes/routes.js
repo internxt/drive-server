@@ -18,11 +18,14 @@ const ExtraRoutes = require('./extra');
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsRoutes = require('./teams');
+const logger = require('../../lib/logger');
 
 const { passportAuth } = passport;
 const userTeam = null;
 
-module.exports = (Router, Service, Logger, App) => {
+const Logger = logger.getInstance();
+
+module.exports = (Router, Service, App) => {
   // Documentation
   Router.get('/api-docs.json', (req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -30,23 +33,23 @@ module.exports = (Router, Service, Logger, App) => {
   });
 
   // User account activation/deactivation
-  ActivationRoutes(Router, Service, Logger, App);
+  ActivationRoutes(Router, Service, App);
   // Files/folders operations
-  StorageRoutes(Router, Service, Logger, App);
+  StorageRoutes(Router, Service, App);
   // Calls to the BRIDGE api
-  BridgeRoutes(Router, Service, Logger, App);
+  BridgeRoutes(Router, Service, App);
   // Calls to STRIPE api
-  StripeRoutes(Router, Service, Logger, App);
+  StripeRoutes(Router, Service, App);
   // Routes used by X-Cloud-Desktop
-  DesktopRoutes(Router, Service, Logger, App);
+  DesktopRoutes(Router, Service, App);
   // Routes used by X-Cloud-Mobile
-  MobileRoutes(Router, Service, Logger, App);
+  MobileRoutes(Router, Service, App);
   // Routes to create, edit and delete the 2-factor-authentication
-  TwoFactorRoutes(Router, Service, Logger, App);
+  TwoFactorRoutes(Router, Service, App);
   // Extra routes uncategorized
-  ExtraRoutes(Router, Service, Logger, App);
+  ExtraRoutes(Router, Service, App);
 
-  TeamsRoutes(Router, Service, Logger, App);
+  TeamsRoutes(Router, Service, App);
 
   /**
    * @swagger

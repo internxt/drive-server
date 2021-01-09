@@ -1,8 +1,6 @@
 const express = require('express');
-
 const Logger = require('../../lib/logger');
 const Config = require('../config');
-
 const Database = require('./database');
 
 /**
@@ -13,7 +11,7 @@ const Database = require('./database');
 class Server {
   constructor() {
     this.config = Config.getInstance();
-    this.logger = Logger(this.config.get('logger'));
+    this.logger = Logger.getInstance();
     this.express = express();
     this.router = express.Router();
     this.instance = null;
@@ -59,7 +57,7 @@ class Server {
 
   initDatabase() {
     this.logger.info('Connecting to database');
-    this.database = Database(this.config.get('database'), this.logger);
+    this.database = Database(this.config.get('database'));
   }
 
   initModels(Models) {
@@ -83,7 +81,7 @@ class Server {
   initRoutes(Router) {
     const routesPrefix = '/api';
     this.logger.info(`Initializing and mounting routes to ${routesPrefix}`);
-    this.routes = Router(this.router, this.services, this.logger, this);
+    this.routes = Router(this.router, this.services, this);
     this.express.use(routesPrefix, this.routes);
     this.logger.info('Routes OK');
   }

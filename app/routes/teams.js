@@ -1,8 +1,11 @@
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
 const { passportAuth } = require('../middleware/passport');
+const logger = require('../../lib/logger');
 
-module.exports = (Router, Service, Logger) => {
+const Logger = logger.getInstance();
+
+module.exports = (Router, Service) => {
   /**
    * @swagger
    * /teams/initialize:

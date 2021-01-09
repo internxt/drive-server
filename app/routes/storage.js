@@ -5,10 +5,13 @@ const contentDisposition = require('content-disposition');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
+const logger = require('../../lib/logger');
+
+const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, Logger, App) => {
+module.exports = (Router, Service, App) => {
   /**
    * @swagger
    * /storage/folder/:id:

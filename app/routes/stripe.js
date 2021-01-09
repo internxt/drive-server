@@ -9,7 +9,7 @@ const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, Logger, App) => {
+module.exports = (Router, Service, App) => {
   Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);

@@ -5,7 +5,7 @@ const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, Logger, App) => {
+module.exports = (Router, Service, App) => {
   /**
    * Gets a new 2FA code
    * Only auth. users can generate a new code.
