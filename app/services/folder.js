@@ -288,7 +288,13 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'children'
+          as: 'children',
+          include: [
+            {
+              model: Model.icon,
+              as: 'icon'
+            }
+          ]
         },
         {
           model: Model.file,

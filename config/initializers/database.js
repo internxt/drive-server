@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-const Logger = require('../../lib/logger');
 const SqlFormatter = require('sql-formatter');
+const Logger = require('../../lib/logger');
 
 const logger = Logger.getInstance();
 
@@ -16,8 +16,9 @@ module.exports = (config) => {
     }
   });
 
-  instance
-    .authenticate().then(() => logger.info('Connected to database')).catch((err) => logger.error(err));
+  instance.authenticate().then(() => {
+    logger.info('Connected to database');
+  }).catch((err) => logger.error(err));
 
   return {
     instance,
