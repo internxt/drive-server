@@ -16,7 +16,7 @@ exports.data = {
     STRIPE_SK: process.env.STRIPE_SK
   },
   logger: {
-    level: 0
+    level: 2
   },
   STORJ_BRIDGE: 'https://api.internxt.com'
 };

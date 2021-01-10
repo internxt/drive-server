@@ -9,7 +9,7 @@ module.exports = (config) => {
     host: config.host,
     dialect: 'mysql',
     operatorsAliases: 0,
-    logging: logger.sql
+    logging: (content) => logger.debug(content)
   });
 
   instance
