@@ -116,10 +116,9 @@ module.exports = (App, Config) => {
      * BEGIN
      */
     const COMPATIBILITY = true;
-    let email = payload;
-    if (typeof payload === 'object') {
-      email = payload.email;
-    } else if (!COMPATIBILITY) {
+    const email = typeof payload === 'object' ? payload.email : payload;
+
+    if (!COMPATIBILITY) {
       return done(new Error('Old JWT not supported'));
     }
     /* END

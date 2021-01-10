@@ -247,8 +247,9 @@ module.exports = (Model, App) => {
     async.waterfall([
       (next) => {
         axios
-          .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`,
-            { headers: { 'Content-Type': 'application/json' } }).then((res) => {
+          .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
+            headers: { 'Content-Type': 'application/json' }
+          }).then((res) => {
             Logger.info('User deleted from bridge');
             next(null, res);
           }).catch((err) => {

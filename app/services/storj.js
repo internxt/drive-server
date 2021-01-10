@@ -15,8 +15,7 @@ module.exports = (Model, App) => {
 
   function pwdToHex(pwd) {
     try {
-      return crypto.createHash('sha256').update(pwd)
-        .digest('hex');
+      return crypto.createHash('sha256').update(pwd).digest('hex');
     } catch (error) {
       log.error('[CRYPTO sha256] ', error);
 

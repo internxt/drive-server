@@ -356,8 +356,8 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const isFolderOfTeam = (folderId) => new Promise((resolve, reject) => {
-    Model.folder.findOne({
+  const isFolderOfTeam = (folderId) => {
+    return Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId }
       }
@@ -366,9 +366,9 @@ module.exports = (Model, App) => {
         throw Error('Folder not found on database, please refresh');
       }
 
-      resolve(folder);
-    }).catch(reject);
-  });
+      return folder;
+    });
+  };
 
   const UpdateMetadata = (user, folderId, metadata) => new Promise((resolve, reject) => {
     const newMeta = {};

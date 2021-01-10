@@ -405,7 +405,9 @@ module.exports = (Router, Service, App) => {
         userData.mnemonic = result.mnemonic;
 
         if (isFolder) {
-          Service.Folder.GetTree({ email: result.user }, result.file).then((tree) => {
+          Service.Folder.GetTree({
+            email: result.user
+          }, result.file).then((tree) => {
             const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
             const treeSize = Service.Folder.GetTreeSize(tree);
 
