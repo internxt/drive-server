@@ -38,7 +38,7 @@ module.exports = (Router, Service) => {
   Router.get('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
     res.setHeader('Content-Type', 'application/json');
-    Service.User.GetOrSetUserSync(user.email).then((result) => {
+    Service.User.GetOrSetUserSync(user).then((result) => {
       res.status(200).json({ data: result });
     }).catch((err) => {
       res.status(500).json({ error: err.message });

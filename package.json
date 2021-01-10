@@ -43,26 +43,27 @@
     "storj": "github:internxt/node-lib",
     "stripe": "8.49.0",
     "swagger-jsdoc": "^6.0.1",
-    "uuid": "^8.3.0",
+    "uuid": "^8.3.2",
     "winston": "^3.2.1"
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "./node_modules/.bin/nodemon app.js",
+    "dev": "cross-env NODE_ENV=development ./node_modules/.bin/nodemon app.js",
     "test": "./node_modules/.bin/mocha test/**/*.js",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
-    "lint": "eslint ./lib/**/*.js ./app/**/*.js",
+    "lint": "eslint ./lib/**/*.js ./app/**/*.js ./test/**/*.js",
     "lint:fix": "npm run lint  --fix"
   },
   "devDependencies": {
     "chai": "^4.2.0",
+    "cross-env": "^7.0.3",
     "eslint": "^7.10.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-plugin-import": "^2.20.1",
     "mocha": "^8.2.1",
     "nodemon": "^2.0.4",
-    "sequelize-cli": "^5.5.1"
+    "sequelize-cli": "^6.2.0"
   },
   "engines": {
     "node": ">=8.3.0 <=10.23.0",
