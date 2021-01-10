@@ -9,7 +9,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       parentId: {
         type: DataTypes.INTEGER,
-        hierarchy: true
+        references: {
+          model: 'folders',
+          key: 'id'
+        }
       },
       name: {
         type: DataTypes.STRING
@@ -52,6 +55,10 @@ module.exports = (sequelize, DataTypes) => {
     folder.hasMany(models.file);
     folder.belongsTo(models.users);
     folder.belongsTo(models.icon);
+    folder.hasMany(models.folder, {
+      foreignKey: 'parent_id',
+      as: 'children'
+    });
   };
 
   return folder;

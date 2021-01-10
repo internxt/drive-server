@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-require('sequelize-hierarchy')(Sequelize);
 const Logger = require('../../lib/logger');
+const SqlFormatter = require('sql-formatter');
 
 const logger = Logger.getInstance();
 
@@ -9,7 +9,11 @@ module.exports = (config) => {
     host: config.host,
     dialect: 'mysql',
     operatorsAliases: 0,
-    logging: (content) => logger.debug(content)
+    logging: (content) => {
+      const parse = content.match(/^(Executing \(.*\):) (.*)$/);
+      const prettySql = SqlFormatter.format(parse[2]);
+      logger.debug(`${parse[1]}\n${prettySql}`);
+    }
   });
 
   instance

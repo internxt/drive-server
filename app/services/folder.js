@@ -223,7 +223,6 @@ module.exports = (Model, App) => {
         {
           model: Model.folder,
           as: 'descendents',
-          hierarchy: true,
           include: [
             {
               model: Model.file,
@@ -289,14 +288,7 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'descendents',
-          hierarchy: true,
-          include: [
-            {
-              model: Model.icon,
-              as: 'icon'
-            }
-          ]
+          as: 'children'
         },
         {
           model: Model.file,
@@ -370,26 +362,25 @@ module.exports = (Model, App) => {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName,
             folder.parentId);
 
-          Model.folder
-            .findOne({
-              where: {
-                parentId: { [Op.eq]: folder.parentId },
-                name: { [Op.eq]: cryptoFolderName }
+          Model.folder.findOne({
+            where: {
+              parentId: { [Op.eq]: folder.parentId },
+              name: { [Op.eq]: cryptoFolderName }
+            }
+          }).then((isDuplicated) => {
+            if (isDuplicated) {
+              next(Error('Folder with this name exists'));
+            } else {
+              newMeta.name = cryptoFolderName;
+              try {
+                AesUtil.decrypt(cryptoFolderName, folder.parentId);
+                newMeta.encrypt_version = '03-aes';
+              } catch (e) {
+                (() => { })();
               }
-            }).then((isDuplicated) => {
-              if (isDuplicated) {
-                next(Error('Folder with this name exists'));
-              } else {
-                newMeta.name = cryptoFolderName;
-                try {
-                  AesUtil.decrypt(cryptoFolderName, folder.parentId);
-                  newMeta.encrypt_version = '03-aes';
-                } catch (e) {
-                  (() => { })();
-                }
-                next(null, folder);
-              }
-            }).catch(next);
+              next(null, folder);
+            }
+          }).catch(next);
         } else {
           next(null, folder);
         }

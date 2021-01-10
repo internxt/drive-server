@@ -74,6 +74,7 @@
     "nodemon": "^2.0.4",
     "prettier": "^2.0.5",
     "sequelize-cli": "^5.5.1",
+    "sql-formatter": "^2.3.3",
     "supertest": "^6.0.1"
   },
   "engines": {
