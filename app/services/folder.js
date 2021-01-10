@@ -11,7 +11,7 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const FileServiceInstance = FileService(Model, App);
 
-  // Create folder entry, for web/mobile & desktop
+  // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     // parent folder is yours?
     const whereCondition = { where: null };
@@ -211,7 +211,40 @@ module.exports = (Model, App) => {
     return treeSize;
   };
 
+  // A tree without using hierarchy library
   const GetTree = async (user, rootFolderId = null) => {
+    const folderContents = (await Model.folder.findOne({
+      where: { id: { [Op.eq]: rootFolderId || user.root_folder_id } },
+      include: [
+        {
+          model: Model.folder,
+          as: 'children',
+          include: [
+            {
+              model: Model.file,
+              as: 'files'
+            }
+          ]
+        },
+        {
+          model: Model.file,
+          as: 'files'
+        }
+      ]
+    })).toJSON();
+
+    const res = await async.mapSeries(folderContents.children, async (folder) => {
+      const subfolder = await GetTree(user, folder.id);
+      return subfolder;
+    });
+
+    folderContents.children = res;
+
+    return folderContents;
+  };
+
+  // Legacy hierarchy tree code (needs sequelize-hierarchy dependency)
+  const GetTreeHierarchy = async (user, rootFolderId = null) => {
     const username = user.email;
 
     const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
@@ -549,6 +582,7 @@ module.exports = (Model, App) => {
     CreateZip,
     GetBucket,
     GetFolders,
-    isFolderOfTeam
+    isFolderOfTeam,
+    GetTreeHierarchy
   };
 };
