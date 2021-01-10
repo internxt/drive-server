@@ -8,7 +8,7 @@ const Analytics = require('./analytics');
 
 const { Op } = sequelize;
 
-const SYNC_KEEPALIVE_INTERVAL_MS = 30 * 1000; // 30 seconds
+const SYNC_KEEPALIVE_INTERVAL_MS = 60 * 1000; // 60 seconds
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
@@ -134,25 +134,6 @@ module.exports = (Model, App) => {
       throw new Error(error);
     }));
 
-  // Get an email and option (true/false) and set storeMnemonic option for user with this email
-  const UpdateStorageOption = (email, option) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
-      if (userData) {
-        return userData.update({ storeMnemonic: option });
-      }
-
-      throw new Error('UpdateStorageOption: User not found');
-    }).catch((error) => {
-      Logger.error(error.stack);
-      throw new Error(error);
-    });
-
-  const GetUserById = (id) => Model.users.findOne({
-    where: {
-      id: { [Op.eq]: id }
-    }
-  }).then((response) => response.dataValues);
-
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
       .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
@@ -167,47 +148,13 @@ module.exports = (Model, App) => {
       }).catch((err) => reject(err));
   });
 
-  const FindUserByUuid = (userUuid) => Model.users.findOne({
-    where: {
-      uuid: { [Op.eq]: userUuid }
-    }
-  });
+  const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
-  const FindUsersByReferred = (referredUuid) => Model.users
-    .findAll({ where: { referred: { [Op.eq]: referredUuid } } });
+  const FindUsersByReferred = (referredUuid) => Model.users.findAll({ where: { referred: { [Op.eq]: referredUuid } } });
 
-  const FindUserObjByEmail = (email) => Model.users.findOne({
-    where: {
-      email: { [Op.eq]: email }
-    }
-  });
+  const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
-  const GetUserCredit = (userUuid) => Model.users.findOne({
-    where: {
-      uuid: { [Op.eq]: userUuid }
-    }
-  }).then((response) => response.dataValues);
-
-  const GetUsersRootFolder = () => Model.users
-    .findAll({
-      include: [Model.folder]
-    }).then((user) => user.dataValues);
-
-  const UpdateMnemonic = async (userEmail, mnemonic) => {
-    const found = FindUserByEmail(userEmail);
-    if (found) {
-      try {
-        const user = await Model.users.update({ mnemonic },
-          { where: { email: { [Op.eq]: userEmail } }, validate: true });
-
-        return user;
-      } catch (errorResponse) {
-        throw new Error(errorResponse);
-      }
-    } else {
-      return null;
-    }
-  };
+  const GetUserCredit = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } }).then((response) => response.dataValues);
 
   const UpdateCredit = (userUuid) => {
     // Logger.info("€5 added to ", referral);
@@ -259,28 +206,25 @@ module.exports = (Model, App) => {
       },
       (data, next) => {
         const userEmail = data.data.email;
-        Model.users
-          .findOne({ where: { email: { [Op.eq]: userEmail } } }).then((user) => {
-            const referralUuid = user.referral;
-            if (uuid.validate(referralUuid)) {
-              DecrementCredit(referralUuid);
-            }
+        Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then((user) => {
+          const referralUuid = user.referral;
+          if (uuid.validate(referralUuid)) {
+            DecrementCredit(referralUuid);
+          }
 
-            user.destroy().then(() => {
-              analytics.track({
-                userId: user.uuid,
-                event: 'user-deactivation-confirm',
-                properties: {
-                  email: userEmail
-                }
-              });
-              Logger.info('User deleted on sql: %s', userEmail);
-              next(null, data);
-            }).catch((err) => {
-              Logger.error('Error deleting user on sql');
-              next(err);
+          user.destroy().then(() => {
+            analytics.track({
+              userId: user.uuid,
+              event: 'user-deactivation-confirm',
+              properties: { email: userEmail }
             });
-          }).catch(next);
+            Logger.info('User deleted on sql: %s', userEmail);
+            next(null, data);
+          }).catch((err) => {
+            Logger.error('Error deleting user on sql');
+            next(err);
+          });
+        }).catch(next);
       }
     ], (err, result) => {
       if (err) {
@@ -301,16 +245,15 @@ module.exports = (Model, App) => {
   const updatePrivateKey = (user, privateKey) => new Promise((resolve, reject) => {
     FindUserByEmail(user).then((userData) => {
       const idUser = userData.id;
-      Model.keyserver
-        .update({
-          private_key: privateKey
-        }, { where: { user_id: { [Op.eq]: idUser } } }).then((res) => {
-          Logger.info('Updated', res);
-          resolve();
-        }).catch((err) => {
-          Logger.error('error updating', err);
-          reject(Error('Error updating info'));
-        });
+      Model.keyserver.update({
+        private_key: privateKey
+      }, { where: { user_id: { [Op.eq]: idUser } } }).then((res) => {
+        Logger.info('Updated', res);
+        resolve();
+      }).catch((err) => {
+        Logger.error('error updating', err);
+        reject(Error('Error updating info'));
+      });
     }).catch((err) => {
       Logger.error(err);
       reject(Error('Internal server error'));
@@ -360,16 +303,6 @@ module.exports = (Model, App) => {
     return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
   };
 
-  const GetUserSync = async (user) => {
-    const userSyncDate = await Model.users.findOne({
-      where: { email: { [Op.eq]: user } },
-      attributes: ['syncDate'],
-      raw: true
-    });
-
-    return userSyncDate.syncDate;
-  };
-
   const GetUserBucket = (userObject) => Model.folder.findOne({
     where: {
       id: { [Op.eq]: userObject.root_folder_id }
@@ -377,20 +310,19 @@ module.exports = (Model, App) => {
     attributes: ['bucket']
   }).then((folder) => folder.bucket).catch(() => null);
 
-  // TODO: Check transaction is actually running
   const UpdateUserSync = async (user, toNull) => {
     let sync = null;
     if (!toNull) {
       sync = getSyncDate();
     }
 
-    await Model.users.update({ syncDate: sync }, { where: { email: user } });
+    await Model.users.update({ syncDate: sync }, { where: { email: user.email } });
 
     return sync;
   };
 
   const GetOrSetUserSync = async (user) => {
-    const currentSync = await GetUserSync(user);
+    const currentSync = user.syncDate;
     const userSyncEnded = hasUserSyncEnded(currentSync);
     if (!currentSync || userSyncEnded) {
       await UpdateUserSync(user, false);
@@ -409,16 +341,12 @@ module.exports = (Model, App) => {
   return {
     Name: 'User',
     FindOrCreate,
-    UpdateMnemonic,
-    UpdateStorageOption,
-    GetUserById,
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,
     FindUsersByReferred,
     InitializeUser,
     GetUserCredit,
-    GetUsersRootFolder,
     UpdateCredit,
     DecrementCredit,
     DeactivateUser,
