@@ -15,21 +15,20 @@ module.exports = (App, Config) => {
   // Disable X-Powered-By
   App.express.disable('x-powered-by');
 
-  var limiterKeyGenerator = function (req) {
+  const limiterKeyGenerator = (req) => {
     if (req.user && req.user.email) {
       return req.user.email;
-    } else {
-      return req.headers['X-Forwarded-For'] || req.ip;
     }
-  }
+    return req.headers['X-Forwarded-For'] || req.ip;
+  };
 
-  var limitSkipper = function (req, res, next) {
-    const whiteEndpoint = /^\/api\/storage\/share\/file\/(\w+)/
+  const limitSkipper = (req) => {
+    const whiteEndpoint = /^\/api\/storage\/share\/file\/(\w+)/;
     if (req.originalUrl.match(whiteEndpoint)) {
-      return true
+      return true;
     }
     return false;
-  }
+  };
 
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
@@ -52,40 +51,46 @@ module.exports = (App, Config) => {
   */
 
   App.express.use('/api/user/resend', rateLimit({
-    windowMs: 10 * 1000, max: 1,
+    windowMs: 10 * 1000,
+    max: 1,
     keyGenerator: limiterKeyGenerator
-  }))
+  }));
 
-  var downloadLimiter = slowDown({
+  const downloadLimiter = slowDown({
     delayAfter: 2,
     delayMs: 10000,
     maxDelayMs: 20000,
     skipFailedRequests: true,
     keyGenerator: limiterKeyGenerator,
     skip: limitSkipper
-  })
+  });
 
   /*
   App.express.use('/api/storage/share/', downloadLimiter);
   App.express.use('/api/storage/file/', downloadLimiter);
   */
 
+  App.express.use('/api/teams/team-invitations', rateLimit({
+    windowMs: 30 * 60 * 1000,
+    max: 10,
+    keyGenerator: limiterKeyGenerator
+  }));
+
   // enables cors
-  App.express.use(
-    cors({
-      allowedHeaders: [
-        'sessionId',
-        'Content-Type',
-        'Authorization',
-        'method',
-        'internxt-version',
-        'internxt-client',
-        'internxt-mnemonic'],
-      exposedHeaders: ['sessionId'],
-      origin: '*',
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-      preflightContinue: false,
-    }),
+  App.express.use(cors({
+    allowedHeaders: [
+      'sessionId',
+      'Content-Type',
+      'Authorization',
+      'method',
+      'internxt-version',
+      'internxt-client',
+      'internxt-mnemonic'],
+    exposedHeaders: ['sessionId'],
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false
+  })
   );
 
   App.express.use(bodyParser.json());
@@ -99,62 +104,56 @@ module.exports = (App, Config) => {
    */
   const passportOpts = {
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: Config.JWT,
+    secretOrKey: Config.JWT
   };
 
   /**
    * Passport strategy configuration.
    * Once JWT is granted, this middleware resolves the user info
    */
-  Passport.use(
-    new JwtStrategy(passportOpts, (payload, done) => {
-      /* Temporal compatibility with old JWT
-       * BEGIN
-       */
-      const COMPATIBILITY = true;
-      let email = payload;
-      if (typeof payload === 'object') {
-        email = payload.email;
-      } else if (!COMPATIBILITY) {
-        return done(new Error('Old JWT not supported'));
-      }
-      /* END
-       * After JWT migration, the email will be payload.email
-       * and delete this block + uncomment next line
-       */
+  Passport.use(new JwtStrategy(passportOpts, (payload, done) => {
+    /* Temporal compatibility with old JWT
+     * BEGIN
+     */
+    const COMPATIBILITY = true;
+    const email = typeof payload === 'object' ? payload.email : payload;
 
-      // const email = payload.email
+    if (!COMPATIBILITY) {
+      return done(new Error('Old JWT not supported'));
+    }
+    /* END
+     * After JWT migration, the email will be payload.email
+     * and delete this block + uncomment next line
+     */
 
-      App.services.User.FindUserObjByEmail(email)
-        .then((user) => done(null, user))
-        .catch((err) => {
-          done(err)
-        });
-    }),
+    // const email = payload.email
+
+    App.services.User.FindUserObjByEmail(email).then((user) => done(null, user)).catch((err) => {
+      done(err);
+    });
+  })
   );
 
   /**
    * Logger middleware.
    * Prints in console the used endpoints in real time.
    */
-  App.express.use(function (req, res, next) {
+  App.express.use((req, res, next) => {
     let user = null;
     if (req.headers.authorization) {
       try {
-        const x = jwt.decode(req.headers.authorization.split(" ")[1])
+        const x = jwt.decode(req.headers.authorization.split(' ')[1]);
         if (x.email) {
-          user = x.email
+          user = x.email;
         } else {
-          user = x
+          user = x;
         }
       } catch (e) {
-
+        // no op
       }
     }
 
-    App.logger.info(
-      `[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ' ' + user : ''}`,
-    );
+    App.logger.info(`[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ` ${user}` : ''}`);
     next();
   });
 };

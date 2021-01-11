@@ -4,8 +4,8 @@ module.exports = {
       name: 'drive-server',
       script: './app.js',
       env: {
-        NODE_ENV: 'staging',
-      },
-    },
-  ],
+        NODE_ENV: 'staging'
+      }
+    }
+  ]
 };
