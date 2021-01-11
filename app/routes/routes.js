@@ -267,13 +267,11 @@ module.exports = (Router, Service, App) => {
       // Call user service to find or create user
       Service.User.FindOrCreate(newUser).then((userData) => {
         // Process user data and answer API call
-        if (userData.isCreated) {
+        if (userData.isNewRecord) {
           if (hasReferral) {
             Service.Analytics.identify({
               userId: userData.uuid,
-              traits: {
-                referred_by: referrer.uuid
-              }
+              traits: { referred_by: referrer.uuid }
             });
           }
 

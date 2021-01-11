@@ -24,80 +24,76 @@ module.exports = (Model, App) => {
       throw new Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) => Model.users
-      .findOrCreate({
-        where: { email: user.email },
-        defaults: {
-          name: user.name,
-          lastname: user.lastname,
-          password: userPass,
-          mnemonic: user.mnemonic,
-          hKey: userSalt,
-          referral: user.referral,
-          uuid: null,
-          referred: user.referred,
-          credit: user.credit,
-          welcomePack: true
-        },
-        transaction: t
-      })
-      .spread(async (userResult, created) => {
-        if (created) {
-          if (user.publicKey && user.privateKey && user.revocationKey) {
-            Model.keyserver.findOrCreate({
-              where: { user_id: userResult.id },
-              defaults: {
-                user_id: user.id,
-                private_key: user.privateKey,
-                public_key: user.publicKey,
-                revocation_key: user.revocationKey,
-                encrypt_version: null
-              },
-              transaction: t
-            });
-          }
-
-          // Create bridge pass using email (because id is unconsistent)
-          const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
-
-          const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email,
-            bcryptId);
-
-          if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
-            throw Error(bridgeUser.response.data.error);
-          }
-
-          Logger.info('User Service | created brigde user: %s', userResult.email);
-          if (!bridgeUser.data) {
-            throw new Error('Error creating bridge user');
-          }
-
-          Logger.info('User Service | created brigde user: %s', userResult.email);
-
-          const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
-          // Store bcryptid on user register
-          await userResult.update({
-            userId: bcryptId,
-            isFreeTier: freeTier,
-            uuid: bridgeUser.data.uuid
-          }, { transaction: t });
-
-          // Set created flag for Frontend management
-          Object.assign(userResult, { isCreated: created });
+    return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
+      where: { email: user.email },
+      defaults: {
+        name: user.name,
+        lastname: user.lastname,
+        password: userPass,
+        mnemonic: user.mnemonic,
+        hKey: userSalt,
+        referral: user.referral,
+        uuid: null,
+        referred: user.referred,
+        credit: user.credit,
+        welcomePack: true
+      },
+      transaction: t
+    }).then(async ([userResult, isNewRecord]) => {
+      if (isNewRecord) {
+        if (user.publicKey && user.privateKey && user.revocationKey) {
+          Model.keyserver.findOrCreate({
+            where: { user_id: userResult.id },
+            defaults: {
+              user_id: user.id,
+              private_key: user.privateKey,
+              public_key: user.publicKey,
+              revocation_key: user.revocationKey,
+              encrypt_version: null
+            },
+            transaction: t
+          });
         }
 
-        // TODO: proveriti userId kao pass
-        return userResult;
-      }).catch((err) => {
-        if (err.response) {
-          // This happens when email is registered in bridge
-          Logger.error(err.response.data);
-        } else {
-          Logger.error(err.stack);
+        // Create bridge pass using email (because id is unconsistent)
+        const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
+
+        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+
+        if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
+          throw Error(bridgeUser.response.data.error);
         }
 
-        throw new Error(err);
-      })); // end transaction
+        if (!bridgeUser.data) {
+          throw new Error('Error creating bridge user');
+        }
+
+        Logger.info('User Service | created brigde user: %s', userResult.email);
+
+        const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
+        // Store bcryptid on user register
+        await userResult.update({
+          userId: bcryptId,
+          isFreeTier: freeTier,
+          uuid: bridgeUser.data.uuid
+        }, { transaction: t });
+
+        // Set created flag for Frontend management
+        Object.assign(userResult, { isNewRecord });
+      }
+
+      // TODO: proveriti userId kao pass
+      return userResult;
+    }).catch((err) => {
+      if (err.response) {
+        // This happens when email is registered in bridge
+        Logger.error(err.response.data);
+      } else {
+        Logger.error(err.stack);
+      }
+
+      throw new Error(err);
+    })); // end transaction
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
