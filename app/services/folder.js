@@ -235,6 +235,11 @@ module.exports = (Model, App) => {
 
     const res = await async.mapSeries(folderContents.children, async (folder) => {
       const subfolder = await GetTree(user, folder.id);
+      /*
+      // Server decrypted tree
+      const name = App.services.Crypt.decryptName(subfolder.name, subfolder.parentId);
+      subfolder.name = name;
+      */
       return subfolder;
     });
 
