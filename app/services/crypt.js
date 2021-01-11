@@ -36,6 +36,12 @@ module.exports = (Model, App) => {
     }
   }
 
+  function encryptTextWithKey(textToEncrypt, keyToEncrypt) {
+    const bytes = CryptoJS.AES.encrypt(textToEncrypt, keyToEncrypt).toString();
+    const text64 = CryptoJS.enc.Base64.parse(bytes);
+    return text64.toString(CryptoJS.enc.Hex);
+  }
+
   function deterministicEncryption(content, salt) {
     try {
       const key = CryptoJS.enc.Hex.parse(App.config.get('secrets').CRYPTO_SECRET);
@@ -155,6 +161,7 @@ module.exports = (Model, App) => {
     probabilisticEncryption,
     probabilisticDecryption,
     passToHash,
-    hashSha256
+    hashSha256,
+    encryptTextWithKey
   };
 };

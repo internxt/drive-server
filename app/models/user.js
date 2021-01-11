@@ -85,6 +85,10 @@ module.exports = (sequelize, DataTypes) => {
       welcomePack: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+      },
+      registerCompleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
       }
     },
     {

@@ -36,7 +36,8 @@ module.exports = (Model, App) => {
         uuid: null,
         referred: user.referred,
         credit: user.credit,
-        welcomePack: true
+        welcomePack: true,
+        registerCompleted: user.registerCompleted
       },
       transaction: t
     }).then(async ([userResult, isNewRecord]) => {

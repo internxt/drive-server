@@ -32,7 +32,7 @@ class Server {
     process.on('exit', this.handleExit.bind(this));
     process.on('uncaughtException', this.handleuncaughtException.bind(this));
 
-    this.logger.info(`Server started on port: ${port}`);
+    this.logger.info(`Server started on port: http://localhost:${port}`);
     this.logger.info(`Brigde location: ${this.config.get('STORJ_BRIDGE')}`);
   }
 
