@@ -1,62 +1,39 @@
 {
-  "parserOptions": {
-    "ecmaVersion": 2020,
-    "sourceType": "script",
-    "ecmaFeatures": {
-      "modules": false,
-      "globalReturn": true,
-      "experimentalObjectRestSpread": true
+    "env": {
+        "es6": true,
+        "browser": true
+    },
+    "extends": "airbnb-base",
+    "rules": {
+        "indent": [
+            "error",
+            2
+        ],
+        "linebreak-style": [
+            "error",
+            "unix"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "comma-dangle": [
+            "error",
+            "never"
+        ],
+        "max-len": [
+            "error",
+            {
+                "code": 150,
+                "ignoreComments": true
+            }
+        ],
+        "no-param-reassign": "off",
+        "arrow-body-style": "off",
+        "no-unused-expressions": "off"
     }
-  },
-  "extends": [
-    "airbnb-base",
-    "plugin:import/errors",
-    "plugin:import/warnings",
-    "plugin:node/recommended"
-  ],
-  "plugins": [],
-  "env": {
-    "node": true,
-    "commonjs": true,
-    "es6": true
-  },
-  "rules": {
-    "import/no-unresolved": ["error", { "commonjs": true, "amd": true }],
-    "import/named": "error",
-    "import/namespace": "error",
-    "import/default": "error",
-    "import/export": "error",
-    "import/no-named-as-default": "warn",
-    "import/no-named-as-default-member": "warn",
-    "import/order": ["error", { "newlines-between": "always" }],
-    "no-duplicate-imports": "error",
-    "import/no-duplicates": "error",
-    "eqeqeq": 1,
-    "no-console": 0,
-    "import/no-dynamic-require": 0,
-    "import/no-extraneous-dependencies": [
-      "error",
-      {
-        "devDependencies": false,
-        "optionalDependencies": false,
-        "peerDependencies": false
-      }
-    ],
-    "func-names": 0,
-    "no-unused-vars": 0,
-    "prefer-promise-reject-errors": 0,
-    "no-param-reassign": 0,
-    "global-require": 0,
-    "no-async-promise-executor": 0,
-    "node/no-missing-require": 0,
-    "node/no-extraneous-require": 0,
-    "comma-dangle": 0,
-    "newline-before-return": 1,
-    "padding-line-between-statements": [
-      2,
-      { "blankLine": "always", "prev": "*", "next": "return" },
-      { "blankLine": "always", "prev": "if", "next": "*" }
-    ],
-    "no-use-before-define": 0
-  }
 }

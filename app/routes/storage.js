@@ -1,19 +1,17 @@
 const fs = require('fs');
-const path = require('path');
 
 const rimraf = require('rimraf');
-const _ = require('lodash');
 const contentDisposition = require('content-disposition');
-const async = require('async');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
-const prettySize = require('prettysize')
-const mimeTypes = require('mime-types')
+const logger = require('../../lib/logger');
+
+const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, Logger, App) => {
+module.exports = (Router, Service, App) => {
   /**
    * @swagger
    * /storage/folder/:id:
@@ -30,20 +28,20 @@ module.exports = (Router, Service, Logger, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.get('/storage/folder/:id', passportAuth, (req, res) => {
+  Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
-    Service.Folder.GetContent(folderId, req.user)
-      .then((result) => {
-        if (result == null) {
-          res.status(500).send([]);
-        } else {
-          res.status(200).json(result);
-        }
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).json(err);
-      });
+    const teamId = req.params.idTeam || null;
+
+    Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
+      if (result == null) {
+        res.status(500).send([]);
+      } else {
+        res.status(200).json(result);
+      }
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.status(500).json(err);
+    });
   });
 
   /**
@@ -73,16 +71,12 @@ module.exports = (Router, Service, Logger, App) => {
     const folderId = req.params.folderid;
     const { metadata } = req.body;
 
-    Service.Folder.UpdateMetadata(user, folderId, metadata)
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((err) => {
-        Logger.error(
-          `Error updating metadata from folder ${folderId} : ${err}`
-        );
-        res.status(500).json(err.message);
-      });
+    Service.Folder.UpdateMetadata(user, folderId, metadata).then((result) => {
+      res.status(200).json(result);
+    }).catch((err) => {
+      Logger.error(`Error updating metadata from folder ${folderId} : ${err}`);
+      res.status(500).json(err.message);
+    });
   });
 
   /**
@@ -102,20 +96,17 @@ module.exports = (Router, Service, Logger, App) => {
    *         description: Array of folder items
    */
   Router.post('/storage/folder', passportAuth, (req, res) => {
-    const { folderName } = req.body;
-    const { parentFolderId } = req.body;
+    const { folderName, parentFolderId } = req.body;
 
     const { user } = req;
     user.mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Folder.Create(user, folderName, parentFolderId)
-      .then((result) => {
-        res.status(201).json(result);
-      })
-      .catch((err) => {
-        Logger.warn(err);
-        res.status(500).json({ error: err.message });
-      });
+    Service.Folder.Create(user, folderName, parentFolderId).then((result) => {
+      res.status(201).json(result);
+    }).catch((err) => {
+      Logger.warn(err);
+      res.status(500).json({ error: err.message });
+    });
   });
 
   /**
@@ -140,14 +131,12 @@ module.exports = (Router, Service, Logger, App) => {
     user.mnemonic = req.headers['internxt-mnemonic'];
     const folderId = req.params.id;
 
-    Service.Folder.Delete(user, folderId)
-      .then((result) => {
-        res.status(204).json(result);
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).json(err);
-      });
+    Service.Folder.Delete(user, folderId).then((result) => {
+      res.status(204).json(result);
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.status(500).json(err);
+    });
   });
 
   /**
@@ -173,24 +162,22 @@ module.exports = (Router, Service, Logger, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-
-    const extension = path.extname(xfile.originalname);
-
-    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
-      .then((result) => {
+    Service.Folder.isFolderOfTeam(folderId).then(() => {
+      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
         res.status(201).json(result);
-      })
-      .catch((err) => {
+      }).catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
         if (err.includes && err.includes('Bridge rate limit error')) {
           res.status(402).json({ message: err });
           return;
         }
-
         res.status(500).json({ message: err });
       });
-  }
-  );
+    }).catch((err) => {
+      Logger.error(`${err.message}\n${err.stack}`);
+      res.status(500).json({ message: err });
+    });
+  });
 
   /**
    * @swagger
@@ -219,13 +206,11 @@ module.exports = (Router, Service, Logger, App) => {
     const { destination } = req.body;
     const { user } = req;
 
-    Service.Folder.MoveFolder(user, folderId, destination)
-      .then((result) => {
-        res.status(200).json(result);
-      })
-      .catch((error) => {
-        res.status(500).json(error);
-      });
+    Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
+      res.status(200).json(result);
+    }).catch((error) => {
+      res.status(500).json(error);
+    });
   });
 
   /**
@@ -239,7 +224,6 @@ module.exports = (Router, Service, Logger, App) => {
 
     Service.Files.CreateFile(user, file).then((result) => {
       res.status(200).json(result);
-      const NOW = (new Date()).toISOString()
     }).catch((error) => {
       Logger.error(error);
       res.status(400).json({ message: error.message });
@@ -271,27 +255,28 @@ module.exports = (Router, Service, Logger, App) => {
       return res.status(500).send({ message: 'Missing file id' });
     }
 
-    return Service.Files.Download(user, fileIdInBucket)
-      .then(({ filestream, mimetype, downloadFile, folderId, name, type, raw, size }) => {
-        const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+    return Service.Files.Download(user, fileIdInBucket).then(({
+      filestream, mimetype, downloadFile, folderId, name, type, size
+    }) => {
+      const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
 
-        const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
-        const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+      const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
+      const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
-        res.setHeader('content-length', size);
-        res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
-        res.setHeader('content-type', mimetype);
-        res.set('x-file-name', decryptedFileNameB64);
-        filestream.pipe(res);
-        fs.unlink(downloadFile, (error) => {
-          if (error) throw error;
-        });
-      }).catch((err) => {
-        if (err.message === 'Bridge rate limit error') {
-          return res.status(402).json({ message: err.message });
-        }
-        return res.status(500).json({ message: err.message });
+      res.setHeader('content-length', size);
+      res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
+      res.setHeader('content-type', mimetype);
+      res.set('x-file-name', decryptedFileNameB64);
+      filestream.pipe(res);
+      fs.unlink(downloadFile, (error) => {
+        if (error) throw error;
       });
+    }).catch((err) => {
+      if (err.message === 'Bridge rate limit error') {
+        return res.status(402).json({ message: err.message });
+      }
+      return res.status(500).json({ message: err.message });
+    });
   });
 
   /**
@@ -356,9 +341,11 @@ module.exports = (Router, Service, Logger, App) => {
     const { destination } = req.body;
     const { user } = req;
 
-    Service.Files.MoveFile(user, fileId, destination)
-      .then((result) => { res.status(200).json(result) })
-      .catch((error) => { res.status(500).json(error) });
+    Service.Files.MoveFile(user, fileId, destination).then((result) => {
+      res.status(200).json(result);
+    }).catch((error) => {
+      res.status(500).json(error);
+    });
   });
 
   /*
@@ -389,41 +376,21 @@ module.exports = (Router, Service, Logger, App) => {
    * Delete file by database ids (mysql)
    */
   Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
-    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid)
-      .then(() => {
-        res.status(200).json({ deleted: true });
-      })
-      .catch((err) => {
-        console.error('Error deleting file:', err.message);
-        res.status(500).json({ error: err.message });
-      });
-  });
-
-  Router.post('/storage/shortLink', passportAuth, (req, res) => {
-    const user = req.user.email;
-    const { url } = req.body;
-
-    Service.Share.GenerateShortLink(user, url)
-      .then((shortLink) => { res.status(200).json(shortLink) })
-      .catch((err) => { res.status(500).json({ error: err.message }) });
+    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid).then(() => {
+      res.status(200).json({ deleted: true });
+    }).catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
   });
 
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
+    const itemId = req.params.id;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const { isFolder, views } = req.body;
 
-    if (req.headers['internxt-client'] === 'x-cloud-mobile' || req.headers['internxt-client'] === 'drive-mobile') {
-      if (!req.body.views) {
-      }
-    }
-
-    Service.Share.GenerateToken(
-      user,
-      req.params.id,
-      req.headers['internxt-mnemonic'],
-      req.body.isFolder,
-      req.body.views
-    ).then((result) => {
-      res.status(200).send(result);
+    Service.Share.GenerateToken(user, itemId, mnemonic, isFolder, views).then((result) => {
+      res.status(200).send({ token: result });
     }).catch((err) => {
       res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
     });
@@ -431,169 +398,77 @@ module.exports = (Router, Service, Logger, App) => {
 
   Router.get('/storage/share/:token', (req, res) => {
     Service.Share.FindOne(req.params.token).then((result) => {
-      Service.User.FindUserByEmail(result.user)
-        .then((userData) => {
-          const fileIdInBucket = result.file;
-          const isFolder = result.is_folder;
+      Service.User.FindUserByEmail(result.user).then((userData) => {
+        const fileIdInBucket = result.file;
+        const isFolder = result.is_folder;
 
-          userData.mnemonic = result.mnemonic;
+        userData.mnemonic = result.mnemonic;
 
-          if (isFolder) {
-            Service.Folder.GetTree({ email: result.user }, result.file)
-              .then((tree) => {
-                const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
-                const treeSize = Service.Folder.GetTreeSize(tree);
+        if (isFolder) {
+          Service.Folder.GetTree({
+            email: result.user
+          }, result.file).then((tree) => {
+            const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+            const treeSize = Service.Folder.GetTreeSize(tree);
 
-                if (treeSize <= maxAcceptableSize) {
-                  Service.Folder.Download(tree, userData)
-                    .then(() => {
-                      const folderName = App.services.Crypt.decryptName(
-                        tree.name,
-                        tree.parentId
-                      );
+            if (treeSize <= maxAcceptableSize) {
+              Service.Folder.Download(tree, userData).then(() => {
+                const folderName = App.services.Crypt.decryptName(tree.name,
+                  tree.parentId);
 
-                      Service.Folder.CreateZip(
-                        `./downloads/${tree.id}/${folderName}.zip`,
-                        [`downloads/${tree.id}/${folderName}`]
-                      );
+                Service.Folder.CreateZip(`./downloads/${tree.id}/${folderName}.zip`,
+                  [`downloads/${tree.id}/${folderName}`]);
 
-                      res.set('x-file-name', `${folderName}.zip`);
-                      res.download(
-                        `./downloads/${tree.id}/${folderName}.zip`
-                      );
+                res.set('x-file-name', `${folderName}.zip`);
+                res.download(`./downloads/${tree.id}/${folderName}.zip`);
 
-                      rimraf(`./downloads/${tree.id}`, () => {
-                        console.log('Folder removed after send zip');
-                      });
-                    })
-                    .catch((err) => {
-                      if (fs.existsSync(`./downloads/${tree.id}`)) {
-                        rimraf(`./downloads/${tree.id}`, () => {
-                          console.log('Folder removed after fail folder download');
-                        });
-                      }
-
-                      res
-                        .status(402)
-                        .json({ error: 'Error downloading folder' });
-                    });
-                } else {
-                  res.status(402).json({ error: 'Folder too large' });
-                }
-              })
-              .catch((err) => {
-                res.status(402).json({ error: 'Error downloading folder' });
-              });
-          } else {
-            Service.Files.Download(userData, fileIdInBucket)
-              .then(({
-                filestream, mimetype, downloadFile, folderId, name, type
-              }) => {
-                const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
-
-                res.setHeader('Content-type', mimetype);
-
-                const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
-                const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
-
-                res.setHeader('content-disposition', contentDisposition(encodedFileName));
-                res.set('x-file-name', decryptedFileNameB64);
-
-                filestream.pipe(res);
-                fs.unlink(downloadFile, (error) => {
-                  if (error) throw error;
-                });
-              })
-              .catch(({ message }) => {
-                if (message === 'Bridge rate limit error') {
-                  res.status(402).json({ message });
-
-                  return;
+                rimraf(`./downloads/${tree.id}`);
+              }).catch(() => {
+                if (fs.existsSync(`./downloads/${tree.id}`)) {
+                  rimraf(`./downloads/${tree.id}`);
                 }
 
-                res.status(500).json({ message });
+                res
+                  .status(402)
+                  .json({ error: 'Error downloading folder' });
               });
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          res.status(500).send({ error: 'User not found' });
-        });
-    })
-      .catch((err) => {
-        console.error('Error', err);
-        res.status(500).send({ error: 'Invalid token' });
+            } else {
+              res.status(402).json({ error: 'Folder too large' });
+            }
+          }).catch(() => {
+            res.status(402).json({ error: 'Error downloading folder' });
+          });
+        } else {
+          Service.Files.Download(userData, fileIdInBucket).then(({
+            filestream, mimetype, downloadFile, folderId, name, type
+          }) => {
+            const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
+
+            res.setHeader('Content-type', mimetype);
+
+            const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
+            const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
+
+            res.setHeader('content-disposition', contentDisposition(encodedFileName));
+            res.set('x-file-name', decryptedFileNameB64);
+
+            filestream.pipe(res);
+            fs.unlink(downloadFile, (error) => {
+              if (error) throw error;
+            });
+          }).catch(({ message }) => {
+            if (message === 'Bridge rate limit error') {
+              res.status(402).json({ message });
+              return;
+            }
+            res.status(500).json({ message });
+          });
+        }
+      }).catch(() => {
+        res.status(500).send({ error: 'User not found' });
       });
-  });
-
-  Router.post('/storage/sftp/list', passportAuth, (req, res) => {
-    const fsPath = req.body.path;
-
-    if (!fsPath) { return res.status(200).send({}); }
-
-    const replacedPath = fsPath.replace('\\', '/');
-    const normalizedPath = path.normalize(replacedPath);
-    const splittedPath = normalizedPath.split('/');
-    const filteredPath = splittedPath.filter((x) => x !== '');
-
-    if (filteredPath.length === 0) {
-      return Service.Folder.GetContent(req.user.root_folder_id, req.user)
-        .then((result) => {
-          if (result == null) {
-            res.status(500).send([]);
-          } else {
-            res.status(200).json(result);
-          }
-        })
-        .catch((err) => {
-          Logger.error(`${err.message}\n${err.stack}`);
-          res.status(500).json(err);
-        });
-    }
-
-    console.log('Sub-folders request is under construction', filteredPath);
-
-    const position = 0;
-
-    const findFolder = (folders, targetName) => new Promise((resolve, reject) => {
-      async.eachSeries(folders, (folder, nextFolder) => {
-        if (folder.name === targetName) { nextFolder('found', folder); } else { nextFolder(); }
-      }, (err, folder) => {
-        if (err === 'found') { resolve(folder); } else { reject(); }
-      });
+    }).catch(() => {
+      res.status(500).send({ error: 'Invalid token' });
     });
-
-    const getSubFolders = (folderId) => new Promise((resolve, reject) => {
-      Service.Folder.GetContent(folderId, req.user).then((result) => {
-        resolve(result.children);
-      }).catch((err) => {
-        reject(err);
-      });
-    });
-
-    const testUntil = (next) => {
-      next(null, position < filteredPath.length);
-    };
-
-    const currentFolderId = req.user.root_folder_id;
-
-    return 0;
-
-    /*
-    async.doDuring((err) => {
-      getSubFolders(currentFolderId).then((children) => {
-        findFolder(folders, filteredPath[position]).then((result) => {
-        }).catch((err1) => {
-          (() => { })(err1);
-        });
-      });
-    }, testUntil, (err2) => {
-      if (err2) {
-        res.status(500).send({ error: 'Folder does not exists' });
-      } else {
-        (() => { })();
-      }
-    });
-    */
   });
 };

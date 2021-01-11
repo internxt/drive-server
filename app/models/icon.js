@@ -1,22 +1,20 @@
 module.exports = (sequelize, DataTypes) => {
-  const icon = sequelize.define(
-    'icon',
+  const icon = sequelize.define('icon',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       name: {
-        type: DataTypes.STRING,
-      },
+        type: DataTypes.STRING
+      }
     },
     {
       timestamps: false,
-      underscored: true,
-    }
-  );
+      underscored: true
+    });
 
   return icon;
 };

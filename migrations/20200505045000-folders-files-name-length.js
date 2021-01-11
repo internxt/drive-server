@@ -4,11 +4,11 @@ module.exports = {
   up: (queryInterface, Sequelize) => {
     return Promise.all([
       queryInterface.changeColumn('files', 'name', {
-        type: Sequelize.STRING(512),
+        type: Sequelize.STRING(512)
       }),
       queryInterface.changeColumn('folders', 'name', {
-        type: Sequelize.STRING(512),
-      }),
+        type: Sequelize.STRING(512)
+      })
     ]);
   },
 
@@ -16,8 +16,8 @@ module.exports = {
     return Promise.all([
       queryInterface.changeColumn('files', 'name', { type: Sequelize.STRING }),
       queryInterface.changeColumn('folders', 'name', {
-        type: Sequelize.STRING,
-      }),
+        type: Sequelize.STRING
+      })
     ]);
-  },
+  }
 };

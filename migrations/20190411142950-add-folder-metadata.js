@@ -6,33 +6,32 @@ module.exports = {
           type: Sequelize.INTEGER,
           primaryKey: true,
           allowNull: false,
-          autoIncrement: true,
+          autoIncrement: true
         },
         name: {
-          type: Sequelize.STRING,
-        },
-      })
-      .then(() => {
+          type: Sequelize.STRING
+        }
+      }).then(() => {
         return Promise.all([
           queryInterface.addColumn('folders', 'icon_id', {
             type: Sequelize.INTEGER,
             references: {
               model: 'icons',
-              key: 'id',
-            },
+              key: 'id'
+            }
           }),
           queryInterface.addColumn('folders', 'color', {
-            type: Sequelize.STRING,
-          }),
+            type: Sequelize.STRING
+          })
         ]);
       });
   },
 
   down: (queryInterface, Sequelize) => {
     return queryInterface.removeColumn('folders', 'icon_id').then(() => {
-      return queryInterface.removeColumn('folders', 'color').then((res) => {
+      return queryInterface.removeColumn('folders', 'color').then(() => {
         return queryInterface.dropTable('icons');
       });
     });
-  },
+  }
 };

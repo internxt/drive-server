@@ -1,9 +1,8 @@
 require('dotenv').config();
 
-const expect = require('chai').expect;
+const { expect } = require('chai');
 const { describe, it } = require('mocha');
 const cryptService = require('../../app/services/crypt');
-const logger = require('../../lib/logger');
 
 const Config = require('../../config/config');
 const Server = require('../../config/initializers/server');
@@ -11,18 +10,17 @@ const Server = require('../../config/initializers/server');
 const App = new Server(new Config());
 
 const crypt = cryptService(null, App);
-const AesUtil = require('../../lib/AesUtil')
+const AesUtil = require('../../lib/AesUtil');
 
-
-describe('# Crypto tools', function () {
-  describe('random encription', function () {
-    it('should encrypt & decrypt', function () {
+describe('# Crypto tools', () => {
+  describe('random encription', () => {
+    it('should encrypt & decrypt', () => {
       const encryptName = crypt.probabilisticEncryption('name');
       const decryptName = crypt.probabilisticDecryption(encryptName);
       expect(decryptName).equals('name');
     });
 
-    it('should encrypt with random salt', function () {
+    it('should encrypt with random salt', () => {
       const encryptName1 = crypt.encryptName('name');
       const encryptName2 = crypt.encryptName('name');
 
@@ -35,8 +33,8 @@ describe('# Crypto tools', function () {
     });
   });
 
-  describe('deterministic encryption', function () {
-    it('should have a deterministic encryption without salt', function () {
+  describe('deterministic encryption', () => {
+    it('should have a deterministic encryption without salt', () => {
       const encryptName1 = crypt.deterministicEncryption('name');
       const encryptName2 = crypt.deterministicEncryption('name');
       expect(encryptName1).equals(encryptName2);
@@ -47,7 +45,7 @@ describe('# Crypto tools', function () {
       expect(decryptName2).equals('name');
     });
 
-    it('should have a deterministic encryption with salt', function () {
+    it('should have a deterministic encryption with salt', () => {
       const encryptName1 = crypt.deterministicEncryption('name');
       const encryptName2 = crypt.deterministicEncryption('name', '123');
       const encryptName3 = crypt.deterministicEncryption('name', '123');
@@ -60,23 +58,18 @@ describe('# Crypto tools', function () {
       expect(decryptName2).equals('name');
     });
 
-    it('should admit numeric salt', function () {
+    it('should admit numeric salt', () => {
       const saltString = '123';
       const saltNumber = 123;
 
-      const encryptNameString = crypt.deterministicEncryption(
-        'name',
-        saltString,
-      );
-      const encryptNameNumber = crypt.deterministicEncryption(
-        'name',
-        saltNumber,
-      );
+      const encryptNameString = crypt.deterministicEncryption('name',
+        saltString);
+      const encryptNameNumber = crypt.deterministicEncryption('name', saltNumber);
 
       expect(encryptNameString).equal(encryptNameNumber);
     });
 
-    it('should admit UTF8 special chars', function () {
+    it('should admit UTF8 special chars', () => {
       const unicodeString = '\u0065\u0301\uD83D\uDE00';
 
       const encrypted = crypt.deterministicEncryption(unicodeString);
@@ -86,8 +79,8 @@ describe('# Crypto tools', function () {
     });
   });
 
-  describe('transgenerational encryption/decryption', function () {
-    it('should use deterministic decription if salt is provided', function () {
+  describe('transgenerational encryption/decryption', () => {
+    it('should use deterministic decription if salt is provided', () => {
       const encryptName1 = crypt.encryptName('name');
       const encryptName2 = crypt.encryptName('name');
       const encryptName3 = crypt.encryptName('name', 123);
@@ -98,7 +91,7 @@ describe('# Crypto tools', function () {
       expect(encryptName3).equals(encryptName4);
     });
 
-    it('should use probabilistic decryption if deterministic decryption fails', function () {
+    it('should use probabilistic decryption if deterministic decryption fails', () => {
       const probEncrypt = crypt.probabilisticEncryption('name');
       const deterDecrypt = crypt.decryptName(probEncrypt, '123');
 
@@ -111,8 +104,8 @@ describe('# Crypto tools', function () {
     });
   });
 
-  describe('lab', function () {
-    it('should encryptName & encryptText be the same', function () {
+  describe('lab', () => {
+    it('should encryptName & encryptText be the same', () => {
       const encryptName = crypt.probabilisticEncryption('name');
       const encryptText = crypt.encryptText('name');
 
@@ -123,28 +116,28 @@ describe('# Crypto tools', function () {
     });
   });
 
-  describe('# AES new encryption', function () {
-    it('should be deterministic', function () {
-      const encrypt1 = AesUtil.encrypt('TEST', 0)
-      const encrypt2 = AesUtil.encrypt('TEST', 0)
-      expect(encrypt1).to.be.equals(encrypt2)
-    })
+  describe('# AES new encryption', () => {
+    it('should be deterministic', () => {
+      const encrypt1 = AesUtil.encrypt('TEST', 0);
+      const encrypt2 = AesUtil.encrypt('TEST', 0);
+      expect(encrypt1).to.be.equals(encrypt2);
+    });
 
-    it('should be able to generate random iv', function () {
-      const encrypt1 = AesUtil.encrypt('TEST', 0, true)
-      const encrypt2 = AesUtil.encrypt('TEST', 0, true)
+    it('should be able to generate random iv', () => {
+      const encrypt1 = AesUtil.encrypt('TEST', 0, true);
+      const encrypt2 = AesUtil.encrypt('TEST', 0, true);
 
-      const decrypt1 = AesUtil.decrypt(encrypt1, 0)
-      const decrypt2 = AesUtil.decrypt(encrypt2, 0)
+      const decrypt1 = AesUtil.decrypt(encrypt1, 0);
+      const decrypt2 = AesUtil.decrypt(encrypt2, 0);
 
       expect(encrypt1).to.be.not.equals(encrypt2);
       expect(decrypt1).to.be.equals(decrypt2);
-    })
+    });
 
-    it('should use AES as default encryption algorithm', function () {
+    it('should use AES as default encryption algorithm', () => {
       const encrypt1 = AesUtil.encrypt('TEST', 0);
       const encrypt2 = crypt.encryptName('TEST', 0);
       expect(encrypt1).to.be.equals(encrypt2);
-    })
-  })
+    });
+  });
 });

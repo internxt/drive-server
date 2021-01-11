@@ -5,23 +5,23 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER,
+        type: Sequelize.INTEGER
       },
       name: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING
       },
       price_eur: {
-        type: Sequelize.DECIMAL(10, 2),
+        type: Sequelize.DECIMAL(10, 2)
       },
       space_gb: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.INTEGER
       },
       stripe_plan_id: {
-        type: Sequelize.STRING,
-      },
+        type: Sequelize.STRING
+      }
     });
   },
   down: (queryInterface, Sequelize) => {
     return queryInterface.dropTable('plans');
-  },
+  }
 };

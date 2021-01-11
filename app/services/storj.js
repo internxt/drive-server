@@ -6,11 +6,12 @@ const axios = require('axios');
 const shortid = require('shortid');
 const { Environment } = require('storj');
 const mime = require('mime');
-const prettysize = require('prettysize')
+const prettysize = require('prettysize');
+const CryptService = require('./crypt');
 
 module.exports = (Model, App) => {
   const log = App.logger;
-  const CryptService = require('./crypt')(Model, App);
+  const CryptServiceInstance = CryptService(Model, App);
 
   function pwdToHex(pwd) {
     try {
@@ -39,7 +40,7 @@ module.exports = (Model, App) => {
         bridgeUser: email,
         bridgePass: password,
         encryptionKey: mnemonic,
-        logLevel: 0,
+        logLevel: 0
       });
     } catch (error) {
       log.error('[NODE-LIB getEnvironment]', error);
@@ -56,14 +57,12 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = {
       email,
-      password: hashPwd,
+      password: hashPwd
     };
 
     // Do api call
     return axios
-      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params)
-      .then((response) => response)
-      .catch((error) => error);
+      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((error) => error);
   };
 
   const IsUserActivated = (email) => {
@@ -71,10 +70,8 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json', email } };
 
     // Do api call
-    return axios.get(
-      `${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params
-    );
+    return axios.get(`${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
+      params);
   };
 
   const CreateBucket = (email, password, mnemonic, name) => {
@@ -121,12 +118,10 @@ module.exports = (Model, App) => {
     storj.storeFile(bucketId, filePath, {
       filename: fileName,
       progressCallback(progress, uploadedBytes, totalBytes) {
-        log.warn(
-          '[NODE-LIB %s] Upload Progress: %s (%s%%)',
+        log.warn('[NODE-LIB %s] Upload Progress: %s (%s%%)',
           user.email,
           prettysize(totalBytes),
-          (uploadedBytes * 100 / totalBytes).toFixed(2)
-        );
+          ((uploadedBytes * 100) / totalBytes).toFixed(2));
       },
       finishedCallback(err, fileId) {
         if (err) {
@@ -137,7 +132,7 @@ module.exports = (Model, App) => {
           storj.destroy();
           resolve({ fileId, size: actualFileSize });
         }
-      },
+      }
     });
   });
 
@@ -158,14 +153,12 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic);
       log.info(`Resolving file ${file.name}...`);
 
-      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
+      storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.warn(
-            '[NODE-LIB %s] Download Progress: %s (%s%%)',
+          log.warn('[NODE-LIB %s] Download Progress: %s (%s%%)',
             user.email,
             prettysize(totalBytes),
-            (downloadedBytes * 100 / totalBytes).toFixed(2)
-          );
+            ((downloadedBytes * 100) / totalBytes).toFixed(2));
         },
         finishedCallback: (err) => {
           if (err) {
@@ -179,17 +172,15 @@ module.exports = (Model, App) => {
             storj.destroy();
             resolve({ filestream, mimetype, downloadFile });
           }
-        },
+        }
       });
     });
   };
 
   const ResolveFolderFile = (user, file, path = './downloads') => {
     const downloadDir = path;
-    const decryptedFileName = CryptService.decryptName(
-      file.name,
-      file.folder_id
-    );
+    const decryptedFileName = CryptServiceInstance.decryptName(file.name,
+      file.folder_id);
     const downloadFile = `${downloadDir}/${decryptedFileName}.${file.type}`;
 
     if (!fs.existsSync(downloadDir)) {
@@ -205,14 +196,12 @@ module.exports = (Model, App) => {
       log.info(`Resolving file ${file.name}...`);
 
       // Storj call
-      const state = storj.resolveFile(file.bucket, file.fileId, downloadFile, {
+      storj.resolveFile(file.bucket, file.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
-          log.warn(
-            '[NODE-LIB] Download file progress: %s/%s (%s)',
+          log.warn('[NODE-LIB] Download file progress: %s/%s (%s)',
             downloadedBytes,
             totalBytes,
-            progress
-          );
+            progress);
         },
         finishedCallback: (err) => {
           if (err) {
@@ -226,7 +215,7 @@ module.exports = (Model, App) => {
             storj.destroy();
             resolve({ filestream, mimetype, downloadFile });
           }
-        },
+        }
       });
     });
   };
@@ -277,6 +266,6 @@ module.exports = (Model, App) => {
     ListBuckets,
     ListBucketFiles,
     IsUserActivated,
-    ResolveFolderFile,
+    ResolveFolderFile
   };
 };

@@ -1,65 +1,54 @@
 const path = require('path');
 
-const useragent = require('useragent');
 const async = require('async');
 
 const { passportAuth } = require('../middleware/passport');
 
-module.exports = (Router, Service, Logger, App) => {
+module.exports = (Router, Service) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
     const { user } = req;
 
-    Service.Folder.GetTree(user)
-      .then((result) => {
-        res.status(200).send(result);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
+    Service.Folder.GetTree(user).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
   });
 
   Router.get('/desktop/tree', passportAuth, (req, res) => {
     const { user } = req;
 
-    Service.Folder.GetFolders(user)
-      .then((result) => {
-        res.status(200).send(result);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
+    Service.Folder.GetFolders(user).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
   });
 
   Router.put('/user/sync', passportAuth, (req, res) => {
     const { user, body } = req;
-    res.setHeader('Content-Type', 'application/json');
-    Service.User.UpdateUserSync(user.email, body.toNull)
-      .then((result) => {
-        res.status(200).json({ data: result });
-      })
-      .catch((err) => {
-        res.status(500).json({ error: err.message });
-      });
+    Service.User.UpdateUserSync(user, body.toNull).then((result) => {
+      res.status(200).json({ data: result });
+    }).catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
   });
 
   Router.get('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
     res.setHeader('Content-Type', 'application/json');
-    Service.User.GetOrSetUserSync(user.email)
-      .then((result) => {
-        res.status(200).json({ data: result });
-      })
-      .catch((err) => {
-        console.log(err);
-        res.status(500).json({ error: err.message });
-      });
+    Service.User.GetOrSetUserSync(user).then((result) => {
+      res.status(200).json({ data: result });
+    }).catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
   });
 
   Router.delete('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
     Service.User.UnlockSync(user).then(() => {
       res.status(200).send();
-    }).catch((err) => {
+    }).catch(() => {
       res.status(500).send();
     });
   });
@@ -148,7 +137,7 @@ module.exports = (Router, Service, Logger, App) => {
           result.isFile = false;
           pathResults.push(result);
           nextFolder();
-        }).catch((err) => {
+        }).catch(() => {
           if (mkdirp) {
             Service.Folder.Create(req.user, targetFolder, lastFolderId).then((result) => {
               lastFolderId = result.id;
@@ -167,7 +156,7 @@ module.exports = (Router, Service, Logger, App) => {
           result.dataValues.isFile = true;
           pathResults.push(result);
           nextFolder();
-        }).catch((err) => {
+        }).catch(() => {
           nextFolder(Error('File does not exists'));
         });
       }

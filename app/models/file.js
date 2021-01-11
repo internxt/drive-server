@@ -1,36 +1,35 @@
 module.exports = (sequelize, DataTypes) => {
-  const file = sequelize.define(
-    'file',
+  const file = sequelize.define('file',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
       fileId: {
-        type: DataTypes.STRING(24),
+        type: DataTypes.STRING(24)
       },
       name: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       type: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING
       },
       size: {
-        type: DataTypes.BIGINT.UNSIGNED,
+        type: DataTypes.BIGINT.UNSIGNED
       },
       bucket: {
-        type: DataTypes.STRING(24),
+        type: DataTypes.STRING(24)
       },
       folder_id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.INTEGER
       },
       created_at: {
         type: DataTypes.VIRTUAL,
         get() {
           return this.getDataValue('createdAt');
-        },
+        }
       },
       encrypt_version: {
         type: DataTypes.STRING
@@ -39,11 +38,10 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: true,
       underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }],
-    }
-  );
+      indexes: [{ name: 'name', fields: ['name'] }]
+    });
 
-  file.associate = function (models) {
+  file.associate = (models) => {
     file.belongsTo(models.folder);
   };
 
