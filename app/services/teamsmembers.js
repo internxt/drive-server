@@ -8,7 +8,7 @@ module.exports = (Model) => {
      * @swagger
      * Function: Method remove members of DB
      */
-  const removeMembers = (member) => Model.teams_members.destroy({ where: { user: { [Op.eq]: member } } });
+  const removeMembers = (member) => Model.teamsmembers.destroy({ where: { user: { [Op.eq]: member } } });
 
   /**
      * @swagger
@@ -20,13 +20,13 @@ module.exports = (Model) => {
      * @swagger
      * Function: Method get info all team members with idTeam
      */
-  const getMembersByIdTeam = (idTeam) => Model.teams_members.findAll({ where: { id_team: { [Op.eq]: idTeam } } });
+  const getMembersByIdTeam = (idTeam) => Model.teamsmembers.findAll({ where: { id_team: { [Op.eq]: idTeam } } });
 
   /**
      * @swagger
      * Function: Method get info all invitations with idTeam
      */
-  const getInvitationsByIdTeam = (idTeam) => Model.team_invitations.findAll({ where: { id_team: { [Op.eq]: idTeam } } });
+  const getInvitationsByIdTeam = (idTeam) => Model.teamsinvitations.findAll({ where: { id_team: { [Op.eq]: idTeam } } });
 
   /**
      * @swagger
@@ -47,7 +47,7 @@ module.exports = (Model) => {
      * @swagger
      * Function: Method get info team members with the idTeam and the user (this method is used in the access)
      */
-  const getMemberByIdTeam = (idTeam, email) => Model.teams_members.findOne({
+  const getMemberByIdTeam = (idTeam, email) => Model.teamsmembers.findOne({
     where: {
       id_team: { [Op.eq]: idTeam },
       user: { [Op.eq]: email }
@@ -58,12 +58,12 @@ module.exports = (Model) => {
      * @swagger
      * Function: Method to add a team member(inclusive admin)
      */
-  const addTeamMember = (idTeam, userEmail, bridgePassword, bridgeMnemonic) => Model.teams_members.findOne({
+  const addTeamMember = (idTeam, userEmail, bridgePassword, bridgeMnemonic) => Model.teamsmembers.findOne({
     where: {
       id_team: { [Op.eq]: idTeam },
       user: { [Op.eq]: userEmail }
     }
-  }).then((teamMember) => (teamMember ? null : Model.teams_members.create({
+  }).then((teamMember) => (teamMember ? null : Model.teamsmembers.create({
     id_team: idTeam,
     user: userEmail,
     bridgePassword,
@@ -75,7 +75,7 @@ module.exports = (Model) => {
      * Function: Method to save the emails that are coming from of the invitations
      */
   const saveMembersFromInvitations = (invitedMembers) => new Promise((resolve, reject) => {
-    Model.teams_members.findOne({
+    Model.teamsmembers.findOne({
       where: {
         user: { [Op.eq]: invitedMembers.user },
         id_team: { [Op.eq]: invitedMembers.id_team },
@@ -86,7 +86,7 @@ module.exports = (Model) => {
       if (teamMember) {
         reject();
       }
-      Model.teams_members.create({
+      Model.teamsmembers.create({
         id_team: invitedMembers.id_team,
         user: invitedMembers.user,
         bridge_password: invitedMembers.bridge_password,

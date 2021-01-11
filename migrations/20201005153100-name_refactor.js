@@ -3,17 +3,17 @@ module.exports = {
     return Promise.all([
       queryInterface.renameColumn('teams', 'bridge_email', 'bridge_mnemonic'),
       queryInterface.renameColumn('teams', 'user', 'admin'),
-      queryInterface.removeColumn('team_invitations', 'is_used'),
-      queryInterface.removeColumn('teams_members', 'is_active')
+      queryInterface.removeColumn('teamsinvitations', 'is_used'),
+      queryInterface.removeColumn('teamsmembers', 'is_active')
     ]);
   },
 
   down: (queryInterface, Sequelize) => {
     return Promise.all([
-      queryInterface.addColumn('teams_members', 'is_active', {
+      queryInterface.addColumn('teamsmembers', 'is_active', {
         type: Sequelize.BOOLEAN
       }),
-      queryInterface.addColumn('team_invitations', 'is_used', {
+      queryInterface.addColumn('teamsinvitations', 'is_used', {
         type: Sequelize.BOOLEAN
       }),
       queryInterface.renameColumn('teams', 'admin', 'user'),

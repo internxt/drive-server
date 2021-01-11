@@ -306,7 +306,7 @@ module.exports = (Model, App) => {
   const GetContent = async (folderId, user, teamId = null) => {
     let teamMember = null;
     if (teamId) {
-      teamMember = await Model.teams_members.findOne({
+      teamMember = await Model.teamsmembers.findOne({
         where: {
           user: { [Op.eq]: user.email },
           id_team: { [Op.eq]: teamId }

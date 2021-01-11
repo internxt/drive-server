@@ -1,7 +1,7 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return Promise.all([
-      queryInterface.changeColumn('teams_members', 'bridge_password', {
+      queryInterface.changeColumn('teamsmembers', 'bridge_password', {
         type: Sequelize.STRING(2000)
       })
 
@@ -10,7 +10,7 @@ module.exports = {
 
   down: (queryInterface, Sequelize) => {
     return Promise.all([
-      queryInterface.changeColumn('teams_members', 'bridge_password', { type: Sequelize.STRING })
+      queryInterface.changeColumn('teamsmembers', 'bridge_password', { type: Sequelize.STRING })
 
     ]);
   }

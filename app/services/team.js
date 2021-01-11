@@ -49,7 +49,7 @@ module.exports = (Model, App) => {
     * @swagger
     * Function: Method to get info in TEAM MEMBERS with a user
     */
-  const getIdTeamByUser = (user) => Model.teams_members.findOne({ where: { user: { [Op.eq]: user } } });
+  const getIdTeamByUser = (user) => Model.teamsmembers.findOne({ where: { user: { [Op.eq]: user } } });
 
   /**
     * @swagger

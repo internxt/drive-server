@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const TeamsMembers = sequelize.define('teams_members',
+  const TeamsMembers = sequelize.define('teamsmembers',
     {
       id: {
         type: DataTypes.INTEGER,
