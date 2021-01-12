@@ -195,7 +195,8 @@ module.exports = (Router, Service, App) => {
           privateKey: keys ? keys.private_key : null,
           publicKey: keys ? keys.public_key : null,
           revocateKey: keys ? keys.revocation_key : null,
-          bucket: userBucket
+          bucket: userBucket,
+          registerCompleted: userData.registerCompleted
         };
 
         if (userTeam) {
