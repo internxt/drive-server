@@ -220,6 +220,44 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.get('/user/refresh', passportAuth, async (req, res) => {
+    const userData = req.user;
+    let keys = false;
+    try {
+      keys = await Service.Keyserver.keysExists(userData);
+    } catch (e) {
+      // no op
+    }
+    if (!keys && req.body.publicKey) {
+      await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+      keys = await Service.Keyserver.keysExists(userData);
+    }
+    const userBucket = await Service.User.GetUserBucket(userData);
+
+    const internxtClient = req.headers['internxt-client'];
+    const token = passport.Sign(userData.email,
+      App.config.get('secrets').JWT,
+      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+
+    const user = {
+      userId: userData.userId,
+      mnemonic: userData.mnemonic,
+      root_folder_id: userData.root_folder_id,
+      name: userData.name,
+      lastname: userData.lastname,
+      uuid: userData.uuid,
+      credit: userData.credit,
+      createdAt: userData.createdAt,
+      privateKey: keys ? keys.private_key : null,
+      publicKey: keys ? keys.public_key : null,
+      revocateKey: keys ? keys.revocation_key : null,
+      bucket: userBucket
+    };
+    res.status(200).json({
+      user, token
+    });
+  });
+
   /**
     * @swagger
     * /register:
