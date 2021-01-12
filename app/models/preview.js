@@ -1,15 +1,12 @@
 module.exports = (sequelize, DataTypes) => {
-  const photo = sequelize.define(
-    'photo',
+  const preview = sequelize.define(
+    'preview',
     {
       id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
         autoIncrement: true
-      },
-      photoId: {
-        type: DataTypes.STRING(24)
       },
       name: {
         type: DataTypes.STRING(512)
@@ -20,13 +17,20 @@ module.exports = (sequelize, DataTypes) => {
       size: {
         type: DataTypes.BIGINT.UNSIGNED
       },
-      bucketId: {
+      previewId: {
         type: DataTypes.STRING(24)
       },
-      userId: {
-        type: DataTypes.INTEGER,
-        reference: {
+      bucketId: {
+        type: DataTypes.STRING(24),
+        references: {
           model: 'usersphotos',
+          key: 'rootPreviewId'
+        }
+      },
+      photoId: {
+        type: DataTypes.INTEGER,
+        references: {
+          model: 'photos',
           key: 'id'
         }
       }
@@ -37,10 +41,10 @@ module.exports = (sequelize, DataTypes) => {
     }
   );
 
-  photo.associate = (models) => {
-    photo.belongsToMany(models.album, { through: 'photosalbums' });
-    photo.belongTo(models.user);
+  preview.associate = (models) => {
+    preview.belongsTo(models.usersphotos, { foreignKey: 'rootPreviewId' });
+    preview.belongsTo(models.photos);
   };
 
-  return photo;
+  return preview;
 };

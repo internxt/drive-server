@@ -6,44 +6,30 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true,
+        autoIncrement: true
       },
-      parent_id: {
-        type: DataTypes.INTEGER,
-        hierarchy: true,
-        get() {
-          return this.getDataValue('parentId');
-        },
+      parentId: {
+        type: DataTypes.INTEGER
       },
       name: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(512)
       },
-      bucket: {
-        type: DataTypes.STRING(24),
-      },
-      user_id: {
+      userId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id',
-        },
-        get() {
-          return this.getDataValue('userId');
-        },
-      },
-      encrypt_version: {
-        type: DataTypes.STRING
+          key: 'id'
+        }
       }
     },
     {
       timestamps: true,
-      underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }],
+      underscored: true
     }
   );
 
-  album.associate = function (models) {
-    album.hasMany(models.photo);
+  album.associate = (models) => {
+    album.belongsToMany(models.photo, { through: 'photosalbums' });
     album.belongsTo(models.users);
   };
 

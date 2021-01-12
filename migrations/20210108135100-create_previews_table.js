@@ -1,14 +1,11 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return queryInterface.createTable('photos', {
+    return queryInterface.createTable('previews', {
       id: {
         type: Sequelize.INTEGER,
         primaryKey: true,
         allowNull: false,
         autoIncrement: true
-      },
-      photo_id: {
-        type: Sequelize.STRING
       },
       name: {
         type: Sequelize.STRING
@@ -18,17 +15,11 @@ module.exports = {
       },
       size: {
         type: Sequelize.BIGINT.UNSIGNED
-      },
-      bucket_id: {
-        type: Sequelize.STRING
-      },
-      created_at: {
-        type: Sequelize.DATE
       }
     });
   },
 
   down: (queryInterface) => {
-    return queryInterface.dropTable('photos');
+    return queryInterface.dropTable('previews');
   }
 };
