@@ -138,7 +138,7 @@ module.exports = (Model, App) => {
 
   const ResolveFile = (user, file) => {
     const downloadDir = './downloads';
-    const shortFileName = file.fileId;
+    const shortFileName = `${shortid.generate()}_${file.fileId}`;
     const downloadFile = `${downloadDir}/${shortFileName}${file.type ? `.${file.type}` : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
