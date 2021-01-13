@@ -85,7 +85,7 @@ module.exports = (Model, App) => {
       token: newToken, mnemonic, file: fileIdInBucket, user, is_folder: isFolder, views
     });
 
-    return newShare;
+    return newShare.token;
   };
 
   return {
