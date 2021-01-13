@@ -14,6 +14,7 @@ const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
+const PhotosRoutes = require('./photos');
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -50,6 +51,10 @@ module.exports = (Router, Service, App) => {
   ExtraRoutes(Router, Service, App);
 
   TeamsRoutes(Router, Service, App);
+  // Routes used by Internxt Photos
+  PhotosRoutes(Router, Service, App);
+
+
 
   /**
    * @swagger
