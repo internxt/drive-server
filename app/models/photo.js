@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
 
   photo.associate = (models) => {
     photo.belongsToMany(models.album, { through: 'photosalbums' });
-    photo.hasOne(models.usersphotos);
+    photo.hasOne(models.usersphotos, { foreignKey: 'userId' });
   };
 
   return photo;
