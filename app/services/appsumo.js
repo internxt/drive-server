@@ -18,6 +18,9 @@ module.exports = (Model, App) => {
   };
 
   const RegisterIncomplete = async (email) => {
+    if (!email) {
+      throw Error('Not valid email address');
+    }
     const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
     const randomPassword = crypto.createHash('sha512')
       .update(randomSeed)

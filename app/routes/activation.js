@@ -3,7 +3,6 @@ const logger = require('../../lib/logger');
 
 const Logger = logger.getInstance();
 
-
 module.exports = (Router, Service) => {
   Router.get('/user/activations/:token', (req, res) => {
     Service.User.ActivateUser(req.params.token).then((response) => {

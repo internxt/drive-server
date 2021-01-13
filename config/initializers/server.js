@@ -25,7 +25,7 @@ class Server {
     const port = this.config.get('server:port');
     this.logger.info(`Starting Server on port ${port}`);
     this.logger.info(`Environment: "${process.env.NODE_ENV}"`);
-    this.instance = this.express.listen(port, callback);
+    this.instance = this.express.listen(port, 'localhost', callback);
     this.initDatabase();
 
     process.on('SIGINT', this.handleSIGINT.bind(this));
