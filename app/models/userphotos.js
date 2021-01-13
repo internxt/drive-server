@@ -40,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
     });
 
   UserPhotos.associate = (models) => {
-    UserPhotos.hasOne(models.user);
+    UserPhotos.hasOne(models.users);
     UserPhotos.hasOne(models.album);
     UserPhotos.hasOne(models.preview);
   };

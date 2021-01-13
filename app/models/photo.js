@@ -39,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
 
   photo.associate = (models) => {
     photo.belongsToMany(models.album, { through: 'photosalbums' });
-    photo.belongTo(models.user);
+    photo.hasOne(models.usersphotos);
   };
 
   return photo;

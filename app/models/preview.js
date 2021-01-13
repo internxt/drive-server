@@ -43,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
 
   preview.associate = (models) => {
     preview.belongsTo(models.usersphotos, { foreignKey: 'rootPreviewId' });
-    preview.belongsTo(models.photos);
+    preview.belongsTo(models.photo, { foreignKey: 'photoId' });
   };
 
   return preview;
