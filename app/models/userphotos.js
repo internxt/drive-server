@@ -27,6 +27,12 @@ module.exports = (sequelize, DataTypes) => {
           model: 'previews',
           key: 'id'
         }
+      },
+      createdAt: {
+        type: DataTypes.VIRTUAL
+      },
+      updatedAt: {
+        type: DataTypes.VIRTUAL
       }
     },
     {
@@ -40,9 +46,9 @@ module.exports = (sequelize, DataTypes) => {
     });
 
   UserPhotos.associate = (models) => {
-    UserPhotos.hasOne(models.users);
-    UserPhotos.hasOne(models.album);
-    UserPhotos.hasOne(models.preview);
+    UserPhotos.hasOne(models.users, { foreignKey: 'userId' });
+    UserPhotos.hasOne(models.album, { foreignKey: 'rootAlbumId' });
+    UserPhotos.hasOne(models.preview, { foreignKey: 'rootPreviewId' });
   };
 
   return UserPhotos;
