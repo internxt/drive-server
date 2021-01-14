@@ -39,7 +39,7 @@ module.exports = (Router, Service, App) => {
   *       204:
   *         description: User with this email exists
   */
-  Router.post('/photos/user/register', async (req, res) => {
+  Router.post('/photos/register', async (req, res) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
       req.body.email = req.body.email.toLowerCase().trim();
@@ -47,11 +47,12 @@ module.exports = (Router, Service, App) => {
 
       const newUser = req.body;
 
-      // Call user service to find or create user
+      // Call user service to find or create global user
       Service.UserPhotos.UserFindOrCreate(newUser)
-        .then((userData) => {
-          // Process user data and answer API call
-          if (userData.isCreated) {
+        .then(async (userData) => {
+          // Process user data and find or create Photos user
+          if (userData.isNewRecord) {
+            const photosUser = await Service.UserPhotos.UserPhotosFindOrCreate(userData);
             // Successfull register
             const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
             const user = { email: userData.email };
@@ -87,7 +88,7 @@ module.exports = (Router, Service, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/photos/user/login', (req, res) => {
+  Router.post('/photos/login', (req, res) => {
     req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
@@ -146,13 +147,13 @@ module.exports = (Router, Service, App) => {
    *       204:
    *         description: Wrong username or password
    */
-  Router.post('/photos/user/access', (req, res) => {
+  Router.post('/photos/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 3;
 
     console.log('/access', req.body.email);
     // Call user service to find or create user
     Service.UserPhotos.FindUserByEmail(req.body.email)
-      .then((userData) => {
+      .then(async (userData) => {
         if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
           res.status(500).send({
             error: 'Your account has been blocked for security reasons. Please reach out to us'
@@ -161,6 +162,8 @@ module.exports = (Router, Service, App) => {
           return;
         }
 
+        const userPhotos = await App.services.usersphotos.FindUserById(userData.id);
+
         // Process user data and answer API call
         const pass = App.services.Crypt.decryptText(req.body.password);
 
@@ -168,14 +171,14 @@ module.exports = (Router, Service, App) => {
         const needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
         let tfaResult = true;
 
-        if (needsTfa) {
+        /* if (needsTfa) {
           tfaResult = speakeasy.totp.verifyDelta({
             secret: userData.secret_2FA,
             token: req.body.tfa,
             encoding: 'base32',
             window: 2
           });
-        }
+        } */
 
         if (!tfaResult) {
           res.status(400).send({ error: 'Wrong 2-factor auth code' });
@@ -194,13 +197,14 @@ module.exports = (Router, Service, App) => {
 
           res.status(200).json({
             user: {
+              id: userData.id,
               userId: userData.userId,
               mnemonic: userData.mnemonic,
-              root_folder_id: userData.root_folder_id,
+              rootAlbumId: userPhotos.rootAlbumId,
+              rootPreviewId: userPhotos.rootPreviewId,
               name: userData.name,
               lastname: userData.lastname,
               uuid: userData.uuid,
-              credit: userData.credit,
               createdAt: userData.createdAt
             },
             token
@@ -237,17 +241,17 @@ module.exports = (Router, Service, App) => {
    *       204:
    *         description: User needs to be activated
    */
-  Router.post('/photos/user/initialize', (req, res) => {
+  Router.post('/photos/initialize', (req, res) => {
     // Call user service to find or create user
-    Service.UserPhotos.InitializeUser(req.body)
+    Service.UserPhotos.InitializeUserPhotos(req.body)
       .then(async (userData) => {
         // Process user data and answer API call
-        if (userData.root_album_id) {
+        if (userData.rootAlbumId) {
           // Successfull initialization
           const user = {
             email: userData.email,
             mnemonic: userData.mnemonic,
-            root_album_id: userData.root_album_id
+            rootAlbumId: userData.rootAlbumId
           };
 
           res.status(200).send({ user });

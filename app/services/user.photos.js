@@ -93,70 +93,23 @@ module.exports = (Model, App) => {
   };
 
   /**
-   * If not exists user on database, creates a new photos user entry.
+   * If not exists user on Photos database, creates a new photos user entry.
    */
-  const UserPhotosFindOrCreate = (user) => {
-    // Create password hashed pass only when a pass is given
-    const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
-    const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
-
-    // Throw error when user email. pass, salt or mnemonic is missing
-    if (!user.email || !userPass || !userSalt || !user.mnemonic) {
-      throw new Error('Wrong user registration data');
-    }
-
-    return Model.usersPhotos.sequelize.transaction(async (t) => Model.usersPhotos
+  const UserPhotosFindOrCreate = (newUser) => {
+    return Model.usersphotos.sequelize.transaction(async () => Model.usersphotos
       .findOrCreate({
-        where: { user_id: user.userId },
+        where: { user_id: newUser.id },
         defaults: {
-          name: user.name,
-          lastname: user.lastname,
-          password: userPass,
-          mnemonic: user.mnemonic,
-          hKey: userSalt,
-          referral: user.referral,
-          uuid: null,
-          referred: user.referred,
-          credit: user.credit,
-          welcomePack: true
-        },
-        transaction: t
+          userId: newUser.id,
+          rootAlbumId: null,
+          rootPreviewId: null
+        }
       })
-      .spread(async (userResult, created) => {
+      .then(async (userResult, created) => {
         if (created) {
-          // Create bridge pass using email (because id is unconsistent)
-          const bcryptId = await App.services.StorjPhotos.IdToBcrypt(
-            userResult.email
-          );
-
-          const bridgeUser = await App.services.StorjPhotos.RegisterBridgeUser(
-            userResult.email,
-            bcryptId
-          );
-
-          if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
-            throw Error(bridgeUser.response.data.error);
-          }
-
-          if (!bridgeUser.data) {
-            throw new Error('Error creating bridge user');
-          }
-
-          Logger.info('User Service | created brigde user: %s', userResult.email);
-
-          const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
-          // Store bcryptid on user register
-          await userResult.update({
-            userId: bcryptId,
-            isFreeTier: freeTier,
-            uuid: bridgeUser.data.uuid
-          }, { transaction: t });
-
           // Set created flag for Frontend management
           Object.assign(userResult, { isCreated: created });
         }
-
-        // TODO: proveriti userId kao pass
         return userResult;
       })
       .catch((err) => {
@@ -175,35 +128,54 @@ module.exports = (Model, App) => {
    * Create user bucket on the network when log in.
    * @param user
    */
-  const InitializeUserPhotos = (user) => Model.usersPhotos.sequelize.transaction((t) => Model.usersPhotos
-    .findOne({ where: { email: { [Op.eq]: user.email } } })
+  const InitializeUserPhotos = (user) => Model.usersphotos.sequelize.transaction((t) => Model.usersphotos
+    .findOne({ where: { userId: { [Op.eq]: user.userId } } })
     .then(async (userData) => {
-      if (userData.root_album_id) {
+      if (userData.rootAlbumId && userData.rootPreviewId) {
         userData.mnemonic = user.mnemonic;
 
         return userData;
       }
 
-      const rootBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic);
-      Logger.info('User init | Photos root bucket created %s', rootBucket.name);
+      const userInfo = await Model.users.findOne({
+        where: { id: { [Op.eq]: user.userId } }
+      });
+      if (userInfo) {
+        // Create photos bucket
+        const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic);
+        Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
 
-      const rootAlbumName = await App.services.Crypt.encryptName(`${rootBucket.name}`);
+        const rootAlbumName = await App.services.Crypt.encryptName(`${rootAlbumBucket.name}`);
 
-      const rootAlbum = await userData.createFolder({ name: rootAlbumName, bucket: rootBucket.id });
+        const rootAlbum = await userData.createFolder({ name: rootAlbumName, bucket: rootAlbumBucket.id });
 
-      Logger.info('User init | Photos root folder created, id: %s', rootAlbum.id);
+        Logger.info('User init | Root photos bucket created, id: %s', rootAlbum.id);
 
-      // Update user register with root folder Id
-      await userData.update(
-        { root_album_id: rootAlbum.id },
-        { transaction: t }
-      );
+        // Create previews bucket
+        const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic);
+        Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
-      // Set decrypted mnemonic to returning object
-      const updatedUser = userData;
-      updatedUser.mnemonic = user.mnemonic;
+        const rootPreviewName = await App.services.Crypt.encryptName(`${rootPreviewBucket.name}`);
 
-      return updatedUser;
+        const rootPreview = await userData.createFolder({ name: rootPreviewName, bucket: rootPreviewBucket.id });
+
+        Logger.info('User init | Root previews bucket created, id: %s', rootPreview.id);
+
+        // Update user register with root album Id
+        await userData.update(
+          {
+            rootAlbumId: rootAlbum.id,
+            rootPreviewId: rootPreview.id
+          },
+          { transaction: t }
+        );
+
+        // Set decrypted mnemonic to returning object
+        const updatedUser = userData;
+        updatedUser.mnemonic = user.mnemonic;
+
+        return updatedUser;
+      }
     })
     .catch((error) => {
       Logger.error(error.stack);
@@ -216,23 +188,11 @@ module.exports = (Model, App) => {
     }
   }).then((response) => response.dataValues);
 
-  const FindUserByEmail = (email) => new Promise((resolve, reject) => {
-    Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } })
-      .then((userData) => {
-        if (userData) {
-          const user = userData.dataValues;
-          if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
+  const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
 
-          resolve(user);
-        } else {
-          reject(Error('User not found on Inxt Photos database'));
-        }
-      })
-      .catch((err) => reject(err));
-  });
+  const FindUserByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
-  const FindUserByUuid = (userUuid) => Model.usersPhotos.findOne({
+  const FindUserByUuid = (userUuid) => Model.users.findOne({
     where: {
       uuid: { [Op.eq]: userUuid }
     }
@@ -254,6 +214,7 @@ module.exports = (Model, App) => {
     UserPhotosFindOrCreate,
     InitializeUserPhotos,
     GetUserById,
+    FindUserById,
     FindUserByEmail,
     FindUserByUuid,
     GetUserRootAlbum,
