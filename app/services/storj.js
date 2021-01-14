@@ -179,8 +179,7 @@ module.exports = (Model, App) => {
 
   const ResolveFolderFile = (user, file, path = './downloads') => {
     const downloadDir = path;
-    const decryptedFileName = CryptServiceInstance.decryptName(file.name,
-      file.folder_id);
+    const decryptedFileName = CryptServiceInstance.decryptName(file.name, file.folder_id);
     const downloadFile = `${downloadDir}/${decryptedFileName}.${file.type}`;
 
     if (!fs.existsSync(downloadDir)) {
