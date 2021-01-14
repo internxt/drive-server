@@ -14,6 +14,7 @@ const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
+const AppSumoRoutes = require('./appsumo');
 
 const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
@@ -50,6 +51,8 @@ module.exports = (Router, Service, App) => {
   ExtraRoutes(Router, Service, App);
 
   TeamsRoutes(Router, Service, App);
+
+  AppSumoRoutes(Router, Service, App);
 
   /**
    * @swagger
@@ -192,7 +195,8 @@ module.exports = (Router, Service, App) => {
           privateKey: keys ? keys.private_key : null,
           publicKey: keys ? keys.public_key : null,
           revocateKey: keys ? keys.revocation_key : null,
-          bucket: userBucket
+          bucket: userBucket,
+          registerCompleted: userData.registerCompleted
         };
 
         if (userTeam) {

@@ -1,9 +1,7 @@
-const passport = require('../middleware/passport');
+const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
 
 const Logger = logger.getInstance();
-
-const { passportAuth } = passport;
 
 module.exports = (Router, Service) => {
   Router.get('/user/activations/:token', (req, res) => {

@@ -36,7 +36,8 @@ module.exports = (Model, App) => {
         uuid: null,
         referred: user.referred,
         credit: user.credit,
-        welcomePack: true
+        welcomePack: true,
+        registerCompleted: user.registerCompleted
       },
       transaction: t
     }).then(async ([userResult, isNewRecord]) => {
@@ -238,23 +239,13 @@ module.exports = (Model, App) => {
   const Delete2FA = (user) => Model.users.update({ secret_2FA: null },
     { where: { email: { [Op.eq]: user } } });
 
-  const updatePrivateKey = (user, privateKey) => new Promise((resolve, reject) => {
-    FindUserByEmail(user).then((userData) => {
-      const idUser = userData.id;
-      Model.keyserver.update({
-        private_key: privateKey
-      }, { where: { user_id: { [Op.eq]: idUser } } }).then((res) => {
-        Logger.info('Updated', res);
-        resolve();
-      }).catch((err) => {
-        Logger.error('error updating', err);
-        reject(Error('Error updating info'));
-      });
-    }).catch((err) => {
-      Logger.error(err);
-      reject(Error('Internal server error'));
+  const updatePrivateKey = (user, privateKey) => {
+    return Model.keyserver.update({
+      private_key: privateKey
+    }, {
+      where: { user_id: { [Op.eq]: user.id } }
     });
-  });
+  };
 
   const UpdatePasswordMnemonic = async (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => {
     const storedPassword = user.password.toString();
@@ -267,7 +258,7 @@ module.exports = (Model, App) => {
       mnemonic,
       hKey: newSalt
     }, {
-      where: { email: { [Op.eq]: user } }
+      where: { email: { [Op.eq]: user.email } }
     });
 
     await updatePrivateKey(user, privateKey);

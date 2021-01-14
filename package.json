@@ -12,6 +12,7 @@
     "bcryptjs": "^2.4.3",
     "bip39": "^3.0.2",
     "body-parser": "^1.19.0",
+    "bytes": "^3.1.0",
     "content-disposition": "^0.5.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
@@ -48,7 +49,7 @@
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "cross-env NODE_ENV=development ./node_modules/.bin/nodemon app.js",
+    "dev": "cross-env NODE_ENV=development nodemon",
     "test": "./node_modules/.bin/mocha test/**/*.js",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
