@@ -1,8 +1,22 @@
 const crypto = require('crypto');
 const bip39 = require('bip39');
+const { default: axios } = require('axios');
+const bytes = require('bytes');
 
 const UserService = require('./user');
 const CryptService = require('./crypt');
+
+const AppSumoTiers = [
+  { name: 'internxt_tier1', size: '500GB' },
+  { name: 'internxt_tier2', size: '1TB' },
+  { name: 'internxt_tier3', size: '2TB' },
+  { name: 'internxt_tier4', size: '3TB' },
+  { name: 'internxt_tier5', size: '5TB' }
+];
+
+function GetLicenseByName(name) {
+  return AppSumoTiers.find((license) => license.name === name);
+}
 
 module.exports = (Model, App) => {
   const UserServiceInstance = UserService(Model, App);
@@ -13,8 +27,18 @@ module.exports = (Model, App) => {
     return !!user;
   };
 
-  const ApplyLicense = async () => {
-    return 'PATATA';
+  const ApplyLicense = async (user, plan) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    const license = GetLicenseByName(plan);
+    const size = bytes.parse(license.size);
+
+    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
+      email: user.email, bytes: size
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+    });
   };
 
   const RandomPassword = (email) => {
@@ -27,7 +51,7 @@ module.exports = (Model, App) => {
     return randomPassword;
   };
 
-  const RegisterIncomplete = async (email) => {
+  const RegisterIncomplete = async (email, plan) => {
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 
@@ -52,7 +76,7 @@ module.exports = (Model, App) => {
       registerCompleted: false
     };
 
-    return UserServiceInstance.FindOrCreate(userObject).then(ApplyLicense);
+    return UserServiceInstance.FindOrCreate(userObject).then((user) => ApplyLicense(user, plan));
   };
 
   const CompleteInfo = async (user, info) => {
