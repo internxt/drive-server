@@ -51,7 +51,7 @@ module.exports = (Model, App) => {
     return randomPassword;
   };
 
-  const RegisterIncomplete = async (email, plan) => {
+  const RegisterIncomplete = async (email, plan, uuid, invoice) => {
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 
@@ -76,7 +76,13 @@ module.exports = (Model, App) => {
       registerCompleted: false
     };
 
-    return UserServiceInstance.FindOrCreate(userObject).then((user) => ApplyLicense(user, plan));
+    const user = UserServiceInstance.FindOrCreate(userObject);
+    await user.createAppSumo({
+      planId: plan,
+      uuid,
+      invoiceItemUuid: invoice
+    });
+    return ApplyLicense(user, plan);
   };
 
   const CompleteInfo = async (user, info) => {
