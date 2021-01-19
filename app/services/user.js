@@ -140,7 +140,7 @@ module.exports = (Model, App) => {
 
           resolve(user);
         } else {
-          reject(Error('User not found on X Cloud database'));
+          reject(Error('User not found on Drive database'));
         }
       }).catch((err) => reject(err));
   });

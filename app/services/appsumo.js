@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bip39 = require('bip39');
 const { default: axios } = require('axios');
 const bytes = require('bytes');
+const { merge } = require('lodash');
 
 const UserService = require('./user');
 const CryptService = require('./crypt');
@@ -51,6 +52,17 @@ module.exports = (Model, App) => {
     return randomPassword;
   };
 
+  const updateOrCreate = async (model, where, values) => {
+    const exists = await model.findOne(where);
+    if (exists) {
+      return model.update(values, where);
+    }
+    const finalValues = merge(values, where.where);
+    return model.create(finalValues);
+  };
+
+  // EXAMPLE: updateOrCreate(Model.AppSumo, { where: { userId: 244 } }, { uuid: 'lol3', planId: 'plan3', invoiceItemUuid: 'invoice3' });
+
   const RegisterIncomplete = async (email, plan, uuid, invoice) => {
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
@@ -76,12 +88,15 @@ module.exports = (Model, App) => {
       registerCompleted: false
     };
 
-    const user = UserServiceInstance.FindOrCreate(userObject);
-    await user.createAppSumo({
+    const user = await UserServiceInstance.FindOrCreate(userObject);
+
+    const appSumoLicense = {
       planId: plan,
       uuid,
       invoiceItemUuid: invoice
-    });
+    };
+
+    await updateOrCreate(Model.AppSumo, { where: { userId: user.id } }, appSumoLicense);
     return ApplyLicense(user, plan);
   };
 
@@ -89,6 +104,7 @@ module.exports = (Model, App) => {
     if (user.registerCompleted) {
       throw Error('User info is up to date');
     }
+
     const cPassword = RandomPassword(user.email);
     const cSalt = user.hKey.toString();
     const hashedCurrentPassword = CryptServiceInstance.passToHash({ password: cPassword, salt: cSalt }).hash;
@@ -107,10 +123,29 @@ module.exports = (Model, App) => {
     return user.save();
   };
 
+  const UpdateLicense = async (email, newDetails) => {
+    const user = await Model.users.findOne({ where: { email } });
+    if (user) {
+      return updateOrCreate(Model.AppSumo, { where: { userId: user.id } }, newDetails);
+    }
+    return null;
+  };
+
+  const GetDetails = async (user) => {
+    return Model.AppSumo.findOne({ userId: user.id }).then((license) => {
+      if (!license) {
+        throw Error('No AppSumo license');
+      }
+      return license;
+    });
+  };
+
   return {
     Name: 'AppSumo',
     UserExists,
     RegisterIncomplete,
-    CompleteInfo
+    CompleteInfo,
+    GetDetails,
+    UpdateLicense
   };
 };
