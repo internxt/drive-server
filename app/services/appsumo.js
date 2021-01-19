@@ -132,7 +132,7 @@ module.exports = (Model, App) => {
   };
 
   const GetDetails = async (user) => {
-    return Model.AppSumo.findOne({ userId: user.id }).then((license) => {
+    return Model.AppSumo.findOne({ where: { userId: user.id } }).then((license) => {
       if (!license) {
         throw Error('No AppSumo license');
       }
