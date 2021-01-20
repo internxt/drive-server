@@ -7,7 +7,8 @@ const logger = Logger.getInstance();
 module.exports = (config) => {
   const instance = new Sequelize(config.name, config.user, config.password, {
     host: config.host,
-    dialect: 'mysql',
+    dialect: 'mariadb',
+    resetAfterUse: true,
     operatorsAliases: 0,
     logging: (content) => {
       const parse = content.match(/^(Executing \(.*\):) (.*)$/);
