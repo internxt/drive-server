@@ -443,15 +443,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/user/referred', passportAuth, (req, res) => {
-    const refUuid = req.user.uuid;
-
-    Service.User.FindUsersByReferred(refUuid).then((users) => res.status(200).send({ total: users })).catch((message) => {
-      Logger.error(message);
-      res.status(500).send({ error: 'No users' });
-    });
-  });
-
   Router.get('/user/credit', passportAuth, (req, res) => {
     const { user } = req;
     return res.status(200).send({ userCredit: user.credit });

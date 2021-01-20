@@ -82,7 +82,6 @@ module.exports = (Model, App) => {
       salt: encryptedSalt,
       referral: 'APPSUMO',
       uuid: null,
-      referred: null,
       credit: 0,
       welcomePack: true,
       registerCompleted: false

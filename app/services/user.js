@@ -34,7 +34,6 @@ module.exports = (Model, App) => {
         hKey: userSalt,
         referral: user.referral,
         uuid: null,
-        referred: user.referred,
         credit: user.credit,
         welcomePack: true,
         registerCompleted: user.registerCompleted
@@ -146,8 +145,6 @@ module.exports = (Model, App) => {
   });
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
-
-  const FindUsersByReferred = (referredUuid) => Model.users.findAll({ where: { referred: { [Op.eq]: referredUuid } } });
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
@@ -331,7 +328,6 @@ module.exports = (Model, App) => {
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,
-    FindUsersByReferred,
     InitializeUser,
     GetUserCredit,
     UpdateCredit,

@@ -75,9 +75,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true
       },
-      referred: {
-        type: DataTypes.STRING
-      },
       credit: {
         type: DataTypes.INTEGER,
         defaultValue: 0

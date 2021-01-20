@@ -5,7 +5,6 @@ module.exports = (Router, Service) => {
     Service.AppSumo.RegisterIncomplete(req.body.email, req.body.plan, req.body.uuid, req.body.invoice).then(() => {
       res.status(200).send();
     }).catch((err) => {
-      console.log(err);
       res.status(500).send({ error: err.message });
     });
   });
@@ -24,8 +23,6 @@ module.exports = (Router, Service) => {
       uuid: req.body.uuid,
       invoiceItemUuid: req.body.invoice_item_uuid
     };
-
-    console.log('BODY', req.body)
 
     Service.AppSumo.UpdateLicense(req.body.activation_email, parseParams).then(() => {
       res.status(200).send();
