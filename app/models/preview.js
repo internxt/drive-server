@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const preview = sequelize.define(
-    'preview',
+    'previews',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -43,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
 
   preview.associate = (models) => {
     preview.belongsTo(models.usersphotos, { foreignKey: 'rootPreviewId' });
-    preview.belongsTo(models.photo, { foreignKey: 'photoId' });
+    preview.belongsTo(models.photos, { foreignKey: 'photoId' });
   };
 
   return preview;

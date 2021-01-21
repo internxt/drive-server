@@ -47,8 +47,8 @@ module.exports = (sequelize, DataTypes) => {
 
   UserPhotos.associate = (models) => {
     UserPhotos.hasOne(models.users, { foreignKey: 'userId' });
-    UserPhotos.hasOne(models.album, { foreignKey: 'rootAlbumId' });
-    UserPhotos.hasOne(models.preview, { foreignKey: 'rootPreviewId' });
+    UserPhotos.hasMany(models.albums, { foreignKey: 'rootAlbumId' });
+    UserPhotos.hasOne(models.previews, { foreignKey: 'rootPreviewId' });
   };
 
   return UserPhotos;

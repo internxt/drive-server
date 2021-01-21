@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const album = sequelize.define(
-    'album',
+    'albums',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   album.associate = (models) => {
-    album.belongsToMany(models.photo, { through: 'photosalbums' });
+    album.belongsToMany(models.photos, { through: 'photosalbums' });
     album.belongsTo(models.users);
   };
 

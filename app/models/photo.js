@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const photo = sequelize.define(
-    'photo',
+    'photos',
     {
       id: {
         type: DataTypes.INTEGER,
@@ -44,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   photo.associate = (models) => {
-    photo.belongsToMany(models.album, { through: 'photosalbums' });
+    photo.belongsToMany(models.albums, { through: 'photosalbums' });
     photo.hasOne(models.usersphotos, { foreignKey: 'userId' });
   };
 
