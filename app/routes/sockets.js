@@ -41,17 +41,23 @@ function initShareListener(App, Service, socket) {
 
                   fileStream.on('end', () => {
                     socket.emit(`get-file-share-${content.token}-finished`);
-                    rimraf(`./downloads/${tree.id}`);
+                    rimraf(`./downloads/${tree.id}`, () => {
+                      // no op
+                    });
                   });
 
                   fileStream.on('error', (err) => {
                     console.log(err);
                     socket.emit(`get-file-share-${content.token}-error`);
-                    rimraf(`./downloads/${tree.id}`);
+                    rimraf(`./downloads/${tree.id}`, () => {
+                      // no op
+                    });
                   });
                 }).catch((err) => {
                   if (fs.existsSync(`./downloads/${tree.id}`)) {
-                    rimraf(`./downloads/${tree.id}`);
+                    rimraf(`./downloads/${tree.id}`, () => {
+                      // no op
+                    });
                   }
 
                   console.log(err);
