@@ -17,7 +17,6 @@ const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
 
 const passport = require('../middleware/passport');
-const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
 
@@ -27,12 +26,6 @@ const userTeam = null;
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service, App) => {
-  // Documentation
-  Router.get('/api-docs.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-  });
-
   // User account activation/deactivation
   ActivationRoutes(Router, Service, App);
   // Files/folders operations
