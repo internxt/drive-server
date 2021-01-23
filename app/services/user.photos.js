@@ -128,44 +128,33 @@ module.exports = (Model, App) => {
    * Create user bucket on the network when log in.
    * @param user
    */
-  const InitializeUserPhotos = (user) => Model.usersphotos.sequelize.transaction((t) => Model.usersphotos
-    .findOne({ where: { userId: { [Op.eq]: user.userId } } })
+  const InitializeUserPhotos = (user) => Model.usersphotos.sequelize.transaction((t) => Model.users
+    .findOne({ where: { email: { [Op.eq]: user.email } } })
     .then(async (userData) => {
-      if (userData.rootAlbumId && userData.rootPreviewId) {
+      const userPhotos = await Model.usersphotos.findOne({ where: { userId: { [Op.eq]: userData.id } } })
+
+      if (userPhotos.rootAlbumId && userPhotos.rootPreviewId) {
         userData.mnemonic = user.mnemonic;
+        userData.rootAlbumId = userPhotos.rootAlbumId;
+        userData.rootPreviewId = userPhotos.rootPreviewId;
 
         return userData;
       }
 
-      const userInfo = await Model.users.findOne({
-        where: { id: { [Op.eq]: user.userId } }
-      });
-      if (userInfo) {
+      if (userData) {
         // Create photos bucket
-        const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic);
+        const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
         Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
 
-        const rootAlbumName = await App.services.Crypt.encryptName(`${rootAlbumBucket.name}`);
-
-        const rootAlbum = await userData.createFolder({ name: rootAlbumName, bucket: rootAlbumBucket.id });
-
-        Logger.info('User init | Root photos bucket created, id: %s', rootAlbum.id);
-
         // Create previews bucket
-        const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic);
+        const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
         Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
-        const rootPreviewName = await App.services.Crypt.encryptName(`${rootPreviewBucket.name}`);
-
-        const rootPreview = await userData.createFolder({ name: rootPreviewName, bucket: rootPreviewBucket.id });
-
-        Logger.info('User init | Root previews bucket created, id: %s', rootPreview.id);
-
         // Update user register with root album Id
-        await userData.update(
+        await userPhotos.update(
           {
-            rootAlbumId: rootAlbum.id,
-            rootPreviewId: rootPreview.id
+            rootAlbumId: rootAlbumBucket.id,
+            rootPreviewId: rootPreviewBucket.id
           },
           { transaction: t }
         );

@@ -9,6 +9,7 @@ const AesUtil = require('../../lib/AesUtil');
 
 module.exports = (Model, App) => {
   const log = App.logger;
+
   const CreatePhoto = (user, pic) => new Promise((resolve, reject) => {
     if (!pic || !pic.id || !pic.bucket || !pic.size || !pic.album_id || !pic.name) {
       return reject(new Error('Invalid metadata for new photo'));
@@ -80,66 +81,66 @@ module.exports = (Model, App) => {
       const sanitizedPicname = SanitizeFilename(picName);
 
       if (picName !== sanitizedPicname) {
-        throw Error('Cannot upload, invalid pic name');
+        throw Error('Cannot upload, invalid photo name');
       }
 
-      log.info(`Starting pic upload: ${picName}`);
+      log.info(`Starting photo upload: ${picName}`);
 
       const rootAlbum = Model.album.findOne({
-        where: { id: { [Op.eq]: user.root_album_id } }
+        where: { id: { [Op.eq]: user.rootAlbumId } }
       });
       const album = Model.album.findOne({
         where: { id: { [Op.eq]: albumId } }
       });
 
-      if (!rootAlbum.bucket) return reject(Error('Missing pic bucket'));
+      if (!rootAlbum.bucket) return reject(Error('Missing photo bucket'));
 
       // Separate filename from extension
-      const picNameParts = path.parse(picName);
-      const picExt = picNameParts.ext ? picNameParts.ext.substring(1) : '';
+      const photoNameParts = path.parse(picName);
+      const photoExt = photoNameParts.ext ? photoNameParts.ext.substring(1) : '';
 
-      let encryptedPicName = App.services.Crypt.encryptName(picNameParts.name, albumId);
+      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, albumId);
 
       // Check if photo already exists.
       const exists = Model.photo.findOne({
         where: {
-          name: { [Op.eq]: encryptedPicName },
+          name: { [Op.eq]: encryptedPhotoName },
           album_id: { [Op.eq]: albumId },
-          type: { [Op.eq]: picExt }
+          type: { [Op.eq]: photoExt }
         }
       });
 
       // Change name if exists
-      let originalEncryptedPicName;
+      let originalEncryptedPhotoName;
       let newName;
       if (exists) {
-        newName = GetNewMoveName(albumId, picNameParts.name, picExt);
-        encryptedPicName = newName.cryptedName;
-        originalEncryptedPicName = App.services.Crypt.encryptName(
+        newName = GetNewMoveName(albumId, photoNameParts.name, photoExt);
+        encryptedPhotoName = newName.cryptedName;
+        originalEncryptedPhotoName = App.services.Crypt.encryptName(
           newName.name,
           albumId
         );
       }
 
-      originalEncryptedPicName = originalEncryptedPicName
-        || App.services.Crypt.encryptName(picNameParts.name, albumId);
-      const originalEncryptedPicNameWithExt = `${originalEncryptedPicName}${picExt ? `.${picExt}` : ''}`;
+      originalEncryptedPhotoName = originalEncryptedPhotoName
+        || App.services.Crypt.encryptName(photoNameParts.name, albumId);
+      const originalEncryptedPhotoNameWithExt = `${originalEncryptedPhotoName}${photoExt ? `.${photoExt}` : ''}`;
       log.info('Uploading photo to network...');
 
-      return App.services.Storj.StoreFile(
+      return App.services.StorjPhotos.StorePhoto(
         user,
         rootAlbum.bucket,
-        originalEncryptedPicNameWithExt,
+        originalEncryptedPhotoNameWithExt,
         picPath
-      ).then(async ({ picId, size }) => {
-        if (!picId) return reject(Error('Missing pic id'));
+      ).then(async ({ photoId, size }) => {
+        if (!photoId) return reject(Error('Missing pic id'));
 
         if (!size) return reject(Error('Missing pic size'));
 
         const newPicInfo = {
-          name: encryptedPicName,
-          type: picExt,
-          picId,
+          name: encryptedPhotoName,
+          type: photoExt,
+          photoId,
           bucket: rootAlbum.bucket,
           size
         };
