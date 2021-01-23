@@ -8,16 +8,13 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         autoIncrement: true
       },
-      parentId: {
-        type: DataTypes.INTEGER
-      },
       name: {
-        type: DataTypes.STRING(512)
+        type: DataTypes.STRING
       },
       userId: {
         type: DataTypes.INTEGER,
         references: {
-          model: 'users',
+          model: 'usersphotos',
           key: 'id'
         }
       }
@@ -30,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
 
   album.associate = (models) => {
     album.belongsToMany(models.photos, { through: 'photosalbums' });
-    album.belongsTo(models.users);
+    album.belongsTo(models.usersphotos, { foreignKey: 'userId' });
   };
 
   return album;

@@ -8,7 +8,7 @@ module.exports = {
         autoIncrement: true
       },
       user_id: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.INTEGER(60),
         references: {
           model: 'users',
           key: 'id'

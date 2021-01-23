@@ -5,7 +5,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         references: {
           model: 'usersphotos',
-          key: 'user_id'
+          key: 'id'
         }
       })
     ]);

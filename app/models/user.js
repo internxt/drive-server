@@ -99,7 +99,7 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.hasMany(models.folder);
-    User.hasOne(models.usersphotos)
+    User.hasOne(models.usersphotos);
   };
 
   return User;

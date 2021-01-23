@@ -7,11 +7,8 @@ module.exports = {
         allowNull: false,
         autoIncrement: true
       },
-      parent_id: {
-        type: Sequelize.INTEGER
-      },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(512)
       },
       user_id: {
         type: Sequelize.INTEGER,

@@ -9,19 +9,19 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true
       },
       photoId: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING
       },
       name: {
-        type: DataTypes.STRING(512)
+        type: DataTypes.STRING
       },
       type: {
-        type: DataTypes.STRING(50)
+        type: DataTypes.STRING
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED
       },
       bucketId: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING
       },
       userId: {
         type: DataTypes.INTEGER,

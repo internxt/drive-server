@@ -8,10 +8,10 @@ module.exports = {
         autoIncrement: true
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(512)
       },
       type: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(50)
       },
       size: {
         type: Sequelize.BIGINT.UNSIGNED

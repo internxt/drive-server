@@ -8,25 +8,17 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true
       },
       userId: {
-        type: DataTypes.STRING(60),
+        type: DataTypes.STRING,
         references: {
           model: 'users',
           key: 'id'
         }
       },
       rootAlbumId: {
-        type: DataTypes.INTEGER,
-        references: {
-          model: 'albums',
-          key: 'id'
-        }
+        type: DataTypes.STRING
       },
       rootPreviewId: {
-        type: DataTypes.INTEGER,
-        references: {
-          model: 'previews',
-          key: 'id'
-        }
+        type: DataTypes.STRING
       },
       createdAt: {
         type: DataTypes.VIRTUAL
@@ -38,17 +30,10 @@ module.exports = (sequelize, DataTypes) => {
     {
       timestamps: true,
       underscored: true
-    },
-    {
-      defaultScope: {
-        attributes: { exclude: ['userId'] }
-      }
     });
 
   UserPhotos.associate = (models) => {
-    UserPhotos.hasOne(models.users, { foreignKey: 'userId' });
-    UserPhotos.hasMany(models.albums, { foreignKey: 'rootAlbumId' });
-    UserPhotos.hasOne(models.previews, { foreignKey: 'rootPreviewId' });
+    UserPhotos.belongsTo(models.users, { foreignKey: 'userId' });
   };
 
   return UserPhotos;

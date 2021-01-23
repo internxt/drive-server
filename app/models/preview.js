@@ -9,29 +9,29 @@ module.exports = (sequelize, DataTypes) => {
         autoIncrement: true
       },
       name: {
-        type: DataTypes.STRING(512)
+        type: DataTypes.STRING
       },
       type: {
-        type: DataTypes.STRING(50)
+        type: DataTypes.STRING
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED
       },
       previewId: {
-        type: DataTypes.STRING(24)
-      },
-      bucketId: {
-        type: DataTypes.STRING(24),
-        references: {
-          model: 'usersphotos',
-          key: 'rootPreviewId'
-        }
+        type: DataTypes.STRING
       },
       photoId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'photos',
           key: 'id'
+        }
+      },
+      bucketId: {
+        type: DataTypes.STRING(24),
+        references: {
+          model: 'usersphotos',
+          key: 'rootPreviewId'
         }
       }
     },
@@ -42,7 +42,6 @@ module.exports = (sequelize, DataTypes) => {
   );
 
   preview.associate = (models) => {
-    preview.belongsTo(models.usersphotos, { foreignKey: 'rootPreviewId' });
     preview.belongsTo(models.photos, { foreignKey: 'photoId' });
   };
 

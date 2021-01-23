@@ -2,18 +2,10 @@ module.exports = {
   up: (queryInterface, Sequelize) => {
     return Promise.all([
       queryInterface.addColumn('usersphotos', 'root_album_id', {
-        type: Sequelize.INTEGER,
-        references: {
-          model: 'albums',
-          key: 'id'
-        }
+        type: Sequelize.STRING(24)
       }),
       queryInterface.addColumn('usersphotos', 'root_preview_id', {
-        type: Sequelize.INTEGER,
-        references: {
-          model: 'previews',
-          key: 'id'
-        }
+        type: Sequelize.STRING(24)
       })
     ]);
   },

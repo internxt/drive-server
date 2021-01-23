@@ -8,22 +8,19 @@ module.exports = {
         autoIncrement: true
       },
       photo_id: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(24)
       },
       name: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(512)
       },
       type: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING(50)
       },
       size: {
         type: Sequelize.BIGINT.UNSIGNED
       },
       bucket_id: {
-        type: Sequelize.STRING
-      },
-      created_at: {
-        type: Sequelize.DATE
+        type: Sequelize.STRING(24)
       }
     });
   },
