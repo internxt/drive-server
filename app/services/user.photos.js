@@ -129,14 +129,12 @@ module.exports = (Model, App) => {
    * @param user
    */
   const InitializeUserPhotos = (user) => Model.usersphotos.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } } })
+    .findOne({ where: { email: { [Op.eq]: user.email } }, include: [{ model: Model.usersphotos }] })
     .then(async (userData) => {
-      const userPhotos = await Model.usersphotos.findOne({ where: { userId: { [Op.eq]: userData.id } } })
-
-      if (userPhotos.rootAlbumId && userPhotos.rootPreviewId) {
+      if (userData.usersphoto.rootAlbumId && userData.usersphoto.rootPreviewId && userData.usersphoto.deleteFolderId) {
         userData.mnemonic = user.mnemonic;
-        userData.rootAlbumId = userPhotos.rootAlbumId;
-        userData.rootPreviewId = userPhotos.rootPreviewId;
+        userData.rootAlbumId = userData.usersphoto.rootAlbumId;
+        userData.rootPreviewId = userData.usersphoto.rootPreviewId;
 
         return userData;
       }
@@ -150,11 +148,14 @@ module.exports = (Model, App) => {
         const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
         Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
+        const deleteFolder = await App.services.Photos.CreateAlbum(userData.usersphoto.id);
         // Update user register with root album Id
+        const userPhotos = await Model.usersphotos.findOne({ where: { userId: { [Op.eq]: userData.id } } });
         await userPhotos.update(
           {
             rootAlbumId: rootAlbumBucket.id,
-            rootPreviewId: rootPreviewBucket.id
+            rootPreviewId: rootPreviewBucket.id,
+            deleteFolderId: deleteFolder.id
           },
           { transaction: t }
         );
@@ -179,7 +180,12 @@ module.exports = (Model, App) => {
 
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
 
-  const FindUserByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+  const FindUserByEmail = (email) => Model.users.findOne({
+    where: { email: { [Op.eq]: email } },
+    include: [
+      { model: Model.usersphotos }
+    ]
+  });
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({
     where: {

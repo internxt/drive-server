@@ -164,7 +164,7 @@ module.exports = (Router, Service, App) => {
 
           return;
         }
-        console.log("USERDATA", userData)
+        console.log("USERDATA", userData);
         let userPhotos = await App.services.UserPhotos.FindUserById(userData.id);
 
         if (!userPhotos) {
@@ -195,26 +195,23 @@ module.exports = (Router, Service, App) => {
           const token = passport.Sign(
             userData.email,
             App.config.get('secrets').JWT,
-            'inxt-photos'
-            // internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
+            'inxt-photos',
+            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web'
           );
 
           // Service.UserPhotos.LoginFailed(req.body.email, false);
           // Service.UserPhotos.UpdateAccountActivity(req.body.email);
 
-          console.log("MNEMONIC", userData.mnemonic.toString());
 
           res.status(200).json({
             user: {
-              id: userData.id,
-              userId: userData.userId,
+              email: userData.email,
               mnemonic: userData.mnemonic.toString(),
               rootAlbumId: userPhotos.rootAlbumId,
               rootPreviewId: userPhotos.rootPreviewId,
               name: userData.name,
               lastname: userData.lastname,
-              uuid: userData.uuid,
-              createdAt: userData.createdAt
+              uuid: userData.uuid
             },
             token
           });
@@ -255,12 +252,14 @@ module.exports = (Router, Service, App) => {
     Service.UserPhotos.InitializeUserPhotos(req.body)
       .then(async (userData) => {
         // Process user data and answer API call
-        if (userData.rootAlbumId) {
+        if (userData.rootAlbumId && userData.rootPreviewId && userData.deleteFolderId) {
           // Successfull initialization
           const user = {
             email: userData.email,
             mnemonic: userData.mnemonic,
-            rootAlbumId: userData.rootAlbumId
+            rootAlbumId: userData.rootAlbumId,
+            rootPreviewId: userData.rootPreviewId,
+            deleteFolderId: userData.deleteFolderId
           };
 
           res.status(200).send({ user });
@@ -300,6 +299,101 @@ module.exports = (Router, Service, App) => {
         log.error(error.stack);
         res.status(500).json({ error: error.message });
       });
+  });
+
+  /**
+   * @swagger
+   * /storage/photo/:id:
+   *   post:
+   *     description: Download photo
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: photoId
+   *         description: ID of photo in XCloud
+   *         in: query
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Uploaded object
+   */
+  Router.get('/photos/storage/albums/:email', passportAuth, (req, res) => {
+    const { email } = req.params;
+
+    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const albumList = await Service.Photos.GetAlbumList(userData.usersphoto.id);
+      console.log('ALBUM LIST', albumList)
+      res.status(200).send(albumList);
+    }).catch((err) => {
+      log.error('[GET ALBUMS]', err);
+      res.status(500).json({ error: err.message });
+    });
+  });
+
+  Router.get('/photos/storage/previews/:email', passportAuth, (req, res) => {
+    const { email } = req.params;
+    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const allPhotos = await Service.Photos.GetAllPhotos(userData, userData.usersphoto.rootPreviewId);
+
+      console.log('ALL PREVIEWS:-------------', allPhotos);
+
+      res.status(200).send(allPhotos);
+    }).catch((err) => {
+      log.error('[GET ALL]', err);
+      res.status(500).json({ error: err.message });
+    });
+  });
+
+  Router.get('/photos/storage/delete/:email', passportAuth, (req, res) => {
+    const { email } = req.params;
+
+    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const deletedPhotos = await Service.Photos.GetDeletedPhotos(userData.usersphoto.deleteFolderId);
+
+      console.log('ALL DELETED', deletedPhotos);
+
+      if (deletedPhotos.length > 20) {
+        const preview = deletedPhotos.split(0, 19);
+        res.status(200).send(preview);
+      } else {
+        res.status(200).send(deletedPhotos);
+      }
+    }).catch((err) => {
+      log.error('[GET DELETED]', err);
+      res.status(500).json({ error: err.message });
+    });
+  });
+
+  /**
+   * @swagger
+   * /storage/folder/:id:
+   *   post:
+   *     description: Get folder contents.
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: folderId
+   *         description: ID of folder in XCloud
+   *         in: query
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Array of folder items
+   */
+  Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
+    const folderId = req.params.id;
+    const teamId = req.params.idTeam || null;
+
+    Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
+      if (result == null) {
+        res.status(500).send([]);
+      } else {
+        res.status(200).json(result);
+      }
+    }).catch((err) => {
+      log.error(`${err.message}\n${err.stack}`);
+      res.status(500).json(err);
+    });
   });
 
   /**

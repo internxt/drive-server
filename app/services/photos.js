@@ -10,6 +10,50 @@ const AesUtil = require('../../lib/AesUtil');
 module.exports = (Model, App) => {
   const log = App.logger;
 
+
+  // TODO: Encryption
+  const mapChildrenNames = (album = []) => album.map((child) => {
+    child.name = App.services.Crypt.decryptName(child.name, child.parentId);
+    child.children = mapChildrenNames(child.children);
+
+    return child;
+  });
+
+  const GetAlbumContent = async (albumId, user) => {
+    const result = await Model.album.findOne({
+      where: {
+        id: { [Op.eq]: albumId }
+      }
+    });
+
+    const photos = result.getPhotosalbum;
+
+    // Null result implies empty album.
+    // TODO: Should send an error to be handled and showed on website.
+
+    if (photos !== null) {
+      // result.name = App.services.Crypt.decryptName(result.name, result.parentId);
+      // result.children = mapChildrenNames(result.children);
+      // result.photos = result.photos.map((photo) => {
+      // photo.name = `${App.services.Crypt.decryptName(photo.name, photo.  d)}`;
+
+      // return photo;
+    };
+
+    return photos;
+  };
+
+  const CreateAlbum = (userId, name) => new Promise((resolve, reject) => {
+    return Model.albums.create({
+      user_id: userId,
+      name
+    }).then(resolve)
+      .catch((err) => {
+        console.log('Error creating album', err);
+        reject(Error('Unable to create album in database'));
+      });
+  });
+
   const CreatePhoto = (user, pic) => new Promise((resolve, reject) => {
     if (!pic || !pic.id || !pic.bucket || !pic.size || !pic.album_id || !pic.name) {
       return reject(new Error('Invalid metadata for new photo'));
@@ -237,18 +281,66 @@ module.exports = (Model, App) => {
     return { cryptedName: nextCryptedName, name: nextName };
   };
 
-  const ListAllPhotos = (user, bucketId) => new Promise((resolve, reject) => {
-    App.services.StorjPhotos.ListBucketPhotos(user, bucketId)
+  const GetAllPhotos = (user, previewsBucketId) => new Promise((resolve, reject) => {
+    App.services.StorjPhotos.ListBucketContent(user, previewsBucketId)
       .then(resolve)
       .catch((err) => reject(err.message));
   });
 
+  const GetAlbumList = (userId) => new Promise((resolve, reject) => {
+    return Model.albums.findAll({
+      where: { user_id: { [Op.eq]: userId } }
+    }).then(async (albumList) => {
+      await albumList.map(async (album) => {
+        const albumPhotos = await Model.photosalbum.findAll({
+          where: { album_id: { [Op.eq]: album.id } }
+        });
+
+        if (albumPhotos.length > 12) {
+          const albumPreview = albumPhotos.split(0, 11);
+          album.albumPreview = albumPreview;
+        } else {
+          album.albumPreview = albumPhotos;
+        }
+      });
+      resolve(albumList);
+    }).catch((err) => {
+      reject(err.message);
+    });
+  });
+
+  const GetDeletedPhotos = (deleteFolderId) => new Promise((resolve, reject) => {
+    return Model.albums.findOne({
+      where: { album_id: { [Op.eq]: deleteFolderId } }
+    }).then((albumPhotos) => {
+      if (albumPhotos.getPhotosalbum.length > 20) {
+        const albumPreview = albumPhotos.getPhotosalbum.split(0, 20);
+        resolve(albumPreview);
+      } else {
+        const previews = albumPhotos.getPhotosalbum;
+        resolve(previews);
+      }
+    }).catch((err) => {
+      reject(err.message);
+    });
+  });
+
+  const FindAlbumById = (albumId) => Model.albums.findOne({ where: { id: { [Op.eq]: albumId } } });
+
+  const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
+
   return {
     Name: 'Photos',
     CreatePhoto,
+    CreateAlbum,
     UploadPhoto,
     DownloadPhoto,
     GetNewMoveName,
-    ListAllPhotos
+    GetAlbumContent,
+    FindAlbumById,
+    FindPhotoById,
+    GetAlbumList,
+    GetAllPhotos,
+    GetDeletedPhotos
   };
 };

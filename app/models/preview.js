@@ -28,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
         }
       },
       bucketId: {
-        type: DataTypes.STRING(24),
+        type: DataTypes.STRING,
         references: {
           model: 'usersphotos',
           key: 'rootPreviewId'

@@ -20,11 +20,9 @@ module.exports = (sequelize, DataTypes) => {
       rootPreviewId: {
         type: DataTypes.STRING
       },
-      createdAt: {
-        type: DataTypes.VIRTUAL
-      },
-      updatedAt: {
-        type: DataTypes.VIRTUAL
+      deleteFolderId: {
+        type: DataTypes.INTEGER,
+        allowNull: true
       }
     },
     {

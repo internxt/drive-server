@@ -96,11 +96,23 @@ module.exports = (Model, App) => {
       params);
   };
 
+  const ListBucketContent = (user, bucketId) => new Promise((resolve, reject) => {
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+    storj.listFiles(bucketId, (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result);
+      }
+    });
+  });
+
   return {
     Name: 'StorjPhotos',
     IsUserActivated,
     CreatePhotosBucket,
     StorePhoto,
-    IdToBcrypt
+    IdToBcrypt,
+    ListBucketContent
   };
 };

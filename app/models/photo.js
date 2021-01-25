@@ -29,12 +29,6 @@ module.exports = (sequelize, DataTypes) => {
           model: 'usersphotos',
           key: 'id'
         }
-      },
-      createdAt: {
-        type: DataTypes.VIRTUAL
-      },
-      updatedAt: {
-        type: DataTypes.VIRTUAL
       }
     },
     {
