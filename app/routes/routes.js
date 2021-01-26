@@ -20,7 +20,6 @@ const passport = require('../middleware/passport');
 const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
-const { initSocketServer } = require('./sockets');
 
 const { passportAuth } = passport;
 const userTeam = null;
@@ -54,8 +53,6 @@ module.exports = (Router, Service, App) => {
   TeamsRoutes(Router, Service, App);
 
   AppSumoRoutes(Router, Service, App);
-
-  initSocketServer(Service, App);
 
   /**
    * @swagger
