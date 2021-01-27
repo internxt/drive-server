@@ -1,13 +1,11 @@
 const path = require('path');
 
-const swaggerJSDoc = require('swagger-jsdoc');
-
 const routes = path.join(process.cwd(), 'app/routes/index.js');
 
 const options = {
   swaggerDefinition: {
     info: {
-      title: 'XCloud', // Title (required)
+      title: 'Drive Server', // Title (required)
       version: '1.0.0' // Version (required)
     }
   },
@@ -15,4 +13,4 @@ const options = {
 };
 
 // Initialize swagger-jsdoc -> returns validated swagger spec in json format
-module.exports = swaggerJSDoc(options);
+module.exports = options;

@@ -74,9 +74,8 @@ module.exports = (Model, App) => {
   }
 
   function encryptName(name, salt) {
-    if (salt) {
-      const encryptedResult = AesUtil.encrypt(name, salt, !salt);
-
+    if (salt !== undefined) {
+      const encryptedResult = AesUtil.encrypt(name, salt, salt === undefined);
       return encryptedResult;
     }
 
