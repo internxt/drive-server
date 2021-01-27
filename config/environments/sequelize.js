@@ -2,8 +2,8 @@ module.exports = {
   development: {
     dialect: 'mariadb',
     database: 'xcloud_server_dev',
-    username: 'developer',
-    password: 'asdf1234',
+    username: 'root',
+    password: '',
     host: 'localhost'
   },
   test: {

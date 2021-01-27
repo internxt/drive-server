@@ -47,7 +47,7 @@ module.exports = (App, Service, socket) => {
                   fileStream.on('error', (err) => {
                     App.logger.info('Socket: Error streaming the file');
                     App.logger.info(err);
-                    socket.emit(`get-file-share-${content.token}-error`);
+                    socket.emit(`get-file-share-${content.token}-error`, 'File stream error');
                     rimraf(`./downloads/${tree.id}`, () => {
                       // no op
                     });
@@ -59,16 +59,16 @@ module.exports = (App, Service, socket) => {
                     });
                   }
                   App.logger.info(err);
-                  socket.emit(`get-file-share-${content.token}-error`);
+                  socket.emit(`get-file-share-${content.token}-error`, 'Folder download error');
                 });
               } else {
                 App.logger.info('Socket: file too large!');
-                socket.emit(`get-file-share-${content.token}-error`);
+                socket.emit(`get-file-share-${content.token}-error`, 'File too large error');
               }
             }).catch((err) => {
               App.logger.info(err);
               App.logger.info('Error downloading folder');
-              socket.emit(`get-file-share-${content.token}-error`);
+              socket.emit(`get-file-share-${content.token}-error`, 'Error downloading folder');
             });
           } else {
             socket.emit(`get-file-share-${content.token}-step-downloading-from-net`);
@@ -97,7 +97,7 @@ module.exports = (App, Service, socket) => {
 
               filestream.on('error', (err) => {
                 App.logger.info(err);
-                socket.emit(`get-file-share-${content.token}-error`);
+                socket.emit(`get-file-share-${content.token}-error`, 'File stream error');
                 fs.unlink(downloadFile, (error) => {
                   if (error) throw error;
                 });
@@ -105,7 +105,7 @@ module.exports = (App, Service, socket) => {
             }).catch(({ message }) => {
               if (message === 'Bridge rate limit error') {
                 App.logger.info('Bridge rate limit error');
-                socket.emit(`get-file-share-${content.token}-error`);
+                socket.emit(`get-file-share-${content.token}-error`, 'Bridge rate limit error');
                 return;
               }
               socket.emit(`get-file-share-${content.token}-error`, message);
@@ -114,12 +114,12 @@ module.exports = (App, Service, socket) => {
         }).catch((err) => {
           App.logger.info(err);
           App.logger.info('User not found');
-          socket.emit(`get-file-share-${content.token}-error`);
+          socket.emit(`get-file-share-${content.token}-error`, 'User not found');
         });
       }).catch((err) => {
         App.logger.info(err);
         App.logger.info('Invalid token');
-        socket.emit(`get-file-share-${content.token}-error`);
+        socket.emit(`get-file-share-${content.token}-error`, 'Invalid token');
       });
     }
   });
