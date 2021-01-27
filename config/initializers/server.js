@@ -78,6 +78,12 @@ class Server {
     this.logger.info('Middleware OK');
   }
 
+  initSocketServer(SocketServer) {
+    this.logger.info('Initializing socket server');
+    SocketServer(this, this.services);
+    this.logger.info('Socket Server OK');
+  }
+
   initRoutes(Router) {
     const routesPrefix = '/api';
     this.logger.info(`Initializing and mounting routes to ${routesPrefix}`);
