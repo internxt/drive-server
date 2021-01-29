@@ -10,7 +10,6 @@ const AesUtil = require('../../lib/AesUtil');
 module.exports = (Model, App) => {
   const log = App.logger;
 
-
   // TODO: Encryption
   const mapChildrenNames = (album = []) => album.map((child) => {
     child.name = App.services.Crypt.decryptName(child.name, child.parentId);
@@ -54,155 +53,125 @@ module.exports = (Model, App) => {
       });
   });
 
-  const CreatePhoto = (user, pic) => new Promise((resolve, reject) => {
-    if (!pic || !pic.id || !pic.bucket || !pic.size || !pic.album_id || !pic.name) {
+  const CreatePhoto = (user, photo) => new Promise((resolve, reject) => {
+    if (!photo || !photo.id || !photo.size || !photo.name) {
       return reject(new Error('Invalid metadata for new photo'));
     }
+    const photoInfo = {
+      id: photo.id,
+      photoId: null,
+      name: photo.name,
+      type: photo.type,
+      size: photo.size,
+      bucketId: user.rootAlbumId,
+      userId: user.id
+    };
 
-    return Model.album.findOne({
-      where: {
-        id: { [Op.eq]: pic.album_id },
-        user_id: { [Op.eq]: user.id }
-      }
-    }).then(async (album) => {
-      if (!album) {
-        return reject(new Error('Album not found / Is not your album'));
-      }
+    /* try {
+      AesUtil.decrypt(pic.name, pic.id);
+      photoInfo.encrypt_version = '03-aes';
+    } catch (e) {
+      (() => { })(e);
+    } */
 
-      const picExists = await Model.photo.findOne({
-        where: {
-          name: { [Op.eq]: pic.name },
-          album_id: { [Op.eq]: album.id },
-          type: { [Op.eq]: pic.type }
-        }
-      });
+    if (photo.date) {
+      photoInfo.createdAt = photo.date;
+    }
 
-      if (picExists) {
-        return reject(new Error('Photo entry already exists'));
-      }
-
-      const photoInfo = {
-        id: pic.id,
-        name: pic.name,
-        type: pic.type,
-        size: pic.size,
-        album_id: pic.album_id,
-        bucket: pic.bucket
-        // encrypt_version: pic.encrypt_version
-      };
-
-      /* try {
-        AesUtil.decrypt(pic.name, pic.id);
-        photoInfo.encrypt_version = '03-aes';
-      } catch (e) {
-        (() => { })(e);
-      } */
-
-      if (pic.date) {
-        photoInfo.createdAt = pic.date;
-      }
-
-      return Model.photo
-        .create(photoInfo)
-        .then(resolve)
-        .catch((err) => {
-          console.log('Error creating entry', err);
-          reject(Error('Unable to create photo in database'));
-        });
-    })
+    return Model.photo
+      .create(photoInfo)
+      .then((newPhoto) => resolve(newPhoto))
       .catch((err) => {
-        console.log('Other error', err);
-        reject(Error(`Cannot find bucket ${pic.album_id}`));
+        console.log('Error creating entry', err);
+        reject(Error('Unable to create photo in database'));
       });
   });
 
-  const UploadPhoto = (user, albumId, picName, picPath) => new Promise((resolve, reject) => {
+  const AddPhotoToAlbum = (photoId, albumId, user) => new Promise((resolve, reject) => {
+    Model.album.findOne({
+      where: {
+        id: { [Op.eq]: albumId },
+        userId: { [Op.eq]: user.id }
+      }
+    }).then(resolve).catch((err) => {
+      reject(Error('Unable to create photoalbum in database'));
+    });
+  });
+
+  const Upload = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
     try {
       if (user.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
       }
+      const { deleteFolderId } = userPhotos.usersphoto;
 
-      const sanitizedPicname = SanitizeFilename(picName);
+      const sanitizedPicname = SanitizeFilename(photoName);
 
-      if (picName !== sanitizedPicname) {
+      if (photoName !== sanitizedPicname) {
         throw Error('Cannot upload, invalid photo name');
       }
 
-      log.info(`Starting photo upload: ${picName}`);
-
-      const rootAlbum = Model.album.findOne({
-        where: { id: { [Op.eq]: user.rootAlbumId } }
-      });
-      const album = Model.album.findOne({
-        where: { id: { [Op.eq]: albumId } }
-      });
-
-      if (!rootAlbum.bucket) return reject(Error('Missing photo bucket'));
+      log.info(`Starting photo upload: ${photoName}`);
 
       // Separate filename from extension
-      const photoNameParts = path.parse(picName);
+      const photoNameParts = path.parse(photoName);
       const photoExt = photoNameParts.ext ? photoNameParts.ext.substring(1) : '';
 
-      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, albumId);
+      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, deleteFolderId);
+      console.log("cryptname--", encryptedPhotoName);
 
       // Check if photo already exists.
-      const exists = Model.photo.findOne({
+      /* const exists = Model.photo.findOne({
         where: {
           name: { [Op.eq]: encryptedPhotoName },
           album_id: { [Op.eq]: albumId },
           type: { [Op.eq]: photoExt }
         }
-      });
+      }); */
 
       // Change name if exists
       let originalEncryptedPhotoName;
       let newName;
-      if (exists) {
+      /* if (exists) {
         newName = GetNewMoveName(albumId, photoNameParts.name, photoExt);
         encryptedPhotoName = newName.cryptedName;
         originalEncryptedPhotoName = App.services.Crypt.encryptName(
           newName.name,
           albumId
         );
-      }
+      } */
 
-      originalEncryptedPhotoName = originalEncryptedPhotoName
-        || App.services.Crypt.encryptName(photoNameParts.name, albumId);
+      originalEncryptedPhotoName = /* originalEncryptedPhotoName */
+        App.services.Crypt.encryptName(photoNameParts.name, deleteFolderId);
+      console.log("original enc------", originalEncryptedPhotoName);
       const originalEncryptedPhotoNameWithExt = `${originalEncryptedPhotoName}${photoExt ? `.${photoExt}` : ''}`;
       log.info('Uploading photo to network...');
 
+      const { rootAlbumId } = userPhotos.usersphoto;
       return App.services.StorjPhotos.StorePhoto(
-        user,
-        rootAlbum.bucket,
+        userPhotos,
+        rootAlbumId,
         originalEncryptedPhotoNameWithExt,
-        picPath
-      ).then(async ({ photoId, size }) => {
-        if (!photoId) return reject(Error('Missing pic id'));
+        photoExt,
+        photoPath
+      ).then(async ({ fileId, fileName, size, ext, bucket, userId }) => {
+        if (!fileId) return reject(Error('Missing photo id'));
 
-        if (!size) return reject(Error('Missing pic size'));
+        if (!size) return reject(Error('Missing photo size'));
 
-        const newPicInfo = {
-          name: encryptedPhotoName,
-          type: photoExt,
-          photoId,
-          bucket: rootAlbum.bucket,
-          size
+        const newPhotoInfo = {
+          name: fileName,
+          type: ext,
+          fileId,
+          bucketId: bucket,
+          size,
+          userId
         };
 
-        /* try {
-          AesUtil.decrypt(encryptedPicName, albumId);
-          newPicInfo.encrypt_version = '03-aes';
-        } catch (e) {
-          (() => { })(e);
-        } */
 
-        const addedPhoto = await Model.photo.create(newPicInfo);
-        try {
-          await Model.album.addPhoto(addedPhoto);
-        } catch (e) {
-          log.error('Cannot add photo to non existent album');
-        }
+        const addedPhoto = await Model.photos.create(newPhotoInfo);
 
+        console.log(addedPhoto);
         return resolve(addedPhoto);
       })
         .catch((err) => {
@@ -214,9 +183,9 @@ module.exports = (Model, App) => {
 
       return reject(err.message);
     } finally {
-      fs.unlink(picPath, (error) => {
+      fs.unlink(photoPath, (error) => {
         if (error) throw error;
-        console.log(`Deleted:  ${picPath}`);
+        console.log(`Deleted:  ${photoPath}`);
       });
     }
   });
@@ -333,7 +302,8 @@ module.exports = (Model, App) => {
     Name: 'Photos',
     CreatePhoto,
     CreateAlbum,
-    UploadPhoto,
+    AddPhotoToAlbum,
+    Upload,
     DownloadPhoto,
     GetNewMoveName,
     GetAlbumContent,

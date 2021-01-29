@@ -61,27 +61,35 @@ module.exports = (Model, App) => {
     }
   }
 
-  const StorePhoto = (user, bucketId, picName, picPath) => new Promise((resolve, reject) => {
-    const actualPhotoSize = fs.lstatSync(picPath).size;
+  const StorePhoto = (user, bucketId, photoName, photoExt, photoPath) => new Promise((resolve, reject) => {
+    const actualPhotoSize = fs.lstatSync(photoPath).size;
     const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-    storj.storeFile(bucketId, picPath, {
-      picName,
+
+    storj.storeFile(bucketId, photoPath, {
+      filename: photoName,
       progressCallback(progress, uploadedBytes, totalBytes) {
         log.warn(
-          '[NODE-LIB %s] Upload Progress: %s (%s%%)',
+          '[NODE-LIB %s] Photo Upload Progress: %s (%s%%)',
           user.email,
           prettysize(totalBytes),
           ((uploadedBytes * 100) / totalBytes).toFixed(2)
         );
       },
-      finishedCallback(err, photoId) {
+      finishedCallback(err, fileId) {
         if (err) {
           log.error('[NODE-LIB storePhoto]', err);
           reject(err);
         } else {
           log.warn('[NODE-LIB storePhoto] Photo upload finished');
           storj.destroy();
-          resolve({ id: photoId, size: actualPhotoSize });
+          resolve({
+            fileId,
+            fileName: photoName,
+            size: actualPhotoSize,
+            ext: photoExt,
+            bucket: bucketId,
+            userId: user.usersphoto.id
+          });
         }
       }
     });

@@ -5,6 +5,7 @@ const contentDisposition = require('content-disposition');
 
 const { passportAuth } = passport;
 const logger = require('../../lib/logger');
+const userPhotos = require('../services/user.photos');
 
 
 const log = logger.getInstance();
@@ -322,10 +323,10 @@ module.exports = (Router, Service, App) => {
 
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const albumList = await Service.Photos.GetAlbumList(userData.usersphoto.id);
-      console.log('ALBUM LIST', albumList)
+      console.log('ALBUM LIST', albumList);
       res.status(200).send(albumList);
     }).catch((err) => {
-      log.error('[GET ALBUMS]', err);
+      log.error('[GET ALBUMS............]', err);
       res.status(500).json({ error: err.message });
     });
   });
@@ -337,20 +338,24 @@ module.exports = (Router, Service, App) => {
 
       console.log('ALL PREVIEWS:-------------', allPhotos);
 
-      res.status(200).send(allPhotos);
+      if (allPhotos.length === 0) {
+        res.status(201).send('');
+      } else {
+        res.status(200).send(allPhotos);
+      }
     }).catch((err) => {
       log.error('[GET ALL]', err);
       res.status(500).json({ error: err.message });
     });
   });
 
-  Router.get('/photos/storage/delete/:email', passportAuth, (req, res) => {
+  Router.get('/photos/storage/deletes/:email', passportAuth, (req, res) => {
     const { email } = req.params;
 
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const deletedPhotos = await Service.Photos.GetDeletedPhotos(userData.usersphoto.deleteFolderId);
 
-      console.log('ALL DELETED', deletedPhotos);
+      console.log('ALL DELETED.................', deletedPhotos);
 
       if (deletedPhotos.length > 20) {
         const preview = deletedPhotos.split(0, 19);
@@ -380,11 +385,10 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
+  Router.get('/storage/folder/:id', passportAuth, (req, res) => {
     const folderId = req.params.id;
-    const teamId = req.params.idTeam || null;
 
-    Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
+    Service.Folder.GetContent(folderId, req.user).then((result) => {
       if (result == null) {
         res.status(500).send([]);
       } else {
@@ -579,31 +583,47 @@ module.exports = (Router, Service, App) => {
 
   /**
    * @swagger
-   * /photos/pic
-   *    post:
-   *      description: Create file entry on DB for an existing file on the network.
-   *      produces:
+   * /storage/folder/:id/upload:
+   *   post:
+   *     description: Upload content to folder
+   *     produces:
    *       - application/json
-   *      parameters:
-   *       - name: pic
-   *         description: INew photo to create.
+   *     parameters:
+   *       - name: folderId
+   *         description: ID of folder in XCloud
    *         in: query
    *         required: true
-   *      responses:
+   *     responses:
    *       200:
-   *         description: Post response.
-   *
+   *         description: Uploaded object
    */
-  Router.post('/photos/pic', passportAuth, (req, res) => {
+  Router.post('/photos/storage/upload', passportAuth, upload.single('xfile'), async (req, res) => {
     const { user } = req;
-    const { pic } = req.body;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    let xphoto = req.file;
+    console.log(xphoto);
 
-    Service.Photos.CreatePhoto(user, pic).then((result) => {
-      res.status(200).json(result);
-      const NOW = (new Date()).toISOString();
-    }).catch((error) => {
-      log.error(error);
-      res.status(400).json({ message: error.message });
+    const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
+
+    Service.Photos.Upload(
+      user,
+      userPhotos,
+      xphoto.originalname,
+      xphoto.path
+    ).then(async (result) => {
+      if (xphoto.albumId) {
+        await Service.Photos.AddPhotoToAlbum(result.id, xphoto.albumId, user);
+      }
+
+      res.status(201).json(result);
+    }).catch((err) => {
+      log.error(`${err.message}\n${err.stack}`);
+      if (err.includes && err.includes('Bridge rate limit error')) {
+        res.status(402).json({ message: err });
+        return;
+      }
+      res.status(500).json({ message: err });
     });
   });
 
