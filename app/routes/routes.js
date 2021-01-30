@@ -312,7 +312,20 @@ module.exports = (Router, Service, App) => {
 
           // Successfull register
           const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-          const user = { email: userData.email };
+
+          const user = {
+            userId: userData.userId,
+            mnemonic: userData.mnemonic,
+            root_folder_id: userData.root_folder_id,
+            name: userData.name,
+            lastname: userData.lastname,
+            uuid: userData.uuid,
+            credit: userData.credit,
+            createdAt: userData.createdAt,
+            registerCompleted: userData.registerCompleted,
+            email: userData.email
+          };
+
           res.status(200).send({ token, user, uuid: userData.uuid });
         } else {
           // This account already exists
