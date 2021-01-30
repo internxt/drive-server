@@ -387,9 +387,9 @@ module.exports = (Router, Service, App) => {
     const { mnemonic, privateKey } = req.body;
 
     Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(() => {
-      res.status(200).send();
+      res.status(200).send({});
     }).catch((err) => {
-      res.status(500).send(err);
+      res.status(500).send({ error: err.message });
     });
   });
 
