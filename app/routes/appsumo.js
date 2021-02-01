@@ -1,6 +1,6 @@
-const { passportAuth } = require('../middleware/passport');
+const { passportAuth, Sign } = require('../middleware/passport');
 
-module.exports = (Router, Service) => {
+module.exports = (Router, Service, App) => {
   Router.post('/appsumo/register', (req, res) => {
     Service.AppSumo.RegisterIncomplete(req.body.email, req.body.plan, req.body.uuid, req.body.invoice).then(() => {
       res.status(200).send();
@@ -11,7 +11,24 @@ module.exports = (Router, Service) => {
 
   Router.post('/appsumo/update', passportAuth, (req, res) => {
     Service.AppSumo.CompleteInfo(req.user, req.body).then(() => {
-      res.status(200).send();
+      const userData = req.user;
+
+      const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+
+      const user = {
+        userId: userData.userId,
+        mnemonic: userData.mnemonic.toString(),
+        root_folder_id: userData.root_folder_id,
+        name: userData.name,
+        lastname: userData.lastname,
+        uuid: userData.uuid,
+        credit: userData.credit,
+        createdAt: userData.createdAt,
+        registerCompleted: userData.registerCompleted,
+        email: userData.email
+      };
+
+      res.status(200).send({ token, user });
     }).catch((err) => {
       res.status(500).send({ error: err.message });
     });

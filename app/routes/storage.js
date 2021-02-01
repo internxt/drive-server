@@ -162,22 +162,20 @@ module.exports = (Router, Service, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-    Service.Folder.isFolderOfTeam(folderId).then(() => {
-      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
+    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+      .then((result) => {
         res.status(201).json(result);
-      }).catch((err) => {
+      })
+      .catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
         if (err.includes && err.includes('Bridge rate limit error')) {
           res.status(402).json({ message: err });
           return;
         }
+
         res.status(500).json({ message: err });
       });
-    }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.status(500).json({ message: err });
     });
-  });
 
   /**
    * @swagger
