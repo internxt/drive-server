@@ -17,6 +17,9 @@ module.exports = (sequelize, DataTypes) => {
       size: {
         type: DataTypes.BIGINT.UNSIGNED
       },
+      hash: {
+        type: DataTypes.STRING
+      },
       previewId: {
         type: DataTypes.STRING
       },
