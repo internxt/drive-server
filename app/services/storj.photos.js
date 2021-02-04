@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
-
+const mime = require('mime');
 const bcrypt = require('bcryptjs');
 const shortid = require('shortid');
 const { Environment } = require('storj');
@@ -95,6 +95,47 @@ module.exports = (Model, App) => {
     });
   });
 
+  const ResolvePhoto = (user, photo) => {
+    const downloadDir = './downloads';
+    const shortFileName = photo.photoId;
+    const downloadFile = `${downloadDir}/${shortFileName}${photo.type ? `.${photo.type}` : ''}`;
+
+    if (!fs.existsSync(downloadDir)) {
+      fs.mkdirSync(downloadDir);
+    }
+
+    if (fs.existsSync(downloadFile)) {
+      fs.unlinkSync(downloadFile);
+    }
+
+    return new Promise((resolve, reject) => {
+      const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+      log.info(`Resolving photo ${photo.name}...`);
+
+      storj.resolveFile(photo.bucket, photo.photoId, downloadFile, {
+        progressCallback: (progress, downloadedBytes, totalBytes) => {
+          log.warn('[NODE-LIB PHOTOS %s] Download Progress: %s (%s%%)',
+            user.email,
+            prettysize(totalBytes),
+            ((downloadedBytes * 100) / totalBytes).toFixed(2));
+        },
+        finishedCallback: (err) => {
+          if (err) {
+            log.error('[NODE-LIB PHOTOS %s] 1. Error resolving photo: %s', user.email, err.message);
+            reject(err);
+          } else {
+            const mimetype = mime.getType(downloadFile);
+            const filestream = fs.createReadStream(downloadFile);
+
+            log.warn('[NODE-LIB PHOTOS %s] Photo resolved!', user.email);
+            storj.destroy();
+            resolve({ filestream, mimetype, downloadFile });
+          }
+        }
+      });
+    });
+  };
+
   const IsUserActivated = (email) => {
     // Set api call settings
     const params = { headers: { 'Content-Type': 'application/json', email } };
@@ -120,6 +161,7 @@ module.exports = (Model, App) => {
     IsUserActivated,
     CreatePhotosBucket,
     StorePhoto,
+    ResolvePhoto,
     IdToBcrypt,
     ListBucketContent
   };

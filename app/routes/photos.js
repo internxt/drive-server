@@ -1,3 +1,4 @@
+const fs = require('fs');
 const passport = require('../middleware/passport');
 const upload = require('../middleware/multer');
 
@@ -6,7 +7,7 @@ const contentDisposition = require('content-disposition');
 const { passportAuth } = passport;
 const logger = require('../../lib/logger');
 const userPhotos = require('../services/user.photos');
-
+const { constants } = require('http2');
 
 const log = logger.getInstance();
 
@@ -334,12 +335,13 @@ module.exports = (Router, Service, App) => {
   Router.get('/photos/storage/previews/:email', passportAuth, (req, res) => {
     const { email } = req.params;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
-      const allPhotos = await Service.Photos.GetAllPhotos(userData, userData.usersphoto.rootPreviewId);
+      console.log("userData----", userData);
+      const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
 
       console.log('ALL PREVIEWS:-------------', allPhotos);
 
-      if (allPhotos.length === 0) {
-        res.status(201).send('');
+      if (allPhotos && allPhotos.length === 0) {
+        res.status(201).send([]);
       } else {
         res.status(200).send(allPhotos);
       }
@@ -373,7 +375,7 @@ module.exports = (Router, Service, App) => {
    * @swagger
    * /storage/folder/:id:
    *   post:
-   *     description: Get folder contents.
+   *     description: Get album contents.
    *     produces:
    *       - application/json
    *     parameters:
@@ -385,7 +387,7 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Array of folder items
    */
-  Router.get('/storage/folder/:id', passportAuth, (req, res) => {
+  Router.get('/storage/album/:id', passportAuth, (req, res) => {
     const folderId = req.params.id;
 
     Service.Folder.GetContent(folderId, req.user).then((result) => {
@@ -455,15 +457,15 @@ module.exports = (Router, Service, App) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
-    const photoIdInBucket = req.params.id;
-    if (photoIdInBucket === 'null') {
-      return res.status(500).send({ message: 'Missing file id' });
+    const photoId = req.params.id;
+    if (photoId === 'null') {
+      return res.status(500).send({ message: 'Missing photo id' });
     }
 
-    return Service.Photos.Download(user, photoIdInBucket).then(({
+    return Service.Photos.DownloadPhoto(user, photoId).then(({
       filestream, mimetype, downloadPhoto, albumId, name, type, size
     }) => {
-      const decryptedPhotoName = App.services.Crypt.decryptName(name, albumId);
+      const decryptedPhotoName = App.services.Crypt.decryptName(name, 2);
 
       const photoNameDecrypted = `${decryptedPhotoName}${type ? `.${type}` : ''}`;
       const decryptedPhotoNameB64 = Buffer.from(photoNameDecrypted).toString('base64');
@@ -601,12 +603,12 @@ module.exports = (Router, Service, App) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
-    let xphoto = req.file;
-    console.log(xphoto);
+    const xphoto = req.file;
+    console.log("xphoto", xphoto);
 
     const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
 
-    Service.Photos.Upload(
+    Service.Photos.UploadPhoto(
       user,
       userPhotos,
       xphoto.originalname,
@@ -643,42 +645,36 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Photo object.
    */
-  Router.get('/photos/pic/:id', passportAuth, (req, res) => {
+  Router.get('/photos/storage/photo/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
-    const picIdInBucket = req.params.id;
-    if (picIdInBucket === 'null') {
-      return res.status(500).send({ message: 'Missing pic id' });
+    const fileIdInBucket = req.params.id;
+    if (fileIdInBucket === 'null') {
+      return res.status(500).send({ message: 'Missing photo id' });
     }
 
-    let picPath;
+    return Service.Photos.DownloadPhoto(user, fileIdInBucket).then(({
+      filestream, mimetype, downloadFile, albumId, name, type, size
+    }) => {
+      const decryptedFileName = App.services.Crypt.decryptName(name, 111);
 
-    return Service.Photos.DownloadPhoto(user, picIdInBucket)
-      .then(({
-        picstream, mimetype, downloadedPhoto, albumId, name, type
-      }) => {
-        picPath = downloadedPhoto;
-        const picName = downloadedPhoto.split('/')[2];
-        const decryptedPicName = App.services.Crypt.decryptName(name, albumId);
+      const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
+      const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
 
-        const picNameDecrypted = `${decryptedPicName}${type ? `.${type}` : ''}`;
-        const decryptedPicNameB64 = Buffer.from(picNameDecrypted).toString('base64');
-
-        res.setHeader('content-disposition', contentDisposition(picNameDecrypted));
-        res.setHeader('content-type', mimetype);
-        res.set('x-photo-name', decryptedPicNameB64);
-        picstream.pipe(res);
-        fs.unlink(picPath, (error) => {
-          if (error) throw error;
-        });
-      })
-      .catch((err) => {
-        if (err.message === 'Bridge rate limit error') {
-          return res.status(402).json({ message: err.message });
-        }
-
-        return res.status(500).json({ message: err.message });
+      res.setHeader('content-length', size);
+      res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
+      res.setHeader('content-type', mimetype);
+      res.set('x-file-name', decryptedFileNameB64);
+      filestream.pipe(res);
+      fs.unlink(downloadFile, (error) => {
+        if (error) throw error;
       });
+    }).catch((err) => {
+      if (err.message === 'Bridge rate limit error') {
+        return res.status(402).json({ message: err.message });
+      }
+      return res.status(500).json({ message: err.message });
+    });
   });
 };

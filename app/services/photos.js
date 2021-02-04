@@ -18,30 +18,6 @@ module.exports = (Model, App) => {
     return child;
   });
 
-  const GetAlbumContent = async (albumId, user) => {
-    const result = await Model.album.findOne({
-      where: {
-        id: { [Op.eq]: albumId }
-      }
-    });
-
-    const photos = result.getPhotosalbum;
-
-    // Null result implies empty album.
-    // TODO: Should send an error to be handled and showed on website.
-
-    if (photos !== null) {
-      // result.name = App.services.Crypt.decryptName(result.name, result.parentId);
-      // result.children = mapChildrenNames(result.children);
-      // result.photos = result.photos.map((photo) => {
-      // photo.name = `${App.services.Crypt.decryptName(photo.name, photo.  d)}`;
-
-      // return photo;
-    };
-
-    return photos;
-  };
-
   const CreateAlbum = (userId, name) => new Promise((resolve, reject) => {
     return Model.albums.create({
       user_id: userId,
@@ -98,12 +74,37 @@ module.exports = (Model, App) => {
     });
   });
 
-  const Upload = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
+  const GetNewMoveName = async (destination, originalName, type) => {
+    let exists = true;
+    let i = 1;
+    let nextName;
+    let nextCryptedName;
+    while (exists) {
+      nextName = App.services.Utils.getNewMoveName(originalName, i);
+      nextCryptedName = App.services.Crypt.encryptName(
+        App.services.Utils.getNewMoveName(originalName, i),
+        destination
+      );
+      // eslint-disable-next-line no-await-in-loop
+      exists = !!(await Model.photosalbums.findOne({
+        where: {
+          album_id: { [Op.eq]: destination },
+          name: { [Op.eq]: nextCryptedName },
+          type: { [Op.eq]: type }
+        },
+        raw: true
+      }));
+      i += 1;
+    }
+
+    return { cryptedName: nextCryptedName, name: nextName };
+  };
+
+  const UploadPhoto = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
     try {
       if (user.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
       }
-      const { deleteFolderId } = userPhotos.usersphoto;
 
       const sanitizedPicname = SanitizeFilename(photoName);
 
@@ -117,33 +118,31 @@ module.exports = (Model, App) => {
       const photoNameParts = path.parse(photoName);
       const photoExt = photoNameParts.ext ? photoNameParts.ext.substring(1) : '';
 
-      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, deleteFolderId);
-      console.log("cryptname--", encryptedPhotoName);
+      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 111);
 
       // Check if photo already exists.
-      /* const exists = Model.photo.findOne({
+      const exists = Model.photos.findOne({
         where: {
           name: { [Op.eq]: encryptedPhotoName },
-          album_id: { [Op.eq]: albumId },
           type: { [Op.eq]: photoExt }
         }
-      }); */
-
+      });
+      console.log("PHOTO EXISTS...", exists);
       // Change name if exists
       let originalEncryptedPhotoName;
       let newName;
-      /* if (exists) {
-        newName = GetNewMoveName(albumId, photoNameParts.name, photoExt);
+      if (exists) {
+        // reject(Error('Photo already exists.'));
+        /* newName = GetNewMoveName(111, photoNameParts.name, photoExt);
         encryptedPhotoName = newName.cryptedName;
         originalEncryptedPhotoName = App.services.Crypt.encryptName(
           newName.name,
-          albumId
-        );
-      } */
+          111
+        ); */
+      }
 
       originalEncryptedPhotoName = /* originalEncryptedPhotoName */
-        App.services.Crypt.encryptName(photoNameParts.name, deleteFolderId);
-      console.log("original enc------", originalEncryptedPhotoName);
+        App.services.Crypt.encryptName(photoNameParts.name, 111);
       const originalEncryptedPhotoNameWithExt = `${originalEncryptedPhotoName}${photoExt ? `.${photoExt}` : ''}`;
       log.info('Uploading photo to network...');
 
@@ -151,10 +150,17 @@ module.exports = (Model, App) => {
       return App.services.StorjPhotos.StorePhoto(
         userPhotos,
         rootAlbumId,
-        originalEncryptedPhotoNameWithExt,
+        originalEncryptedPhotoName,
         photoExt,
         photoPath
-      ).then(async ({ fileId, fileName, size, ext, bucket, userId }) => {
+      ).then(async ({
+        fileId,
+        fileName,
+        size,
+        ext,
+        bucket,
+        userId
+      }) => {
         if (!fileId) return reject(Error('Missing photo id'));
 
         if (!size) return reject(Error('Missing photo size'));
@@ -162,7 +168,7 @@ module.exports = (Model, App) => {
         const newPhotoInfo = {
           name: fileName,
           type: ext,
-          fileId,
+          photoId: fileId,
           bucketId: bucket,
           size,
           userId
@@ -175,11 +181,11 @@ module.exports = (Model, App) => {
         return resolve(addedPhoto);
       })
         .catch((err) => {
-          log.error(err.message);
+          log.error("upload photo 2", err);
           reject(err.message);
         });
     } catch (err) {
-      log.error(err.message);
+      log.error("upload photo", err.message);
 
       return reject(err.message);
     } finally {
@@ -190,14 +196,14 @@ module.exports = (Model, App) => {
     }
   });
 
-  const DownloadPhoto = (user, picId) => {
+  const DownloadPhoto = (user, photoId) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
 
     return new Promise((resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
-      Model.photo
-        .findOne({ where: { photo_id: { [Op.eq]: picId } } })
+      Model.photos
+        .findOne({ where: { photoId: { [Op.eq]: photoId } } })
         .then((photo) => {
           if (!photo) {
             throw Error('Photo not found on database, please refresh');
@@ -206,7 +212,7 @@ module.exports = (Model, App) => {
             throw Error('Photo too large');
           }
 
-          App.services.Storj.ResolvePhoto(user, photo)
+          App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
               resolve({
                 ...result, albumId: photo.album_id, name: photo.name, type: photo.type
@@ -224,37 +230,25 @@ module.exports = (Model, App) => {
     });
   };
 
-  const GetNewMoveName = async (destination, originalName, type) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(
-        App.services.Utils.getNewMoveName(originalName, i),
-        destination
-      );
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.photosalbum.findOne({
-        where: {
-          album_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          type: { [Op.eq]: type }
-        },
-        raw: true
-      }));
-      i += 1;
+  const GetAllPhotosContent = async (user, userPhotos) => {
+    const result = await Model.photos.findAll({
+      where: {
+        bucketId: { [Op.eq]: userPhotos.rootAlbumId }
+      }
+    });
+
+    // Null result implies empty bucket.
+    // TODO: Should send an error to be handled and showed on website.
+
+    if (result !== null) {
+      /* result.previews = result.previews.map((file) => {
+        result.name = App.services.Crypt.decryptName(result.name, 111);
+        file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`; */
+
+      return result;
     }
-
-    return { cryptedName: nextCryptedName, name: nextName };
+    return result;
   };
-
-  const GetAllPhotos = (user, previewsBucketId) => new Promise((resolve, reject) => {
-    App.services.StorjPhotos.ListBucketContent(user, previewsBucketId)
-      .then(resolve)
-      .catch((err) => reject(err.message));
-  });
 
   const GetAlbumList = (userId) => new Promise((resolve, reject) => {
     return Model.albums.findAll({
@@ -303,14 +297,13 @@ module.exports = (Model, App) => {
     CreatePhoto,
     CreateAlbum,
     AddPhotoToAlbum,
-    Upload,
+    UploadPhoto,
     DownloadPhoto,
     GetNewMoveName,
-    GetAlbumContent,
+    GetAllPhotosContent,
     FindAlbumById,
     FindPhotoById,
     GetAlbumList,
-    GetAllPhotos,
     GetDeletedPhotos
   };
 };
