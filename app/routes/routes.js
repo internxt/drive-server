@@ -65,9 +65,14 @@ module.exports = (Router, Service, App) => {
    *         description: Wrong username or password
    */
   Router.post('/login', (req, res) => {
-    req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
+    }
+
+    try {
+      req.body.email = req.body.email.toLowerCase();
+    } catch {
+      return res.status(400).send({ error: 'Invalid username' })
     }
 
     // Call user service to find user

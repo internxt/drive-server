@@ -28,6 +28,7 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Array of folder items
    */
+  /*
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
@@ -43,6 +44,7 @@ module.exports = (Router, Service, App) => {
       res.status(500).json(err);
     });
   });
+  */
 
   /**
    * @swagger
@@ -207,7 +209,7 @@ module.exports = (Router, Service, App) => {
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {
-      res.status(500).json(error);
+      res.status(500).json({ error: error.message });
     });
   });
 
@@ -341,8 +343,9 @@ module.exports = (Router, Service, App) => {
 
     Service.Files.MoveFile(user, fileId, destination).then((result) => {
       res.status(200).json(result);
-    }).catch((error) => {
-      res.status(500).json(error);
+    }).catch((err) => {
+      Logger.error(err)
+      res.status(500).json({ error: err.message });
     });
   });
 

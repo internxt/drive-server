@@ -13,6 +13,9 @@ module.exports = (Model, App) => {
 
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
+    if (parentFolderId >= 2147483648) {
+      throw Error('Invalid parent folder');
+    }
     // parent folder is yours?
     const whereCondition = { where: null };
 
@@ -516,10 +519,16 @@ module.exports = (Model, App) => {
 
   const MoveFolder = async (user, folderId, destination) => {
     const folder = await Model.folder.findOne({
-      where: { id: { [Op.eq]: folderId } }
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id }
+      }
     });
     const destinationFolder = await Model.folder.findOne({
-      where: { id: { [Op.eq]: destination } }
+      where: {
+        id: { [Op.eq]: destination },
+        user_id: { [Op.eq]: user.id }
+      }
     });
 
     if (!folder || !destinationFolder) {
