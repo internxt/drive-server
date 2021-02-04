@@ -95,6 +95,41 @@ module.exports = (Model, App) => {
     });
   });
 
+  const StorePreview = (user, bucketId, photoName, photoExt, photoPath, photoId) => new Promise((resolve, reject) => {
+    const actualPhotoSize = fs.lstatSync(photoPath).size;
+    const storj = getEnvironment(user.email, user.userId, user.mnemonic);
+
+    storj.storeFile(bucketId, photoPath, {
+      filename: photoName,
+      progressCallback(progress, uploadedBytes, totalBytes) {
+        log.warn(
+          '[NODE-LIB %s] Preview Upload Progress: %s (%s%%)',
+          user.email,
+          prettysize(totalBytes),
+          ((uploadedBytes * 100) / totalBytes).toFixed(2)
+        );
+      },
+      finishedCallback(err, fileId) {
+        if (err) {
+          log.error('[NODE-LIB storePhoto]', err);
+          reject(err);
+        } else {
+          log.warn('[NODE-LIB storePreview] Preview upload finished');
+          storj.destroy();
+          resolve({
+            fileId,
+            fileName: photoName,
+            size: actualPhotoSize,
+            ext: photoExt,
+            bucket: bucketId,
+            userId: user.usersphoto.id,
+            photoId
+          });
+        }
+      }
+    });
+  });
+
   const ResolvePhoto = (user, photo) => {
     const downloadDir = './downloads';
     const shortFileName = photo.photoId;
@@ -161,6 +196,7 @@ module.exports = (Model, App) => {
     IsUserActivated,
     CreatePhotosBucket,
     StorePhoto,
+    StorePreview,
     ResolvePhoto,
     IdToBcrypt,
     ListBucketContent

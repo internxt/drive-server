@@ -174,7 +174,6 @@ module.exports = (Model, App) => {
           userId
         };
 
-
         const addedPhoto = await Model.photos.create(newPhotoInfo);
 
         console.log(addedPhoto);
@@ -215,7 +214,7 @@ module.exports = (Model, App) => {
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
               resolve({
-                ...result, albumId: photo.album_id, name: photo.name, type: photo.type
+                ...result, albumId: photo.albumId, name: photo.name, type: photo.type
               });
             })
             .catch((err) => {
@@ -241,12 +240,14 @@ module.exports = (Model, App) => {
     // TODO: Should send an error to be handled and showed on website.
 
     if (result !== null) {
-      /* result.previews = result.previews.map((file) => {
-        result.name = App.services.Crypt.decryptName(result.name, 111);
-        file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`; */
+      const photos = result.map((photo) => {
+        photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
 
-      return result;
+        return photo;
+      });
+      return photos;
     }
+
     return result;
   };
 

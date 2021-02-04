@@ -17,18 +17,6 @@ module.exports = (Router, Service, App) => {
   });
 
   /**
-   * INDEX:
-   *  /photos/register
-   *  /photos/login
-   *  /photos/access
-   *  /photos/album/:id -> Get album
-   *  /photos/album -> Add album
-   *  /photos/album/:id -> Delete album
-   *  /photos/pic -> Add photo
-   *  /photos/pic/:id-> Download photo
-   */
-
-  /**
   * @swagger
   * /register:
   *   post:
@@ -166,7 +154,6 @@ module.exports = (Router, Service, App) => {
 
           return;
         }
-        console.log("USERDATA", userData);
         let userPhotos = await App.services.UserPhotos.FindUserById(userData.id);
 
         if (!userPhotos) {
@@ -203,7 +190,6 @@ module.exports = (Router, Service, App) => {
 
           // Service.UserPhotos.LoginFailed(req.body.email, false);
           // Service.UserPhotos.UpdateAccountActivity(req.body.email);
-
 
           res.status(200).json({
             user: {
@@ -305,9 +291,9 @@ module.exports = (Router, Service, App) => {
 
   /**
    * @swagger
-   * /storage/photo/:id:
+   * /photos/storage/albums/:email:
    *   post:
-   *     description: Download photo
+   *     description: Get album list of user
    *     produces:
    *       - application/json
    *     parameters:
@@ -335,10 +321,7 @@ module.exports = (Router, Service, App) => {
   Router.get('/photos/storage/previews/:email', passportAuth, (req, res) => {
     const { email } = req.params;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
-      console.log("userData----", userData);
       const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
-
-      console.log('ALL PREVIEWS:-------------', allPhotos);
 
       if (allPhotos && allPhotos.length === 0) {
         res.status(201).send([]);
@@ -399,41 +382,6 @@ module.exports = (Router, Service, App) => {
     }).catch((err) => {
       log.error(`${err.message}\n${err.stack}`);
       res.status(500).json(err);
-    });
-  });
-
-  /**
-   * @swagger
-   * /storage/folder/:id/upload:
-   *   post:
-   *     description: Upload content to folder
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Uploaded object
-   */
-  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xphoto'), (req, res) => {
-    const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
-    const xphoto = req.photo;
-    const albumId = req.params.id;
-
-    Service.Photos.UploadPhoto(user, albumId, xphoto.originalname, xphoto.path).then((result) => {
-      res.status(201).json(result);
-    }).catch((err) => {
-      log.error(`${err.message}\n${err.stack}`);
-      if (err.includes && err.includes('Bridge rate limit error')) {
-        res.status(402).json({ message: err });
-        return;
-      }
-      res.status(500).json({ message: err });
     });
   });
 
@@ -585,21 +533,21 @@ module.exports = (Router, Service, App) => {
 
   /**
    * @swagger
-   * /storage/folder/:id/upload:
+   * /photos/storage/photo/upload:
    *   post:
-   *     description: Upload content to folder
+   *     description: Upload photo to network
    *     produces:
    *       - application/json
    *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
+   *       - name: xfile
+   *         description: Content photo to upload
    *         in: query
    *         required: true
    *     responses:
    *       200:
    *         description: Uploaded object
    */
-  Router.post('/photos/storage/upload', passportAuth, upload.single('xfile'), async (req, res) => {
+  Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
@@ -631,7 +579,50 @@ module.exports = (Router, Service, App) => {
 
   /**
    * @swagger
-   * /photos/pic/:id:
+   * /photos/storage/preview/upload/:id:
+   *   post:
+   *     description: Upload photo preview to network
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: folderId
+   *         description: ID of photo in database
+   *         in: query
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Uploaded object
+   */
+  Router.post('/photos/storage/preview/upload/:id', passportAuth, upload.single('xfile'), async (req, res) => {
+    const { user } = req;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    const xpreview = req.file;
+    const photoId = req.params.id;
+
+    const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
+
+    Service.Previews.UploadPreview(
+      user,
+      userPhotos,
+      xpreview.originalname,
+      xpreview.path,
+      photoId
+    ).then(async (result) => {
+      res.status(201).json(result);
+    }).catch((err) => {
+      log.error(`${err.message}\n${err.stack}`);
+      if (err.includes && err.includes('Bridge rate limit error')) {
+        res.status(402).json({ message: err });
+        return;
+      }
+      res.status(500).json({ message: err });
+    });
+  });
+
+  /**
+   * @swagger
+   * /photos/storage/photo/:id
    *   get:
    *     description: Get photo of the network.
    *     produces:
