@@ -342,14 +342,9 @@ module.exports = (Router, Service, App) => {
 
       console.log('ALL DELETED.................', deletedPhotos);
 
-      if (deletedPhotos.length > 20) {
-        const preview = deletedPhotos.split(0, 19);
-        res.status(200).send(preview);
-      } else {
-        res.status(200).send(deletedPhotos);
-      }
+      res.status(200).send(deletedPhotos);
     }).catch((err) => {
-      log.error('[GET DELETED]', err);
+      log.error('[GET DELETED]', err).message;
       res.status(500).json({ error: err.message });
     });
   });
@@ -363,7 +358,7 @@ module.exports = (Router, Service, App) => {
    *       - application/json
    *     parameters:
    *       - name: folderId
-   *         description: ID of folder in XCloud
+   *         description: ID of album in XCloud
    *         in: query
    *         required: true
    *     responses:
@@ -496,38 +491,6 @@ module.exports = (Router, Service, App) => {
       .catch((err) => {
         log.warn(err);
         res.status(500).json({ error: err.message });
-      });
-  });
-
-  /**
-   * @swagger
-   * /photos/album/:id:
-   *   delete:
-   *     description: Delete an album.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: albumId
-   *         description: ID of album in the network.
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Delete response.
-   */
-  Router.delete('/photos/album/:id', passportAuth, (req, res) => {
-    const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
-    const albumId = req.params.id;
-
-    Service.Photos.DeleteAlbum(user, albumId)
-      .then((result) => {
-        res.status(204).json(result);
-      })
-      .catch((err) => {
-        log.error(`${err.message}\n${err.stack}`);
-        res.status(500).json(err);
       });
   });
 
@@ -666,6 +629,44 @@ module.exports = (Router, Service, App) => {
         return res.status(402).json({ message: err.message });
       }
       return res.status(500).json({ message: err.message });
+    });
+  });
+
+  /**
+   * @swagger
+   * /storage/delete/temp/photo:
+   *   post:
+   *     description: Move file on cloud DB to delete folder
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: fileId
+   *         description: file id
+   *         in: body
+   *         required: true
+   *       - name: destination
+   *         description: destination folder
+   *         in: body
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: File moved successfully
+   *       501:
+   *         description: File with same name exists in folder destination.
+   */
+  Router.post('/photos/delete/temp/photo', passportAuth, async (req, res) => {
+    const { photoId } = req.body;
+    const { user } = req;
+
+    const userInfo = await Service.UserPhotos.FindUserByEmail(user.email);
+
+    const album = await Service.Photos.FindAlbumById(userInfo.usersphoto.deleteFolderId);
+
+    Service.Photos.MoveToAlbum(user, photoId, album).then((result) => {
+      console.log('RESULTTTT', result)
+      res.status(200).json(result);
+    }).catch((error) => {
+      res.status(500).json(error);
     });
   });
 };

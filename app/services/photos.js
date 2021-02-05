@@ -18,6 +18,10 @@ module.exports = (Model, App) => {
     return child;
   });
 
+  const FindAlbumById = (albumId) => Model.albums.findOne({ where: { id: { [Op.eq]: albumId } } });
+
+  const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
+
   const CreateAlbum = (userId, name) => new Promise((resolve, reject) => {
     return Model.albums.create({
       user_id: userId,
@@ -43,13 +47,6 @@ module.exports = (Model, App) => {
       userId: user.id
     };
 
-    /* try {
-      AesUtil.decrypt(pic.name, pic.id);
-      photoInfo.encrypt_version = '03-aes';
-    } catch (e) {
-      (() => { })(e);
-    } */
-
     if (photo.date) {
       photoInfo.createdAt = photo.date;
     }
@@ -73,32 +70,6 @@ module.exports = (Model, App) => {
       reject(Error('Unable to create photoalbum in database'));
     });
   });
-
-  const GetNewMoveName = async (destination, originalName, type) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(
-        App.services.Utils.getNewMoveName(originalName, i),
-        destination
-      );
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.photosalbums.findOne({
-        where: {
-          album_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          type: { [Op.eq]: type }
-        },
-        raw: true
-      }));
-      i += 1;
-    }
-
-    return { cryptedName: nextCryptedName, name: nextName };
-  };
 
   const UploadPhoto = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
     try {
@@ -275,23 +246,28 @@ module.exports = (Model, App) => {
 
   const GetDeletedPhotos = (deleteFolderId) => new Promise((resolve, reject) => {
     return Model.albums.findOne({
-      where: { album_id: { [Op.eq]: deleteFolderId } }
-    }).then((albumPhotos) => {
-      if (albumPhotos.getPhotosalbum.length > 20) {
-        const albumPreview = albumPhotos.getPhotosalbum.split(0, 20);
-        resolve(albumPreview);
-      } else {
-        const previews = albumPhotos.getPhotosalbum;
-        resolve(previews);
+      where: { id: { [Op.eq]: deleteFolderId } }
+    }).then(async (albumPhotos) => {
+      const photos = await albumPhotos.getPhotos();
+
+      if (photos !== null) {
+        const result = photos.map((photo) => {
+          photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
+
+          return photo;
+        });
+        resolve(result);
       }
+
+      resolve(photos);
     }).catch((err) => {
       reject(err.message);
     });
   });
 
-  const FindAlbumById = (albumId) => Model.albums.findOne({ where: { id: { [Op.eq]: albumId } } });
-
-  const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
+  const MoveToAlbum = (user, photo, album) => new Promise((resolve, reject) => {
+    album.setPhotos([photo]);
+  });
 
   return {
     Name: 'Photos',
@@ -300,11 +276,11 @@ module.exports = (Model, App) => {
     AddPhotoToAlbum,
     UploadPhoto,
     DownloadPhoto,
-    GetNewMoveName,
     GetAllPhotosContent,
     FindAlbumById,
     FindPhotoById,
     GetAlbumList,
-    GetDeletedPhotos
+    GetDeletedPhotos,
+    MoveToAlbum
   };
 };
