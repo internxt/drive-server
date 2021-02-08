@@ -75,9 +75,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE,
         allowNull: true
       },
-      referred: {
-        type: DataTypes.STRING
-      },
       credit: {
         type: DataTypes.INTEGER,
         defaultValue: 0
@@ -85,6 +82,10 @@ module.exports = (sequelize, DataTypes) => {
       welcomePack: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+      },
+      registerCompleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
       }
     },
     {
@@ -100,6 +101,7 @@ module.exports = (sequelize, DataTypes) => {
   User.associate = (models) => {
     User.hasMany(models.folder);
     User.hasOne(models.usersphotos);
+    User.hasOne(models.AppSumo);
   };
 
   return User;

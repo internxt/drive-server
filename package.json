@@ -12,6 +12,7 @@
     "bcryptjs": "^2.4.3",
     "bip39": "^3.0.2",
     "body-parser": "^1.19.0",
+    "bytes": "^3.1.0",
     "content-disposition": "^0.5.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
@@ -23,6 +24,7 @@
     "inxt-service-mailer": "internxt/mailer",
     "jsonwebtoken": "^8.5.1",
     "lodash": "^4.17.15",
+    "mariadb": "^2.5.2",
     "mime": "^2.4.4",
     "mime-types": "^2.1.27",
     "multer": "^1.4.2",
@@ -38,22 +40,23 @@
     "sanitize-filename": "^1.6.3",
     "sequelize": "^6.3.5",
     "shortid": "^2.2.15",
+    "socket.io": "^3.1.0",
     "speakeasy": "^2.0.0",
     "sql-formatter": "^2.3.3",
     "storj": "github:internxt/node-lib",
     "stripe": "8.49.0",
-    "swagger-jsdoc": "^6.0.1",
     "uuid": "^8.3.2",
     "winston": "^3.2.1"
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "cross-env NODE_ENV=development ./node_modules/.bin/nodemon app.js",
-    "test": "./node_modules/.bin/mocha test/**/*.js",
+    "dev": "cross-env NODE_ENV=development nodemon",
+    "testsuite": "cross-env NODE_ENV=test mocha test/**/*.js",
+    "test": "npm run lint && npm run testsuite",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./lib/**/*.js ./app/**/*.js ./test/**/*.js",
-    "lint:fix": "npm run lint  --fix"
+    "lint:fix": "npm run lint --fix"
   },
   "devDependencies": {
     "chai": "^4.2.0",
@@ -64,10 +67,6 @@
     "mocha": "^8.2.1",
     "nodemon": "^2.0.4",
     "sequelize-cli": "^6.2.0"
-  },
-  "engines": {
-    "node": ">=8.3.0 <=10.23.0",
-    "eslint": ">6.0.0"
   },
   "license": "MIT"
 }

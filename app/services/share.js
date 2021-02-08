@@ -18,10 +18,12 @@ module.exports = (Model, App) => {
     }
 
     if (result.views === 1) {
-      result.destroy();
+      await result.destroy();
     } else {
-      Model.shares.update({ views: result.views - 1 }, { where: { id: { [Op.eq]: result.id } } });
+      await Model.shares.update({ views: result.views - 1 }, { where: { id: { [Op.eq]: result.id } } });
     }
+
+    return result;
   };
 
   const GenerateToken = async (user, fileIdInBucket, mnemonic, isFolder = false, views = 1) => {
@@ -63,10 +65,10 @@ module.exports = (Model, App) => {
       throw Error('File too large');
     }
 
-    // Generate a new token
+    // Always generate a new token
     const newToken = crypto.randomBytes(5).toString('hex');
 
-    const tokenData = Model.shares.findOne({ where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } } });
+    const tokenData = await Model.shares.findOne({ where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } } });
 
     if (tokenData) {
       // Update token
@@ -83,7 +85,7 @@ module.exports = (Model, App) => {
       token: newToken, mnemonic, file: fileIdInBucket, user, is_folder: isFolder, views
     });
 
-    return newShare;
+    return newShare.token;
   };
 
   return {

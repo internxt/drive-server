@@ -34,9 +34,9 @@ module.exports = (Model, App) => {
         hKey: userSalt,
         referral: user.referral,
         uuid: null,
-        referred: user.referred,
         credit: user.credit,
-        welcomePack: true
+        welcomePack: true,
+        registerCompleted: user.registerCompleted
       },
       transaction: t
     }).then(async ([userResult, isNewRecord]) => {
@@ -139,14 +139,12 @@ module.exports = (Model, App) => {
 
           resolve(user);
         } else {
-          reject(Error('User not found on X Cloud database'));
+          reject(Error('User not found on Drive database'));
         }
       }).catch((err) => reject(err));
   });
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
-
-  const FindUsersByReferred = (referredUuid) => Model.users.findAll({ where: { referred: { [Op.eq]: referredUuid } } });
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
@@ -238,23 +236,13 @@ module.exports = (Model, App) => {
   const Delete2FA = (user) => Model.users.update({ secret_2FA: null },
     { where: { email: { [Op.eq]: user } } });
 
-  const updatePrivateKey = (user, privateKey) => new Promise((resolve, reject) => {
-    FindUserByEmail(user).then((userData) => {
-      const idUser = userData.id;
-      Model.keyserver.update({
-        private_key: privateKey
-      }, { where: { user_id: { [Op.eq]: idUser } } }).then((res) => {
-        Logger.info('Updated', res);
-        resolve();
-      }).catch((err) => {
-        Logger.error('error updating', err);
-        reject(Error('Error updating info'));
-      });
-    }).catch((err) => {
-      Logger.error(err);
-      reject(Error('Internal server error'));
+  const updatePrivateKey = (user, privateKey) => {
+    return Model.keyserver.update({
+      private_key: privateKey
+    }, {
+      where: { user_id: { [Op.eq]: user.id } }
     });
-  });
+  };
 
   const UpdatePasswordMnemonic = async (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => {
     const storedPassword = user.password.toString();
@@ -267,7 +255,7 @@ module.exports = (Model, App) => {
       mnemonic,
       hKey: newSalt
     }, {
-      where: { email: { [Op.eq]: user } }
+      where: { email: { [Op.eq]: user.email } }
     });
 
     await updatePrivateKey(user, privateKey);
@@ -340,7 +328,6 @@ module.exports = (Model, App) => {
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,
-    FindUsersByReferred,
     InitializeUser,
     GetUserCredit,
     UpdateCredit,

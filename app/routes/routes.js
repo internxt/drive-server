@@ -15,9 +15,9 @@ const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
 const PhotosRoutes = require('./photos');
+const AppSumoRoutes = require('./appsumo');
 
 const passport = require('../middleware/passport');
-const swaggerSpec = require('../../config/initializers/swagger');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
 
@@ -27,12 +27,6 @@ const userTeam = null;
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service, App) => {
-  // Documentation
-  Router.get('/api-docs.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(swaggerSpec);
-  });
-
   // User account activation/deactivation
   ActivationRoutes(Router, Service, App);
   // Files/folders operations
@@ -55,6 +49,8 @@ module.exports = (Router, Service, App) => {
   PhotosRoutes(Router, Service, App);
 
 
+
+  AppSumoRoutes(Router, Service, App);
 
   /**
    * @swagger
@@ -197,7 +193,8 @@ module.exports = (Router, Service, App) => {
           privateKey: keys ? keys.private_key : null,
           publicKey: keys ? keys.public_key : null,
           revocateKey: keys ? keys.revocation_key : null,
-          bucket: userBucket
+          bucket: userBucket,
+          registerCompleted: userData.registerCompleted
         };
 
         if (userTeam) {
@@ -222,6 +219,44 @@ module.exports = (Router, Service, App) => {
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
       res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+    });
+  });
+
+  Router.get('/user/refresh', passportAuth, async (req, res) => {
+    const userData = req.user;
+    let keys = false;
+    try {
+      keys = await Service.Keyserver.keysExists(userData);
+    } catch (e) {
+      // no op
+    }
+    if (!keys && req.body.publicKey) {
+      await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+      keys = await Service.Keyserver.keysExists(userData);
+    }
+    const userBucket = await Service.User.GetUserBucket(userData);
+
+    const internxtClient = req.headers['internxt-client'];
+    const token = passport.Sign(userData.email,
+      App.config.get('secrets').JWT,
+      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+
+    const user = {
+      userId: userData.userId,
+      mnemonic: userData.mnemonic,
+      root_folder_id: userData.root_folder_id,
+      name: userData.name,
+      lastname: userData.lastname,
+      uuid: userData.uuid,
+      credit: userData.credit,
+      createdAt: userData.createdAt,
+      privateKey: keys ? keys.private_key : null,
+      publicKey: keys ? keys.public_key : null,
+      revocateKey: keys ? keys.revocation_key : null,
+      bucket: userBucket
+    };
+    res.status(200).json({
+      user, token
     });
   });
 
@@ -282,7 +317,20 @@ module.exports = (Router, Service, App) => {
 
           // Successfull register
           const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-          const user = { email: userData.email };
+
+          const user = {
+            userId: userData.userId,
+            mnemonic: userData.mnemonic,
+            root_folder_id: userData.root_folder_id,
+            name: userData.name,
+            lastname: userData.lastname,
+            uuid: userData.uuid,
+            credit: userData.credit,
+            createdAt: userData.createdAt,
+            registerCompleted: userData.registerCompleted,
+            email: userData.email
+          };
+
           res.status(200).send({ token, user, uuid: userData.uuid });
         } else {
           // This account already exists
@@ -357,9 +405,9 @@ module.exports = (Router, Service, App) => {
     const { mnemonic, privateKey } = req.body;
 
     Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(() => {
-      res.status(200).send();
+      res.status(200).send({});
     }).catch((err) => {
-      res.status(500).send(err);
+      res.status(500).send({ error: err.message });
     });
   });
 
@@ -403,15 +451,6 @@ module.exports = (Router, Service, App) => {
     }).catch((err) => {
       Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
       res.status(200).send({});
-    });
-  });
-
-  Router.get('/user/referred', passportAuth, (req, res) => {
-    const refUuid = req.user.uuid;
-
-    Service.User.FindUsersByReferred(refUuid).then((users) => res.status(200).send({ total: users })).catch((message) => {
-      Logger.error(message);
-      res.status(500).send({ error: 'No users' });
     });
   });
 
