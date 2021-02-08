@@ -663,7 +663,6 @@ module.exports = (Router, Service, App) => {
     const album = await Service.Photos.FindAlbumById(userInfo.usersphoto.deleteFolderId);
 
     Service.Photos.MoveToAlbum(user, photoId, album).then((result) => {
-      console.log('RESULTTTT', result)
       res.status(200).json(result);
     }).catch((error) => {
       res.status(500).json(error);

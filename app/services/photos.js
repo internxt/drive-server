@@ -266,7 +266,7 @@ module.exports = (Model, App) => {
   });
 
   const MoveToAlbum = (user, photo, album) => new Promise((resolve, reject) => {
-    album.setPhotos([photo]);
+    album.addPhotos([photo]).then(() => resolve).catch((err) => reject(err));
   });
 
   return {
