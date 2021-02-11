@@ -20,6 +20,9 @@ module.exports = (sequelize, DataTypes) => {
       size: {
         type: DataTypes.BIGINT.UNSIGNED
       },
+      hash: {
+        type: DataTypes.STRING
+      },
       bucketId: {
         type: DataTypes.STRING
       },
