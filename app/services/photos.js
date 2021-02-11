@@ -23,12 +23,25 @@ module.exports = (Model, App) => {
   const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
 
   const CreateAlbum = (userId, name) => new Promise((resolve, reject) => {
+    // Prevent strange folder names from being created
+    const sanitizedAlbumName = SanitizeFilename(name);
+
+    if (name === '' || sanitizedAlbumName !== name) {
+      throw Error('Invalid album name');
+    }
+
+    // Encrypt folder name, TODO: use versioning for encryption
+    const cryptoAlbumName = App.services.Crypt.encryptName(name,
+      333);
+
     return Model.albums.create({
-      user_id: userId,
-      name
-    }).then(resolve)
+      cryptoAlbumName,
+      userId
+    }).then((result) => {
+      resolve(result);
+    })
       .catch((err) => {
-        console.log('Error creating album', err);
+        log('Error creating album', err);
         reject(Error('Unable to create album in database'));
       });
   });
@@ -55,20 +68,9 @@ module.exports = (Model, App) => {
       .create(photoInfo)
       .then((newPhoto) => resolve(newPhoto))
       .catch((err) => {
-        console.log('Error creating entry', err);
+        log('Error creating entry', err);
         reject(Error('Unable to create photo in database'));
       });
-  });
-
-  const AddPhotoToAlbum = (photoId, albumId, user) => new Promise((resolve, reject) => {
-    Model.album.findOne({
-      where: {
-        id: { [Op.eq]: albumId },
-        userId: { [Op.eq]: user.id }
-      }
-    }).then(resolve).catch((err) => {
-      reject(Error('Unable to create photoalbum in database'));
-    });
   });
 
   const UploadPhoto = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
@@ -98,7 +100,6 @@ module.exports = (Model, App) => {
           type: { [Op.eq]: photoExt }
         }
       });
-      console.log("PHOTO EXISTS...", exists);
       // Change name if exists
       let originalEncryptedPhotoName;
       let newName;
@@ -118,6 +119,7 @@ module.exports = (Model, App) => {
       log.info('Uploading photo to network...');
 
       const { rootAlbumId } = userPhotos.usersphoto;
+
       return App.services.StorjPhotos.StorePhoto(
         userPhotos,
         rootAlbumId,
@@ -151,11 +153,11 @@ module.exports = (Model, App) => {
         return resolve(addedPhoto);
       })
         .catch((err) => {
-          log.error("upload photo 2", err);
+          log.error('upload photo 2', err);
           reject(err.message);
         });
     } catch (err) {
-      log.error("upload photo", err.message);
+      log.error('upload photo', err.message);
 
       return reject(err.message);
     } finally {
@@ -185,7 +187,7 @@ module.exports = (Model, App) => {
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
               resolve({
-                ...result, albumId: photo.albumId, name: photo.name, type: photo.type
+                ...result, name: photo.name, type: photo.type
               });
             })
             .catch((err) => {
@@ -265,7 +267,7 @@ module.exports = (Model, App) => {
     });
   });
 
-  const MoveToAlbum = (user, photo, album) => new Promise((resolve, reject) => {
+  const MoveToAlbum = (photo, album) => new Promise((resolve, reject) => {
     album.addPhotos([photo]).then(() => resolve).catch((err) => reject(err));
   });
 
@@ -273,7 +275,6 @@ module.exports = (Model, App) => {
     Name: 'Photos',
     CreatePhoto,
     CreateAlbum,
-    AddPhotoToAlbum,
     UploadPhoto,
     DownloadPhoto,
     GetAllPhotosContent,

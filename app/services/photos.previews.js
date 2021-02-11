@@ -69,7 +69,8 @@ module.exports = (Model, App) => {
         fileId,
         fileName,
         size,
-        ext
+        ext,
+        bucketId
       }) => {
         if (!fileId) return reject(Error('Missing preview id'));
 
@@ -79,6 +80,7 @@ module.exports = (Model, App) => {
           name: fileName,
           type: ext,
           previewId: fileId,
+          bucketId,
           size,
           photoId
         };

@@ -1,21 +1,14 @@
 const fs = require('fs');
+const contentDisposition = require('content-disposition');
 const passport = require('../middleware/passport');
 const upload = require('../middleware/multer');
 
-const contentDisposition = require('content-disposition');
-
 const { passportAuth } = passport;
 const logger = require('../../lib/logger');
-const userPhotos = require('../services/user.photos');
-const { constants } = require('http2');
 
 const log = logger.getInstance();
 
 module.exports = (Router, Service, App) => {
-  Router.post('/photos/hola', (req, res) => {
-    res.status(200).send({ text: 'Hola Fotos!' });
-  });
-
   /**
   * @swagger
   * /register:
@@ -154,6 +147,7 @@ module.exports = (Router, Service, App) => {
 
           return;
         }
+
         let userPhotos = await App.services.UserPhotos.FindUserById(userData.id);
 
         if (!userPhotos) {
@@ -406,9 +400,9 @@ module.exports = (Router, Service, App) => {
     }
 
     return Service.Photos.DownloadPhoto(user, photoId).then(({
-      filestream, mimetype, downloadPhoto, albumId, name, type, size
+      filestream, mimetype, downloadPhoto, name, type, size
     }) => {
-      const decryptedPhotoName = App.services.Crypt.decryptName(name, 2);
+      const decryptedPhotoName = App.services.Crypt.decryptName(name, 111);
 
       const photoNameDecrypted = `${decryptedPhotoName}${type ? `.${type}` : ''}`;
       const decryptedPhotoNameB64 = Buffer.from(photoNameDecrypted).toString('base64');
@@ -477,21 +471,24 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Creation response.
    */
-  Router.post('/photos/album', passportAuth, (req, res) => {
-    const { albumName } = req.body;
-    const { parentAlbumId } = req.body;
+  Router.post('/photos/album', passportAuth, async (req, res) => {
+    const { name } = req.body;
+    const { photos } = req.body;
 
     const { user } = req;
-    user.mnemonic = req.headers['internxt-mnemonic'];
+    const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
 
-    Service.Photos.CreateAlbum(user, albumName, parentAlbumId)
-      .then((result) => {
-        res.status(201).json(result);
-      })
-      .catch((err) => {
-        log.warn(err);
-        res.status(500).json({ error: err.message });
-      });
+    try {
+      const album = await Service.Photos.CreateAlbum(userPhotos.usersphoto.id, name);
+      Promise.all(photos.map((item) => {
+        return Service.Photos.MoveToAlbum(item.id, album);
+      }));
+
+      res.status(200).json({});
+    } catch (err) {
+      log.warn(err);
+      res.status(500).json({ error: err.message });
+    }
   });
 
   /**
@@ -512,12 +509,11 @@ module.exports = (Router, Service, App) => {
    */
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
     const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
     const xphoto = req.file;
-    console.log("xphoto", xphoto);
 
     const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
+    // Set mnemonic to decrypted mnemonic
+    userPhotos.mnemonic = req.headers['internxt-mnemonic'];
 
     Service.Photos.UploadPhoto(
       user,
@@ -525,10 +521,6 @@ module.exports = (Router, Service, App) => {
       xphoto.originalname,
       xphoto.path
     ).then(async (result) => {
-      if (xphoto.albumId) {
-        await Service.Photos.AddPhotoToAlbum(result.id, xphoto.albumId, user);
-      }
-
       res.status(201).json(result);
     }).catch((err) => {
       log.error(`${err.message}\n${err.stack}`);
@@ -558,12 +550,12 @@ module.exports = (Router, Service, App) => {
    */
   Router.post('/photos/storage/preview/upload/:id', passportAuth, upload.single('xfile'), async (req, res) => {
     const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
     const xpreview = req.file;
     const photoId = req.params.id;
 
     const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
+    // Set mnemonic to decrypted mnemonic
+    userPhotos.mnemonic = req.headers['internxt-mnemonic'];
 
     Service.Previews.UploadPreview(
       user,
@@ -587,12 +579,12 @@ module.exports = (Router, Service, App) => {
    * @swagger
    * /photos/storage/photo/:id
    *   get:
-   *     description: Get photo of the network.
+   *     description: Download photo of the network.
    *     produces:
    *       - application/json
    *     parameters:
    *       - name: picId
-   *         description: ID of photo in the network.
+   *         description: Photo ID.
    *         in: query
    *         required: true
    *     responses:
@@ -609,7 +601,7 @@ module.exports = (Router, Service, App) => {
     }
 
     return Service.Photos.DownloadPhoto(user, fileIdInBucket).then(({
-      filestream, mimetype, downloadFile, albumId, name, type, size
+      filestream, mimetype, downloadFile, name, type, size
     }) => {
       const decryptedFileName = App.services.Crypt.decryptName(name, 111);
 
