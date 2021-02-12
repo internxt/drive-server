@@ -121,8 +121,7 @@ module.exports = (Model, App) => {
             fileName: photoName,
             size: actualPhotoSize,
             ext: photoExt,
-            bucket: bucketId,
-            userId: user.usersphoto.id,
+            bucketId,
             photoId
           });
         }
@@ -147,7 +146,7 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic);
       log.info(`Resolving photo ${photo.name}...`);
 
-      storj.resolveFile(photo.bucket, photo.photoId, downloadFile, {
+      storj.resolveFile(photo.bucketId, photo.photoId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           log.warn('[NODE-LIB PHOTOS %s] Download Progress: %s (%s%%)',
             user.email,
@@ -180,11 +179,12 @@ module.exports = (Model, App) => {
       params);
   };
 
-  const ListBucketContent = (user, bucketId) => new Promise((resolve, reject) => {
+  const DeletePhoto = (user, bucketId, photo) => new Promise((resolve, reject) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic);
-    storj.listFiles(bucketId, (err, result) => {
+    storj.deleteFile(bucketId, photo, (err, result) => {
       if (err) {
-        reject(err);
+        log.error('[NODE-LIB deletePhoto]', err);
+        reject(Error(err));
       } else {
         resolve(result);
       }
@@ -199,6 +199,6 @@ module.exports = (Model, App) => {
     StorePreview,
     ResolvePhoto,
     IdToBcrypt,
-    ListBucketContent
+    DeletePhoto
   };
 };

@@ -317,11 +317,7 @@ module.exports = (Router, Service, App) => {
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
 
-      if (allPhotos && allPhotos.length === 0) {
-        res.status(201).send([]);
-      } else {
-        res.status(200).send(allPhotos);
-      }
+      res.status(200).send(allPhotos);
     }).catch((err) => {
       log.error('[GET ALL]', err);
       res.status(500).json({ error: err.message });
@@ -338,7 +334,7 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send(deletedPhotos);
     }).catch((err) => {
-      log.error('[GET DELETED]', err).message;
+      log.error('[GET DELETED]', err.message);
       res.status(500).json({ error: err.message });
     });
   });
@@ -362,7 +358,7 @@ module.exports = (Router, Service, App) => {
   Router.get('/storage/album/:id', passportAuth, (req, res) => {
     const folderId = req.params.id;
 
-    Service.Folder.GetContent(folderId, req.user).then((result) => {
+    Service.Photos.GetContent(folderId, req.user).then((result) => {
       if (result == null) {
         res.status(500).send([]);
       } else {
@@ -403,7 +399,6 @@ module.exports = (Router, Service, App) => {
       filestream, mimetype, downloadPhoto, name, type, size
     }) => {
       const decryptedPhotoName = App.services.Crypt.decryptName(name, 111);
-
       const photoNameDecrypted = `${decryptedPhotoName}${type ? `.${type}` : ''}`;
       const decryptedPhotoNameB64 = Buffer.from(photoNameDecrypted).toString('base64');
 
@@ -412,6 +407,7 @@ module.exports = (Router, Service, App) => {
       res.setHeader('content-type', mimetype);
       res.set('x-file-name', decryptedPhotoNameB64);
       filestream.pipe(res);
+
       fs.unlink(downloadPhoto, (error) => {
         if (error) throw error;
       });

@@ -148,8 +148,9 @@ module.exports = (Model, App) => {
         const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
         Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
-        const deleteFolder = await App.services.Photos.CreateAlbum(userData.usersphoto.id);
+        const deleteFolder = await App.services.Photos.CreateAlbum(userData.usersphoto.id, 'deleted');
         // Update user register with root album Id
+        console.log('DELETE FOLDER', deleteFolder);
         const userPhotos = await Model.usersphotos.findOne({ where: { userId: { [Op.eq]: userData.id } } });
         await userPhotos.update(
           {

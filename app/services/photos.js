@@ -35,7 +35,7 @@ module.exports = (Model, App) => {
       333);
 
     return Model.albums.create({
-      cryptoAlbumName,
+      name: cryptoAlbumName,
       userId
     }).then((result) => {
       resolve(result);
@@ -184,8 +184,10 @@ module.exports = (Model, App) => {
             throw Error('Photo too large');
           }
 
+          console.log('MNEMONIC DOWNLOAD PHOTO', user.mnemonic);
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
+              console.log('hola', result);
               resolve({
                 ...result, name: photo.name, type: photo.type
               });
