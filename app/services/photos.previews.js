@@ -12,9 +12,9 @@ module.exports = (Model, App) => {
 
   const FindPreviewByPhotoId = (photoId) => Model.previews.findOne({ where: { photoId: { [Op.eq]: photoId } } });
 
-  const UploadPreview = (user, userPhotos, photoName, photoPath, photoId) => new Promise((resolve, reject) => {
+  const UploadPreview = (userPhotos, photoName, photoPath, photoId) => new Promise((resolve, reject) => {
     try {
-      if (user.mnemonic === 'null') {
+      if (userPhotos.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
       }
 

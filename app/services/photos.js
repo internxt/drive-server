@@ -18,7 +18,12 @@ module.exports = (Model, App) => {
     return child;
   });
 
-  const FindAlbumById = (albumId) => Model.albums.findOne({ where: { id: { [Op.eq]: albumId } } });
+  const FindAlbumById = (albumId, userId) => Model.albums.findOne({
+    where: {
+      id: { [Op.eq]: albumId },
+      userId: { [Op.eq]: userId }
+    }
+  });
 
   const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
 
@@ -73,9 +78,9 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (user, userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
+  const UploadPhoto = (userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
     try {
-      if (user.mnemonic === 'null') {
+      if (userPhotos.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
       }
 
@@ -269,9 +274,48 @@ module.exports = (Model, App) => {
     });
   });
 
+  const GetAlbumContent = (albumId, userId) => new Promise((resolve, reject) => {
+    return Model.albums.findOne({
+      where: {
+        id: { [Op.eq]: albumId },
+        userId: { [Op.eq]: userId }
+      }
+    }).then(async (albumPhotos) => {
+      const photos = await albumPhotos.getPhotos();
+
+      if (photos !== null) {
+        const result = photos.map((photo) => {
+          photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
+
+          return photo;
+        });
+        resolve(result);
+      }
+
+      resolve(photos);
+    }).catch((err) => {
+      reject(err.message);
+    });
+  });
+
   const MoveToAlbum = (photo, album) => new Promise((resolve, reject) => {
     album.addPhotos([photo]).then(() => resolve).catch((err) => reject(err));
   });
+
+  const DeleteAlbum = async (albumId, userId) => {
+    const album = await Model.albums.findOne({
+      where: { id: { [Op.eq]: albumId }, userId: { [Op.eq]: userId } }
+    });
+
+    if (!album) {
+      return new Error('Album does not exists');
+    }
+
+    // Destroy album
+    const removed = await album.destroy();
+
+    return removed;
+  };
 
   return {
     Name: 'Photos',
@@ -284,6 +328,8 @@ module.exports = (Model, App) => {
     FindPhotoById,
     GetAlbumList,
     GetDeletedPhotos,
-    MoveToAlbum
+    MoveToAlbum,
+    GetAlbumContent,
+    DeleteAlbum
   };
 };
