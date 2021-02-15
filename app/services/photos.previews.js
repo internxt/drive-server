@@ -58,7 +58,7 @@ module.exports = (Model, App) => {
       log.info('Uploading preview to network...');
 
       const { rootPreviewId } = userPhotos.usersphoto;
-      return App.services.StorjPhotos.StorePreview(
+      return App.services.StorjPhotos.StorePhoto(
         userPhotos,
         rootPreviewId,
         originalEncryptedPhotoName,
