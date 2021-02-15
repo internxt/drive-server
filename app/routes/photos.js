@@ -653,4 +653,39 @@ module.exports = (Router, Service, App) => {
       res.status(500).json(error);
     });
   });
+
+  /**
+   * @swagger
+   * /storage/delete/photo/:id:
+   *   delete:
+   *     description: Delete photo on XCloud
+   *     produces:
+   *       - application/json
+   *     parameters:
+   *       - name: id
+   *         description: photo id
+   *         in: params
+   *         required: true
+   *     responses:
+   *       200:
+   *         description: Photo removed successfully
+   *       500:
+   *         description: Internal Server Error
+   */
+  Router.delete('/photos/delete/photo/:id', passportAuth, async (req, res) => {
+    const photoId = req.params.id;
+    const { user } = req;
+
+    const userInfo = await Service.UserPhotos.FindUserByEmail(user.email);
+
+    if (!userInfo.usersphoto) {
+      res.status(500).send('Internal Server Error');
+    }
+
+    Service.Photos.DeletePhoto(photoId, userInfo).then((result) => {
+      res.status(204).json(result);
+    }).catch((error) => {
+      res.status(500).json(error);
+    });
+  });
 };

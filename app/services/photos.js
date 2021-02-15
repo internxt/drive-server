@@ -10,14 +10,6 @@ const AesUtil = require('../../lib/AesUtil');
 module.exports = (Model, App) => {
   const log = App.logger;
 
-  // TODO: Encryption
-  const mapChildrenNames = (album = []) => album.map((child) => {
-    child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-    child.children = mapChildrenNames(child.children);
-
-    return child;
-  });
-
   const FindAlbumById = (albumId, userId) => Model.albums.findOne({
     where: {
       id: { [Op.eq]: albumId },
@@ -108,15 +100,14 @@ module.exports = (Model, App) => {
       // Change name if exists
       let originalEncryptedPhotoName;
       let newName;
-      if (exists) {
-        // reject(Error('Photo already exists.'));
-        /* newName = GetNewMoveName(111, photoNameParts.name, photoExt);
+      /* if (exists) {
+        newName = GetNewMoveName(111, photoNameParts.name, photoExt);
         encryptedPhotoName = newName.cryptedName;
         originalEncryptedPhotoName = App.services.Crypt.encryptName(
           newName.name,
           111
-        ); */
-      }
+        );
+      } */
 
       originalEncryptedPhotoName = /* originalEncryptedPhotoName */
         App.services.Crypt.encryptName(photoNameParts.name, 111);
@@ -146,7 +137,7 @@ module.exports = (Model, App) => {
         const newPhotoInfo = {
           name: fileName,
           type: ext,
-          photoId: fileId,
+          fileId,
           bucketId: bucket,
           size,
           userId
@@ -154,7 +145,6 @@ module.exports = (Model, App) => {
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);
 
-        console.log(addedPhoto);
         return resolve(addedPhoto);
       })
         .catch((err) => {
@@ -168,7 +158,7 @@ module.exports = (Model, App) => {
     } finally {
       fs.unlink(photoPath, (error) => {
         if (error) throw error;
-        console.log(`Deleted:  ${photoPath}`);
+        log.info(`Deleted:  ${photoPath}`);
       });
     }
   });
@@ -180,7 +170,7 @@ module.exports = (Model, App) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
       Model.photos
-        .findOne({ where: { photoId: { [Op.eq]: photoId } } })
+        .findOne({ where: { fileId: { [Op.eq]: photoId } } })
         .then((photo) => {
           if (!photo) {
             throw Error('Photo not found on database, please refresh');
@@ -189,10 +179,8 @@ module.exports = (Model, App) => {
             throw Error('Photo too large');
           }
 
-          console.log('MNEMONIC DOWNLOAD PHOTO', user.mnemonic);
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
-              console.log('hola', result);
               resolve({
                 ...result, name: photo.name, type: photo.type
               });
@@ -317,6 +305,33 @@ module.exports = (Model, App) => {
     return removed;
   };
 
+  const DeletePhoto = (photoId, user) => new Promise((resolve, reject) => {
+    Model.photos
+      .findOne({ where: { id: { [Op.eq]: photoId }, userId: { [Op.eq]: user.usersphoto.id } } }).then((photoObj) => {
+        if (!photoObj) {
+          reject(new Error('Photo not found'));
+        } else if (photoObj.fileId) {
+          App.services.StorjPhotos.DeleteFile(user, photoObj.bucket, photoObj.fileId).then(() => {
+            photoObj.destroy().then(resolve).catch(reject);
+          }).catch((err) => {
+            const resourceNotFoundPattern = /Resource not found/;
+
+            if (resourceNotFoundPattern.exec(err.message)) {
+              photoObj.destroy().then(resolve).catch(reject);
+            } else {
+              log.error('Error deleting file from bridge:', err.message);
+              reject(err);
+            }
+          });
+        } else {
+          photoObj.destroy().then(resolve).catch(reject);
+        }
+      }).catch((err) => {
+        log.error('Failed to find folder on database:', err.message);
+        reject(err);
+      });
+  });
+
   return {
     Name: 'Photos',
     CreatePhoto,
@@ -330,6 +345,7 @@ module.exports = (Model, App) => {
     GetDeletedPhotos,
     MoveToAlbum,
     GetAlbumContent,
-    DeleteAlbum
+    DeleteAlbum,
+    DeletePhoto
   };
 };
