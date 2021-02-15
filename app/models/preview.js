@@ -20,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {
       hash: {
         type: DataTypes.STRING
       },
-      previewId: {
+      fileId: {
         type: DataTypes.STRING
       },
       photoId: {

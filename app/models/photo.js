@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         autoIncrement: true
       },
-      photoId: {
+      fileId: {
         type: DataTypes.STRING
       },
       name: {
