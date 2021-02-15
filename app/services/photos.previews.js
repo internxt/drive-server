@@ -33,7 +33,7 @@ module.exports = (Model, App) => {
       let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 222);
 
       // Check if photo already exists.
-      const exists = Model.photos.findOne({
+      const exists = Model.previews.findOne({
         where: {
           name: { [Op.eq]: encryptedPhotoName },
           type: { [Op.eq]: photoExt }
@@ -79,7 +79,7 @@ module.exports = (Model, App) => {
         const newPhotoInfo = {
           name: fileName,
           type: ext,
-          previewId: fileId,
+          fileId,
           bucketId,
           size,
           photoId
@@ -87,7 +87,6 @@ module.exports = (Model, App) => {
 
         const addedPhoto = await Model.previews.create(newPhotoInfo);
 
-        console.log(addedPhoto);
         return resolve(addedPhoto);
       })
         .catch((err) => {
@@ -101,7 +100,7 @@ module.exports = (Model, App) => {
     } finally {
       fs.unlink(photoPath, (error) => {
         if (error) throw error;
-        console.log(`Deleted:  ${photoPath}`);
+        log.info(`Deleted:  ${photoPath}`);
       });
     }
   });
