@@ -70,7 +70,7 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (userPhotos, photoName, photoPath) => new Promise((resolve, reject) => {
+  const UploadPhoto = (userPhotos, photoName, photoPath, hash) => new Promise((resolve, reject) => {
     try {
       if (userPhotos.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
@@ -140,7 +140,8 @@ module.exports = (Model, App) => {
           fileId,
           bucketId: bucket,
           size,
-          userId
+          userId,
+          hash
         };
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);

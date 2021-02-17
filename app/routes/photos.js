@@ -430,7 +430,8 @@ module.exports = (Router, Service, App) => {
     Service.Photos.UploadPhoto(
       userPhotos,
       xphoto.originalname,
-      xphoto.path
+      xphoto.path,
+      req.body.hash
     ).then(async (result) => {
       res.status(201).json(result);
     }).catch((err) => {
