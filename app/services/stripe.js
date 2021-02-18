@@ -1,5 +1,5 @@
-const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-03-02' });
-const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
+const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
+const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 module.exports = () => {
   const getStorageProducts = (test = false) => new Promise((resolve, reject) => {

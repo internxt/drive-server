@@ -2,8 +2,8 @@ const async = require('async');
 const crypto = require('crypto');
 const Stripe = require('stripe');
 
-const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
-const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-03-02' });
+const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+const StripeTest = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 const passport = require('../middleware/passport');
 
@@ -90,8 +90,7 @@ module.exports = (Router, Service, App) => {
           delete sessionParams.customer;
         }
 
-        stripe.checkout.sessions
-          .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
+        stripe.checkout.sessions.create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
       }
     ], (err, result) => {
       if (err) {
