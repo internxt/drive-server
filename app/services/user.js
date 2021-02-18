@@ -271,7 +271,6 @@ module.exports = (Model, App) => {
   const getSyncDate = () => {
     let syncDate = Date.now();
     syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
-
     return new Date(syncDate);
   };
 

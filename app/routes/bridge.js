@@ -27,7 +27,8 @@ module.exports = (Router, Service, App) => {
         }
       });
       res.status(200).send(data.data ? data.data : { total: 0 });
-    }).catch(() => {
+    }).catch((err) => {
+      console.log(err)
       res.status(400).send({ result: 'Error retrieving bridge information' });
     });
   });
@@ -48,7 +49,8 @@ module.exports = (Router, Service, App) => {
       }
     }).then((data) => {
       res.status(200).send(data.data);
-    }).catch(() => {
+    }).catch((err) => {
+      console.log(err);
       res.status(400).send({ result: 'Error retrieving bridge information' });
     });
   });

@@ -87,6 +87,7 @@ module.exports = (Model, App) => {
     const folder = await Model.folder.findOne({
       where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } }
     });
+
     if (!folder) {
       return new Error('Folder does not exists');
     }
