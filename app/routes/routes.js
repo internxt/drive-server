@@ -182,6 +182,7 @@ module.exports = (Router, Service, App) => {
         }
 
         const user = {
+          email: req.body.email,
           userId: userData.userId,
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id,
