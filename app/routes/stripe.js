@@ -109,6 +109,7 @@ module.exports = (Router, Service, App) => {
   Router.post('/stripe/teams/session', passportAuth, async (req, res) => {
     const test = req.body.test || false;
     const stripe = test ? StripeTest : StripeProduction;
+    const { quantity } = req.body;
 
     const productToSubscribe = req.body.product;
     const user = req.user.email;
@@ -194,7 +195,10 @@ module.exports = (Router, Service, App) => {
           cancel_url: 'https://drive.internxt.com/',
           subscription_data: {
             items: [
-              { plan: req.body.plan }
+              {
+                plan: req.body.plan,
+                quantity
+              }
             ],
             trial_period_days: 30
           },
