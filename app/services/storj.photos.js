@@ -87,7 +87,7 @@ module.exports = (Model, App) => {
             fileName: photoName,
             size: actualPhotoSize,
             ext: photoExt,
-            bucket: bucketId,
+            bucketId,
             userId: user.usersphoto.id
           });
         }
@@ -97,7 +97,7 @@ module.exports = (Model, App) => {
 
   const ResolvePhoto = (user, photo) => {
     const downloadDir = './downloads';
-    const shortFileName = photo.photoId;
+    const shortFileName = photo.fileId;
     const downloadFile = `${downloadDir}/${shortFileName}${photo.type ? `.${photo.type}` : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
@@ -112,7 +112,7 @@ module.exports = (Model, App) => {
       const storj = getEnvironment(user.email, user.userId, user.mnemonic);
       log.info(`Resolving photo ${photo.name}...`);
 
-      storj.resolveFile(photo.bucketId, photo.photoId, downloadFile, {
+      storj.resolveFile(photo.bucketId, photo.fileId, downloadFile, {
         progressCallback: (progress, downloadedBytes, totalBytes) => {
           log.warn('[NODE-LIB PHOTOS %s] Download Progress: %s (%s%%)',
             user.email,

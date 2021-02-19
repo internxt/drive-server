@@ -117,6 +117,11 @@ module.exports = (Router, Service, App) => {
       });
   });
 
+  Router.get('/photos/user', passportAuth, async (req, res) => {
+    const userPhotos = await App.services.UserPhotos.FindUserById(req.user.id);
+    res.status(200).send(userPhotos)
+  })
+
   /**
    * @swagger
    * /access:

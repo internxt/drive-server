@@ -127,7 +127,7 @@ module.exports = (Model, App) => {
         fileName,
         size,
         ext,
-        bucket,
+        bucketId,
         userId
       }) => {
         if (!fileId) return reject(Error('Missing photo id'));
@@ -138,7 +138,7 @@ module.exports = (Model, App) => {
           name: fileName,
           type: ext,
           fileId,
-          bucketId: bucket,
+          bucketId,
           size,
           userId,
           hash
@@ -178,6 +178,36 @@ module.exports = (Model, App) => {
           } else if (photo.size > maxAcceptableSize) {
             // 300MB
             throw Error('Photo too large');
+          }
+
+          App.services.StorjPhotos.ResolvePhoto(user, photo)
+            .then((result) => {
+              resolve({
+                ...result, name: photo.name, type: photo.type, size: photo.size
+              });
+            })
+            .catch((err) => {
+              if (err.message === 'Photo already exists') {
+                resolve({ photo: { name: `${photo.name}${photo.type ? `${photo.type}` : ''}` } });
+              } else {
+                reject(err);
+              }
+            });
+        })
+        .catch(reject);
+    });
+  };
+
+  const DownloadPreview = (user) => {
+
+    return new Promise((resolve, reject) => {
+      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+
+      Model.previews
+        .findOne({ where: { bucketId: { [Op.eq]: photoId } } })
+        .then((photo) => {
+          if (!photo) {
+            throw Error('Photo not found on database, please refresh');
           }
 
           App.services.StorjPhotos.ResolvePhoto(user, photo)
