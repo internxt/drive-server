@@ -370,11 +370,10 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/photos/storage/previews/:email', passportAuth, (req, res) => {
+  Router.get('/photos/storage/photos/:email', passportAuth, (req, res) => {
     const { email } = req.params;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
-
       res.status(200).send(allPhotos);
     }).catch((err) => {
       log.error('[GET ALL]', err);
