@@ -164,14 +164,14 @@ module.exports = (Model, App) => {
     }
   });
 
-  const DownloadPhoto = (user, photoId) => {
+  const DownloadPhoto = (user, item) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
 
     return new Promise((resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
       Model.photos
-        .findOne({ where: { fileId: { [Op.eq]: photoId } } })
+        .findOne({ where: { id: { [Op.eq]: item } } })
         .then((photo) => {
           if (!photo) {
             throw Error('Photo not found on database, please refresh');

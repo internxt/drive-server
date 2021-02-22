@@ -370,7 +370,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/photos/storage/previews/:email', passportAuth, (req, res) => {
+  Router.get('/photos/storage/photos/:email', passportAuth, (req, res) => {
     const { email } = req.params;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
@@ -588,6 +588,38 @@ module.exports = (Router, Service, App) => {
       filestream.pipe(res);
       fs.unlink(downloadFile, (error) => {
         if (error) throw error;
+      });
+    }).catch((err) => {
+      if (err.message === 'Bridge rate limit error') {
+        return res.status(402).json({ message: err.message });
+      }
+      return res.status(500).json({ message: err.message });
+    });
+  });
+  Router.get('/photos/download/photo/:photoId', passportAuth, (req, res) => {
+    const { user } = req;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    const photoId = req.params.photoId;
+    if (photoId === 'null') {
+      return res.status(500).send({ message: 'Missing photo id' });
+    }
+
+    return Service.Photos.DownloadPhoto(user, photoId).then(({
+      filestream, mimetype, downloadFile, name, type, size
+    }) => {
+      const decryptedFileName = App.services.Crypt.decryptName(name, 111);
+
+      const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
+      const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+
+      res.setHeader('content-length', size);
+      res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
+      res.setHeader('content-type', mimetype);
+      res.set('x-file-name', decryptedFileNameB64);
+      filestream.pipe(res);
+      fs.unlink(downloadFile, (error) => {
+        ¡        if (error) throw error;
       });
     }).catch((err) => {
       if (err.message === 'Bridge rate limit error') {
