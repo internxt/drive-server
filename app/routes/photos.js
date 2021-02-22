@@ -119,7 +119,10 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/photos/user', passportAuth, async (req, res) => {
     const userPhotos = await App.services.UserPhotos.FindUserById(req.user.id);
-    res.status(200).send(userPhotos)
+    if (userPhotos)
+      res.status(200).send({ ...userPhotos })
+    else
+      res.status(400).send({})
   })
 
   /**
@@ -287,6 +290,56 @@ module.exports = (Router, Service, App) => {
         res.status(500).json({ error: error.message });
       });
   });
+
+  Router.get('/photos/storage/previews/:id', passportAuth, (req, res) => {
+    console.log('ID', req.params.id)
+    const { user } = req;
+    // Set mnemonic to decrypted mnemonic
+    user.mnemonic = req.headers['internxt-mnemonic'];
+    const fileIdInBucket = req.params.id;
+    if (fileIdInBucket === 'null') {
+      return res.status(500).send({ message: 'Missing photo id' });
+    }
+
+    return Service.Photos.DownloadPreview(user, fileIdInBucket).then(({
+      filestream, mimetype, downloadFile, name, type, size
+    }) => {
+      const decryptedFileName = App.services.Crypt.decryptName(name, 111);
+
+      const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
+      const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
+
+      res.setHeader('content-length', size);
+      res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
+      res.setHeader('content-type', mimetype);
+      res.set('x-file-name', decryptedFileNameB64);
+      filestream.pipe(res);
+      fs.unlink(downloadFile, (error) => {
+        if (error) throw error;
+      });
+    }).catch((err) => {
+      if (err.message === 'Bridge rate limit error') {
+        return res.status(402).json({ message: err.message });
+      }
+      return res.status(500).json({ message: err.message });
+    });
+  });
+
+  Router.get('/photos/previews', passportAuth, (req, res) => {
+    const { user } = req;
+
+    Service.Photos.getPhotosByUser(user).then(async (userData) => {
+
+      const listPreviews = await Service.Photos.getPreviewsByBucketId(userData.rootPreviewId);
+
+
+      res.status(200).send(listPreviews);
+    }).catch((err) => {
+      log.error('ERROR GET LIST PREVIEWS', err);
+      res.status(500).json({ error: err.message });
+    });
+  });
+
 
   /**
    * @swagger

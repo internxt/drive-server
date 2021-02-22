@@ -128,18 +128,14 @@ module.exports = (Model, App) => {
    * Create user bucket on the network when log in.
    * @param user
    */
-  const InitializeUserPhotos = (user) => Model.usersphotos.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } }, include: [{ model: Model.usersphotos }] })
+  const InitializeUserPhotos = (user) => Model.users.sequelize.transaction((t) => Model.users
+    .findOne({ where: { email: { [Op.eq]: user.email } } })
     .then(async (userData) => {
-      if (userData.usersphoto.rootAlbumId && userData.usersphoto.rootPreviewId && userData.usersphoto.deleteFolderId) {
-        userData.mnemonic = user.mnemonic;
-        userData.rootAlbumId = userData.usersphoto.rootAlbumId;
-        userData.rootPreviewId = userData.usersphoto.rootPreviewId;
 
-        return userData;
-      }
 
       if (userData) {
+        userData.mnemonic = user.mnemonic;
+
         // Create photos bucket
         const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
         Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
@@ -148,27 +144,39 @@ module.exports = (Model, App) => {
         const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
         Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
-        const deleteFolder = await App.services.Photos.CreateAlbum(userData.usersphoto.id, 'deleted');
+
         // Update user register with root album Id
-        console.log('DELETE FOLDER', deleteFolder);
-        const userPhotos = await Model.usersphotos.findOne({ where: { userId: { [Op.eq]: userData.id } } });
-        await userPhotos.update(
-          {
-            rootAlbumId: rootAlbumBucket.id,
-            rootPreviewId: rootPreviewBucket.id,
-            deleteFolderId: deleteFolder.id
-          },
-          { transaction: t }
-        );
+        return Model.usersphotos.sequelize.transaction(async () => Model.usersphotos
+          .findOrCreate({
+            where: { user_id: userData.id },
+            defaults: {
+              userId: userData.id,
+              rootAlbumId: rootAlbumBucket.id,
+              rootPreviewId: rootPreviewBucket.id
+            }
+          })
+          .then(async (userResult, created) => {
+            if (created) {
+              // Set created flag for Frontend management
+              Object.assign(userResult, { isCreated: created });
+            }
+            return userResult;
+          })
+          .catch((err) => {
+            if (err.response) {
+              // This happens when email is registered in bridge
+              Logger.error(err.response.data);
+            } else {
+              Logger.error(err.stack);
+            }
 
-        // Set decrypted mnemonic to returning object
-        const updatedUser = userData;
-        updatedUser.mnemonic = user.mnemonic;
+            throw new Error(err);
+          })); // end transaction
 
-        return updatedUser;
       }
     })
     .catch((error) => {
+      console.log('ERROR USERPHOTOS', error)
       Logger.error(error.stack);
       throw new Error(error);
     }));

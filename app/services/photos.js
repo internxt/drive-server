@@ -198,22 +198,19 @@ module.exports = (Model, App) => {
     });
   };
 
-  const DownloadPreview = (user) => {
+  const DownloadPreview = (user, previewId) => {
 
     return new Promise((resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
 
       Model.previews
-        .findOne({ where: { bucketId: { [Op.eq]: photoId } } })
+        .findOne({ where: { fileId: { [Op.eq]: previewId } } })
         .then((photo) => {
-          if (!photo) {
-            throw Error('Photo not found on database, please refresh');
-          }
 
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
               resolve({
-                ...result, name: photo.name, type: photo.type
+                ...result, name: photo.name, type: photo.type, size: photo.size
               });
             })
             .catch((err) => {
@@ -363,6 +360,35 @@ module.exports = (Model, App) => {
       });
   });
 
+  const getPhotosByUser = (user) => {
+    return new Promise((resolve, reject) => {
+      Model.usersphotos
+        .findOne({ where: { userId: { [Op.eq]: user.id } } })
+        .then((userPhoto) => {
+          resolve(userPhoto)
+        })
+        .catch((err) => {
+          reject()
+        })
+    });
+  }
+
+  const getPreviewsByBucketId = (bucket) => {
+    return new Promise((resolve, reject) => {
+
+      Model.previews.findAll({
+        where: { bucketId: { [Op.eq]: bucket } }
+      }).then((listPreviews) => {
+        resolve(listPreviews)
+      }).catch((err) => {
+        reject()
+      })
+
+    })
+  }
+
+
+
   return {
     Name: 'Photos',
     CreatePhoto,
@@ -377,6 +403,10 @@ module.exports = (Model, App) => {
     MoveToAlbum,
     GetAlbumContent,
     DeleteAlbum,
-    DeletePhoto
+    DeletePhoto,
+    DownloadPreview,
+    getPhotosByUser,
+    getPreviewsByBucketId
+
   };
 };
