@@ -618,7 +618,7 @@ module.exports = (Router, Service, App) => {
       res.set('x-file-name', decryptedFileNameB64);
       filestream.pipe(res);
       fs.unlink(downloadFile, (error) => {
-        ¡        if (error) throw error;
+        if (error) throw error;
       });
     }).catch((err) => {
       if (err.message === 'Bridge rate limit error') {
