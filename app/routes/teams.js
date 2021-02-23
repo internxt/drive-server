@@ -98,7 +98,7 @@ module.exports = (Router, Service) => {
 
     // Datas needed for invite a user
     const existsUser = await Service.User.FindUserByEmail(email);
-    const existsKeys = await Service.Keyserver.keysExists(existsUser);
+    const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {
       return res.status(500).send({ error: 'You can not invite this user' });
@@ -178,7 +178,7 @@ module.exports = (Router, Service) => {
     const getToken = await Service.TeamInvitations.getByToken(token);
     const getTeam = await Service.Team.getTeamById(getToken.id_team);
     const findUser = await Service.User.FindUserByEmail(getToken.user);
-    const keysExists = await Service.Keyserver.keysExists(findUser);
+    const keysExists = await Service.KeyServer.keysExists(findUser);
     // Control that the token,team, user and keys exists
     if (!getToken && !getTeam && !findUser && !keysExists) {
       Logger.error('Token %s doesn\'t exists', token);
@@ -287,7 +287,7 @@ module.exports = (Router, Service) => {
     const { idTeam } = req.body;
     const removeUser = req.body.item.user;
 
-    Service.Team.getTeamByIdUser(user.email).then((team) => {
+    Service.Team.getTeamByEmail(user.email).then((team) => {
       if (idTeam === team.id) {
         Service.TeamsMembers.removeMembers(removeUser).then(() => {
           res.status(200).send({ info: 'The user is removed ' });

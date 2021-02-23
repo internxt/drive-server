@@ -2,8 +2,12 @@ const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 module.exports = () => {
+  const getStripe = (isTest = false) => {
+    return isTest ? StripeTest : StripeProduction;
+  };
+
   const getStorageProducts = (test = false) => new Promise((resolve, reject) => {
-    const stripe = test ? StripeTest : StripeProduction;
+    const stripe = getStripe(test);
 
     stripe.products.list({}, (err, products) => {
       if (err) {
@@ -19,7 +23,7 @@ module.exports = () => {
   });
 
   const getTeamProducts = (test = false) => new Promise((resolve, reject) => {
-    const stripe = test ? StripeTest : StripeProduction;
+    const stripe = getStripe(test);
 
     stripe.products.list({}, (err, products) => {
       if (err) {
@@ -37,7 +41,7 @@ module.exports = () => {
   });
 
   const getStoragePlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
-    const stripe = test ? StripeTest : StripeProduction;
+    const stripe = getStripe(test);
 
     stripe.plans.list({ product: stripeProduct },
       (err, plans) => {
@@ -57,7 +61,7 @@ module.exports = () => {
   });
 
   const getTeamPlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
-    const stripe = test ? StripeTest : StripeProduction;
+    const stripe = getStripe(test);
 
     stripe.plans.list({ product: stripeProduct }, (err, plans) => {
       if (err) {
@@ -76,11 +80,18 @@ module.exports = () => {
     });
   });
 
+  const findCustomerByEmail = async (email, isTest = false) => {
+    const stripe = getStripe(isTest);
+    const result = await stripe.customers.list({ email, limit: 1 });
+    return result.data && result.data[0];
+  };
+
   return {
     Name: 'Stripe',
     getStorageProducts,
     getStoragePlans,
     getTeamProducts,
-    getTeamPlans
+    getTeamPlans,
+    findCustomerByEmail
   };
 };

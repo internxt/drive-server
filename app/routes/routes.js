@@ -42,9 +42,9 @@ module.exports = (Router, Service, App) => {
   TwoFactorRoutes(Router, Service, App);
   // Extra routes uncategorized
   ExtraRoutes(Router, Service, App);
-
+  // Teams routes
   TeamsRoutes(Router, Service, App);
-
+  // AppSumo routes
   AppSumoRoutes(Router, Service, App);
 
   /**
@@ -88,7 +88,7 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.Keyserver.keysExists(userData).then(() => {
+          Service.KeyServer.keysExists(userData).then(() => {
             res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
           }).catch(() => {
             res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
@@ -171,14 +171,14 @@ module.exports = (Router, Service, App) => {
 
         let keys = false;
         try {
-          keys = await Service.Keyserver.keysExists(userData);
+          keys = await Service.KeyServer.keysExists(userData);
         } catch (e) {
           // no op
         }
 
         if (!keys && req.body.publicKey) {
-          await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-          keys = await Service.Keyserver.keysExists(userData);
+          await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+          keys = await Service.KeyServer.keysExists(userData);
         }
 
         const user = {
@@ -227,13 +227,13 @@ module.exports = (Router, Service, App) => {
     const userData = req.user;
     let keys = false;
     try {
-      keys = await Service.Keyserver.keysExists(userData);
+      keys = await Service.KeyServer.keysExists(userData);
     } catch (e) {
       // no op
     }
     if (!keys && req.body.publicKey) {
-      await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-      keys = await Service.Keyserver.keysExists(userData);
+      await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+      keys = await Service.KeyServer.keysExists(userData);
     }
     const userBucket = await Service.User.GetUserBucket(userData);
 
@@ -483,7 +483,7 @@ module.exports = (Router, Service, App) => {
   Router.get('/user/keys/:user', passportAuth, async (req, res) => {
     const { user } = req.params;
     Service.User.FindUserByEmail(user).then((userKeys) => {
-      Service.Keyserver.keysExists(userKeys).then((keys) => {
+      Service.KeyServer.keysExists(userKeys).then((keys) => {
         res.status(200).send({ publicKey: keys.public_key });
       }).catch(async () => {
         const { publicKeyArmored } = await openpgp.generateKey({

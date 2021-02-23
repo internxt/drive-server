@@ -1,5 +1,7 @@
 const sequelize = require('sequelize');
 const axios = require('axios');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const CryptService = require('./crypt');
 
 const { Op } = sequelize;
@@ -23,7 +25,7 @@ module.exports = (Model, App) => {
     * @swagger
     * Function: Get info team with the email of admin
     */
-  const getTeamByIdUser = (user) => Model.teams.findOne({ where: { admin: { [Op.eq]: user } } });
+  const getTeamByEmail = (user) => Model.teams.findOne({ where: { admin: { [Op.eq]: user } } });
 
   /**
     * @swagger
@@ -36,11 +38,12 @@ module.exports = (Model, App) => {
     * Function: Method to generete a random email FOR STRIPE
     */
   const randomEmailBridgeUserTeam = () => {
-    const dateNow = new Date().toISOString().split('.')[0].replace(/[-:T]/g, '');
-    const passwd = CryptServiceInstance.encryptText(dateNow, process.env.CRYPTO_KEY);
+    const rnd = crypto.randomBytes(8).toString('hex');
+    const newEmail = `${rnd}-team@internxt.com`;
+    const passwd = bcrypt.hashSync(newEmail, 8);
 
     return {
-      bridge_user: `${dateNow}team@internxt.com`,
+      bridge_user: newEmail,
       password: passwd
     };
   };
@@ -86,7 +89,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Team',
     create,
-    getTeamByIdUser,
+    getTeamByEmail,
     getTeamById,
     randomEmailBridgeUserTeam,
     getIdTeamByUser,
