@@ -46,7 +46,7 @@ module.exports = (Model, App) => {
       throw Error('File not found');
     }
 
-    const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+    const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
 
     if (isFolder === 'true') {
       const tree = await FolderServiceInstance.GetTree({ email: user },

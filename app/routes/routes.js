@@ -70,9 +70,14 @@ module.exports = (Router, Service, App) => {
    *         description: Wrong username or password
    */
   Router.post('/login', (req, res) => {
-    req.body.email = req.body.email.toLowerCase();
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
+    }
+
+    try {
+      req.body.email = req.body.email.toLowerCase();
+    } catch {
+      return res.status(400).send({ error: 'Invalid username' })
     }
 
     // Call user service to find user
@@ -182,6 +187,7 @@ module.exports = (Router, Service, App) => {
         }
 
         const user = {
+          email: req.body.email,
           userId: userData.userId,
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id,

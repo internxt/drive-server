@@ -28,6 +28,7 @@ module.exports = (Router, Service, App) => {
    *       200:
    *         description: Array of folder items
    */
+  /*
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
@@ -43,6 +44,7 @@ module.exports = (Router, Service, App) => {
       res.status(500).json(err);
     });
   });
+  */
 
   /**
    * @swagger
@@ -162,21 +164,19 @@ module.exports = (Router, Service, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-    Service.Folder.isFolderOfTeam(folderId).then(() => {
-      Service.Files.Upload(user, folderId, xfile.originalname, xfile.path).then((result) => {
+    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+      .then((result) => {
         res.status(201).json(result);
-      }).catch((err) => {
+      })
+      .catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
         if (err.includes && err.includes('Bridge rate limit error')) {
           res.status(402).json({ message: err });
           return;
         }
+
         res.status(500).json({ message: err });
       });
-    }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.status(500).json({ message: err });
-    });
   });
 
   /**
@@ -209,7 +209,7 @@ module.exports = (Router, Service, App) => {
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {
-      res.status(500).json(error);
+      res.status(500).json({ error: error.message });
     });
   });
 
@@ -343,8 +343,9 @@ module.exports = (Router, Service, App) => {
 
     Service.Files.MoveFile(user, fileId, destination).then((result) => {
       res.status(200).json(result);
-    }).catch((error) => {
-      res.status(500).json(error);
+    }).catch((err) => {
+      Logger.error(err)
+      res.status(500).json({ error: err.message });
     });
   });
 
@@ -408,7 +409,7 @@ module.exports = (Router, Service, App) => {
           Service.Folder.GetTree({
             email: result.user
           }, result.file).then((tree) => {
-            const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+            const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
             const treeSize = Service.Folder.GetTreeSize(tree);
 
             if (treeSize <= maxAcceptableSize) {
