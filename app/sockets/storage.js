@@ -16,7 +16,7 @@ module.exports = (App, Service, socket) => {
             Service.Folder.GetTree({
               email: result.user
             }, result.file).then((tree) => {
-              const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+              const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
               const treeSize = Service.Folder.GetTreeSize(tree);
 
               if (treeSize <= maxAcceptableSize) {

@@ -7,7 +7,6 @@ module.exports = (Router, Service) => {
   Router.get('/user/activations/:token', (req, res) => {
     Service.User.ActivateUser(req.params.token).then((response) => {
       const body = response.data;
-      Service.Analytics.track({ userId: body.uuid, event: 'user-activated', properties: { email: body.id } });
       res.status(200).send(body);
     }).catch((err) => {
       res.status(err.response.status).send(err.response.data);

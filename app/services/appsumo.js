@@ -12,7 +12,8 @@ const AppSumoTiers = [
   { name: 'internxt_tier2', size: '1TB' },
   { name: 'internxt_tier3', size: '2TB' },
   { name: 'internxt_tier4', size: '3TB' },
-  { name: 'internxt_tier5', size: '5TB' }
+  { name: 'internxt_tier5', size: '5TB' },
+  { name: 'lifetime_2TB', size: '2TB' }
 ];
 
 function GetLicenseByName(name) {
@@ -63,7 +64,38 @@ module.exports = (Model, App) => {
 
   // EXAMPLE: updateOrCreate(Model.AppSumo, { where: { userId: 244 } }, { uuid: 'lol3', planId: 'plan3', invoiceItemUuid: 'invoice3' });
 
+  const RegisterIncompleteLifetime = async (email, plan) => {
+    const randomPassword = RandomPassword(email);
+    const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
+
+    const encryptedHash = CryptServiceInstance.encryptText(encryptedPassword.hash);
+    const encryptedSalt = CryptServiceInstance.encryptText(encryptedPassword.salt);
+
+    const newMnemonic = bip39.generateMnemonic(256);
+    const encryptedMnemonic = CryptServiceInstance.encryptTextWithKey(newMnemonic, randomPassword);
+
+    const userObject = {
+      email,
+      name: null,
+      lastname: null,
+      password: encryptedHash,
+      mnemonic: encryptedMnemonic,
+      salt: encryptedSalt,
+      referral: null,
+      uuid: null,
+      credit: 0,
+      welcomePack: true,
+      registerCompleted: false
+    };
+
+    const user = await UserServiceInstance.FindOrCreate(userObject);
+    return ApplyLicense(user, plan);
+  };
+
   const RegisterIncomplete = async (email, plan, uuid, invoice) => {
+    if (plan === 'lifetime_2TB') {
+      return RegisterIncompleteLifetime(email, plan);
+    }
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 

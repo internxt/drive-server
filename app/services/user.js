@@ -117,8 +117,7 @@ module.exports = (Model, App) => {
       Logger.info('User init | root folder created, id: %s', rootFolder.id);
 
       // Update user register with root folder Id
-      await userData.update({ root_folder_id: rootFolder.id },
-        { transaction: t });
+      await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
 
       // Set decrypted mnemonic to returning object
       const updatedUser = userData;
@@ -272,7 +271,6 @@ module.exports = (Model, App) => {
   const getSyncDate = () => {
     let syncDate = Date.now();
     syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
-
     return new Date(syncDate);
   };
 
