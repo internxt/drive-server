@@ -2,8 +2,8 @@ const async = require('async');
 const crypto = require('crypto');
 const Stripe = require('stripe');
 
-const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
-const StripeTest = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
+const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+const StripeTest = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 const passport = require('../middleware/passport');
 
@@ -90,8 +90,7 @@ module.exports = (Router, Service, App) => {
           delete sessionParams.customer;
         }
 
-        stripe.checkout.sessions
-          .create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
+        stripe.checkout.sessions.create(sessionParams).then((result) => { next(null, result); }).catch((err) => { next(err); });
       }
     ], (err, result) => {
       if (err) {
@@ -109,6 +108,7 @@ module.exports = (Router, Service, App) => {
   Router.post('/stripe/teams/session', passportAuth, async (req, res) => {
     const test = req.body.test || false;
     const stripe = test ? StripeTest : StripeProduction;
+    const { quantity } = req.body;
 
     const productToSubscribe = req.body.product;
     const user = req.user.email;
@@ -193,7 +193,12 @@ module.exports = (Router, Service, App) => {
           success_url: 'https://drive.internxt.com/',
           cancel_url: 'https://drive.internxt.com/',
           subscription_data: {
-            items: [{ plan: req.body.plan }],
+            items: [
+              {
+                plan: req.body.plan,
+                quantity
+              }
+            ],
             trial_period_days: 30
           },
           metadata: {},
@@ -269,7 +274,7 @@ module.exports = (Router, Service, App) => {
         res.status(500).send({ error: err });
       } else {
         const productsMin = products.data
-          .filter((p) => !!p.metadata.size_bytes)
+          .filter((p) => !!p.metadata.size_bytes && p.metadata.member_tier !== 'lifetime')
           .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
           .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
         res.status(200).send(productsMin);

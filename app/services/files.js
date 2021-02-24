@@ -178,7 +178,7 @@ module.exports = (Model, App) => {
   };
 
   const Download = (user, fileId) => {
-    const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+    const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
 
     return new Promise((resolve, reject) => {
       if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
@@ -188,7 +188,6 @@ module.exports = (Model, App) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
           } else if (file.size > maxAcceptableSize) {
-            // 300MB
             throw Error('File too large');
           }
 
@@ -230,9 +229,14 @@ module.exports = (Model, App) => {
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
     App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
-      const file = await Model.file.findOne({
-        where: { fileId: { [Op.eq]: fileId } }
-      });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+
+      const folder = await Model.folder.findOne({ where: { id: file.folder_id } });
+
+      if (!folder) {
+        reject(Error('File not found'));
+      }
+
       if (file) {
         const isDestroyed = await file.destroy();
         if (isDestroyed) {
@@ -353,12 +357,14 @@ module.exports = (Model, App) => {
   });
 
   const MoveFile = async (user, fileId, destination) => {
-    const file = await Model.file.findOne({
-      where: { fileId: { [Op.eq]: fileId } }
-    });
+    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
     if (!file) {
       throw new Error('File not found');
     }
+
+    const folderSource = await Model.folder.findOne({ where: { id: file.folder_id, user_id: user.id } });
+    const folderTarget = await Model.folder.findOne({ where: { id: destination, user_id: user.id } });
+    if (!folderSource || !folderTarget) { throw new Error('Folder not found'); }
 
     const originalName = App.services.Crypt.decryptName(file.name,
       file.folder_id);

@@ -1,5 +1,5 @@
-const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-03-02' });
-const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-03-02' });
+const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
+const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 module.exports = () => {
   const getStorageProducts = (test = false) => new Promise((resolve, reject) => {
@@ -26,7 +26,9 @@ module.exports = () => {
         reject(err);
       } else {
         const productsMin = products.data
-          .filter((p) => !!p.metadata.team_members)
+          .filter((x) => {
+            return !!x.metadata.is_teams;
+          })
           .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
           .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
         resolve(productsMin);
