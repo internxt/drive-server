@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const Stripe = require('stripe');
 
 const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
-const StripeTest = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 
 const passport = require('../middleware/passport');
 
@@ -41,17 +41,22 @@ module.exports = (Router, Service, App) => {
         if (!customer) {
           // The customer does not exists
           // Procede to the subscription
-          next(null, undefined);
-        } else {
-          // Get subscriptions
-          const subscriptions = customer.subscriptions.data;
-          if (subscriptions.length === 0) {
-            next(null, { customer, subscription: null });
-          } else {
-            const subscription = subscriptions[0];
-            next(null, { customer, subscription });
-          }
+          return next(null, undefined);
         }
+        // Get subscriptions
+        return stripe.subscriptions.list({
+          customer: customer.id
+        }, (err, response) => {
+          if (err) {
+            return next();
+          }
+          const subscriptions = response.data;
+          if (subscriptions.length === 0) {
+            return next(null, { customer, subscription: null });
+          }
+          const subscription = subscriptions[0];
+          return next(null, { customer, subscription });
+        });
       },
       (payload, next) => {
         if (!payload) {
