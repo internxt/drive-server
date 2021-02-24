@@ -534,7 +534,8 @@ module.exports = (Router, Service, App) => {
       userInfo,
       xpreview.originalname,
       xpreview.path,
-      photoId
+      photoId,
+      req.body.hash
     ).then(async (result) => {
       res.status(201).json(result);
     }).catch((err) => {

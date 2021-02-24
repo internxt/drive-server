@@ -12,7 +12,7 @@ module.exports = (Model, App) => {
 
   const FindPreviewByPhotoId = (photoId) => Model.previews.findOne({ where: { photoId: { [Op.eq]: photoId } } });
 
-  const UploadPreview = (userPhotos, photoName, photoPath, photoId) => new Promise((resolve, reject) => {
+  const UploadPreview = (userPhotos, photoName, photoPath, photoId, hash) => new Promise((resolve, reject) => {
     try {
       if (userPhotos.mnemonic === 'null') {
         throw new Error('Your mnemonic is invalid');
@@ -82,7 +82,8 @@ module.exports = (Model, App) => {
           fileId,
           bucketId,
           size,
-          photoId
+          photoId,
+          hash
         };
 
         const addedPhoto = await Model.previews.create(newPhotoInfo);
