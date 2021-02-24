@@ -21,7 +21,6 @@ const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
 
 const { passportAuth } = passport;
-const userTeam = null;
 
 const Logger = logger.getInstance();
 
@@ -132,8 +131,9 @@ module.exports = (Router, Service, App) => {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
-        return;
+        return res.status(500).send({
+          error: 'Your account has been blocked for security reasons. Please reach out to us'
+        });
       }
 
       // Process user data and answer API call
@@ -154,20 +154,11 @@ module.exports = (Router, Service, App) => {
       } else if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const internxtClient = req.headers['internxt-client'];
-        const token = passport.Sign(userData.email,
-          App.config.get('secrets').JWT,
-          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+        const token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
 
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
         const userBucket = await Service.User.GetUserBucket(userData);
-
-        let teamRol = '';
-        if (userTeam && userTeam.admin === req.body.email) {
-          teamRol = 'admin';
-        } else if (userTeam) {
-          teamRol = 'member';
-        }
 
         let keys = false;
         try {
@@ -180,6 +171,8 @@ module.exports = (Router, Service, App) => {
           await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
           keys = await Service.KeyServer.keysExists(userData);
         }
+
+        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
 
         const user = {
           email: req.body.email,
@@ -195,19 +188,16 @@ module.exports = (Router, Service, App) => {
           publicKey: keys ? keys.public_key : null,
           revocateKey: keys ? keys.revocation_key : null,
           bucket: userBucket,
-          registerCompleted: userData.registerCompleted
+          registerCompleted: userData.registerCompleted,
+          teams: hasTeams
         };
 
+        const userTeam = null;
         if (userTeam) {
-          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
-            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
-          res.status(200).json({
-            user, token, userTeam, teamRol, tokenTeam
-          });
+          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+          res.status(200).json({ user, token, userTeam, tokenTeam });
         } else {
-          res.status(200).json({
-            user, token, userTeam, teamRol
-          });
+          res.status(200).json({ user, token, userTeam });
         }
       } else {
         // Wrong password

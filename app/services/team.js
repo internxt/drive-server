@@ -84,7 +84,7 @@ module.exports = (Model, App) => {
     * @swagger
     * Function: Method to get the object team
     */
-  const getTeamByMember = (userEmail) => getIdTeamByUser(userEmail).then((team) => (!team ? Promise.resolve() : getTeamById(team.id_team)));
+  const getTeamByMember = (email) => getIdTeamByUser(email).then((team) => (!team ? Promise.resolve() : getTeamById(team.id_team)));
 
   return {
     Name: 'Team',
