@@ -1,11 +1,11 @@
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
-const { passportAuth } = require('../middleware/passport');
+const { passportAuth, Sign } = require('../middleware/passport');
 const logger = require('../../lib/logger');
 
 const Logger = logger.getInstance();
 
-module.exports = (Router, Service) => {
+module.exports = (Router, Service, App) => {
   /**
    * @swagger
    * /teams/initialize:
@@ -336,6 +336,21 @@ module.exports = (Router, Service) => {
     }).catch((err) => {
       Logger.error('Error: Error send deactivation email teams account of user %s', req.user.email);
       res.status(500).send(err);
+    });
+  });
+
+  Router.get('/teams/info', passportAuth, (req, res) => {
+    Service.Team.getTeamByMember(req.user.email).then((team) => {
+      if (!team) {
+        throw Error('No teams');
+      }
+      const userTeam = team.toJSON();
+      delete userTeam.id;
+      const internxtClient = req.headers['internxt-client'];
+      const tokenTeams = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+      res.status(200).send({ userTeam, tokenTeams });
+    }).catch(() => {
+      res.status(400).json({ error: 'Team not found' });
     });
   });
 
