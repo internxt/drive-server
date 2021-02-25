@@ -340,7 +340,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/teams/info', passportAuth, (req, res) => {
-    Service.Team.getTeamByMember(req.user.email).then((team) => {
+    Service.Team.getTeamByMember(req.user.email).then(async (team) => {
       if (!team) {
         throw Error('No teams');
       }
@@ -348,6 +348,11 @@ module.exports = (Router, Service, App) => {
       delete userTeam.id;
       const internxtClient = req.headers['internxt-client'];
       const tokenTeams = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+
+      const member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.user.email);
+
+      userTeam.bridge_mnemonic = member.bridge_mnemonic;
+
       res.status(200).send({ userTeam, tokenTeams });
     }).catch(() => {
       res.status(400).json({ error: 'Team not found' });
