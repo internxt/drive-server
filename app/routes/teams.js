@@ -26,35 +26,32 @@ module.exports = (Router, Service, App) => {
    *
    */
   Router.post('/teams/initialize', passportAuth, async (req, res) => {
-    const bridgeUser = req.body.email;
-    const { mnemonic } = req.body;
+    const { mnemonic, email: bridgeUser } = req.body;
     const { user } = req;
 
     // Take the object team
-    const team = await Service.Team.getTeamByMember(user.email);
+    const team = await Service.Team.getTeamByMember(req.user.email);
+
+    if (!team) {
+      Logger.error('Team not found');
+      return res.status(200).send({ error: 'Team not found' });
+    }
     // If the team does not exist and is not admin
-    if (!team || team.admin !== user.email) {
-      Logger.error('The team cannot be initialized');
-      res.status(500).send();
+    if (team && team.admin !== user.email) {
+      Logger.error('You are not the admin');
+      return res.status(400).send({ error: 'You are not the admin' });
     }
 
-    Service.User.InitializeUser({
-      email: bridgeUser,
-      mnemonic
-    }).then((userData) => {
-      Service.User.FindUserByEmail(bridgeUser).then((teamUser) => {
-        userData.id = teamUser.id;
-        userData.email = teamUser.email;
-        userData.password = teamUser.password;
-        userData.mnemonic = teamUser.mnemonic;
-        userData.root_folder_id = teamUser.root_folder_id;
+    const userData = await Service.User.InitializeUser({ email: bridgeUser, mnemonic });
+    const teamUser = await Service.User.FindUserByEmail(bridgeUser);
 
-        res.status(200).send({ userData });
-      });
-    }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      res.status(500).send(err.message);
-    });
+    userData.id = teamUser.id;
+    userData.email = teamUser.email;
+    userData.password = teamUser.password;
+    userData.mnemonic = teamUser.mnemonic;
+    userData.root_folder_id = teamUser.root_folder_id;
+
+    res.status(200).send({ userData });
   });
 
   /**
@@ -349,9 +346,13 @@ module.exports = (Router, Service, App) => {
       const internxtClient = req.headers['internxt-client'];
       const tokenTeams = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
 
+      const user = await Service.User.FindUserByEmail(userTeam.bridge_user);
+      userTeam.root_folder_id = user.root_folder_id;
+
       const member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.user.email);
 
       userTeam.bridge_mnemonic = member.bridge_mnemonic;
+      userTeam.isAdmin = userTeam.admin === req.user.email;
 
       res.status(200).send({ userTeam, tokenTeams });
     }).catch(() => {

@@ -124,9 +124,6 @@ module.exports = (Model, App) => {
       updatedUser.mnemonic = user.mnemonic;
 
       return updatedUser;
-    }).catch((error) => {
-      Logger.error(error.stack);
-      throw new Error(error);
     }));
 
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
