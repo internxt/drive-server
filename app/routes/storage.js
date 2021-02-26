@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const rimraf = require('rimraf');
 const contentDisposition = require('content-disposition');
+const bip39 = require('bip39');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
@@ -159,6 +160,11 @@ module.exports = (Router, Service, App) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
+    const isValidMnemonic = bip39.validateMnemonic(user.mnemonic);
+
+    if (!isValidMnemonic) {
+      return res.status(400).send({ message: 'Missing encryption key' });
+    }
     const xfile = req.file;
     const folderId = req.params.id;
 
@@ -248,6 +254,13 @@ module.exports = (Router, Service, App) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
+
+    const isValidMnemopnic = bip39.validateMnemonic(user.mnemonic);
+
+    if (!isValidMnemopnic) {
+      return res.status(400).send({ message: 'Missing encryption key' });
+    }
+
     const fileIdInBucket = req.params.id;
     if (fileIdInBucket === 'null') {
       return res.status(500).send({ message: 'Missing file id' });
