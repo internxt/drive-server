@@ -14,7 +14,6 @@ const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
-const PhotosRoutes = require('./photos');
 const AppSumoRoutes = require('./appsumo');
 
 const passport = require('../middleware/passport');
@@ -22,7 +21,6 @@ const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
 
 const { passportAuth } = passport;
-const userTeam = null;
 
 const Logger = logger.getInstance();
 
@@ -43,13 +41,9 @@ module.exports = (Router, Service, App) => {
   TwoFactorRoutes(Router, Service, App);
   // Extra routes uncategorized
   ExtraRoutes(Router, Service, App);
-
+  // Teams routes
   TeamsRoutes(Router, Service, App);
-  // Routes used by Internxt Photos
-  PhotosRoutes(Router, Service, App);
-
-
-
+  // AppSumo routes
   AppSumoRoutes(Router, Service, App);
 
   /**
@@ -93,7 +87,7 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.Keyserver.keysExists(userData).then(() => {
+          Service.KeyServer.keysExists(userData).then(() => {
             res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
           }).catch(() => {
             res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
@@ -137,8 +131,9 @@ module.exports = (Router, Service, App) => {
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
-        return;
+        return res.status(500).send({
+          error: 'Your account has been blocked for security reasons. Please reach out to us'
+        });
       }
 
       // Process user data and answer API call
@@ -159,32 +154,25 @@ module.exports = (Router, Service, App) => {
       } else if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const internxtClient = req.headers['internxt-client'];
-        const token = passport.Sign(userData.email,
-          App.config.get('secrets').JWT,
-          internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+        const token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
 
         Service.User.LoginFailed(req.body.email, false);
         Service.User.UpdateAccountActivity(req.body.email);
         const userBucket = await Service.User.GetUserBucket(userData);
 
-        let teamRol = '';
-        if (userTeam && userTeam.admin === req.body.email) {
-          teamRol = 'admin';
-        } else if (userTeam) {
-          teamRol = 'member';
-        }
-
         let keys = false;
         try {
-          keys = await Service.Keyserver.keysExists(userData);
+          keys = await Service.KeyServer.keysExists(userData);
         } catch (e) {
           // no op
         }
 
         if (!keys && req.body.publicKey) {
-          await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-          keys = await Service.Keyserver.keysExists(userData);
+          await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+          keys = await Service.KeyServer.keysExists(userData);
         }
+
+        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
 
         const user = {
           email: req.body.email,
@@ -200,19 +188,16 @@ module.exports = (Router, Service, App) => {
           publicKey: keys ? keys.public_key : null,
           revocateKey: keys ? keys.revocation_key : null,
           bucket: userBucket,
-          registerCompleted: userData.registerCompleted
+          registerCompleted: userData.registerCompleted,
+          teams: hasTeams
         };
 
+        const userTeam = null;
         if (userTeam) {
-          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT,
-            internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
-          res.status(200).json({
-            user, token, userTeam, teamRol, tokenTeam
-          });
+          const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+          res.status(200).json({ user, token, userTeam, tokenTeam });
         } else {
-          res.status(200).json({
-            user, token, userTeam, teamRol
-          });
+          res.status(200).json({ user, token, userTeam });
         }
       } else {
         // Wrong password
@@ -232,13 +217,13 @@ module.exports = (Router, Service, App) => {
     const userData = req.user;
     let keys = false;
     try {
-      keys = await Service.Keyserver.keysExists(userData);
+      keys = await Service.KeyServer.keysExists(userData);
     } catch (e) {
       // no op
     }
     if (!keys && req.body.publicKey) {
-      await Service.Keyserver.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-      keys = await Service.Keyserver.keysExists(userData);
+      await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+      keys = await Service.KeyServer.keysExists(userData);
     }
     const userBucket = await Service.User.GetUserBucket(userData);
 
@@ -488,7 +473,7 @@ module.exports = (Router, Service, App) => {
   Router.get('/user/keys/:user', passportAuth, async (req, res) => {
     const { user } = req.params;
     Service.User.FindUserByEmail(user).then((userKeys) => {
-      Service.Keyserver.keysExists(userKeys).then((keys) => {
+      Service.KeyServer.keysExists(userKeys).then((keys) => {
         res.status(200).send({ publicKey: keys.public_key });
       }).catch(async () => {
         const { publicKeyArmored } = await openpgp.generateKey({

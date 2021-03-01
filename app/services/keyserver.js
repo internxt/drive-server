@@ -14,7 +14,8 @@ module.exports = (Model) => {
       } else {
         reject(Error('Keys not exists'));
       }
-    }).catch(() => {
+    }).catch((err) => {
+      console.log(err)
       reject(Error('Error querying database'));
     });
   });
@@ -28,13 +29,14 @@ module.exports = (Model) => {
 
     }).then((userKeys) => {
       resolve(userKeys);
-    }).catch(() => {
+    }).catch((err) => {
+      console.log(err)
       reject(Error('Error querying database'));
     });
   });
 
   return {
-    Name: 'Keyserver',
+    Name: 'KeyServer',
     addKeysLogin,
     keysExists
 

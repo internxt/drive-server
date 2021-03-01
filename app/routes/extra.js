@@ -17,8 +17,4 @@ module.exports = (Router) => {
       res.status(500).send({ error: 'Welcome files cannot be deleted' });
     });
   });
-
-  Router.get('/ip', (req, res) => {
-    res.status(200).send(req.headers['X-Forwarded-For']);
-  })
 };
