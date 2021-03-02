@@ -242,14 +242,13 @@ module.exports = (Router, Service, App) => {
     Service.UserPhotos.InitializeUserPhotos(req.body)
       .then(async (userData) => {
         // Process user data and answer API call
-        if (userData.rootAlbumId && userData.rootPreviewId && userData.deleteFolderId) {
+        if (userData.rootAlbumId && userData.rootPreviewId) {
           // Successfull initialization
           const user = {
             email: userData.email,
             mnemonic: userData.mnemonic,
             rootAlbumId: userData.rootAlbumId,
             rootPreviewId: userData.rootPreviewId,
-            deleteFolderId: userData.deleteFolderId
           };
 
           res.status(200).send({ user });
