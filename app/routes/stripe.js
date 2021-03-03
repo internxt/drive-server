@@ -1,5 +1,4 @@
 const async = require('async');
-const crypto = require('crypto');
 const Stripe = require('stripe');
 
 const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
@@ -9,7 +8,7 @@ const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, App) => {
+module.exports = (Router, Service) => {
   Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);
@@ -99,7 +98,6 @@ module.exports = (Router, Service, App) => {
       }
     ], (err, result) => {
       if (err) {
-        console.error(err);
         res.status(500).send({ error: err.message });
       } else {
         res.status(200).send(result);
@@ -118,7 +116,7 @@ module.exports = (Router, Service, App) => {
 
     async.waterfall([
       async () => {
-        return Service.Team.getTeamByEmail(req.user.email)
+        return Service.Team.getTeamByEmail(req.user.email);
       },
       async (bridgeUser) => {
         if (!bridgeUser) {

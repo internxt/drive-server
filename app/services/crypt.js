@@ -140,7 +140,7 @@ module.exports = (Model, App) => {
 
       return hashedObjetc;
     } catch (error) {
-      throw new Error(error);
+      throw Error(error);
     }
   }
 

@@ -5,8 +5,6 @@ const sequelize = require('sequelize');
 const { Op } = sequelize;
 const SanitizeFilename = require('sanitize-filename');
 
-const AesUtil = require('../../lib/AesUtil');
-
 module.exports = (Model, App) => {
   const log = App.logger;
 
@@ -73,7 +71,7 @@ module.exports = (Model, App) => {
   const UploadPhoto = (userPhotos, photoName, photoPath, hash) => new Promise((resolve, reject) => {
     try {
       if (userPhotos.mnemonic === 'null') {
-        throw new Error('Your mnemonic is invalid');
+        throw Error('Your mnemonic is invalid');
       }
 
       const sanitizedPicname = SanitizeFilename(photoName);
@@ -88,31 +86,8 @@ module.exports = (Model, App) => {
       const photoNameParts = path.parse(photoName);
       const photoExt = photoNameParts.ext ? photoNameParts.ext.substring(1) : '';
 
-      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 111);
-
-      // Check if photo already exists.
-      const exists = Model.photos.findOne({
-        where: {
-          name: { [Op.eq]: encryptedPhotoName },
-          type: { [Op.eq]: photoExt }
-        }
-      });
       // Change name if exists
-      let originalEncryptedPhotoName;
-      let newName;
-      /* if (exists) {
-        newName = GetNewMoveName(111, photoNameParts.name, photoExt);
-        encryptedPhotoName = newName.cryptedName;
-        originalEncryptedPhotoName = App.services.Crypt.encryptName(
-          newName.name,
-          111
-        );
-      } */
-
-      originalEncryptedPhotoName = /* originalEncryptedPhotoName */
-        App.services.Crypt.encryptName(photoNameParts.name, 111);
-      const originalEncryptedPhotoNameWithExt = `${originalEncryptedPhotoName}${photoExt ? `.${photoExt}` : ''}`;
-      log.info('Uploading photo to network...');
+      const originalEncryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 111);
 
       const { rootAlbumId } = userPhotos.usersphoto;
 
@@ -168,7 +143,7 @@ module.exports = (Model, App) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
 
     return new Promise((resolve, reject) => {
-      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+      if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
       Model.photos
         .findOne({ where: { id: { [Op.eq]: item } } })
@@ -199,14 +174,12 @@ module.exports = (Model, App) => {
   };
 
   const DownloadPreview = (user, previewId) => {
-
     return new Promise((resolve, reject) => {
-      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+      if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
       Model.previews
         .findOne({ where: { fileId: { [Op.eq]: previewId } } })
         .then((photo) => {
-
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
               resolve({
@@ -252,8 +225,8 @@ module.exports = (Model, App) => {
       where: { user_id: { [Op.eq]: userId } }
     }).then(async (albumList) => {
       await albumList.map(async (album) => {
-        const albumPhotos = await Model.photosalbum.findAll({
-          where: { album_id: { [Op.eq]: album.id } }
+        const albumPhotos = await Model.photosalbums.findAll({
+          where: { albumId: { [Op.eq]: album.id } }
         });
 
         if (albumPhotos.length > 12) {
@@ -262,6 +235,7 @@ module.exports = (Model, App) => {
         } else {
           album.albumPreview = albumPhotos;
         }
+        return album;
       });
       resolve(albumList);
     }).catch((err) => {
@@ -290,32 +264,32 @@ module.exports = (Model, App) => {
     });
   });
 
-  const GetAlbumContent = (albumId, userId) => new Promise((resolve, reject) => {
-    return Model.albums.findOne({
+  const GetAlbumContent = (user) => new Promise((resolve, reject) => {
+    return Model.albums.findAll({
       where: {
-        id: { [Op.eq]: albumId },
-        userId: { [Op.eq]: userId }
-      }
-    }).then(async (albumPhotos) => {
-      const photos = await albumPhotos.getPhotos();
+        userId: { [Op.eq]: user }
+      },
+      include: [
+        {
+          model: Model.photos,
+          as: 'photos',
+          where: {
+            fileId: { [Op.ne]: null }
+          }
 
-      if (photos !== null) {
-        const result = photos.map((photo) => {
-          photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
-
-          return photo;
-        });
-        resolve(result);
-      }
-
-      resolve(photos);
+        }
+      ]
+    }).then((albumPhotos) => {
+      resolve(albumPhotos);
     }).catch((err) => {
       reject(err.message);
     });
   });
 
   const MoveToAlbum = (photo, album) => new Promise((resolve, reject) => {
-    album.addPhotos([photo]).then(() => resolve).catch((err) => reject(err));
+    album.addPhotos([photo]).then(() => resolve).catch((err) => {
+      reject(err);
+    });
   });
 
   const DeleteAlbum = async (albumId, userId) => {
@@ -365,29 +339,23 @@ module.exports = (Model, App) => {
       Model.usersphotos
         .findOne({ where: { userId: { [Op.eq]: user.id } } })
         .then((userPhoto) => {
-          resolve(userPhoto)
+          resolve(userPhoto);
         })
-        .catch((err) => {
-          reject()
-        })
+        .catch(() => {
+          reject();
+        });
     });
-  }
+  };
 
   const getPreviewsByBucketId = (bucket) => {
     return new Promise((resolve, reject) => {
-
       Model.previews.findAll({
         where: { bucketId: { [Op.eq]: bucket } }
       }).then((listPreviews) => {
-        resolve(listPreviews)
-      }).catch((err) => {
-        reject()
-      })
-
-    })
-  }
-
-
+        resolve(listPreviews);
+      }).catch(() => reject());
+    });
+  };
 
   return {
     Name: 'Photos',

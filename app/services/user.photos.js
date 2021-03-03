@@ -1,9 +1,5 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
-const async = require('async');
-const uuid = require('uuid');
-// const Analytics = require('./analytics')
-const crypto = require('crypto-js');
 
 const { Op } = sequelize;
 
@@ -17,7 +13,7 @@ module.exports = (Model, App) => {
 
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
-      throw new Error('Wrong user registration data');
+      throw Error('Wrong user registration data');
     }
 
     return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
@@ -61,7 +57,7 @@ module.exports = (Model, App) => {
         }
 
         if (!bridgeUser.data) {
-          throw new Error('Error creating bridge user');
+          throw Error('Error creating bridge user');
         }
 
         Logger.info('User Service | created brigde user: %s', userResult.email);
@@ -88,7 +84,7 @@ module.exports = (Model, App) => {
         Logger.error(err.stack);
       }
 
-      throw new Error(err);
+      throw Error(err);
     })); // end transaction
   };
 
@@ -120,97 +116,66 @@ module.exports = (Model, App) => {
           Logger.error(err.stack);
         }
 
-        throw new Error(err);
+        throw Error(err);
       })); // end transaction
   };
 
-  /**
-   * Create user bucket on the network when log in.
-   * @param user
-   */
-  const InitializeUserPhotos = (user) => Model.users.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } } })
-    .then(async (userData) => {
+  // TODO: ERROR, NO RETURN LOGIC
+  const InitializeUserPhotos = (user) => Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
+    userData.mnemonic = user.mnemonic;
 
+    // Create photos bucket
+    const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
+    Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
 
-      if (userData) {
-        userData.mnemonic = user.mnemonic;
+    // Create previews bucket
+    const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
+    Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
 
-        // Create photos bucket
-        const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
-        Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
-
-        // Create previews bucket
-        const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
-        Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
-
-
-        // Update user register with root album Id
-        return Model.usersphotos.sequelize.transaction(async () => Model.usersphotos
-          .findOrCreate({
-            where: { user_id: userData.id },
-            defaults: {
-              userId: userData.id,
-              rootAlbumId: rootAlbumBucket.id,
-              rootPreviewId: rootPreviewBucket.id
-            }
-          })
-          .then(async (userResult, created) => {
-            if (created) {
-              // Set created flag for Frontend management
-              Object.assign(userResult, { isCreated: created });
-            }
-            return userResult;
-          })
-          .catch((err) => {
-            if (err.response) {
-              // This happens when email is registered in bridge
-              Logger.error(err.response.data);
-            } else {
-              Logger.error(err.stack);
-            }
-
-            throw new Error(err);
-          })); // end transaction
-
+    // Update user register with root album Id
+    return Model.usersphotos.findOrCreate({
+      where: { user_id: userData.id },
+      defaults: {
+        userId: userData.id,
+        rootAlbumId: rootAlbumBucket.id,
+        rootPreviewId: rootPreviewBucket.id
       }
-    })
-    .catch((error) => {
-      console.log('ERROR USERPHOTOS', error)
-      Logger.error(error.stack);
-      throw new Error(error);
-    }));
+    }).then((userResult, created) => {
+      if (created) {
+        // Set created flag for Frontend management
+        Object.assign(userResult, { isCreated: created });
+      }
+      return userResult;
+    }).catch((err) => {
+      if (err.response) {
+        // This happens when email is registered in bridge
+        Logger.error(err.response.data);
+      } else {
+        Logger.error(err.stack);
+      }
 
-  const GetUserById = (id) => Model.usersPhotos.findOne({
-    where: {
-      id: { [Op.eq]: id }
-    }
-  }).then((response) => response.dataValues);
+      throw Error(err);
+    });
+  })
+    .catch((error) => {
+      Logger.error(error.stack);
+      throw Error(error);
+    });
+
+  const GetUserById = (id) => Model.usersPhotos.findOne({ where: { id: { [Op.eq]: id } } });
 
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
 
   const FindUserByEmail = (email) => Model.users.findOne({
     where: { email: { [Op.eq]: email } },
-    include: [
-      { model: Model.usersphotos }
-    ]
+    include: [{ model: Model.usersphotos }]
   });
 
-  const FindUserByUuid = (userUuid) => Model.users.findOne({
-    where: {
-      uuid: { [Op.eq]: userUuid }
-    }
-  });
+  const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
-  const GetUserRootAlbum = () => Model.usersPhotos
-    .findAll({
-      include: [Model.album]
-    })
-    .then((user) => user.dataValues);
+  const GetUserRootAlbum = () => Model.usersPhotos.findAll({ include: [Model.album] });
 
-  const ActivateUser = (token) => {
-    return axios.get(`${App.config.get('STORJ_BRIDGE')}/photos/activations/${token}`);
-  };
+  const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/photos/activations/${token}`);
 
   return {
     Name: 'UserPhotos',
