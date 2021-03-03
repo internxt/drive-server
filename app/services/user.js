@@ -21,7 +21,7 @@ module.exports = (Model, App) => {
 
     // Throw error when user email. pass, salt or mnemonic is missing
     if (!user.email || !userPass || !userSalt || !user.mnemonic) {
-      throw new Error('Wrong user registration data');
+      throw Error('Wrong user registration data');
     }
 
     return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
@@ -65,7 +65,7 @@ module.exports = (Model, App) => {
         }
 
         if (!bridgeUser.data) {
-          throw new Error('Error creating bridge user');
+          throw Error('Error creating bridge user');
         }
 
         Logger.info('User Service | created brigde user: %s', userResult.email);
@@ -92,7 +92,7 @@ module.exports = (Model, App) => {
         Logger.error(err.stack);
       }
 
-      throw new Error(err);
+      throw Error(err);
     })); // end transaction
   };
 

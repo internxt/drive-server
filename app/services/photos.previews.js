@@ -5,8 +5,6 @@ const sequelize = require('sequelize');
 const { Op } = sequelize;
 const SanitizeFilename = require('sanitize-filename');
 
-const AesUtil = require('../../lib/AesUtil');
-
 module.exports = (Model, App) => {
   const log = App.logger;
 
@@ -15,7 +13,7 @@ module.exports = (Model, App) => {
   const UploadPreview = (userPhotos, photoName, photoPath, photoId, hash) => new Promise((resolve, reject) => {
     try {
       if (userPhotos.mnemonic === 'null') {
-        throw new Error('Your mnemonic is invalid');
+        throw Error('Your mnemonic is invalid');
       }
 
       const sanitizedPicname = SanitizeFilename(photoName);
@@ -30,31 +28,9 @@ module.exports = (Model, App) => {
       const photoNameParts = path.parse(photoName);
       const photoExt = photoNameParts.ext ? photoNameParts.ext.substring(1) : '';
 
-      let encryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 222);
-
-      // Check if photo already exists.
-      const exists = Model.previews.findOne({
-        where: {
-          name: { [Op.eq]: encryptedPhotoName },
-          type: { [Op.eq]: photoExt }
-        }
-      });
       // Change name if exists
-      let originalEncryptedPhotoName;
-      let newName;
-      if (exists) {
-        // reject(Error('Photo already exists.'));
-        /* newName = GetNewMoveName(111, photoNameParts.name, photoExt);
-        encryptedPhotoName = newName.cryptedName;
-        originalEncryptedPhotoName = App.services.Crypt.encryptName(
-          newName.name,
-          111
-        ); */
-      }
+      const originalEncryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 111);
 
-      originalEncryptedPhotoName = /* originalEncryptedPhotoName */
-        App.services.Crypt.encryptName(photoNameParts.name, 111);
-      const originalEncryptedPhotoNameWithExt = `${originalEncryptedPhotoName}${photoExt ? `.${photoExt}` : ''}`;
       log.info('Uploading preview to network...');
 
       const { rootPreviewId } = userPhotos.usersphoto;
@@ -91,11 +67,11 @@ module.exports = (Model, App) => {
         return resolve(addedPhoto);
       })
         .catch((err) => {
-          log.error("upload preview 2", err);
+          log.error('upload preview 2', err);
           reject(err.message);
         });
     } catch (err) {
-      log.error("upload preview", err.message);
+      log.error('upload preview', err.message);
 
       return reject(err.message);
     } finally {

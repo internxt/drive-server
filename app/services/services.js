@@ -24,6 +24,6 @@ module.exports = (Model, App) => {
     return services;
   } catch (error) {
     log.error(error);
-    throw new Error(error);
+    throw Error(error);
   }
 };

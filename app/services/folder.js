@@ -533,7 +533,7 @@ module.exports = (Model, App) => {
     });
 
     if (!folder || !destinationFolder) {
-      throw new Error('Folder does not exists');
+      throw Error('Folder does not exists');
     }
 
     const originalName = App.services.Crypt.decryptName(folder.name,
@@ -553,7 +553,7 @@ module.exports = (Model, App) => {
       destinationName = newName.cryptedName;
     }
 
-    if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+    if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
     // Move
     const result = await folder.update({
