@@ -10,6 +10,16 @@ module.exports = (config) => {
     dialect: 'mariadb',
     resetAfterUse: true,
     operatorsAliases: 0,
+    dialectOptions: {
+      options: {
+        requestTimeout: 4000
+      }
+    },
+    pool: {
+      max: 10,
+      min: 0,
+      idle: 10000
+    },
     logging: (content) => {
       const parse = content.match(/^(Executing \(.*\):) (.*)$/);
       const prettySql = SqlFormatter.format(parse[2]);

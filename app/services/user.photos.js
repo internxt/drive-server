@@ -120,9 +120,14 @@ module.exports = (Model, App) => {
       })); // end transaction
   };
 
-  // TODO: ERROR, NO RETURN LOGIC
   const InitializeUserPhotos = (user) => Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
     userData.mnemonic = user.mnemonic;
+
+    const userPhotos = await Model.usersphotos.findOne({ where: { user_id: userData.id } });
+
+    if (userPhotos && (userPhotos.rootAlbumId && userPhotos.rootPreviewId)) {
+      throw Error('User Photos already initializaed');
+    }
 
     // Create photos bucket
     const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');

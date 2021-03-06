@@ -12,12 +12,25 @@ module.exports = (Router, Service, App) => {
   Router.get('/photos/user', passportAuth, async (req, res) => {
     const userPhotos = await App.services.UserPhotos.FindUserById(req.user.id);
     if (userPhotos) {
-      res.status(200).send({ ...userPhotos });
+      res.status(200).send({ ...userPhotos.toJSON() });
     } else {
       res.status(400).send({});
     }
   });
 
+  Router.get('/photos/initialize', passportAuth, (req, res) => {
+    const inputData = {
+      email: req.user.email,
+      mnemonic: req.headers['internxt-mnemonic']
+    };
+    Service.UserPhotos.InitializeUserPhotos(inputData).then((userData) => {
+      res.status(200).send({ user: userData });
+    }).catch(() => {
+      res.status(500).send({ message: 'Your account can\'t be initialized' });
+    });
+  });
+
+  /// DEPRECATED
   Router.post('/photos/initialize', (req, res) => {
     // Call user service to find or create user
     Service.UserPhotos.InitializeUserPhotos(req.body)
@@ -29,7 +42,7 @@ module.exports = (Router, Service, App) => {
             email: userData.email,
             mnemonic: userData.mnemonic,
             rootAlbumId: userData.rootAlbumId,
-            rootPreviewId: userData.rootPreviewId,
+            rootPreviewId: userData.rootPreviewId
           };
 
           res.status(200).send({ user });
@@ -112,8 +125,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/photos/storage/photos/:email', passportAuth, (req, res) => {
-    const { email } = req.params;
+  Router.get('/photos/storage/photos', passportAuth, (req, res) => {
+    const { email } = req.user;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
       const allPhotos = await Service.Photos.GetAllPhotosContent(userData, userData.usersphoto);
       res.status(200).send(allPhotos);
@@ -166,6 +179,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
+    console.log('/photos/storage/photo/upload from', req.user.email)
     const { user } = req;
     const xphoto = req.file;
 
