@@ -12,7 +12,7 @@ module.exports = (Router, Service, App) => {
   Router.get('/photos/user', passportAuth, async (req, res) => {
     const userPhotos = await App.services.UserPhotos.FindUserById(req.user.id);
     if (userPhotos) {
-      res.status(200).send({ ...userPhotos.toJSON() });
+      res.status(200).send(userPhotos.toJSON());
     } else {
       res.status(400).send({});
     }
@@ -30,7 +30,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /// DEPRECATED
+  /// DEPRECATED, should be removed after new release
   Router.post('/photos/initialize', (req, res) => {
     // Call user service to find or create user
     Service.UserPhotos.InitializeUserPhotos(req.body)
@@ -98,7 +98,6 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send(listPreviews);
     }).catch((err) => {
-      log.error('ERROR GET LIST PREVIEWS', err);
       res.status(500).json({ error: err.message });
     });
   });
@@ -117,12 +116,13 @@ module.exports = (Router, Service, App) => {
   Router.get('/photos/storage/photosalbum', passportAuth, (req, res) => {
     const { email } = req.user;
 
-    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
-      const albumPhotos = await Service.Photos.GetAlbumContent(userData.usersphoto.id);
-      res.status(200).send(albumPhotos);
-    }).catch((err) => {
-      res.status(500).json({ error: err.message });
-    });
+    Service.UserPhotos.FindUserByEmail(email)
+      .then((userData) => Service.Photos.GetAlbumContent(userData.usersphoto.id))
+      .then((albumPhotos) => {
+        res.status(200).send(albumPhotos);
+      }).catch((err) => {
+        res.status(500).json({ error: err.message });
+      });
   });
 
   Router.get('/photos/storage/photos', passportAuth, (req, res) => {
@@ -135,7 +135,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/photos/storage/deletes/:email', passportAuth, (req, res) => {
+  Router.get('/photos/storage/deletes', passportAuth, (req, res) => {
     const { email } = req.params;
 
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
@@ -179,7 +179,6 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
-    console.log('/photos/storage/photo/upload from', req.user.email)
     const { user } = req;
     const xphoto = req.file;
 

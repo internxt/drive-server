@@ -141,10 +141,9 @@ module.exports = (Model, App) => {
 
   const DownloadPhoto = (user, item) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
+    if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
     return new Promise((resolve, reject) => {
-      if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
-
       Model.photos
         .findOne({ where: { id: { [Op.eq]: item } } })
         .then((photo) => {
@@ -157,9 +156,7 @@ module.exports = (Model, App) => {
 
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
-              resolve({
-                ...result, name: photo.name, type: photo.type, size: photo.size
-              });
+              resolve({ ...result, name: photo.name, type: photo.type, size: photo.size });
             })
             .catch((err) => {
               if (err.message === 'Photo already exists') {
@@ -202,7 +199,13 @@ module.exports = (Model, App) => {
     const result = await Model.photos.findAll({
       where: {
         bucketId: { [Op.eq]: userPhotos.rootAlbumId }
-      }
+      },
+      include: [
+        {
+          model: Model.previews,
+          as: 'preview'
+        }
+      ]
     });
 
     // Null result implies empty bucket.
