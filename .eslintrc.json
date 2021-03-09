@@ -34,6 +34,10 @@
         ],
         "no-param-reassign": "off",
         "arrow-body-style": "off",
-        "no-unused-expressions": "off"
+        "no-unused-expressions": "off",
+        "no-async-promise-executor": "error",
+        "no-console": [
+            "error"
+        ]
     }
 }
