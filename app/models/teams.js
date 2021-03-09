@@ -11,7 +11,8 @@ module.exports = (sequelize, DataTypes) => {
       name: DataTypes.STRING,
       bridge_user: DataTypes.STRING,
       bridge_password: DataTypes.STRING,
-      bridge_mnemonic: DataTypes.STRING
+      bridge_mnemonic: DataTypes.STRING,
+      quantity: DataTypes.INTEGER
     },
     {
       timestamps: false

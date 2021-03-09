@@ -66,8 +66,8 @@ module.exports = (Model) => {
   }).then((teamMember) => (teamMember ? null : Model.teamsmembers.create({
     id_team: idTeam,
     user: userEmail,
-    bridgePassword,
-    bridgeMnemonic
+    bridge_password: bridgePassword,
+    bridge_mnemonic: bridgeMnemonic
   })));
 
   /**
