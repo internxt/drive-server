@@ -79,8 +79,7 @@ module.exports = (Router, Service) => {
           success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
           cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
           subscription_data: {
-            items: [{ plan: req.body.plan }],
-            trial_period_days: 30
+            items: [{ plan: req.body.plan }]
           },
           customer_email: user,
           customer: customerId,
@@ -143,8 +142,7 @@ module.exports = (Router, Service) => {
                 plan: req.body.plan,
                 quantity
               }
-            ],
-            trial_period_days: 30
+            ]
           },
           metadata: {
             is_teams: true,
