@@ -1,9 +1,8 @@
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
+const Stripe = require('stripe');
 const { passportAuth, Sign } = require('../middleware/passport');
 const logger = require('../../lib/logger');
-const Stripe = require('stripe');
-
 
 const Logger = logger.getInstance();
 
@@ -86,7 +85,7 @@ module.exports = (Router, Service, App) => {
     const Encryptmnemonic = req.body.mnemonicTeam;
     const user = req.user.email;
     // Datas for control the 10-person limit
-    const teamInfo = await Service.Team.getTeamBridgeUser(user)
+    const teamInfo = await Service.Team.getTeamBridgeUser(user);
     const totalUsers = await Service.TeamsMembers.getPeople(teamInfo.id);
 
     if (totalUsers.length >= teamInfo.quantity) {
@@ -372,12 +371,12 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/teams/checkout/session', passportAuth, async (req, res) => {
     const { email } = req.user;
-    const mnemonic = req.body.mnemonic;
+    const { mnemonic } = req.body;
     const salt = crypto.randomBytes(128 / 8).toString('hex');
     const encryptedSalt = App.services.Crypt.encryptText(salt);
     const newPassword = App.services.Crypt.encryptText('team', salt);
     const encryptedPassword = App.services.Crypt.encryptText(newPassword);
-    const checkoutSessionId = req.body.checkoutSessionId
+    const { checkoutSessionId } = req.body;
     const stripe = req.body.test ? StripeTest : StripeProduction;
     const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
     if (session.payment_status == 'paid') {
@@ -386,19 +385,19 @@ module.exports = (Router, Service, App) => {
         email: team.bridge_user,
         password: encryptedPassword,
         salt: encryptedSalt,
-        mnemonic: mnemonic
-      }
-      const userRegister = await Service.User.FindOrCreate(user)
+        mnemonic
+      };
+      const userRegister = await Service.User.FindOrCreate(user);
       await team.update({
         bridge_password: userRegister.userId,
         total_members: session.metadata.total_members
-      })
+      });
       await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
       await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
-      res.status(200).send({ team })
+      res.status(200).send({ team });
     } else {
-      res.status(400).send({ error: 'Team is not paid' })
+      res.status(400).send({ error: 'Team is not paid' });
     }
   });
 
