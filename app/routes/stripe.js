@@ -118,7 +118,7 @@ module.exports = (Router, Service, App) => {
 
     async.waterfall([
       async () => {
-        return Service.Team.getTeamByEmail(req.user.email)
+        return Service.Team.getTeamByEmail(req.user.email);
       },
       async (bridgeUser) => {
         if (!bridgeUser) {

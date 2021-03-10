@@ -44,7 +44,7 @@ module.exports = (Model) => {
     }).then((teaminvitations) => {
       resolve(teaminvitations);
     }).catch((err) => {
-      console.log(err)
+      console.log(err);
       reject(Error('Error querying database'));
     });
   });

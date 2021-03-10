@@ -15,7 +15,7 @@ module.exports = (Model) => {
         reject(Error('Keys not exists'));
       }
     }).catch((err) => {
-      console.log(err)
+      console.log(err);
       reject(Error('Error querying database'));
     });
   });
@@ -30,7 +30,7 @@ module.exports = (Model) => {
     }).then((userKeys) => {
       resolve(userKeys);
     }).catch((err) => {
-      console.log(err)
+      console.log(err);
       reject(Error('Error querying database'));
     });
   });
