@@ -78,26 +78,20 @@ module.exports = (Router, Service, App) => {
    *      additional info:
    *        This method will also control the limit range of 10 people for the 200GB plan
    */
-  Router.post('/teams/team-invitations', passportAuth, async (req, res) => {
+  Router.post('/teams/team/invitations', passportAuth, async (req, res) => {
     // Datas
     const { email } = req.body;
     const token = crypto.randomBytes(20).toString('hex');
     const bridgePassword = req.body.bridgePass;
     const Encryptmnemonic = req.body.mnemonicTeam;
     const user = req.user.email;
-    const { idTeam } = req.body;
     // Datas for control the 10-person limit
-    const totalUsers = await Service.TeamsMembers.getPeople(idTeam);
-    const plans = await Service.Team.getPlans(user);
+    const teamInfo = await Service.Team.getTeamBridgeUser(user)
+    const totalUsers = await Service.TeamsMembers.getPeople(teamInfo.id);
 
-    if (totalUsers.length >= 5 && plans.maxSpaceBytes === '214748364800') {
-      return res.status(500).send({ error: 'You cannot exceed the limit of 5 members' });
+    if (totalUsers.length >= teamInfo.quantity) {
+      return res.status(500).send({ error: `You cannot exceed the limit of ${teamInfo.quantity} members` });
     }
-
-    if (totalUsers.length >= 10 && plans.maxSpaceBytes === '2199023255552') {
-      return res.status(500).send({ error: 'You cannot exceed the limit of 10 members' });
-    }
-
     // Datas needed for invite a user
     const existsUser = await Service.User.FindUserByEmail(email);
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
@@ -128,7 +122,7 @@ module.exports = (Router, Service, App) => {
           return res.status(500).send({ error: 'The invitation can not saved' });
         }
 
-        Service.Mail.sendEmailTeamsMember(email, token, req.team).then(() => {
+        return Service.Mail.sendEmailTeamsMember(email, token, req.team).then(() => {
           Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
           res.status(200).send({});
         }).catch(() => {
@@ -175,12 +169,16 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/teams/join/:token', async (req, res) => {
     const { token } = req.params;
-
+    console.log('TOKEN', token)
     // Datas need for join a team
     const getToken = await Service.TeamInvitations.getByToken(token);
+    console.log('GET TOKEN', getToken)
     const getTeam = await Service.Team.getTeamById(getToken.id_team);
+    console.log('getTEAM', getTeam)
     const findUser = await Service.User.FindUserByEmail(getToken.user);
+    console.log('FINDUSER', findUser)
     const keysExists = await Service.KeyServer.keysExists(findUser);
+    console.log('KEYEXISTS', keysExists)
     // Control that the token,team, user and keys exists
     if (!getToken && !getTeam && !findUser && !keysExists) {
       Logger.error('Token %s doesn\'t exists', token);
