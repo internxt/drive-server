@@ -391,7 +391,7 @@ module.exports = (Router, Service, App) => {
       const userRegister = await Service.User.FindOrCreate(user)
       await team.update({
         bridge_password: userRegister.userId,
-        quantity: session.metadata.total_members
+        total_members: session.metadata.total_members
       })
       await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
       await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);

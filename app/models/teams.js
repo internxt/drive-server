@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
       bridge_user: DataTypes.STRING,
       bridge_password: DataTypes.STRING,
       bridge_mnemonic: DataTypes.STRING,
-      quantity: DataTypes.INTEGER
+      total_members: DataTypes.INTEGER
     },
     {
       timestamps: false
