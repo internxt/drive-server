@@ -169,16 +169,11 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/teams/join/:token', async (req, res) => {
     const { token } = req.params;
-    console.log('TOKEN', token)
     // Datas need for join a team
     const getToken = await Service.TeamInvitations.getByToken(token);
-    console.log('GET TOKEN', getToken)
     const getTeam = await Service.Team.getTeamById(getToken.id_team);
-    console.log('getTEAM', getTeam)
     const findUser = await Service.User.FindUserByEmail(getToken.user);
-    console.log('FINDUSER', findUser)
     const keysExists = await Service.KeyServer.keysExists(findUser);
-    console.log('KEYEXISTS', keysExists)
     // Control that the token,team, user and keys exists
     if (!getToken && !getTeam && !findUser && !keysExists) {
       Logger.error('Token %s doesn\'t exists', token);
