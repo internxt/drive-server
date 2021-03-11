@@ -293,6 +293,20 @@ module.exports = (Router, Service, App) => {
     }
   });
 
+  Router.delete('/teams/invitation', passportAuth, async (req, res) => {
+    const removeUser = req.body.item.user;
+    const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
+    if (!teamInfo) {
+      res.status(500).send({ info: 'You not have permissions' });
+    }
+    const deleteInvitation = await Service.TeamInvitations.removeInvitations(removeUser);
+    if (deleteInvitation === 1) {
+      res.status(200).send({ info: 'Successfully invitation deleted' })
+    } else {
+      res.status(500).send({ err: 'Error, the invitation can not be deleted' })
+    }
+  });
+
   /**
    * @swagger
    * /teams/deleteAccount:
