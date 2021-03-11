@@ -401,7 +401,11 @@ module.exports = (Router, Service, App) => {
         bridge_password: userRegister.userId,
         total_members: session.metadata.total_members
       });
+      const subscription = await stripe.subscriptions.retrieve(session.subscription);
+      const product = await stripe.products.retrieve(subscription.plan.product);
+      const size_bytes = await parseInt(product.metadata.size_bytes);
       await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
+      await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes);
       await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
       res.status(200).send({ team });
