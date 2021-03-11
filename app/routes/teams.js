@@ -3,6 +3,7 @@ const sgMail = require('@sendgrid/mail');
 const Stripe = require('stripe');
 const { passportAuth, Sign } = require('../middleware/passport');
 const logger = require('../../lib/logger');
+const _ = require('lodash');
 
 const Logger = logger.getInstance();
 
@@ -251,10 +252,12 @@ module.exports = (Router, Service, App) => {
    *      additional info: is used to the usage and limit in web
    *
    */
-  Router.get('/teams/members/:idTeam', passportAuth, async (req, res) => {
-    const { idTeam } = req.params;
-    const members = await Service.TeamsMembers.getPeople(idTeam);
-    res.status(200).send(members);
+  Router.get('/teams/members', passportAuth, async (req, res) => {
+    const user = req.user.email;
+    const teamInfo = await Service.Team.getTeamByEmail(user);
+    const members = await Service.TeamsMembers.getPeople(teamInfo.id);
+    const result = _.remove(members, (member) => member.user != user);
+    res.status(200).send(result);
   });
 
   /**
@@ -276,26 +279,18 @@ module.exports = (Router, Service, App) => {
    *
    *
    */
-  Router.delete('/teams/member', passportAuth, (req, res) => {
-    const { user } = req;
-    const { idTeam } = req.body;
+  Router.delete('/teams/member', passportAuth, async (req, res) => {
     const removeUser = req.body.item.user;
-
-    Service.Team.getTeamByEmail(user.email).then((team) => {
-      if (idTeam === team.id) {
-        Service.TeamsMembers.removeMembers(removeUser).then(() => {
-          res.status(200).send({ info: 'The user is removed ' });
-        }).catch((err) => {
-          res.status(500).json({ error: err });
-        });
-      } else {
-        Logger.error('Error: This member is not of this team');
-        res.status(500).send({ info: 'You not have permissions' });
-      }
-    }).catch(() => {
-      Logger.error('Error: You not have permissions');
+    const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
+    if (!teamInfo) {
       res.status(500).send({ info: 'You not have permissions' });
-    });
+    }
+    const deleteMember = await Service.TeamsMembers.removeMembers(removeUser);
+    if (deleteMember === 1) {
+      res.status(200).send({ info: 'Successfully member deleted' })
+    } else {
+      res.status(500).send({ err: 'Error, the member can not be deleted' })
+    }
   });
 
   /**
