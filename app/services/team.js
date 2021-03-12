@@ -94,7 +94,7 @@ module.exports = (Model, App) => {
     }, {
       headers: { 'Content-Type': 'application/json' },
       auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    })
+    });
   };
 
   return {
