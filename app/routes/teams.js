@@ -41,8 +41,8 @@ module.exports = (Router, Service, App) => {
     const teamInfo = await Service.Team.getTeamBridgeUser(user);
     const totalUsers = await Service.TeamsMembers.getPeople(teamInfo.id);
 
-    if (totalUsers.length >= teamInfo.quantity) {
-      return res.status(500).send({ error: `You cannot exceed the limit of ${teamInfo.quantity} members` });
+    if (totalUsers.length >= teamInfo.total_members) {
+      return res.status(500).send({ error: `You cannot exceed the limit of ${teamInfo.total_members} members` });
     }
     // Datas needed for invite a user
     const existsUser = await Service.User.FindUserByEmail(email);
