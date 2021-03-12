@@ -1,5 +1,4 @@
 const async = require('async');
-const crypto = require('crypto');
 const Stripe = require('stripe');
 
 const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
@@ -9,7 +8,7 @@ const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, App) => {
+module.exports = (Router, Service) => {
   Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);
@@ -80,8 +79,7 @@ module.exports = (Router, Service, App) => {
           success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
           cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
           subscription_data: {
-            items: [{ plan: req.body.plan }],
-            trial_period_days: 30
+            items: [{ plan: req.body.plan }]
           },
           customer_email: user,
           customer: customerId,
@@ -144,8 +142,7 @@ module.exports = (Router, Service, App) => {
                 plan: req.body.plan,
                 quantity
               }
-            ],
-            trial_period_days: 30
+            ]
           },
           metadata: {
             is_teams: true,

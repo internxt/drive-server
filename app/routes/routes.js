@@ -15,6 +15,7 @@ const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
+const PhotosRoutes = require('./photos');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -45,24 +46,9 @@ module.exports = (Router, Service, App) => {
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
   AppSumoRoutes(Router, Service, App);
+  // Routes used by Internxt Photos
+  PhotosRoutes(Router, Service, App);
 
-  /**
-   * @swagger
-   * /login:
-   *   post:
-   *     description: User login. Check if user exists.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with email
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Email exists
-   *       204:
-   *         description: Wrong username or password
-   */
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
@@ -70,8 +56,8 @@ module.exports = (Router, Service, App) => {
 
     try {
       req.body.email = req.body.email.toLowerCase();
-    } catch {
-      return res.status(400).send({ error: 'Invalid username' })
+    } catch (e) {
+      return res.status(400).send({ error: 'Invalid username' });
     }
 
     // Call user service to find user
@@ -108,32 +94,13 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /access:
-   *   post:
-   *     description: User login second part. Check if password is correct.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with email and password
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull login
-   *       204:
-   *         description: Wrong username or password
-   */
   Router.post('/access', (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 5;
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
       if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-        return res.status(500).send({
-          error: 'Your account has been blocked for security reasons. Please reach out to us'
-        });
+        return res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' });
       }
 
       // Process user data and answer API call
@@ -172,7 +139,7 @@ module.exports = (Router, Service, App) => {
           keys = await Service.KeyServer.keysExists(userData);
         }
 
-        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
+        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
 
         const user = {
           email: req.body.email,
@@ -195,21 +162,22 @@ module.exports = (Router, Service, App) => {
         const userTeam = null;
         if (userTeam) {
           const tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
-          res.status(200).json({ user, token, userTeam, tokenTeam });
-        } else {
-          res.status(200).json({ user, token, userTeam });
+          return res.status(200).json({
+            user, token, userTeam, tokenTeam
+          });
         }
+        return res.status(200).json({ user, token, userTeam });
       } else {
         // Wrong password
         if (pass !== userData.password.toString()) {
           Service.User.LoginFailed(req.body.email, true);
         }
 
-        res.status(400).json({ error: 'Wrong email/password' });
+        return res.status(400).json({ error: 'Wrong email/password' });
       }
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
-      res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+      return res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
     });
   });
 
@@ -251,23 +219,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-    * @swagger
-    * /register:
-    *   post:
-    *     description: User registration. User is registered or created.
-    *     produces:
-    *       - application/json
-    *     parameters:
-    *       - description: user object with all registration info
-    *         in: body
-    *         required: true
-    *     responses:
-    *       200:
-    *         description: Successfull user registration
-    *       204:
-    *         description: User with this email exists
-    */
   Router.post('/register', async (req, res) => {
     // Data validation for process only request with all data
     if (req.body.email && req.body.password) {
@@ -284,9 +235,7 @@ module.exports = (Router, Service, App) => {
 
       if (uuid.validate(referral)) {
         await Service.User.FindUserByUuid(referral).then((userData) => {
-          if (userData === null) {
-            // Don't exists referral user
-          } else {
+          if (userData) {
             newUser.credit = 5;
             hasReferral = true;
             referrer = userData;
@@ -336,23 +285,6 @@ module.exports = (Router, Service, App) => {
     }
   });
 
-  /**
-    * @swagger
-    * /initialize:
-    *   post:
-    *     description: User bridge initialization (creation of bucket and folder).
-    *     produces:
-    *       - application/json
-    *     parameters:
-    *       - description: user object with all info
-    *         in: body
-    *         required: true
-    *     responses:
-    *       200:
-    *         description: Successfull user initialization
-    *       204:
-    *         description: User needs to be activated
-    */
   Router.post('/initialize', (req, res) => {
     // Call user service to find or create user
     Service.User.InitializeUser(req.body).then(async (userData) => {
@@ -450,26 +382,6 @@ module.exports = (Router, Service, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
-  /**
-    * @swagger
-    * /user/keys/:user:
-    *   get:
-    *     description: check that the invited user has public passwords .
-    *     produces:
-    *       - application/json
-    *     parameters:
-    *       - description: user object all info
-    *         in: url
-    *         required: true
-    *     responses:
-    *       200:
-    *         description: Successfull get public keys
-    *       204:
-    *         description: User not has keys
-    *      additional info:
-    *        If the user does not have a public key he will send a random one for security, this
-    *        is used in web for invitations
-    */
   Router.get('/user/keys/:user', passportAuth, async (req, res) => {
     const { user } = req.params;
     Service.User.FindUserByEmail(user).then((userKeys) => {

@@ -27,8 +27,7 @@ module.exports = (Router, Service, App) => {
         }
       });
       res.status(200).send(data.data ? data.data : { total: 0 });
-    }).catch((err) => {
-      console.log(err);
+    }).catch(() => {
       res.status(400).send({ result: 'Error retrieving bridge information' });
     });
   });

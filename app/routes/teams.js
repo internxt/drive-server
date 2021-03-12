@@ -99,26 +99,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /teams/join/:token:
-   *   post:
-   *     description: Join team.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with the a token
-   *         in: url
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull join
-   *       204:
-   *         description: token invalid
-   *      additional info:
-   *        This method will destroy the invitation it had
-   */
-
   Router.post('/teams/join/:token', async (req, res) => {
     const { token } = req.params;
     // Datas need for join a team
@@ -151,25 +131,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /teams-members/:user:
-   *   get:
-   *     description: get information team if the user is a member.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with email
-   *         in: url
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull the user is a member and has a team
-   *       204:
-   *         description: the user is not a member
-   *      additional info: is used to update xTeam in web
-   *
-   */
   Router.get('/teams-members/:user', passportAuth, (req, res) => {
     const userEmail = req.params.user;
 
@@ -259,25 +220,6 @@ module.exports = (Router, Service, App) => {
     }
   });
 
-  /**
-   * @swagger
-   * /teams/deleteAccount:
-   *   post:
-   *     description: send deactivate email teams account.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user email that make the request
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull send email
-   *       204:
-   *         description: Erorr in send email
-   *
-   *
-   */
   Router.post('/teams/deleteAccount', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
