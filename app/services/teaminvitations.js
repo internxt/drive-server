@@ -43,8 +43,7 @@ module.exports = (Model) => {
       where: { user: { [Op.eq]: user } }
     }).then((teaminvitations) => {
       resolve(teaminvitations);
-    }).catch((err) => {
-      console.log(err);
+    }).catch(() => {
       reject(Error('Error querying database'));
     });
   });

@@ -99,7 +99,6 @@ module.exports = (Router, Service, App) => {
       }
     ], (err, result) => {
       if (err) {
-        console.error(err);
         res.status(500).send({ error: err.message });
       } else {
         res.status(200).send(result);
