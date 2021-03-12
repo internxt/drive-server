@@ -1,5 +1,4 @@
 const sequelize = require('sequelize');
-const _ = require('lodash');
 
 const { Op } = sequelize;
 
