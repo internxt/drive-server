@@ -45,7 +45,7 @@ module.exports = (Router, Service, App) => {
       return res.status(500).send({ error: `You cannot exceed the limit of ${teamInfo.total_members} members` });
     }
     // Datas needed for invite a user
-    const existsUser = await Service.User.FindUserByEmail(email);
+    const existsUser = await Service.User.FindUserByEmail(email).catch(() => null);
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {
@@ -269,17 +269,6 @@ module.exports = (Router, Service, App) => {
       res.status(200).send({ userTeam });
     }).catch((err) => {
       res.status(400).json({ error: 'Team not found' });
-    });
-  });
-
-  Router.post('/teams/user', passportAuth, (req, res) => {
-    Service.User.FindUserObjByEmail(req.body.email).then((user) => {
-      if (!user) {
-        throw Error('User not exists');
-      }
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(400).json({ error: 'User not found' });
     });
   });
 
