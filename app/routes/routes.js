@@ -296,41 +296,48 @@ module.exports = (Router, Service, App) => {
       }
 
       // Call user service to find or create user
-      Service.User.FindOrCreate(newUser).then((userData) => {
-        // Process user data and answer API call
-        if (userData.isNewRecord) {
-          if (hasReferral) {
-            Service.Analytics.identify({
-              userId: userData.uuid,
-              traits: { referred_by: referrer.uuid }
-            });
-          }
+      const userData = await Service.User.FindOrCreate(newUser);
 
-          // Successfull register
-          const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-
-          const user = {
-            userId: userData.userId,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-            name: userData.name,
-            lastname: userData.lastname,
-            uuid: userData.uuid,
-            credit: userData.credit,
-            createdAt: userData.createdAt,
-            registerCompleted: userData.registerCompleted,
-            email: userData.email
-          };
-
-          res.status(200).send({ token, user, uuid: userData.uuid });
-        } else {
-          // This account already exists
-          res.status(400).send({ message: 'This account already exists' });
-        }
-      }).catch((err) => {
+      if (!userData) {
         Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ message: err.message });
-      });
+        return res.status(500).send({ message: err.message });
+      }
+
+      if (userData.isNewRecord) {
+        if (hasReferral) {
+          Service.Analytics.identify({
+            userId: userData.uuid,
+            traits: { referred_by: referrer.uuid }
+          });
+        }
+
+        // Successfull register
+        const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+
+        const keys = await Service.KeyServer.keysExists(userData);
+
+        const user = {
+          userId: userData.userId,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id,
+          name: userData.name,
+          lastname: userData.lastname,
+          uuid: userData.uuid,
+          credit: userData.credit,
+          createdAt: userData.createdAt,
+          registerCompleted: userData.registerCompleted,
+          email: userData.email,
+          privateKey: keys.private_key,
+          publicKey: keys.public_key,
+          revocationKey: keys.revocation_key
+        };
+
+        res.status(200).send({ token, user, uuid: userData.uuid });
+      } else {
+        // This account already exists
+        res.status(400).send({ message: 'This account already exists' });
+      }
+
     } else {
       res.status(400).send({ message: 'You must provide registration data' });
     }
