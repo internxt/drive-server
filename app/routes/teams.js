@@ -330,17 +330,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/teams/user', passportAuth, (req, res) => {
-    Service.User.FindUserObjByEmail(req.body.email).then((user) => {
-      if (!user) {
-        throw Error('User not exists');
-      }
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(400).json({ error: 'User not found' });
-    });
-  });
-
   Router.post('/teams/checkout/session', passportAuth, async (req, res) => {
     const { email } = req.user;
     const { mnemonic } = req.body;
