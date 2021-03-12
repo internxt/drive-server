@@ -15,7 +15,8 @@ module.exports = (sequelize, DataTypes) => {
       total_members: DataTypes.INTEGER
     },
     {
-      timestamps: false
+      timestamps: false,
+      underscored: true
     });
 
   return Teams;
