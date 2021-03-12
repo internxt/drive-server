@@ -45,7 +45,7 @@ module.exports = (Router, Service, App) => {
       return res.status(500).send({ error: `You cannot exceed the limit of ${teamInfo.total_members} members` });
     }
     // Datas needed for invite a user
-    const existsUser = await Service.User.FindUserByEmail(email);
+    const existsUser = await Service.User.FindUserByEmail(email).catch(() => null);
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {

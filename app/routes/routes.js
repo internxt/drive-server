@@ -87,11 +87,9 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then(() => {
-            res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-          }).catch(() => {
-            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
-          });
+          Service.KeyServer.keysExists(userData).then(keyExist => {
+            res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
+          })
         }
       }).catch((err) => {
         res.status(400).send({
@@ -160,18 +158,13 @@ module.exports = (Router, Service, App) => {
         Service.User.UpdateAccountActivity(req.body.email);
         const userBucket = await Service.User.GetUserBucket(userData);
 
-        let keys = false;
-        try {
-          keys = await Service.KeyServer.keysExists(userData);
-        } catch (e) {
-          // no op
-        }
+        const keyExists = await Service.KeyServer.keysExists(userData);
 
-        if (!keys && req.body.publicKey) {
+        if (!keyExists && req.body.publicKey) {
           await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-          keys = await Service.KeyServer.keysExists(userData);
         }
 
+        const keys = await Service.KeyServer.getKeys(userData);
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
 
         const user = {
@@ -215,16 +208,14 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/user/refresh', passportAuth, async (req, res) => {
     const userData = req.user;
-    let keys = false;
-    try {
-      keys = await Service.KeyServer.keysExists(userData);
-    } catch (e) {
-      // no op
-    }
-    if (!keys && req.body.publicKey) {
+
+    const keyExists = await Service.KeyServer.keysExists(userData);
+
+    if (!keyExists && req.body.publicKey) {
       await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-      keys = await Service.KeyServer.keysExists(userData);
     }
+
+    const keys = await Service.KeyServer.getKeys(userData);
     const userBucket = await Service.User.GetUserBucket(userData);
 
     const internxtClient = req.headers['internxt-client'];
@@ -314,7 +305,7 @@ module.exports = (Router, Service, App) => {
         // Successfull register
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
 
-        const keys = await Service.KeyServer.keysExists(userData);
+        const keys = await Service.KeyServer.getKeys(userData);
 
         const user = {
           userId: userData.userId,
@@ -477,24 +468,22 @@ module.exports = (Router, Service, App) => {
     *        If the user does not have a public key he will send a random one for security, this
     *        is used in web for invitations
     */
-  Router.get('/user/keys/:user', passportAuth, async (req, res) => {
-    const { user } = req.params;
-    Service.User.FindUserByEmail(user).then((userKeys) => {
-      Service.KeyServer.keysExists(userKeys).then((keys) => {
-        res.status(200).send({ publicKey: keys.public_key });
-      }).catch(async () => {
-        const { publicKeyArmored } = await openpgp.generateKey({
-          userIds: [{ email: 'inxt@inxt.com' }],
-          curve: 'ed25519'
-        });
-        const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-        res.status(200).send({ publicKey: codpublicKey });
-        Logger.error('Error: The user not have keys');
-        res.status(500).send({});
+  Router.get('/user/keys/:email', passportAuth, async (req, res) => {
+    const { email } = req.params;
+
+    const user = await Service.User.FindUserByEmail(email).catch(() => null);
+
+    if (user) {
+      const keys = await Service.KeyServer.getKeys(user);
+      res.status(200).send({ publicKey: keys.public_key });
+    } else {
+      const { publicKeyArmored } = await openpgp.generateKey({
+        userIds: [{ email: 'inxt@inxt.com' }],
+        curve: 'ed25519'
       });
-    }).catch(() => {
-      res.status(500).send({});
-    });
+      const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
+      res.status(200).send({ publicKey: codpublicKey });
+    }
   });
 
   return Router;
