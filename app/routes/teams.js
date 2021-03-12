@@ -13,54 +13,6 @@ const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27'
 module.exports = (Router, Service, App) => {
   /**
    * @swagger
-   * /teams/initialize:
-   *   post:
-   *     description: User team initialize.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with all info
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull user initialization
-   *       204:
-   *         description: User needs to be activated
-   *
-   *
-   */
-  Router.post('/teams/initialize', passportAuth, async (req, res) => {
-    const { mnemonic, email: bridgeUser } = req.body;
-    const { user } = req;
-
-    // Take the object team
-    const team = await Service.Team.getTeamByMember(req.user.email);
-
-    if (!team) {
-      Logger.error('Team not found');
-      return res.status(200).send({ error: 'Team not found' });
-    }
-    // If the team does not exist and is not admin
-    if (team && team.admin !== user.email) {
-      Logger.error('You are not the admin');
-      return res.status(400).send({ error: 'You are not the admin' });
-    }
-
-    const userData = await Service.User.InitializeUser({ email: bridgeUser, mnemonic });
-    const teamUser = await Service.User.FindUserByEmail(bridgeUser);
-
-    userData.id = teamUser.id;
-    userData.email = teamUser.email;
-    userData.password = teamUser.password;
-    userData.mnemonic = teamUser.mnemonic;
-    userData.root_folder_id = teamUser.root_folder_id;
-
-    res.status(200).send({ userData });
-  });
-
-  /**
-   * @swagger
    * /team-invitations:
    *   post:
    *     description: Invite members for teams.
@@ -378,6 +330,17 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.post('/teams/user', passportAuth, (req, res) => {
+    Service.User.FindUserObjByEmail(req.body.email).then((user) => {
+      if (!user) {
+        throw Error('User not exists');
+      }
+      res.status(200).send({});
+    }).catch((err) => {
+      res.status(400).json({ error: 'User not found' });
+    });
+  });
+
   Router.post('/teams/checkout/session', passportAuth, async (req, res) => {
     const { email } = req.user;
     const { mnemonic } = req.body;
@@ -388,28 +351,32 @@ module.exports = (Router, Service, App) => {
     const { checkoutSessionId } = req.body;
     const stripe = req.body.test ? StripeTest : StripeProduction;
     const session = await stripe.checkout.sessions.retrieve(checkoutSessionId);
-    if (session.payment_status == 'paid') {
-      const team = await Service.Team.getTeamByEmail(email);
-      const user = {
-        email: team.bridge_user,
-        password: encryptedPassword,
-        salt: encryptedSalt,
-        mnemonic
-      };
-      const userRegister = await Service.User.FindOrCreate(user);
-      await team.update({
-        bridge_password: userRegister.userId,
-        total_members: session.metadata.total_members
-      });
-      const subscription = await stripe.subscriptions.retrieve(session.subscription);
-      const product = await stripe.products.retrieve(subscription.plan.product);
-      const size_bytes = await parseInt(product.metadata.size_bytes);
-      await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
-      await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes);
-      await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
-      res.status(200).send({ team });
-    } else {
+    try {
+      if (session.payment_status === 'paid') {
+        const team = await Service.Team.getTeamByEmail(email);
+        const user = {
+          email: team.bridge_user,
+          password: encryptedPassword,
+          salt: encryptedSalt,
+          mnemonic
+        };
+        const userRegister = await Service.User.FindOrCreate(user);
+        await team.update({
+          bridge_password: userRegister.userId,
+          total_members: session.metadata.total_members
+        });
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
+        const product = await stripe.products.retrieve(subscription.plan.product);
+        const size_bytes = parseInt(product.metadata.size_bytes);
+        await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
+        await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes);
+        await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
+
+        return res.status(200).send({ team });
+      }
+      throw Error();
+    } catch {
       res.status(400).send({ error: 'Team is not paid' });
     }
   });
