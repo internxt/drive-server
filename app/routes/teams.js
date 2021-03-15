@@ -305,7 +305,7 @@ module.exports = (Router, Service, App) => {
         const product = await stripe.products.retrieve(subscription.plan.product);
         const size_bytes = parseInt(product.metadata.size_bytes);
         await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
-        await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes);
+        await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes * session.metadata.total_members);
         await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
         return res.status(200).send({ team });
