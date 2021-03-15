@@ -206,7 +206,8 @@ module.exports = (Router, Service) => {
     const stripeProduct = req.body.product;
 
     stripe.plans.list({
-      product: stripeProduct
+      product: stripeProduct,
+      active: true
     }, (err, plans) => {
       if (err) {
         res.status(500).send({ error: err.message });

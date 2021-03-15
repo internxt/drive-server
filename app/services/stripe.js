@@ -45,7 +45,7 @@ module.exports = () => {
   const getStoragePlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(test);
 
-    stripe.plans.list({ product: stripeProduct },
+    stripe.plans.list({ product: stripeProduct, active: true },
       (err, plans) => {
         if (err) {
           reject(err.message);
@@ -65,7 +65,7 @@ module.exports = () => {
   const getTeamPlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(test);
 
-    stripe.plans.list({ product: stripeProduct }, (err, plans) => {
+    stripe.plans.list({ product: stripeProduct, active: true }, (err, plans) => {
       if (err) {
         reject(err.message);
       } else {
