@@ -74,7 +74,7 @@ module.exports = (Router, Service, App) => {
           return res.status(500).send({ error: 'The invitation can not saved' });
         }
 
-        return Service.Mail.sendEmailTeamsMember(email, token, req.team).then(() => {
+        return Service.Mail.sendEmailTeamsMember(existsUser.name, email, token, req.team).then(() => {
           Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
           res.status(200).send({});
         }).catch(() => {
@@ -90,7 +90,7 @@ module.exports = (Router, Service, App) => {
       }
     }
     // Forward email
-    return Service.Mail.sendEmailTeamsMember(email, existsInvitation.token, req.team).then(() => {
+    return Service.Mail.sendEmailTeamsMember(existsUser.name, email, existsInvitation.token, req.team).then(() => {
       Logger.info('The email is forwarded to the user %s', email);
       res.status(200).send({});
     }).catch(() => {
