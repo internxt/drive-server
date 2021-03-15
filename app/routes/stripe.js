@@ -125,7 +125,7 @@ module.exports = (Router, Service) => {
             admin: req.user.email,
             bridge_user: newRandomTeam.bridge_user,
             bridge_password: newRandomTeam.password,
-            bridge_mnemonic: null
+            bridge_mnemonic: req.body.mnemonicTeam
           });
           return newTeam;
         }
@@ -134,8 +134,8 @@ module.exports = (Router, Service) => {
       async (bridgeUser) => {
         const sessionParams = {
           payment_method_types: ['card'],
-          success_url: 'https://drive.internxt.com/teams/success',
-          cancel_url: 'https://drive.internxt.com/teams/cancel',
+          success_url: `${process.env.HOST_DRIVE_WEB}/team/success/{CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.HOST_DRIVE_WEB}/team/cancel`,
           subscription_data: {
             items: [
               {
