@@ -167,10 +167,14 @@ module.exports = (Router, Service, App) => {
    */
   Router.get('/teams/members', passportAuth, async (req, res) => {
     const user = req.user.email;
-    const teamInfo = await Service.Team.getTeamByEmail(user);
-    const members = await Service.TeamsMembers.getPeople(teamInfo.id);
-    const result = _.remove(members, (member) => member.user != user);
-    res.status(200).send(result);
+    try {
+      const teamInfo = await Service.Team.getTeamByEmail(user);
+      const members = await Service.TeamsMembers.getPeople(teamInfo.id);
+      const result = _.remove(members, (member) => member.user !== user);
+      res.status(200).send(result);
+    } catch {
+      res.status(500).send();
+    }
   });
 
   /**
