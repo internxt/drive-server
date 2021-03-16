@@ -31,11 +31,15 @@ module.exports = (Model) => {
     });
   });
 
+  const removeKeys = (userId) => {
+    Model.keyserver.destroy({ where: { user_id: { [Op.eq]: userId } } });
+  };
+
   return {
     Name: 'KeyServer',
     addKeysLogin,
     keysExists,
-    getKeys
-
+    getKeys,
+    removeKeys
   };
 };
