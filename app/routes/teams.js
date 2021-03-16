@@ -269,11 +269,14 @@ module.exports = (Router, Service, App) => {
       if (!team) {
         throw Error('No teams');
       }
-      const userTeam = team.toJSON();
-      res.status(200).send({ userTeam });
-    }).catch((err) => {
-      res.status(400).json({ error: 'Team not found' });
-    });
+      return team;
+    })
+      .then((teamInfo) => {
+        res.status(200).send(teamInfo);
+      })
+      .catch(() => {
+        res.status(400).json({ error: 'Team not found' });
+      });
   });
 
   Router.post('/teams/checkout/session', passportAuth, async (req, res) => {
