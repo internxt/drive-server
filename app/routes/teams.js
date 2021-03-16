@@ -49,7 +49,7 @@ module.exports = (Router, Service, App) => {
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {
-      return res.status(400).send({ error: 'This user cannot be invited' });
+      return res.status(400).send({ error: 'You cannot invite this user. Please make sure that the user has an active Internxt account.' });
     }
     // Check if the invitation exists
     const existsInvitation = await Service.TeamInvitations.getTeamInvitationByUser(email);
