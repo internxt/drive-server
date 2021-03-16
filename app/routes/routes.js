@@ -406,8 +406,14 @@ module.exports = (Router, Service, App) => {
     const user = await Service.User.FindUserByEmail(email).catch(() => null);
 
     if (user) {
-      const keys = await Service.KeyServer.getKeys(user);
-      res.status(200).send({ publicKey: keys.public_key });
+      const existsKeys = await Service.KeyServer.keysExists(user);
+      if (existsKeys) {
+        const keys = await Service.KeyServer.getKeys(user);
+        res.status(200).send({ publicKey: keys.public_key });
+      } else {
+        res.status(400).send({ error: 'This user cannot be invited' });
+      }
+
     } else {
       const { publicKeyArmored } = await openpgp.generateKey({
         userIds: [{ email: 'inxt@inxt.com' }],

@@ -49,7 +49,7 @@ module.exports = (Router, Service, App) => {
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {
-      return res.status(500).send({ error: 'You can not invite this user' });
+      return res.status(400).send({ error: 'This user cannot be invited' });
     }
     // Check if the invitation exists
     const existsInvitation = await Service.TeamInvitations.getTeamInvitationByUser(email);
@@ -60,7 +60,7 @@ module.exports = (Router, Service, App) => {
       if (!existsMember) {
         const existsBridgeUser = await Service.Team.getTeamBridgeUser(req.user.email);
         if (!existsBridgeUser) {
-          return res.status(500).send({ error: 'You are not allow to invite' });
+          return res.status(400).send({ error: 'You are not allow to invite' });
         }
         // If this user is allow to invite, save the invitation and send mail
         const saveInvitations = await Service.TeamInvitations.save({
@@ -71,14 +71,14 @@ module.exports = (Router, Service, App) => {
           mnemonic: Encryptmnemonic
         });
         if (!saveInvitations) {
-          return res.status(500).send({ error: 'The invitation can not saved' });
+          return res.status(400).send({ error: 'The invitation can not saved' });
         }
 
         return Service.Mail.sendEmailTeamsMember(existsUser.name, email, token, req.team).then(() => {
           Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
           res.status(200).send({});
         }).catch(() => {
-          Logger.error('Error: Send invitation mail from %s to %s 2', req.user.email, req.body.email);
+          Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email);
           res.status(500).send({});
         });
       }
@@ -94,7 +94,7 @@ module.exports = (Router, Service, App) => {
       Logger.info('The email is forwarded to the user %s', email);
       res.status(200).send({});
     }).catch(() => {
-      Logger.error('Error: Send invitation mail from %s to %s 1', req.user.email, email);
+      Logger.error('Error: Send invitation mail from %s to %s', req.user.email, email);
       res.status(500).send({ error: 'Error: Send invitation mail' });
     });
   });
