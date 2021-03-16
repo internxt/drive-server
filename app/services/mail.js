@@ -44,7 +44,7 @@ module.exports = () => {
     });
   };
 
-  const sendEmailTeamsMember = (member, cryptedToken, teamName) => {
+  const sendEmailTeamsMember = (name, member, cryptedToken, teamName) => {
     const mailer = mailInstance();
     return new Promise((resolve, reject) => {
       mailer.dispatchSendGrid(member,
@@ -52,7 +52,7 @@ module.exports = () => {
         {
           template: 'join-team',
           go: { in: 'here' },
-          memberName: member.user,
+          memberName: name,
           teamName,
           urlAcceptInvitation: `${process.env.HOST_DRIVE_WEB}/teams/join/${cryptedToken}`
 
