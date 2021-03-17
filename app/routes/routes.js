@@ -233,13 +233,12 @@ module.exports = (Router, Service, App) => {
       }
 
       if (userData.isNewRecord) {
-
         if (uuid.validate(referral)) {
-          await Service.User.FindUserByUuid(referral).then((userData) => {
-            if (userData) {
+          await Service.User.FindUserByUuid(referral).then((referalUser) => {
+            if (referalUser) {
               newUser.credit = 5;
               hasReferral = true;
-              referrer = userData;
+              referrer = referalUser;
               Service.User.UpdateCredit(referral);
             }
           }).catch(() => { });
@@ -273,7 +272,7 @@ module.exports = (Router, Service, App) => {
           user.privateKey = keys.private_key;
           user.publicKey = keys.public_key;
           user.revocationKey = keys.revocation_key;
-        } catch {
+        } catch (e) {
           // no op
         }
 
@@ -282,9 +281,8 @@ module.exports = (Router, Service, App) => {
         // This account already exists
         res.status(400).send({ message: 'This account already exists' });
       }
-    } else {
-      res.status(400).send({ message: 'You must provide registration data' });
     }
+    return res.status(400).send({ message: 'You must provide registration data' });
   });
 
   Router.post('/initialize', (req, res) => {

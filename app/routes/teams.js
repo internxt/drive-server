@@ -249,7 +249,7 @@ module.exports = (Router, Service, App) => {
         });
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
         const product = await stripe.products.retrieve(subscription.plan.product);
-        const sizeBytes = parseInt(product.metadata.size_bytes);
+        const sizeBytes = parseInt(product.metadata.size_bytes, 10);
         await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
         await Service.Team.ApplyLicenseTeams(team.bridge_user, sizeBytes * session.metadata.total_members);
         await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
@@ -258,7 +258,7 @@ module.exports = (Router, Service, App) => {
       }
       throw Error();
     } catch (err) {
-      res.status(400).send({ error: 'Team is not paid' });
+      return res.status(400).send({ error: 'Team is not paid' });
     }
   });
 
