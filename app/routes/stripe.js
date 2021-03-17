@@ -61,13 +61,9 @@ module.exports = (Router, Service) => {
         if (!payload) {
           next(null, {});
         } else {
-          const { customer, subscription } = payload;
+          const { customer } = payload;
 
-          if (subscription) {
-            next(Error('Already subscribed'));
-          } else {
-            next(null, customer);
-          }
+          next(null, customer);
         }
       },
       (customer, next) => {
