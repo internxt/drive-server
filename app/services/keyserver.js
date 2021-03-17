@@ -3,19 +3,19 @@ const sequelize = require('sequelize');
 const { Op } = sequelize;
 
 module.exports = (Model) => {
+  const getKeys = (user) => Model.keyserver.findOne({
+    where: {
+      user_id: { [Op.eq]: user.id }
+    }
+  });
+
   const keysExists = async (user) => {
     if (!user) {
       return false;
     }
     const keys = await getKeys(user);
     return !!keys;
-  }
-
-  const getKeys = (user) => Model.keyserver.findOne({
-    where: {
-      user_id: { [Op.eq]: user.id }
-    }
-  });
+  };
 
   const addKeysLogin = (userData, publicKey, privateKey, revocationKey) => new Promise((resolve, reject) => {
     Model.keyserver.create({
@@ -31,11 +31,15 @@ module.exports = (Model) => {
     });
   });
 
+  const removeKeys = (userId) => {
+    Model.keyserver.destroy({ where: { user_id: { [Op.eq]: userId } } });
+  };
+
   return {
     Name: 'KeyServer',
     addKeysLogin,
     keysExists,
-    getKeys
-
+    getKeys,
+    removeKeys
   };
 };

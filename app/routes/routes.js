@@ -73,9 +73,9 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then(keyExist => {
+          Service.KeyServer.keysExists(userData).then((keyExist) => {
             res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
-          })
+          });
         }
       }).catch((err) => {
         res.status(400).send({
@@ -132,7 +132,7 @@ module.exports = (Router, Service, App) => {
         }
 
         const keys = await Service.KeyServer.getKeys(userData);
-        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
+        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
 
         const user = {
           email: req.body.email,
@@ -239,8 +239,7 @@ module.exports = (Router, Service, App) => {
       const userData = await Service.User.FindOrCreate(newUser);
 
       if (!userData) {
-        Logger.error(`${err.message}\n${err.stack}`);
-        return res.status(500).send({ message: err.message });
+        return res.status(500).send({ error: '' });
       }
 
       if (userData.isNewRecord) {
@@ -266,18 +265,23 @@ module.exports = (Router, Service, App) => {
           credit: userData.credit,
           createdAt: userData.createdAt,
           registerCompleted: userData.registerCompleted,
-          email: userData.email,
-          privateKey: keys.private_key,
-          publicKey: keys.public_key,
-          revocationKey: keys.revocation_key
+          email: userData.email
         };
+
+        try {
+          const keys = await Service.KeyServer.getKeys(userData);
+          user.privateKey = keys.private_key;
+          user.publicKey = keys.public_key;
+          user.revocationKey = keys.revocation_key;
+        } catch {
+          // no op
+        }
 
         res.status(200).send({ token, user, uuid: userData.uuid });
       } else {
         // This account already exists
         res.status(400).send({ message: 'This account already exists' });
       }
-
     } else {
       res.status(400).send({ message: 'You must provide registration data' });
     }
@@ -380,26 +384,6 @@ module.exports = (Router, Service, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
-  /**
-    * @swagger
-    * /user/keys/:user:
-    *   get:
-    *     description: check that the invited user has public passwords .
-    *     produces:
-    *       - application/json
-    *     parameters:
-    *       - description: user object all info
-    *         in: url
-    *         required: true
-    *     responses:
-    *       200:
-    *         description: Successfull get public keys
-    *       204:
-    *         description: User not has keys
-    *      additional info:
-    *        If the user does not have a public key he will send a random one for security, this
-    *        is used in web for invitations
-    */
   Router.get('/user/keys/:email', passportAuth, async (req, res) => {
     const { email } = req.params;
 
@@ -413,7 +397,6 @@ module.exports = (Router, Service, App) => {
       } else {
         res.status(400).send({ error: 'This user cannot be invited' });
       }
-
     } else {
       const { publicKeyArmored } = await openpgp.generateKey({
         userIds: [{ email: 'inxt@inxt.com' }],

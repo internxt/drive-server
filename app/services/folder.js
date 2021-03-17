@@ -102,13 +102,14 @@ module.exports = (Model, App) => {
 
     // Delete all the files in the folder
     // Find all subfolders and repeat
+    /*
     const folderFiles = await Model.file.findAll({
       where: { folder_id: folder.id }
     });
     const folderFolders = await Model.folder.findAll({
       where: { parentId: folder.id }
     });
-    /*
+
     await Promise.all(folderFiles
       .map((file) => FileServiceInstance.Delete(user, file.bucket, file.fileId))
       .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id))));

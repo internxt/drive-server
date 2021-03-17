@@ -1,9 +1,9 @@
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
 const Stripe = require('stripe');
+const _ = require('lodash');
 const { passportAuth, Sign } = require('../middleware/passport');
 const logger = require('../../lib/logger');
-const _ = require('lodash');
 
 const Logger = logger.getInstance();
 
@@ -11,25 +11,6 @@ const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27
 const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 
 module.exports = (Router, Service, App) => {
-  /**
-   * @swagger
-   * /team-invitations:
-   *   post:
-   *     description: Invite members for teams.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with the info of team
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull invite
-   *       204:
-   *         description: User not allow to invite
-   *      additional info:
-   *        This method will also control the limit range of 10 people for the 200GB plan
-   */
   Router.post('/teams/team/invitations', passportAuth, async (req, res) => {
     // Datas
     const { email } = req.body;
@@ -146,25 +127,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /teams/members/:idTeam:
-   *   get:
-   *     description: get members.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: idteam to to make a difference
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull get members
-   *       204:
-   *         description: with this idTeam not have members
-   *      additional info: is used to the usage and limit in web
-   *
-   */
   Router.get('/teams/members', passportAuth, async (req, res) => {
     const user = req.user.email;
     try {
@@ -172,30 +134,11 @@ module.exports = (Router, Service, App) => {
       const members = await Service.TeamsMembers.getPeople(teamInfo.id);
       const result = _.remove(members, (member) => member.user !== user);
       res.status(200).send(result);
-    } catch {
+    } catch (e) {
       res.status(500).send();
     }
   });
 
-  /**
-   * @swagger
-   * /teams/member:
-   *   delete:
-   *     description: delete members.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: idteam to to make a difference,a user, and the email to remove user
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull delete members
-   *       204:
-   *         description: The user is not allow to delete members
-   *
-   *
-   */
   Router.delete('/teams/member', passportAuth, async (req, res) => {
     const removeUser = req.body.item.user;
     const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
@@ -204,9 +147,9 @@ module.exports = (Router, Service, App) => {
     }
     const deleteMember = await Service.TeamsMembers.removeMembers(removeUser);
     if (deleteMember === 1) {
-      res.status(200).send({ info: 'Successfully member deleted' })
+      res.status(200).send({ info: 'Successfully member deleted' });
     } else {
-      res.status(500).send({ err: 'Error, the member can not be deleted' })
+      res.status(500).send({ err: 'Error, the member can not be deleted' });
     }
   });
 
@@ -218,9 +161,9 @@ module.exports = (Router, Service, App) => {
     }
     const deleteInvitation = await Service.TeamInvitations.removeInvitations(removeUser);
     if (deleteInvitation === 1) {
-      res.status(200).send({ info: 'Successfully invitation deleted' })
+      res.status(200).send({ info: 'Successfully invitation deleted' });
     } else {
-      res.status(500).send({ err: 'Error, the invitation can not be deleted' })
+      res.status(500).send({ err: 'Error, the invitation can not be deleted' });
     }
   });
 
@@ -306,15 +249,15 @@ module.exports = (Router, Service, App) => {
         });
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
         const product = await stripe.products.retrieve(subscription.plan.product);
-        const size_bytes = parseInt(product.metadata.size_bytes);
+        const sizeBytes = parseInt(product.metadata.size_bytes);
         await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
-        await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes * session.metadata.total_members);
+        await Service.Team.ApplyLicenseTeams(team.bridge_user, sizeBytes * session.metadata.total_members);
         await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
         return res.status(200).send({ team });
       }
       throw Error();
-    } catch {
+    } catch (err) {
       res.status(400).send({ error: 'Team is not paid' });
     }
   });
