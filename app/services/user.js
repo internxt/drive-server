@@ -60,7 +60,7 @@ module.exports = (Model, App) => {
 
         const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
 
-        if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
+        if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
           throw Error(bridgeUser.response.data.error);
         }
 
