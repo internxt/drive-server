@@ -380,26 +380,6 @@ module.exports = (Router, Service, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
-  /**
-    * @swagger
-    * /user/keys/:user:
-    *   get:
-    *     description: check that the invited user has public passwords .
-    *     produces:
-    *       - application/json
-    *     parameters:
-    *       - description: user object all info
-    *         in: url
-    *         required: true
-    *     responses:
-    *       200:
-    *         description: Successfull get public keys
-    *       204:
-    *         description: User not has keys
-    *      additional info:
-    *        If the user does not have a public key he will send a random one for security, this
-    *        is used in web for invitations
-    */
   Router.get('/user/keys/:email', passportAuth, async (req, res) => {
     const { email } = req.params;
 
@@ -413,7 +393,6 @@ module.exports = (Router, Service, App) => {
       } else {
         res.status(400).send({ error: 'This user cannot be invited' });
       }
-
     } else {
       const { publicKeyArmored } = await openpgp.generateKey({
         userIds: [{ email: 'inxt@inxt.com' }],

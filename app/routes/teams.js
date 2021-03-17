@@ -11,25 +11,6 @@ const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27
 const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 
 module.exports = (Router, Service, App) => {
-  /**
-   * @swagger
-   * /team-invitations:
-   *   post:
-   *     description: Invite members for teams.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: user object with the info of team
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull invite
-   *       204:
-   *         description: User not allow to invite
-   *      additional info:
-   *        This method will also control the limit range of 10 people for the 200GB plan
-   */
   Router.post('/teams/team/invitations', passportAuth, async (req, res) => {
     // Datas
     const { email } = req.body;
@@ -146,25 +127,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /teams/members/:idTeam:
-   *   get:
-   *     description: get members.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: idteam to to make a difference
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull get members
-   *       204:
-   *         description: with this idTeam not have members
-   *      additional info: is used to the usage and limit in web
-   *
-   */
   Router.get('/teams/members', passportAuth, async (req, res) => {
     const user = req.user.email;
     try {
@@ -177,25 +139,6 @@ module.exports = (Router, Service, App) => {
     }
   });
 
-  /**
-   * @swagger
-   * /teams/member:
-   *   delete:
-   *     description: delete members.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - description: idteam to to make a difference,a user, and the email to remove user
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Successfull delete members
-   *       204:
-   *         description: The user is not allow to delete members
-   *
-   *
-   */
   Router.delete('/teams/member', passportAuth, async (req, res) => {
     const removeUser = req.body.item.user;
     const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
