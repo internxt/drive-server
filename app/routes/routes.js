@@ -265,11 +265,17 @@ module.exports = (Router, Service, App) => {
           credit: userData.credit,
           createdAt: userData.createdAt,
           registerCompleted: userData.registerCompleted,
-          email: userData.email,
-          privateKey: keys.private_key,
-          publicKey: keys.public_key,
-          revocationKey: keys.revocation_key
+          email: userData.email
         };
+
+        try {
+          const keys = await Service.KeyServer.getKeys(userData);
+          user.privateKey = keys.private_key;
+          user.publicKey = keys.public_key;
+          user.revocationKey = keys.revocation_key;
+        } catch {
+          // no op
+        }
 
         res.status(200).send({ token, user, uuid: userData.uuid });
       } else {
