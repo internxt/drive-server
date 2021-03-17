@@ -96,6 +96,8 @@ module.exports = (Model, App) => {
     if (plan === 'lifetime_2TB') {
       return RegisterIncompleteLifetime(email, plan);
     }
+
+    App.logger('Register activation from APPSUMO for %s', email);
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 
