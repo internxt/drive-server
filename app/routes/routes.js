@@ -73,9 +73,9 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then(keyExist => {
+          Service.KeyServer.keysExists(userData).then((keyExist) => {
             res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
-          })
+          });
         }
       }).catch((err) => {
         res.status(400).send({
@@ -132,7 +132,7 @@ module.exports = (Router, Service, App) => {
         }
 
         const keys = await Service.KeyServer.getKeys(userData);
-        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email))
+        const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
 
         const user = {
           email: req.body.email,
@@ -239,8 +239,7 @@ module.exports = (Router, Service, App) => {
       const userData = await Service.User.FindOrCreate(newUser);
 
       if (!userData) {
-        Logger.error(`${err.message}\n${err.stack}`);
-        return res.status(500).send({ message: err.message });
+        return res.status(500).send({ error: '' });
       }
 
       if (userData.isNewRecord) {
@@ -277,7 +276,6 @@ module.exports = (Router, Service, App) => {
         // This account already exists
         res.status(400).send({ message: 'This account already exists' });
       }
-
     } else {
       res.status(400).send({ message: 'You must provide registration data' });
     }

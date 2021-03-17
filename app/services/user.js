@@ -201,7 +201,7 @@ module.exports = (Model, App) => {
           if (uuid.validate(referralUuid)) {
             DecrementCredit(referralUuid);
           }
-
+          App.services.KeyServer.removeKeys(user.id);
           user.destroy().then(() => {
             analytics.track({
               userId: user.uuid,

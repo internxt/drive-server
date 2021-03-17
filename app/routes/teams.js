@@ -1,9 +1,9 @@
 const crypto = require('crypto');
 const sgMail = require('@sendgrid/mail');
 const Stripe = require('stripe');
+const _ = require('lodash');
 const { passportAuth, Sign } = require('../middleware/passport');
 const logger = require('../../lib/logger');
-const _ = require('lodash');
 
 const Logger = logger.getInstance();
 
@@ -134,7 +134,7 @@ module.exports = (Router, Service, App) => {
       const members = await Service.TeamsMembers.getPeople(teamInfo.id);
       const result = _.remove(members, (member) => member.user !== user);
       res.status(200).send(result);
-    } catch {
+    } catch (e) {
       res.status(500).send();
     }
   });
@@ -147,9 +147,9 @@ module.exports = (Router, Service, App) => {
     }
     const deleteMember = await Service.TeamsMembers.removeMembers(removeUser);
     if (deleteMember === 1) {
-      res.status(200).send({ info: 'Successfully member deleted' })
+      res.status(200).send({ info: 'Successfully member deleted' });
     } else {
-      res.status(500).send({ err: 'Error, the member can not be deleted' })
+      res.status(500).send({ err: 'Error, the member can not be deleted' });
     }
   });
 
@@ -161,9 +161,9 @@ module.exports = (Router, Service, App) => {
     }
     const deleteInvitation = await Service.TeamInvitations.removeInvitations(removeUser);
     if (deleteInvitation === 1) {
-      res.status(200).send({ info: 'Successfully invitation deleted' })
+      res.status(200).send({ info: 'Successfully invitation deleted' });
     } else {
-      res.status(500).send({ err: 'Error, the invitation can not be deleted' })
+      res.status(500).send({ err: 'Error, the invitation can not be deleted' });
     }
   });
 
@@ -249,15 +249,15 @@ module.exports = (Router, Service, App) => {
         });
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
         const product = await stripe.products.retrieve(subscription.plan.product);
-        const size_bytes = parseInt(product.metadata.size_bytes);
+        const sizeBytes = parseInt(product.metadata.size_bytes);
         await Service.User.InitializeUser({ email: team.bridge_user, mnemonic });
-        await Service.Team.ApplyLicenseTeams(team.bridge_user, size_bytes * session.metadata.total_members);
+        await Service.Team.ApplyLicenseTeams(team.bridge_user, sizeBytes * session.metadata.total_members);
         await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
         return res.status(200).send({ team });
       }
       throw Error();
-    } catch {
+    } catch (err) {
       res.status(400).send({ error: 'Team is not paid' });
     }
   });
