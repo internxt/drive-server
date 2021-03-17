@@ -196,29 +196,45 @@ module.exports = (Model, App) => {
       },
       (data, next) => {
         const userEmail = data.data.email;
-        Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then((user) => {
+        Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then(async (user) => {
           const referralUuid = user.referral;
           if (uuid.validate(referralUuid)) {
             DecrementCredit(referralUuid);
           }
-          App.services.KeyServer.removeKeys(user.id);
-          user.destroy().then(() => {
-            analytics.track({
-              userId: user.uuid,
-              event: 'user-deactivation-confirm',
-              properties: { email: userEmail }
-            });
-            Logger.info('User deleted on sql: %s', userEmail);
-            next(null, data);
-          }).catch((err) => {
-            Logger.error('Error deleting user on sql');
-            next(err);
+
+          // DELETE FOREIGN KEYS
+          user.root_folder_id = null;
+          await user.save();
+          const keys = await user.getKeyserver();
+          if (keys) { await keys.destroy(); }
+
+          const appSumo = await user.getAppSumo();
+          if (appSumo) { await appSumo.destroy(); }
+          const usersPhoto = await user.getUsersphoto();
+
+          if (usersPhoto) { await usersPhoto.destroy(); }
+
+          try {
+            await user.destroy();
+          } catch (e) {
+            user.email += '-DELETED';
+            await user.save();
+          }
+
+          analytics.track({
+            userId: user.uuid,
+            event: 'user-deactivation-confirm',
+            properties: { email: userEmail }
           });
+
+          Logger.info('User deleted on sql: %s', userEmail);
+
+          next();
         }).catch(next);
       }
     ], (err, result) => {
       if (err) {
-        Logger.error('Error waterfall', err);
+        Logger.error('Error deleting user, reason: %s', err.message);
         reject(err);
       } else {
         resolve(result);
