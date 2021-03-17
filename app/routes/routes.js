@@ -339,8 +339,8 @@ module.exports = (Router, Service, App) => {
   Router.post('/user/claim', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
-      to: 'hello@internxt.com',
-      from: 'hello@internxt.com',
+      to: 'marketing@internxt.com',
+      from: 'marketing@internxt.com',
       subject: 'New credit request',
       text: `Hello Internxt! I am ready to receive my credit for referring friends. My email is ${req.user.email}`
     };
