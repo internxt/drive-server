@@ -62,7 +62,7 @@ module.exports = (Model, App) => {
 
     // Do api call
     return axios
-      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((error) => error);
+      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((err) => err);
   };
 
   const IsUserActivated = (email) => {

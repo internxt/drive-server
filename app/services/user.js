@@ -60,7 +60,7 @@ module.exports = (Model, App) => {
 
         const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
 
-        if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
+        if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
           throw Error(bridgeUser.response.data.error);
         }
 
@@ -180,45 +180,58 @@ module.exports = (Model, App) => {
         });
     }).catch(reject));
 
-  const ConfirmDeactivateUser = (token) => new Promise((resolve, reject) => {
-    async.waterfall([
+  const ConfirmDeactivateUser = (token) => {
+    let userEmail = null;
+    return async.waterfall([
       (next) => {
         axios
           .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
             headers: { 'Content-Type': 'application/json' }
           }).then((res) => {
-            Logger.info('User deleted from bridge');
+            Logger.warn('User deleted from bridge');
             next(null, res);
           }).catch((err) => {
-            Logger.error('Error user deleted from bridge');
-            next(err);
+            Logger.error('Error user deleted from bridge: %s', err.message);
+            next(err.response.data.error || err.message);
           });
       },
       (data, next) => {
-        const userEmail = data.data.email;
+        userEmail = data.data.email;
         Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then(async (user) => {
-          const referralUuid = user.referral;
-          if (uuid.validate(referralUuid)) {
-            DecrementCredit(referralUuid);
+          if (!user) {
+            return;
           }
 
-          // DELETE FOREIGN KEYS
-          user.root_folder_id = null;
-          await user.save();
-          const keys = await user.getKeyserver();
-          if (keys) { await keys.destroy(); }
-
-          const appSumo = await user.getAppSumo();
-          if (appSumo) { await appSumo.destroy(); }
-          const usersPhoto = await user.getUsersphoto();
-
-          if (usersPhoto) { await usersPhoto.destroy(); }
-
           try {
+            const referralUuid = user.referral;
+            if (uuid.validate(referralUuid)) {
+              DecrementCredit(referralUuid);
+            }
+
+            // DELETE FOREIGN KEYS
+            user.root_folder_id = null;
+            await user.save();
+            const keys = await user.getKeyserver();
+            if (keys) { await keys.destroy(); }
+
+            const appSumo = await user.getAppSumo();
+            if (appSumo) { await appSumo.destroy(); }
+            const usersPhoto = await user.getUsersphoto();
+
+            const photos = await usersPhoto.getPhotos();
+            const photoIds = photos.map((x) => x.id);
+
+            if (photoIds.length > 0) {
+              await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
+              await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
+            }
+
+            if (usersPhoto) { await usersPhoto.destroy(); }
+
             await user.destroy();
           } catch (e) {
             user.email += '-DELETED';
-            await user.save();
+            user.save();
           }
 
           analytics.track({
@@ -234,13 +247,13 @@ module.exports = (Model, App) => {
       }
     ], (err, result) => {
       if (err) {
-        Logger.error('Error deleting user, reason: %s', err.message);
-        reject(err);
+        Logger.error('Error deleting user, reason: %s', err.message || err);
+        throw err.message || err;
       } else {
-        resolve(result);
+        return result;
       }
     });
-  });
+  };
 
   const Store2FA = (user, key) => Model.users
     .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });

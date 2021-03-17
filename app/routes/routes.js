@@ -224,17 +224,6 @@ module.exports = (Router, Service, App) => {
       let hasReferral = false;
       let referrer = null;
 
-      if (uuid.validate(referral)) {
-        await Service.User.FindUserByUuid(referral).then((userData) => {
-          if (userData) {
-            newUser.credit = 5;
-            hasReferral = true;
-            referrer = userData;
-            Service.User.UpdateCredit(referral);
-          }
-        });
-      }
-
       // Call user service to find or create user
       const userData = await Service.User.FindOrCreate(newUser);
 
@@ -243,6 +232,18 @@ module.exports = (Router, Service, App) => {
       }
 
       if (userData.isNewRecord) {
+
+        if (uuid.validate(referral)) {
+          await Service.User.FindUserByUuid(referral).then((userData) => {
+            if (userData) {
+              newUser.credit = 5;
+              hasReferral = true;
+              referrer = userData;
+              Service.User.UpdateCredit(referral);
+            }
+          }).catch(() => { });
+        }
+
         if (hasReferral) {
           Service.Analytics.identify({
             userId: userData.uuid,
@@ -252,8 +253,6 @@ module.exports = (Router, Service, App) => {
 
         // Successfull register
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-
-        const keys = await Service.KeyServer.getKeys(userData);
 
         const user = {
           userId: userData.userId,
