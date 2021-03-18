@@ -16,7 +16,7 @@ exports.data = {
     STRIPE_SK: process.env.STRIPE_SK,
     CAPTCHA_SECRET: process.env.CAPTCHA_SECRET,
     MAGIC_SALT: process.env.MAGIC_SALT,
-    MAGIV_IV: process.env.MAGIV_IV,
+    MAGIC_IV: process.env.MAGIC_IV,
     CRYPTO_SECRET2: process.env.CRYPTO_SECRET2
   },
   logger: {
