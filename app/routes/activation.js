@@ -85,10 +85,9 @@ module.exports = (Router, Service) => {
   Router.get('/confirmDeactivation/:token', (req, res) => {
     const { token } = req.params;
 
-    Service.User.ConfirmDeactivateUser(token).then((resConfirm) => {
-      res.status(resConfirm.status).send(req.data);
+    Service.User.ConfirmDeactivateUser(token).then(() => {
+      res.status(200).send(req.data);
     }).catch((err) => {
-      Logger.error('Deactivation request to Server failed: %s', err.message);
       res.status(400).send({ error: err.message });
     });
   });

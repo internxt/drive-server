@@ -25,7 +25,7 @@ module.exports = (Model, App) => {
     try {
       const reb64 = CryptoJS.enc.Hex.parse(cipherText);
       const bytes = reb64.toString(CryptoJS.enc.Base64);
-      const decrypt = CryptoJS.AES.decrypt(bytes, process.env.CRYPTO_SECRET);
+      const decrypt = CryptoJS.AES.decrypt(bytes, App.config.get('secrets').CRYPTO_SECRET);
       const plain = decrypt.toString(CryptoJS.enc.Utf8);
 
       return plain;

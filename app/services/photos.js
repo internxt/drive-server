@@ -166,7 +166,9 @@ module.exports = (Model, App) => {
 
           App.services.StorjPhotos.ResolvePhoto(user, photo)
             .then((result) => {
-              resolve({ ...result, name: photo.name, type: photo.type, size: photo.size });
+              resolve({
+                ...result, name: photo.name, type: photo.type, size: photo.size
+              });
             })
             .catch((err) => {
               if (err.message === 'Photo already exists') {

@@ -73,10 +73,8 @@ module.exports = (Router, Service, App) => {
         } else {
           const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
           const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then(() => {
-            res.status(200).send({ hasKeys: true, sKey: encSalt, tfa: required2FA });
-          }).catch(() => {
-            res.status(200).send({ hasKeys: false, sKey: encSalt, tfa: required2FA });
+          Service.KeyServer.keysExists(userData).then((keyExist) => {
+            res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
           });
         }
       }).catch((err) => {
@@ -117,8 +115,10 @@ module.exports = (Router, Service, App) => {
         });
       }
       if (!tfaResult) {
-        res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass === userData.password.toString() && tfaResult) {
+        return res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      }
+
+      if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const internxtClient = req.headers['internxt-client'];
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
@@ -127,18 +127,13 @@ module.exports = (Router, Service, App) => {
         Service.User.UpdateAccountActivity(req.body.email);
         const userBucket = await Service.User.GetUserBucket(userData);
 
-        let keys = false;
-        try {
-          keys = await Service.KeyServer.keysExists(userData);
-        } catch (e) {
-          // no op
-        }
+        const keyExists = await Service.KeyServer.keysExists(userData);
 
-        if (!keys && req.body.publicKey) {
+        if (!keyExists && req.body.publicKey) {
           await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-          keys = await Service.KeyServer.keysExists(userData);
         }
 
+        const keys = await Service.KeyServer.getKeys(userData);
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
 
         const user = {
@@ -167,14 +162,13 @@ module.exports = (Router, Service, App) => {
           });
         }
         return res.status(200).json({ user, token, userTeam });
-      } else {
-        // Wrong password
-        if (pass !== userData.password.toString()) {
-          Service.User.LoginFailed(req.body.email, true);
-        }
-
-        return res.status(400).json({ error: 'Wrong email/password' });
       }
+      // Wrong password
+      if (pass !== userData.password.toString()) {
+        Service.User.LoginFailed(req.body.email, true);
+      }
+
+      return res.status(400).json({ error: 'Wrong email/password' });
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
       return res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
@@ -183,16 +177,14 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/user/refresh', passportAuth, async (req, res) => {
     const userData = req.user;
-    let keys = false;
-    try {
-      keys = await Service.KeyServer.keysExists(userData);
-    } catch (e) {
-      // no op
-    }
-    if (!keys && req.body.publicKey) {
+
+    const keyExists = await Service.KeyServer.keysExists(userData);
+
+    if (!keyExists && req.body.publicKey) {
       await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
-      keys = await Service.KeyServer.keysExists(userData);
     }
+
+    const keys = await Service.KeyServer.getKeys(userData);
     const userBucket = await Service.User.GetUserBucket(userData);
 
     const internxtClient = req.headers['internxt-client'];
@@ -233,56 +225,63 @@ module.exports = (Router, Service, App) => {
       let hasReferral = false;
       let referrer = null;
 
-      if (uuid.validate(referral)) {
-        await Service.User.FindUserByUuid(referral).then((userData) => {
-          if (userData) {
-            newUser.credit = 5;
-            hasReferral = true;
-            referrer = userData;
-            Service.User.UpdateCredit(referral);
-          }
-        });
+      // Call user service to find or create user
+      const userData = await Service.User.FindOrCreate(newUser);
+
+      if (!userData) {
+        return res.status(500).send({ error: '' });
       }
 
-      // Call user service to find or create user
-      Service.User.FindOrCreate(newUser).then((userData) => {
-        // Process user data and answer API call
-        if (userData.isNewRecord) {
-          if (hasReferral) {
-            Service.Analytics.identify({
-              userId: userData.uuid,
-              traits: { referred_by: referrer.uuid }
-            });
-          }
-
-          // Successfull register
-          const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-
-          const user = {
-            userId: userData.userId,
-            mnemonic: userData.mnemonic,
-            root_folder_id: userData.root_folder_id,
-            name: userData.name,
-            lastname: userData.lastname,
-            uuid: userData.uuid,
-            credit: userData.credit,
-            createdAt: userData.createdAt,
-            registerCompleted: userData.registerCompleted,
-            email: userData.email
-          };
-
-          res.status(200).send({ token, user, uuid: userData.uuid });
-        } else {
-          // This account already exists
-          res.status(400).send({ message: 'This account already exists' });
+      if (userData.isNewRecord) {
+        if (uuid.validate(referral)) {
+          await Service.User.FindUserByUuid(referral).then((referalUser) => {
+            if (referalUser) {
+              newUser.credit = 5;
+              hasReferral = true;
+              referrer = referalUser;
+              Service.User.UpdateCredit(referral);
+            }
+          }).catch(() => { });
         }
-      }).catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ message: err.message });
-      });
-    } else {
-      res.status(400).send({ message: 'You must provide registration data' });
+
+        if (hasReferral) {
+          Service.Analytics.identify({
+            userId: userData.uuid,
+            traits: { referred_by: referrer.uuid }
+          });
+        }
+
+        // Successfull register
+        const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+
+        const user = {
+          userId: userData.userId,
+          mnemonic: userData.mnemonic,
+          root_folder_id: userData.root_folder_id,
+          name: userData.name,
+          lastname: userData.lastname,
+          uuid: userData.uuid,
+          credit: userData.credit,
+          createdAt: userData.createdAt,
+          registerCompleted: userData.registerCompleted,
+          email: userData.email
+        };
+
+        try {
+          const keys = await Service.KeyServer.getKeys(userData);
+          user.privateKey = keys.private_key;
+          user.publicKey = keys.public_key;
+          user.revocationKey = keys.revocation_key;
+        } catch (e) {
+          // no op
+        }
+
+        return res.status(200).send({ token, user, uuid: userData.uuid });
+      }
+      // This account already exists
+      return res.status(400).send({ message: 'This account already exists' });
     }
+    return res.status(400).send({ message: 'You must provide registration data' });
   });
 
   Router.post('/initialize', (req, res) => {
@@ -337,8 +336,8 @@ module.exports = (Router, Service, App) => {
   Router.post('/user/claim', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
-      to: 'hello@internxt.com',
-      from: 'hello@internxt.com',
+      to: 'marketing@internxt.com',
+      from: 'marketing@internxt.com',
       subject: 'New credit request',
       text: `Hello Internxt! I am ready to receive my credit for referring friends. My email is ${req.user.email}`
     };
@@ -382,24 +381,27 @@ module.exports = (Router, Service, App) => {
     return res.status(200).send({ userCredit: user.credit });
   });
 
-  Router.get('/user/keys/:user', passportAuth, async (req, res) => {
-    const { user } = req.params;
-    Service.User.FindUserByEmail(user).then((userKeys) => {
-      Service.KeyServer.keysExists(userKeys).then((keys) => {
+  Router.get('/user/keys/:email', passportAuth, async (req, res) => {
+    const { email } = req.params;
+
+    const user = await Service.User.FindUserByEmail(email).catch(() => null);
+
+    if (user) {
+      const existsKeys = await Service.KeyServer.keysExists(user);
+      if (existsKeys) {
+        const keys = await Service.KeyServer.getKeys(user);
         res.status(200).send({ publicKey: keys.public_key });
-      }).catch(async () => {
-        const { publicKeyArmored } = await openpgp.generateKey({
-          userIds: [{ email: 'inxt@inxt.com' }],
-          curve: 'ed25519'
-        });
-        const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-        res.status(200).send({ publicKey: codpublicKey });
-        Logger.error('Error: The user not have keys');
-        res.status(500).send({});
+      } else {
+        res.status(400).send({ error: 'This user cannot be invited' });
+      }
+    } else {
+      const { publicKeyArmored } = await openpgp.generateKey({
+        userIds: [{ email: 'inxt@inxt.com' }],
+        curve: 'ed25519'
       });
-    }).catch(() => {
-      res.status(500).send({});
-    });
+      const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
+      res.status(200).send({ publicKey: codpublicKey });
+    }
   });
 
   return Router;

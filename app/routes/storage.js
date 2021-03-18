@@ -82,7 +82,7 @@ module.exports = (Router, Service, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+    return Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
       .then((result) => {
         res.status(201).json(result);
       })
