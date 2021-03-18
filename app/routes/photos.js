@@ -30,39 +30,12 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /// DEPRECATED, should be removed after new release
-  Router.post('/photos/initialize', (req, res) => {
-    // Call user service to find or create user
-    Service.UserPhotos.InitializeUserPhotos(req.body)
-      .then(async (userData) => {
-        // Process user data and answer API call
-        if (userData.rootAlbumId && userData.rootPreviewId) {
-          // Successfull initialization
-          const user = {
-            email: userData.email,
-            mnemonic: userData.mnemonic,
-            rootAlbumId: userData.rootAlbumId,
-            rootPreviewId: userData.rootPreviewId
-          };
-
-          res.status(200).send({ user });
-        } else {
-          // User initialization unsuccessful
-          res.status(400).send({ message: 'Your account can\'t be initialized' });
-        }
-      })
-      .catch((err) => {
-        log.error(`${err.message}\n${err.stack}`);
-        res.status(500).send(err.message);
-      });
-  });
-
   Router.get('/photos/storage/previews/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const fileIdInBucket = req.params.id;
-    if (fileIdInBucket === 'null') {
+    if (!fileIdInBucket || fileIdInBucket === 'null') {
       return res.status(500).send({ message: 'Missing photo id' });
     }
 
@@ -135,6 +108,16 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.post('/photos/storage/photos/partial', passportAuth, (req, res) => {
+    const { email } = req.user;
+    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const allPhotos = await Service.Photos.GetPartialPhotosContent(userData, userData.usersphoto, req.body);
+      res.status(200).send(allPhotos);
+    }).catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
+  });
+
   Router.get('/photos/storage/deletes', passportAuth, (req, res) => {
     const { email } = req.params;
 
@@ -179,60 +162,84 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
-    const { user } = req;
     const xphoto = req.file;
 
-    const userPhotos = await Service.UserPhotos.FindUserByEmail(user.email);
+    const userPhotos = await req.user.getUsersphoto();
     // Set mnemonic to decrypted mnemonic
-    userPhotos.mnemonic = req.headers['internxt-mnemonic'];
+    req.user.mnemonic = req.headers['internxt-mnemonic'];
+
+    const photoExists = await Service.Photos.FindPhotoByHash(userPhotos, req.body.hash);
+
+    if (photoExists) {
+      return res.status(409).json(photoExists);
+    }
 
     Service.Photos.UploadPhoto(
-      userPhotos,
+      req.user,
       xphoto.originalname,
       xphoto.path,
       req.body.hash
-    ).then(async (result) => {
+    ).then((result) => {
       res.status(201).json(result);
-    }).catch((err) => {
-      log.error(`${err.message}\n${err.stack}`);
+    }).catch(async (err) => {
       if (err.includes && err.includes('Bridge rate limit error')) {
         res.status(402).json({ message: err });
         return;
       }
-      res.status(500).json({ message: err });
-    });
-  });
 
-  Router.post('/photos/storage/preview/upload/:id', passportAuth, upload.single('xfile'), async (req, res) => {
-    const { user } = req;
-    const xpreview = req.file;
-    const photoId = req.params.id;
-
-    const userInfo = await Service.UserPhotos.FindUserByEmail(user.email);
-    if (!userInfo.usersphoto) {
-      res.status(500).send('Internal Server Error');
-    }
-
-    // Set mnemonic to decrypted mnemonic
-    userInfo.mnemonic = req.headers['internxt-mnemonic'];
-
-    Service.Previews.UploadPreview(
-      userInfo,
-      xpreview.originalname,
-      xpreview.path,
-      photoId,
-      req.body.hash
-    ).then(async (result) => {
-      res.status(201).json(result);
-    }).catch((err) => {
-      log.error(`${err.message}\n${err.stack}`);
-      if (err.includes && err.includes('Bridge rate limit error')) {
-        res.status(402).json({ message: err });
+      if (err.includes && err.includes('File already exists')) {
+        res.status(409).json({ message: err });
         return;
       }
+
       res.status(500).json({ message: err });
     });
   });
+
+  Router.post('/photos/storage/preview/upload/:id', passportAuth,
+    upload.single('xfile'), async (req, res) => {
+      const { user } = req;
+      const xpreview = req.file;
+      const photoId = req.params.id;
+
+      const usersPhoto = await req.user.getUsersphoto();
+      const photo = await Service.Photos.FindPhotoById(usersPhoto, photoId);
+
+      if (!photo) {
+        return res.status(400).send({ error: 'Original photo not found' });
+      }
+
+      const previewExists = await photo.getPreview();
+
+      if (previewExists) {
+        return res.status(409).send(previewExists);
+      }
+
+      const userInfo = await Service.UserPhotos.FindUserByEmail(user.email);
+      if (!userInfo.usersphoto) {
+        res.status(500).send('Internal Server Error');
+      }
+
+      // Set mnemonic to decrypted mnemonic
+      userInfo.mnemonic = req.headers['internxt-mnemonic'];
+
+      Service.Previews.UploadPreview(
+        userInfo,
+        xpreview.originalname,
+        xpreview.path,
+        photoId,
+        req.body.hash
+      ).then(async (result) => {
+        res.status(201).json(result);
+      }).catch((err) => {
+        log.error(`${err.message}\n${err.stack}`);
+        if (err.includes && err.includes('Bridge rate limit error')) {
+          res.status(402).json({ message: err });
+          return;
+        }
+        res.status(500).json({ message: err });
+      });
+    });
 
   Router.get('/photos/storage/photo/:id', passportAuth, (req, res) => {
     const { user } = req;
