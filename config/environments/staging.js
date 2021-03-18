@@ -15,7 +15,7 @@ exports.data = {
     CRYPTO_SECRET: process.env.CRYPTO_SECRET || 'ASDFGHJKL1234567',
     STRIPE_SK: process.env.STRIPE_SK,
     MAGIC_SALT: process.env.MAGIC_SALT,
-    MAGIV_IV: process.env.MAGIV_IV,
+    MAGIC_IV: process.env.MAGIC_IV,
     CRYPTO_SECRET2: process.env.CRYPTO_SECRET2
   },
   logger: {
