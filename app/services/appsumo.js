@@ -97,7 +97,7 @@ module.exports = (Model, App) => {
       return RegisterIncompleteLifetime(email, plan);
     }
 
-    App.logger('Register activation from APPSUMO for %s', email);
+    App.logger.warn('Register activation from APPSUMO for %s', email);
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 
