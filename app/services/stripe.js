@@ -88,12 +88,23 @@ module.exports = () => {
     return result.data && result.data[0];
   };
 
+  const getBilling = async (customerID, url, isTest = false) => {
+    const stripe = getStripe(isTest);
+    const result = await stripe.billingPortal.sessions.create({
+      customer: customerID,
+      return_url: url
+    });
+
+    return result.url;
+  };
+
   return {
     Name: 'Stripe',
     getStorageProducts,
     getStoragePlans,
     getTeamProducts,
     getTeamPlans,
-    findCustomerByEmail
+    findCustomerByEmail,
+    getBilling
   };
 };
