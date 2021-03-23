@@ -6,7 +6,20 @@ exports.data = {
     host: process.env.RDS_HOSTNAME,
     name: process.env.RDS_DBNAME,
     user: process.env.RDS_USERNAME,
-    password: process.env.RDS_PASSWORD
+    password: process.env.RDS_PASSWORD,
+    sequelizeConfig: {
+      dialect: 'mariadb',
+      port: process.env.RDS_PORT || 3306,
+      replication: {
+        read: [
+          { host: process.env.RDS_HOSTNAME2, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD },
+          { host: process.env.RDS_HOSTNAME3, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD }
+        ],
+        write: {
+          host: process.env.RDS_HOSTNAME, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD
+        }
+      }
+    }
   },
   secrets: {
     JWT: process.env.JWT_SECRET || 'asdf1234',
@@ -15,7 +28,7 @@ exports.data = {
     CRYPTO_SECRET: process.env.CRYPTO_SECRET || 'ASDFGHJKL1234567',
     STRIPE_SK: process.env.STRIPE_SK,
     MAGIC_SALT: process.env.MAGIC_SALT,
-    MAGIV_IV: process.env.MAGIV_IV,
+    MAGIC_IV: process.env.MAGIC_IV,
     CRYPTO_SECRET2: process.env.CRYPTO_SECRET2
   },
   logger: {

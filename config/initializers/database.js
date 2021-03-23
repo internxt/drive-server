@@ -1,13 +1,12 @@
 const Sequelize = require('sequelize');
 const SqlFormatter = require('sql-formatter');
+const _ = require('lodash');
 const Logger = require('../../lib/logger');
 
 const logger = Logger.getInstance();
 
 module.exports = (config) => {
-  const instance = new Sequelize(config.name, config.user, config.password, {
-    host: config.host,
-    dialect: 'mariadb',
+  const defaultSettings = {
     resetAfterUse: true,
     operatorsAliases: 0,
     dialectOptions: {
@@ -16,6 +15,8 @@ module.exports = (config) => {
       }
     },
     pool: {
+      maxConnections: Number.MAX_SAFE_INTEGER,
+      maxIdleTime: 30000,
       max: 10,
       min: 0,
       idle: 20000,
@@ -26,11 +27,17 @@ module.exports = (config) => {
       const prettySql = SqlFormatter.format(parse[2]);
       logger.debug(`${parse[1]}\n${prettySql}`);
     }
-  });
+  };
+
+  const sequelizeSettings = _.merge(defaultSettings, config.sequelizeConfig);
+
+  const instance = new Sequelize(config.name, config.user, config.password, sequelizeSettings);
 
   instance.authenticate().then(() => {
     logger.info('Connected to database');
-  }).catch((err) => logger.error(err));
+  }).catch((err) => {
+    logger.error('Database connection error: %s', err);
+  });
 
   return {
     instance,
