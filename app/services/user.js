@@ -245,14 +245,7 @@ module.exports = (Model, App) => {
           next();
         }).catch(next);
       }
-    ], (err, result) => {
-      if (err) {
-        Logger.error('Error deleting user, reason: %s', err.message || err);
-        throw err.message || err;
-      } else {
-        return result;
-      }
-    });
+    ]);
   };
 
   const Store2FA = (user, key) => Model.users
