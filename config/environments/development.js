@@ -9,7 +9,7 @@ exports.data = {
     sequelizeConfig: {
       dialect: 'mariadb',
       port: 3306,
-      host: '192.168.0.12'
+      host: 'localhost'
     }
   },
   secrets: {

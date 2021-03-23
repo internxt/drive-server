@@ -1,24 +1,12 @@
 const Sequelize = require('sequelize');
 const SqlFormatter = require('sql-formatter');
+const _ = require('lodash');
 const Logger = require('../../lib/logger');
 
 const logger = Logger.getInstance();
 
 module.exports = (config) => {
-  const instance = new Sequelize(config.name, config.user, config.password, config.sequelizeConfig || {
-    dialect: 'mariadb',
-    port: config.port || 3306,
-    replication: {
-      read: [
-        { host: process.env.RDS_HOSTNAME2, username: config.user, password: config.password },
-        { host: process.env.RDS_HOSTNAME3, username: config.user, password: config.password }
-      ],
-      write: {
-        host: config.host,
-        username: config.user,
-        password: config.password
-      }
-    },
+  const defaultSettings = {
     resetAfterUse: true,
     operatorsAliases: 0,
     dialectOptions: {
@@ -39,7 +27,11 @@ module.exports = (config) => {
       const prettySql = SqlFormatter.format(parse[2]);
       logger.debug(`${parse[1]}\n${prettySql}`);
     }
-  });
+  };
+
+  const sequelizeSettings = _.merge(defaultSettings, config.sequelizeConfig);
+
+  const instance = new Sequelize(config.name, config.user, config.password, sequelizeSettings);
 
   instance.authenticate().then(() => {
     logger.info('Connected to database');
