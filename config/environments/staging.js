@@ -6,7 +6,10 @@ exports.data = {
     host: process.env.RDS_HOSTNAME,
     name: process.env.RDS_DBNAME,
     user: process.env.RDS_USERNAME,
-    password: process.env.RDS_PASSWORD
+    password: process.env.RDS_PASSWORD,
+    sequelizeConfig: {
+
+    }
   },
   secrets: {
     JWT: process.env.JWT_SECRET || 'asdf1234',
