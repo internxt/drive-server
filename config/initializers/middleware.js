@@ -153,7 +153,10 @@ module.exports = (App, Config) => {
       }
     }
 
-    App.logger.info(`[${req.method}${req.headers.authorization ? ' w/AUTH' : ''}] ${req.originalUrl} ${user ? ` ${user}` : ''}`);
+    const clientVersion = `[${req.headers['internxt-client']} ${req.headers['internxt-version']}]`.trim();
+    const clientAuth = req.headers.authorization && user;
+
+    App.logger.info(`[${req.method}] ${req.originalUrl} ${clientAuth && ` [w/AUTH ${clientAuth}]`} ${clientVersion}`);
     next();
   });
 };
