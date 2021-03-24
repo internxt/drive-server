@@ -81,13 +81,16 @@ module.exports = (Model, App) => {
         } else {
           log.warn('[NODE-LIB storePhoto] Photo upload finished');
           storj.destroy();
-          resolve({
-            fileId,
-            fileName: photoName,
-            size: actualPhotoSize,
-            ext: photoExt,
-            bucketId,
-            userId: user.usersphoto.id
+
+          user.getUsersphoto().then((usersPhoto) => {
+            resolve({
+              fileId,
+              fileName: photoName,
+              size: actualPhotoSize,
+              ext: photoExt,
+              bucketId,
+              userId: usersPhoto.id
+            });
           });
         }
       }

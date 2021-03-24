@@ -115,8 +115,10 @@ module.exports = (Router, Service, App) => {
         });
       }
       if (!tfaResult) {
-        res.status(400).send({ error: 'Wrong 2-factor auth code' });
-      } else if (pass === userData.password.toString() && tfaResult) {
+        return res.status(400).send({ error: 'Wrong 2-factor auth code' });
+      }
+
+      if (pass === userData.password.toString() && tfaResult) {
         // Successfull login
         const internxtClient = req.headers['internxt-client'];
         const token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
@@ -160,14 +162,13 @@ module.exports = (Router, Service, App) => {
           });
         }
         return res.status(200).json({ user, token, userTeam });
-      } else {
-        // Wrong password
-        if (pass !== userData.password.toString()) {
-          Service.User.LoginFailed(req.body.email, true);
-        }
-
-        return res.status(400).json({ error: 'Wrong email/password' });
       }
+      // Wrong password
+      if (pass !== userData.password.toString()) {
+        Service.User.LoginFailed(req.body.email, true);
+      }
+
+      return res.status(400).json({ error: 'Wrong email/password' });
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
       return res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
@@ -232,13 +233,12 @@ module.exports = (Router, Service, App) => {
       }
 
       if (userData.isNewRecord) {
-
         if (uuid.validate(referral)) {
-          await Service.User.FindUserByUuid(referral).then((userData) => {
-            if (userData) {
+          await Service.User.FindUserByUuid(referral).then((referalUser) => {
+            if (referalUser) {
               newUser.credit = 5;
               hasReferral = true;
-              referrer = userData;
+              referrer = referalUser;
               Service.User.UpdateCredit(referral);
             }
           }).catch(() => { });
@@ -272,18 +272,16 @@ module.exports = (Router, Service, App) => {
           user.privateKey = keys.private_key;
           user.publicKey = keys.public_key;
           user.revocationKey = keys.revocation_key;
-        } catch {
+        } catch (e) {
           // no op
         }
 
-        res.status(200).send({ token, user, uuid: userData.uuid });
-      } else {
-        // This account already exists
-        res.status(400).send({ message: 'This account already exists' });
+        return res.status(200).send({ token, user, uuid: userData.uuid });
       }
-    } else {
-      res.status(400).send({ message: 'You must provide registration data' });
+      // This account already exists
+      return res.status(400).send({ message: 'This account already exists' });
     }
+    return res.status(400).send({ message: 'You must provide registration data' });
   });
 
   Router.post('/initialize', (req, res) => {

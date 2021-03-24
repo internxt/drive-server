@@ -4,15 +4,17 @@ const sequelize = require('sequelize');
 
 const { Op } = sequelize;
 const SanitizeFilename = require('sanitize-filename');
+const { validateMnemonic } = require('bip39');
 
 module.exports = (Model, App) => {
   const log = App.logger;
 
   const FindPreviewByPhotoId = (photoId) => Model.previews.findOne({ where: { photoId: { [Op.eq]: photoId } } });
 
-  const UploadPreview = (userPhotos, photoName, photoPath, photoId, hash) => new Promise((resolve, reject) => {
+  const UploadPreview = (user, photoName, photoPath, photoId, hash) => new Promise(async (resolve, reject) => {
     try {
-      if (userPhotos.mnemonic === 'null') {
+      const isValidMnemonic = validateMnemonic(user.mnemonic);
+      if (user.mnemonic === 'null' || !isValidMnemonic) {
         throw Error('Your mnemonic is invalid');
       }
 
@@ -33,9 +35,9 @@ module.exports = (Model, App) => {
 
       log.info('Uploading preview to network...');
 
-      const { rootPreviewId } = userPhotos.usersphoto;
+      const { rootPreviewId } = await user.getUsersphoto();
       return App.services.StorjPhotos.StorePhoto(
-        userPhotos,
+        user,
         rootPreviewId,
         originalEncryptedPhotoName,
         photoExt,
