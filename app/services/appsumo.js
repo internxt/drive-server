@@ -33,7 +33,7 @@ module.exports = (Model, App) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
     const license = GetLicenseByName(plan);
-    const size = bytes.parse(license.size);
+    const size = bytes.parse(license ? license.size : '10GB');
 
     return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
       email: user.email, bytes: size
