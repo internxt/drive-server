@@ -17,7 +17,7 @@ module.exports = (config) => {
     pool: {
       maxConnections: Number.MAX_SAFE_INTEGER,
       maxIdleTime: 30000,
-      max: 10,
+      max: 20,
       min: 0,
       idle: 20000,
       acquire: 20000
