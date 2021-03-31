@@ -195,11 +195,13 @@ module.exports = (Router, Service, App) => {
 
       const user = await Service.User.FindUserByEmail(userTeam.bridge_user);
       userTeam.root_folder_id = user.root_folder_id;
+      const userBucket = await Service.User.GetUserBucket(user);
 
       const member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.user.email);
 
       userTeam.bridge_mnemonic = member.bridge_mnemonic;
       userTeam.isAdmin = userTeam.admin === req.user.email;
+      userTeam.bucket = userBucket;
 
       res.status(200).send({ userTeam, tokenTeams });
     }).catch(() => {
