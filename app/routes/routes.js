@@ -276,11 +276,10 @@ module.exports = (Router, Service, App) => {
           // no op
         }
 
-        res.status(200).send({ token, user, uuid: userData.uuid });
-      } else {
-        // This account already exists
-        res.status(400).send({ message: 'This account already exists' });
+        return res.status(200).send({ token, user, uuid: userData.uuid });
       }
+      // This account already exists
+      return res.status(400).send({ message: 'This account already exists' });
     }
     return res.status(400).send({ message: 'You must provide registration data' });
   });

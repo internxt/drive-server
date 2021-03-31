@@ -4,6 +4,7 @@ const sequelize = require('sequelize');
 
 const { Op } = sequelize;
 const SanitizeFilename = require('sanitize-filename');
+const { validateMnemonic } = require('bip39');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -15,7 +16,21 @@ module.exports = (Model, App) => {
     }
   });
 
-  const FindPhotoById = (photoId) => Model.photos.findOne({ where: { id: { [Op.eq]: photoId } } });
+  const FindPhotoById = (photosUser, photoId) => Model.photos.findOne({
+    where: {
+      id: { [Op.eq]: photoId },
+      userId: { [Op.eq]: photosUser.id }
+    }
+  });
+
+  const FindPhotoByHash = (photosUser, hash) => {
+    return Model.photos.findOne({
+      where: {
+        hash: { [Op.eq]: hash },
+        userId: { [Op.eq]: photosUser.id }
+      }
+    });
+  };
 
   const CreateAlbum = (userId, name) => new Promise((resolve, reject) => {
     // Prevent strange folder names from being created
@@ -68,9 +83,10 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (userPhotos, photoName, photoPath, hash) => new Promise((resolve, reject) => {
+  const UploadPhoto = (user, photoName, photoPath, hash) => new Promise(async (resolve, reject) => {
     try {
-      if (userPhotos.mnemonic === 'null') {
+      const isValidMnemonic = validateMnemonic(user.mnemonic);
+      if (user.mnemonic === 'null' || !isValidMnemonic) {
         throw Error('Your mnemonic is invalid');
       }
 
@@ -89,10 +105,11 @@ module.exports = (Model, App) => {
       // Change name if exists
       const originalEncryptedPhotoName = App.services.Crypt.encryptName(photoNameParts.name, 111);
 
-      const { rootAlbumId } = userPhotos.usersphoto;
+      const userPhotos = await user.getUsersphoto();
+      const { rootAlbumId } = userPhotos;
 
       return App.services.StorjPhotos.StorePhoto(
-        userPhotos,
+        user,
         rootAlbumId,
         originalEncryptedPhotoName,
         photoExt,
@@ -110,23 +127,16 @@ module.exports = (Model, App) => {
         if (!size) return reject(Error('Missing photo size'));
 
         const newPhotoInfo = {
-          name: fileName,
-          type: ext,
-          fileId,
-          bucketId,
-          size,
-          userId,
-          hash
+          name: fileName, type: ext, fileId, bucketId, size, userId, hash
         };
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);
 
-        return resolve(addedPhoto);
-      })
-        .catch((err) => {
-          log.error('upload photo 2', err);
-          reject(err.message);
-        });
+        resolve(addedPhoto);
+      }).catch((err) => {
+        log.error('upload photo 2', err);
+        reject(err.message);
+      });
     } catch (err) {
       log.error('upload photo', err.message);
 
@@ -195,6 +205,32 @@ module.exports = (Model, App) => {
         })
         .catch(reject);
     });
+  };
+
+  const GetPartialPhotosContent = async (user, userPhotos, hashList) => {
+    const result = await Model.photos.findAll({
+      where: {
+        userId: { [Op.eq]: userPhotos.id },
+        hash: { [Op.in]: hashList }
+      },
+      include: [
+        {
+          model: Model.previews,
+          as: 'preview'
+        }
+      ]
+    });
+
+    if (result !== null) {
+      const photos = result.map((photo) => {
+        photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
+
+        return photo;
+      });
+      return photos;
+    }
+
+    return result;
   };
 
   const GetAllPhotosContent = async (user, userPhotos) => {
@@ -379,7 +415,8 @@ module.exports = (Model, App) => {
     DeletePhoto,
     DownloadPreview,
     getPhotosByUser,
-    getPreviewsByBucketId
-
+    getPreviewsByBucketId,
+    FindPhotoByHash,
+    GetPartialPhotosContent
   };
 };
