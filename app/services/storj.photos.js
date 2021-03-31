@@ -99,7 +99,7 @@ module.exports = (Model, App) => {
 
   const ResolvePhoto = (user, photo) => {
     const downloadDir = './downloads';
-    const shortFileName = photo.fileId;
+    const shortFileName = `${shortid.generate()}_${photo.fileId}`;
     const downloadFile = `${downloadDir}/${shortFileName}${photo.type ? `.${photo.type}` : ''}`;
 
     if (!fs.existsSync(downloadDir)) {
