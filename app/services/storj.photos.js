@@ -28,8 +28,8 @@ module.exports = (Model, App) => {
 
   const CreatePhotosBucket = (email, password, mnemonic, name) => {
     const bucketName = name
-      ? `${email}_${name}_${shortid.generate()}`
-      : `${shortid.generate()}_${email}_PHOTOS_ROOT`;
+      ? `${name}_${shortid.generate()}`
+      : `${shortid.generate()}_PHOTOS_ROOT`;
     try {
       const storj = getEnvironment(email, password, mnemonic);
 
