@@ -303,6 +303,26 @@ module.exports = (Model, App) => {
     };
   };
 
+  const GetFoldersPagination = async (user, index) => {
+    const userObject = user;
+
+    const folders = await Model.folder.findAll({
+      where: { user_id: { [Op.eq]: userObject.id } },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
+      order: [['id', 'DESC']],
+      limit: 5000,
+      offset: index
+    });
+    const foldersId = folders.map((result) => result.id);
+    const files = await Model.file.findAll({
+      where: { folder_id: { [Op.in]: foldersId } }
+    });
+    return {
+      folders,
+      files
+    };
+  };
+
   const mapChildrenNames = (folder = []) => folder.map((child) => {
     child.name = App.services.Crypt.decryptName(child.name, child.parentId);
     child.children = mapChildrenNames(child.children);
@@ -601,6 +621,7 @@ module.exports = (Model, App) => {
     GetBucket,
     GetFolders,
     isFolderOfTeam,
+    GetFoldersPagination,
     GetTreeHierarchy
   };
 };
