@@ -96,11 +96,7 @@ module.exports = () => {
     const result = await stripe.billingPortal.sessions.create({
       customer: customerID,
       return_url: url
-    }).catch((err) => {
-      Logger.error(err.stack);
-      throw Error(err);
     });
-
     return result.url;
   };
 
