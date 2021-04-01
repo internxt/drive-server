@@ -1,13 +1,10 @@
 const async = require('async');
 const Stripe = require('stripe');
-const logger = require('../../lib/logger');
 
 const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 const StripeTest = Stripe(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 
 const passport = require('../middleware/passport');
-
-const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
 
@@ -239,14 +236,9 @@ module.exports = (Router, Service) => {
   Router.post('/stripe/billing', passportAuth, async (req, res) => {
     const test = req.body.test || false;
     const { email } = req.user;
-    Logger.info(email);
-
     const data = await Service.Stripe.findCustomerByEmail(email, test);
-    Logger.info(data.id);
-
     const url = 'https://drive.internxt.com/';
     const session = await Service.Stripe.getBilling(data.id, url, test);
-    Logger.info('session %s', session);
     res.status(200).send({ url: session });
   });
 };
