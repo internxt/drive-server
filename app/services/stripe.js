@@ -1,5 +1,8 @@
 const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+const logger = require('../../lib/logger');
+
+const Logger = logger.getInstance();
 
 module.exports = () => {
   const getStripe = (isTest = false) => {
@@ -93,6 +96,9 @@ module.exports = () => {
     const result = await stripe.billingPortal.sessions.create({
       customer: customerID,
       return_url: url
+    }).catch((err) => {
+      Logger.error(err.stack);
+      throw Error(err);
     });
 
     return result.url;
