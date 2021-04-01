@@ -236,9 +236,17 @@ module.exports = (Router, Service) => {
   Router.post('/stripe/billing', passportAuth, async (req, res) => {
     const test = req.body.test || false;
     const { email } = req.user;
-    const data = await Service.Stripe.findCustomerByEmail(email, test);
     const url = 'https://drive.internxt.com/';
-    const session = await Service.Stripe.getBilling(data.id, url, test);
-    res.status(200).send({ url: session });
+
+    Service.Stripe.findCustomerByEmail(email, test).then((customer) => {
+      const customerId = customer.id;
+      Service.Stripe.getBilling(customerId, url, test).then((session) => {
+        res.status(200).send({ url: session });
+      }).catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
   });
 };
