@@ -10,6 +10,7 @@ module.exports = (config) => {
     resetAfterUse: true,
     operatorsAliases: 0,
     dialectOptions: {
+      connectTimeout: 20000,
       options: {
         requestTimeout: 4000
       }
