@@ -37,7 +37,7 @@ module.exports = (Router, Service, App) => {
     Service.Folder.UpdateMetadata(user, folderId, metadata).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
-      Logger.error(`Error updating metadata from folder ${folderId} : ${err}`);
+      Logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
       res.status(500).json(err.message);
     });
   });
