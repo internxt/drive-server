@@ -25,6 +25,20 @@ module.exports = (Router, Service) => {
     });
   });
 
+  Router.get('/desktop/list/:index', passportAuth, (req, res) => {
+    const { user } = req;
+    const index = parseInt(req.params.index, 10);
+    if (Number.isNaN(index)) {
+      return res.status(400).send({ error: 'Bad Index' });
+    }
+
+    return Service.Folder.GetFoldersPagination(user, index).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
+  });
+
   Router.put('/user/sync', passportAuth, (req, res) => {
     const { user, body } = req;
     Service.User.UpdateUserSync(user, body.toNull).then((result) => {
