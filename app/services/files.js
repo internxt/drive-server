@@ -2,11 +2,12 @@ const fs = require('fs');
 const path = require('path');
 
 const sequelize = require('sequelize');
-const SanitizeFilename = require('sanitize-filename');
+
 const async = require('async');
 
 const AesUtil = require('../../lib/AesUtil');
 
+const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
@@ -94,9 +95,7 @@ module.exports = (Model, App) => {
         throw Error('Your mnemonic is invalid');
       }
 
-      const sanitizedFilename = SanitizeFilename(fileName);
-
-      if (fileName !== sanitizedFilename) {
+      if (invalidName.test(fileName)) {
         throw Error('Cannot upload, invalid file name');
       }
 
