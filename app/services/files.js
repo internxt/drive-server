@@ -290,14 +290,20 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UpdateMetadata = (user, fileId, metadata) => new Promise((resolve, reject) => {
+  const UpdateMetadata = (user, fileId, metadata) => {
     const newMeta = {};
 
-    async.waterfall([
+    return async.waterfall([
       (next) => {
         // Find the file in database
         Model.file
-          .findOne({ where: { fileId: { [Op.eq]: fileId } } }).then((file) => next(null, file)).catch(next);
+          .findOne({ where: { fileId: { [Op.eq]: fileId } } }).then((file) => {
+            if (!file) {
+              next(Error('Update Metadata Error: File not exists'));
+            } else {
+              next(null, file);
+            }
+          }).catch(next);
       },
       (file, next) => {
         Model.folder
@@ -331,11 +337,9 @@ module.exports = (Model, App) => {
             }
           }).then((duplicateFile) => {
             if (duplicateFile) {
-              next(Error('File with this name exists'));
-            } else {
-              newMeta.name = cryptoFileName;
+              return next(Error('File with this name exists'));
             }
-
+            newMeta.name = cryptoFileName;
             next(null, file);
           }).catch(next);
       },
@@ -347,14 +351,8 @@ module.exports = (Model, App) => {
           next();
         }
       }
-    ], (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    });
-  });
+    ]);
+  };
 
   const MoveFile = async (user, fileId, destination) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });

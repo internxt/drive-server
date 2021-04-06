@@ -402,13 +402,13 @@ module.exports = (Model, App) => {
     });
   };
 
-  const UpdateMetadata = (user, folderId, metadata) => new Promise((resolve, reject) => {
+  const UpdateMetadata = (user, folderId, metadata) => {
     const newMeta = {};
 
-    async.waterfall([
+    return async.waterfall([
       (next) => {
         // Is there something to change?
-        if (!metadata.itemName && !metadata.icon && !metadata.color) {
+        if (!metadata || (!metadata.itemName && !metadata.icon && !metadata.color)) {
           next(Error('Nothing to change'));
         } else {
           next();
@@ -417,21 +417,22 @@ module.exports = (Model, App) => {
       (next) => {
         // Get the target folder from database
         Model.folder
-          .findOne({ where: { id: { [Op.eq]: folderId } } }).then((result) => next(null, result)).catch(next);
-      },
-      (folder, next) => {
-        // Check if user is the owner of that folder
-        if (folder.user_id !== user.id) {
-          next(Error('Update Folder Metadata: This is not your folder'));
-        } else {
-          next(null, folder);
-        }
+          .findOne({
+            where: {
+              id: { [Op.eq]: folderId },
+              user_id: { [Op.eq]: user.id }
+            }
+          }).then((result) => {
+            if (!result) {
+              throw Error('Folder does not exists');
+            }
+            next(null, result);
+          }).catch(next);
       },
       (folder, next) => {
         // Check if the new folder name already exists
         if (metadata.itemName) {
-          const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName,
-            folder.parentId);
+          const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
           Model.folder.findOne({
             where: {
@@ -440,17 +441,16 @@ module.exports = (Model, App) => {
             }
           }).then((isDuplicated) => {
             if (isDuplicated) {
-              next(Error('Folder with this name exists'));
-            } else {
-              newMeta.name = cryptoFolderName;
-              try {
-                AesUtil.decrypt(cryptoFolderName, folder.parentId);
-                newMeta.encrypt_version = '03-aes';
-              } catch (e) {
-                (() => { })();
-              }
-              next(null, folder);
+              return next(Error('Folder with this name exists'));
             }
+            newMeta.name = cryptoFolderName;
+            try {
+              AesUtil.decrypt(cryptoFolderName, folder.parentId);
+              newMeta.encrypt_version = '03-aes';
+            } catch (e) {
+              // no op
+            }
+            return next(null, folder);
           }).catch(next);
         } else {
           next(null, folder);
@@ -466,6 +466,10 @@ module.exports = (Model, App) => {
           newMeta.icon_id = metadata.icon;
         }
 
+        if (metadata.icon === 'none') {
+          newMeta.icon_id = null;
+        }
+
         next(null, folder);
       },
       (folder, next) => {
@@ -473,32 +477,8 @@ module.exports = (Model, App) => {
         folder
           .update(newMeta).then((result) => next(null, result)).catch(next);
       }
-    ], (err, result) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(result);
-      }
-    }, (folder, next) => {
-      // Set optional changes
-      if (metadata.color) {
-        newMeta.color = metadata.color;
-      }
-
-      if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
-        newMeta.icon_id = metadata.icon;
-      }
-
-      if (metadata.icon === 'none') {
-        newMeta.icon_id = null;
-      }
-
-      next(null, folder);
-    }, (folder, next) => {
-      // Perform the update
-      folder.update(newMeta).then((result) => next(null, result)).catch(next);
-    });
-  });
+    ]);
+  };
 
   const GetBucketList = (user) => App.services.Storj.ListBuckets(user);
 
