@@ -91,7 +91,7 @@ module.exports = (Model, App) => {
   const Upload = async (user, folderId, fileName, filePath) => {
     try {
       if (user.mnemonic === 'null') {
-        throw new Error('Your mnemonic is invalid');
+        throw Error('Your mnemonic is invalid');
       }
 
       const sanitizedFilename = SanitizeFilename(fileName);
@@ -181,7 +181,7 @@ module.exports = (Model, App) => {
     const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
 
     return new Promise((resolve, reject) => {
-      if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+      if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
       Model.file
         .findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
@@ -207,7 +207,7 @@ module.exports = (Model, App) => {
   };
 
   const DownloadFolderFile = (user, fileId, localPath) => new Promise((resolve, reject) => {
-    if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+    if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
     Model.file
       .findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
@@ -359,12 +359,12 @@ module.exports = (Model, App) => {
   const MoveFile = async (user, fileId, destination) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
     if (!file) {
-      throw new Error('File not found');
+      throw Error('File not found');
     }
 
     const folderSource = await Model.folder.findOne({ where: { id: file.folder_id, user_id: user.id } });
     const folderTarget = await Model.folder.findOne({ where: { id: destination, user_id: user.id } });
-    if (!folderSource || !folderTarget) { throw new Error('Folder not found'); }
+    if (!folderSource || !folderTarget) { throw Error('Folder not found'); }
 
     const originalName = App.services.Crypt.decryptName(file.name,
       file.folder_id);

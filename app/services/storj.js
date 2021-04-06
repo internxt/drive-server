@@ -62,7 +62,7 @@ module.exports = (Model, App) => {
 
     // Do api call
     return axios
-      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((error) => error);
+      .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((err) => err);
   };
 
   const IsUserActivated = (email) => {
@@ -76,8 +76,8 @@ module.exports = (Model, App) => {
 
   const CreateBucket = (email, password, mnemonic, name) => {
     const bucketName = name
-      ? `${email}_${name}_${shortid.generate()}`
-      : `${shortid.generate()}_${email}_ROOT`;
+      ? `${name}_${shortid.generate()}`
+      : `${shortid.generate()}_ROOT`;
     try {
       const storj = getEnvironment(email, password, mnemonic);
 

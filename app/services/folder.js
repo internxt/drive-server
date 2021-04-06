@@ -102,15 +102,18 @@ module.exports = (Model, App) => {
 
     // Delete all the files in the folder
     // Find all subfolders and repeat
+    /*
     const folderFiles = await Model.file.findAll({
       where: { folder_id: folder.id }
     });
     const folderFolders = await Model.folder.findAll({
       where: { parentId: folder.id }
     });
+
     await Promise.all(folderFiles
       .map((file) => FileServiceInstance.Delete(user, file.bucket, file.fileId))
       .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id))));
+    */
 
     // Destroy folder
     const removed = await folder.destroy();
@@ -289,6 +292,26 @@ module.exports = (Model, App) => {
       where: { user_id: { [Op.eq]: userObject.id } },
       // where: { user_id: 21810 },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
+    });
+    const foldersId = folders.map((result) => result.id);
+    const files = await Model.file.findAll({
+      where: { folder_id: { [Op.in]: foldersId } }
+    });
+    return {
+      folders,
+      files
+    };
+  };
+
+  const GetFoldersPagination = async (user, index) => {
+    const userObject = user;
+
+    const folders = await Model.folder.findAll({
+      where: { user_id: { [Op.eq]: userObject.id } },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
+      order: [['id', 'DESC']],
+      limit: 5000,
+      offset: index
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
@@ -533,7 +556,7 @@ module.exports = (Model, App) => {
     });
 
     if (!folder || !destinationFolder) {
-      throw new Error('Folder does not exists');
+      throw Error('Folder does not exists');
     }
 
     const originalName = App.services.Crypt.decryptName(folder.name,
@@ -553,7 +576,7 @@ module.exports = (Model, App) => {
       destinationName = newName.cryptedName;
     }
 
-    if (user.mnemonic === 'null') throw new Error('Your mnemonic is invalid');
+    if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
 
     // Move
     const result = await folder.update({
@@ -598,6 +621,7 @@ module.exports = (Model, App) => {
     GetBucket,
     GetFolders,
     isFolderOfTeam,
+    GetFoldersPagination,
     GetTreeHierarchy
   };
 };

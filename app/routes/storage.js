@@ -13,22 +13,6 @@ const Logger = logger.getInstance();
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
-  /**
-   * @swagger
-   * /storage/folder/:id:
-   *   post:
-   *     description: Get folder contents.
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Array of folder items
-   */
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
@@ -45,28 +29,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/folder/:id/meta:
-   *   post:
-   *     description: Update metada on folder
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *       - name: metadata
-   *         description: metadata to update (folderName, color, icon, ...)
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Folder updated
-   *       500:
-   *         description: Error updating folder
-   */
   Router.post('/storage/folder/:folderid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const folderId = req.params.folderid;
@@ -80,22 +42,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/folder:
-   *   post:
-   *     description: Create folder
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Array of folder items
-   */
   Router.post('/storage/folder', passportAuth, (req, res) => {
     const { folderName, parentFolderId } = req.body;
 
@@ -110,22 +56,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/folder/:id:
-   *   post:
-   *     description: Delete folder
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Message
-   */
   Router.delete('/storage/folder/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
@@ -140,22 +70,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/folder/:id/upload:
-   *   post:
-   *     description: Upload content to folder
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: ID of folder in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Uploaded object
-   */
   Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
@@ -168,7 +82,7 @@ module.exports = (Router, Service, App) => {
     const xfile = req.file;
     const folderId = req.params.id;
 
-    Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
+    return Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
       .then((result) => {
         res.status(201).json(result);
       })
@@ -183,28 +97,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  /**
-   * @swagger
-   * /storage/moveFolder:
-   *   post:
-   *     description: Move folder on cloud DB from one folder to other
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: folderId
-   *         description: folder id
-   *         in: body
-   *         required: true
-   *       - name: destination
-   *         description: destination folder
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Folder moved successfully
-   *       501:
-   *         description: Folder with same name exists in folder destination.
-   */
   Router.post('/storage/moveFolder', passportAuth, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
@@ -217,11 +109,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * description: Create file entry on DB for an existing file on the network
-   * Suitable for Desktop app.
-   */
   Router.post('/storage/file', passportAuth, (req, res) => {
     const { user } = req;
     const { file } = req.body;
@@ -234,22 +121,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/file/:id:
-   *   post:
-   *     description: Download file
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: fileId
-   *         description: ID of file in XCloud
-   *         in: query
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: Uploaded object
-   */
   Router.get('/storage/file/:id', passportAuth, (req, res) => {
     const { user } = req;
     // Set mnemonic to decrypted mnemonic
@@ -290,28 +161,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/file/:id/meta:
-   *   post:
-   *     description: Update metada on file
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: fileId
-   *         description: ID of file in XCloud
-   *         in: query
-   *         required: true
-   *       - name: metadata
-   *         description: metadata to update (now is only name)
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: File updated
-   *       500:
-   *         description: Error updating file
-   */
   Router.post('/storage/file/:fileid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const fileId = req.params.fileid;
@@ -325,28 +174,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  /**
-   * @swagger
-   * /storage/moveFile:
-   *   post:
-   *     description: Move file on cloud DB from one folder to other
-   *     produces:
-   *       - application/json
-   *     parameters:
-   *       - name: fileId
-   *         description: file id
-   *         in: body
-   *         required: true
-   *       - name: destination
-   *         description: destination folder
-   *         in: body
-   *         required: true
-   *     responses:
-   *       200:
-   *         description: File moved successfully
-   *       501:
-   *         description: File with same name exists in folder destination.
-   */
   Router.post('/storage/moveFile', passportAuth, (req, res) => {
     const { fileId } = req.body;
     const { destination } = req.body;

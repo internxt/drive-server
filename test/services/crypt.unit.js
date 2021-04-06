@@ -4,10 +4,9 @@ const { expect } = require('chai');
 const { describe, it } = require('mocha');
 const cryptService = require('../../app/services/crypt');
 
-const Config = require('../../config/config');
 const Server = require('../../config/initializers/server');
 
-const App = new Server(new Config());
+const App = new Server();
 
 const crypt = cryptService(null, App);
 const AesUtil = require('../../lib/AesUtil');

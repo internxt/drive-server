@@ -1,5 +1,4 @@
 const async = require('async');
-const crypto = require('crypto');
 const Stripe = require('stripe');
 
 const StripeProduction = Stripe(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
@@ -9,7 +8,7 @@ const passport = require('../middleware/passport');
 
 const { passportAuth } = passport;
 
-module.exports = (Router, Service, App) => {
+module.exports = (Router, Service) => {
   Router.get('/plans', passportAuth, (req, res) => {
     Service.Plan.ListAll().then((data) => {
       res.status(200).json(data);
@@ -62,13 +61,9 @@ module.exports = (Router, Service, App) => {
         if (!payload) {
           next(null, {});
         } else {
-          const { customer, subscription } = payload;
+          const { customer } = payload;
 
-          if (subscription) {
-            next(Error('Already subscribed'));
-          } else {
-            next(null, customer);
-          }
+          next(null, customer);
         }
       },
       (customer, next) => {
@@ -80,8 +75,7 @@ module.exports = (Router, Service, App) => {
           success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
           cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
           subscription_data: {
-            items: [{ plan: req.body.plan }],
-            trial_period_days: 30
+            items: [{ plan: req.body.plan }]
           },
           customer_email: user,
           customer: customerId,
@@ -99,7 +93,6 @@ module.exports = (Router, Service, App) => {
       }
     ], (err, result) => {
       if (err) {
-        console.error(err);
         res.status(500).send({ error: err.message });
       } else {
         res.status(200).send(result);
@@ -118,7 +111,7 @@ module.exports = (Router, Service, App) => {
 
     async.waterfall([
       async () => {
-        return Service.Team.getTeamByEmail(req.user.email)
+        return Service.Team.getTeamByEmail(req.user.email);
       },
       async (bridgeUser) => {
         if (!bridgeUser) {
@@ -128,7 +121,7 @@ module.exports = (Router, Service, App) => {
             admin: req.user.email,
             bridge_user: newRandomTeam.bridge_user,
             bridge_password: newRandomTeam.password,
-            bridge_mnemonic: null
+            bridge_mnemonic: req.body.mnemonicTeam
           });
           return newTeam;
         }
@@ -137,16 +130,15 @@ module.exports = (Router, Service, App) => {
       async (bridgeUser) => {
         const sessionParams = {
           payment_method_types: ['card'],
-          success_url: 'https://drive.internxt.com/teams/success',
-          cancel_url: 'https://drive.internxt.com/teams/cancel',
+          success_url: `${process.env.HOST_DRIVE_WEB}/team/success/{CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.HOST_DRIVE_WEB}/team/cancel`,
           subscription_data: {
             items: [
               {
                 plan: req.body.plan,
                 quantity
               }
-            ],
-            trial_period_days: 30
+            ]
           },
           metadata: {
             is_teams: true,
@@ -182,17 +174,12 @@ module.exports = (Router, Service, App) => {
    * Required metadata:
    */
   Router.get('/stripe/products', passportAuth, (req, res) => {
-    const stripe = req.query.test ? StripeTest : StripeProduction;
-    stripe.products.list({ limit: 100 }, (err, products) => {
-      if (err) {
-        res.status(500).send({ error: err });
-      } else {
-        const productsMin = products.data
-          .filter((p) => !!p.metadata.size_bytes && p.metadata.member_tier !== 'lifetime')
-          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
-          .sort((a, b) => a.metadata.price_eur * 1 - b.metadata.price_eur * 1);
-        res.status(200).send(productsMin);
-      }
+    const test = req.query.test || false;
+
+    Service.Stripe.getStorageProducts(test).then((products) => {
+      res.status(200).send(products);
+    }).catch((err) => {
+      res.status(500).send({ error: err });
     });
   });
 
@@ -215,7 +202,8 @@ module.exports = (Router, Service, App) => {
     const stripeProduct = req.body.product;
 
     stripe.plans.list({
-      product: stripeProduct
+      product: stripeProduct,
+      active: true
     }, (err, plans) => {
       if (err) {
         res.status(500).send({ error: err.message });
