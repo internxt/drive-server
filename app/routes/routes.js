@@ -15,11 +15,8 @@ const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
-<<<<<<< HEAD
 const PaymentRoutes = require('./payments');
-=======
 const PhotosRoutes = require('./photos');
->>>>>>> master
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -50,13 +47,10 @@ module.exports = (Router, Service, App) => {
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
   AppSumoRoutes(Router, Service, App);
-<<<<<<< HEAD
   // Payment routes
   PaymentRoutes(Router, Service, App);
-=======
   // Routes used by Internxt Photos
   PhotosRoutes(Router, Service, App);
->>>>>>> master
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
