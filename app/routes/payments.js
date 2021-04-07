@@ -29,6 +29,8 @@ module.exports = (Router, Service, App) => {
     const URL = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?CMC_PRO_API_KEY=${process.env.COIN_MARKET_CAP_API_KEY}&symbol=INXT&convert=EUR`;
     axios.get(URL).then((data) => {
       res.status(200).send(data.data.data);
+    }).catch((err) => {
+      res.status(500).send(err);
     });
   });
 };
