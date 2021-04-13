@@ -1,6 +1,5 @@
 const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
-const uuid = require('uuid');
 const Analytics = require('analytics-node');
 
 const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
@@ -215,76 +214,18 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/register', async (req, res) => {
-    // Data validation for process only request with all data
-    if (req.body.email && req.body.password) {
-      req.body.email = req.body.email.toLowerCase().trim();
-      Logger.warn('Register request for %s from %s', req.body.email, req.headers['X-Forwarded-For']);
-
-      const newUser = req.body;
-      newUser.credit = 0;
-
-      const { referral } = req.body;
-
-      let hasReferral = false;
-      let referrer = null;
-
-      // Call user service to find or create user
-      const userData = await Service.User.FindOrCreate(newUser);
-
-      if (!userData) {
-        return res.status(500).send({ error: '' });
-      }
-
-      if (userData.isNewRecord) {
-        if (uuid.validate(referral)) {
-          await Service.User.FindUserByUuid(referral).then((referalUser) => {
-            if (referalUser) {
-              newUser.credit = 5;
-              hasReferral = true;
-              referrer = referalUser;
-              Service.User.UpdateCredit(referral);
-            }
-          }).catch(() => { });
-        }
-
-        if (hasReferral) {
-          Service.Analytics.identify({
-            userId: userData.uuid,
-            traits: { referred_by: referrer.uuid }
-          });
-        }
-
-        // Successfull register
-        const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-
-        const user = {
-          userId: userData.userId,
-          mnemonic: userData.mnemonic,
-          root_folder_id: userData.root_folder_id,
-          name: userData.name,
-          lastname: userData.lastname,
-          uuid: userData.uuid,
-          credit: userData.credit,
-          createdAt: userData.createdAt,
-          registerCompleted: userData.registerCompleted,
-          email: userData.email
-        };
-
-        try {
-          const keys = await Service.KeyServer.getKeys(userData);
-          user.privateKey = keys.private_key;
-          user.publicKey = keys.public_key;
-          user.revocationKey = keys.revocation_key;
-        } catch (e) {
-          // no op
-        }
-
-        return res.status(200).send({ token, user, uuid: userData.uuid });
-      }
-      // This account already exists
-      return res.status(400).send({ message: 'This account already exists' });
-    }
-    return res.status(400).send({ message: 'You must provide registration data' });
+    Service.User.RegisterUser(req.body)
+      .then((result) => {
+        res.status(200).send(result);
+      })
+      .catch((err) => {
+        res.status(400).send({
+          error: err.message,
+          message: err.message
+        });
+        Logger.error('Error in register %s', req.body.email);
+        Logger.error(err);
+      });
   });
 
   Router.post('/initialize', (req, res) => {

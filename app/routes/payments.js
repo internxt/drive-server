@@ -4,7 +4,9 @@ const { passportAuth } = require('../middleware/passport');
 
 module.exports = (Router, Service, App) => {
   Router.post('/token/buy', passportAuth, (req, res) => {
-    const { currency, email, message, plan, pay, inxt, wallet } = req.body;
+    const {
+      currency, email, message, plan, pay, inxt, wallet
+    } = req.body;
 
     // eslint-disable-next-line max-len
     const emailBody = `Account Email: ${email}. \nCurrency: ${currency}. \nPlan: ${plan}. \nPay: ${pay}. ${message ? `\nMessage:  ${message}.` : ''}\nWallet: ${wallet}.\nINXT: ${inxt}`;
