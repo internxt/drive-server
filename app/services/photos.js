@@ -261,6 +261,43 @@ module.exports = (Model, App) => {
     return result;
   };
 
+  const GetPaginationRemotePhotos = async (user, userPhotos, i = 20, o = 0) => {
+    const limit = parseInt(i)
+    const offset = parseInt(o)
+
+    if (Number.isNaN(limit) || Number.isNaN(offset)) {
+      return res.status(400).send({ error: 'Bad Index' });
+    }
+    const result = await Model.photos.findAll({
+      limit,
+      offset,
+      where: {
+        bucketId: { [Op.eq]: userPhotos.rootAlbumId },
+      },
+      order: [['id', 'ASC']],
+      include: [
+        {
+          model: Model.previews,
+          as: 'preview',
+        }
+      ]
+    });
+    console.log(result.length)
+
+    // Null result implies empty bucket.
+    // TODO: Should send an error to be handled and showed on website.
+
+    if (result !== null) {
+      const photos = result.map((photo) => {
+        photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
+
+        return photo;
+      });
+      return photos;
+    }
+    return result;
+  };
+
   const GetAlbumList = (userId) => new Promise((resolve, reject) => {
     return Model.albums.findAll({
       where: { user_id: { [Op.eq]: userId } }
@@ -417,6 +454,7 @@ module.exports = (Model, App) => {
     getPhotosByUser,
     getPreviewsByBucketId,
     FindPhotoByHash,
-    GetPartialPhotosContent
+    GetPartialPhotosContent,
+    GetPaginationRemotePhotos
   };
 };
