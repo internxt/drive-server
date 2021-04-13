@@ -1,10 +1,11 @@
 const fs = require('fs');
-const SanitizeFilename = require('sanitize-filename');
 const sequelize = require('sequelize');
 const async = require('async');
 const AdmZip = require('adm-zip');
 const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
+
+const invalidName = /[\\/]|[. ]$/;
 
 const { Op } = sequelize;
 
@@ -37,10 +38,7 @@ module.exports = (Model, App) => {
       throw Error('Parent folder is not yours');
     }
 
-    // Prevent strange folder names from being created
-    const sanitizedFoldername = SanitizeFilename(folderName);
-
-    if (folderName === '' || sanitizedFoldername !== folderName) {
+    if (folderName === '' || invalidName.test(folderName)) {
       throw Error('Invalid folder name');
     }
 
