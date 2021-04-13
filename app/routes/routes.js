@@ -15,6 +15,7 @@ const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
+const PaymentRoutes = require('./payments');
 const PhotosRoutes = require('./photos');
 
 const passport = require('../middleware/passport');
@@ -46,6 +47,8 @@ module.exports = (Router, Service, App) => {
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
   AppSumoRoutes(Router, Service, App);
+  // Payment routes
+  PaymentRoutes(Router, Service, App);
   // Routes used by Internxt Photos
   PhotosRoutes(Router, Service, App);
 
