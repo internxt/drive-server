@@ -14,6 +14,7 @@ const AppSumoTiers = [
   { name: 'internxt_tier4', size: '3TB' },
   { name: 'internxt_tier5', size: '5TB' },
   { name: 'lifetime_2TB', size: '2TB' },
+  { name: 'lifetime_10TB', size: '10TB' },
   { name: 'sharewareonsale', size: '20GB' }
 ];
 
