@@ -216,6 +216,12 @@ module.exports = (Router, Service, App) => {
   Router.post('/register', (req, res) => {
     Service.User.RegisterUser(req.body)
       .then((result) => {
+        if (req.body.referrer) {
+          return Service.AppSumo.ApplyLicense(result.user, req.body.referrer).then(() => result);
+        }
+        return result;
+      })
+      .then((result) => {
         res.status(200).send(result);
       })
       .catch((err) => {

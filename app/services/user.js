@@ -251,11 +251,9 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const Store2FA = (user, key) => Model.users
-    .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
+  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
 
-  const Delete2FA = (user) => Model.users.update({ secret_2FA: null },
-    { where: { email: { [Op.eq]: user } } });
+  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } });
 
   const updatePrivateKey = (user, privateKey) => {
     return Model.keyserver.update({
@@ -308,9 +306,7 @@ module.exports = (Model, App) => {
   };
 
   const GetUserBucket = (userObject) => Model.folder.findOne({
-    where: {
-      id: { [Op.eq]: userObject.root_folder_id }
-    },
+    where: { id: { [Op.eq]: userObject.root_folder_id } },
     attributes: ['bucket']
   }).then((folder) => folder.bucket).catch(() => null);
 
