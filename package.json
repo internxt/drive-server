@@ -55,7 +55,7 @@
     "test": "npm run lint && npm run testsuite",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
-    "lint": "eslint ./lib/**/*.js ./app/**/*.js ./test/**/*.js",
+    "lint": "eslint ./lib ./app ./test",
     "lint:fix": "npm run lint --fix"
   },
   "devDependencies": {

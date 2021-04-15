@@ -13,7 +13,9 @@ const AppSumoTiers = [
   { name: 'internxt_tier3', size: '2TB' },
   { name: 'internxt_tier4', size: '3TB' },
   { name: 'internxt_tier5', size: '5TB' },
-  { name: 'lifetime_2TB', size: '2TB' }
+  { name: 'lifetime_2TB', size: '2TB' },
+  { name: 'lifetime_10TB', size: '10TB' },
+  { name: 'sharewareonsale', size: '20GB' }
 ];
 
 function GetLicenseByName(name) {
@@ -45,11 +47,9 @@ module.exports = (Model, App) => {
 
   const RandomPassword = (email) => {
     const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
-    const randomPassword = crypto.createHash('sha512')
-      .update(randomSeed)
-      .digest()
-      .slice(0, 5)
+    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5)
       .toString('hex');
+
     return randomPassword;
   };
 
@@ -179,6 +179,7 @@ module.exports = (Model, App) => {
     RegisterIncomplete,
     CompleteInfo,
     GetDetails,
-    UpdateLicense
+    UpdateLicense,
+    ApplyLicense
   };
 };

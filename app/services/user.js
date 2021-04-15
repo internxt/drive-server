@@ -4,7 +4,9 @@ const async = require('async');
 const uuid = require('uuid');
 const { Sequelize } = require('sequelize');
 const crypto = require('crypto-js');
-const Analytics = require('./analytics');
+const AnalyticsService = require('./analytics');
+const KeyServerService = require('./keyserver');
+const passport = require('../middleware/passport');
 
 const { Op } = sequelize;
 
@@ -12,7 +14,8 @@ const SYNC_KEEPALIVE_INTERVAL_MS = 60 * 1000; // 60 seconds
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
-  const analytics = Analytics(Model, App);
+  const KeyServer = KeyServerService(Model, App);
+  const analytics = AnalyticsService(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -248,11 +251,9 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const Store2FA = (user, key) => Model.users
-    .update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
+  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
 
-  const Delete2FA = (user) => Model.users.update({ secret_2FA: null },
-    { where: { email: { [Op.eq]: user } } });
+  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } });
 
   const updatePrivateKey = (user, privateKey) => {
     return Model.keyserver.update({
@@ -305,9 +306,7 @@ module.exports = (Model, App) => {
   };
 
   const GetUserBucket = (userObject) => Model.folder.findOne({
-    where: {
-      id: { [Op.eq]: userObject.root_folder_id }
-    },
+    where: { id: { [Op.eq]: userObject.root_folder_id } },
     attributes: ['bucket']
   }).then((folder) => folder.bucket).catch(() => null);
 
@@ -339,9 +338,83 @@ module.exports = (Model, App) => {
 
   const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`);
 
+  const RegisterUser = async (newUser) => {
+    const { referral, email, password } = newUser;
+
+    // Data validation for process only request with all data
+    if (!(email && password)) {
+      throw Error('You must provide registration data');
+    }
+
+    newUser.email = newUser.email.toLowerCase().trim();
+    newUser.credit = 0;
+
+    Logger.warn('Register request for %s', email);
+
+    let hasReferral = false;
+    let referrer = null;
+
+    // Call user service to find or create user
+    const userData = await FindOrCreate(newUser);
+
+    if (!userData) {
+      throw Error('User can not be created');
+    }
+
+    if (!userData.isNewRecord) {
+      throw Error('This account already exists');
+    }
+
+    if (uuid.validate(referral)) {
+      await FindUserByUuid(referral).then((referalUser) => {
+        if (referalUser) {
+          newUser.credit = 5;
+          hasReferral = true;
+          referrer = referalUser;
+          UpdateCredit(referral);
+        }
+      }).catch(() => { });
+    }
+
+    if (hasReferral) {
+      analytics.identify({
+        userId: userData.uuid,
+        traits: { referred_by: referrer.uuid }
+      });
+    }
+
+    // Successfull register
+    const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+
+    const user = {
+      userId: userData.userId,
+      mnemonic: userData.mnemonic,
+      root_folder_id: userData.root_folder_id,
+      name: userData.name,
+      lastname: userData.lastname,
+      uuid: userData.uuid,
+      credit: userData.credit,
+      createdAt: userData.createdAt,
+      registerCompleted: userData.registerCompleted,
+      email: userData.email
+    };
+
+    try {
+      const keys = await KeyServer.getKeys(userData);
+      user.privateKey = keys.private_key;
+      user.publicKey = keys.public_key;
+      user.revocationKey = keys.revocation_key;
+    } catch (e) {
+      // no op
+    }
+
+    return { token, user, uuid: userData.uuid };
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
+    RegisterUser,
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,
