@@ -32,6 +32,13 @@ module.exports = (sequelize, DataTypes) => {
           model: 'usersphotos',
           key: 'id'
         }
+      },
+      creationTime: {
+        type: DataTypes.DATE,
+        allowNull: false
+      },
+      device: {
+        type: DataTypes.STRING
       }
     },
     {

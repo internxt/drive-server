@@ -188,7 +188,8 @@ module.exports = (Router, Service, App) => {
       req.user,
       xphoto.originalname,
       xphoto.path,
-      req.body.hash
+      req.body.hash,
+      req.body.creationTime
     ).then((result) => {
       res.status(201).json(result);
     }).catch(async (err) => {

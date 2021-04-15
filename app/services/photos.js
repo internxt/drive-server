@@ -83,7 +83,7 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (user, photoName, photoPath, hash) => new Promise(async (resolve, reject) => {
+  const UploadPhoto = (user, photoName, photoPath, hash, creationTime) => new Promise(async (resolve, reject) => {
     try {
       const isValidMnemonic = validateMnemonic(user.mnemonic);
       if (user.mnemonic === 'null' || !isValidMnemonic) {
@@ -127,7 +127,7 @@ module.exports = (Model, App) => {
         if (!size) return reject(Error('Missing photo size'));
 
         const newPhotoInfo = {
-          name: fileName, type: ext, fileId, bucketId, size, userId, hash
+          name: fileName, type: ext, fileId, bucketId, size, userId, hash, creationTime,
         };
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);
@@ -274,7 +274,7 @@ module.exports = (Model, App) => {
       where: {
         bucketId: { [Op.eq]: userPhotos.rootAlbumId },
       },
-      order: [['id', 'ASC']],
+      order: [['creationTime', 'DESC']],
       include: [
         {
           model: Model.previews,
