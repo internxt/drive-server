@@ -2,7 +2,7 @@ const axios = require('axios');
 const sgMail = require('@sendgrid/mail');
 const { passportAuth } = require('../middleware/passport');
 
-module.exports = (Router, Service, App) => {
+module.exports = (Router) => {
   Router.post('/token/buy', passportAuth, (req, res) => {
     const {
       currency, email, message, plan, pay, inxt, wallet
