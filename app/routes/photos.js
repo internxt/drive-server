@@ -108,6 +108,16 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.get('/photos/storage/remote/photos/:limit/:offset', passportAuth, (req, res) => {
+    const { email } = req.user;
+    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const photos = await Service.Photos.GetPaginationRemotePhotos(userData, userData.usersphoto, req.params.limit, req.params.offset);
+      res.status(200).send(photos);
+    }).catch((err) => {
+      res.status(500).json({ error: err.message });
+    });
+  });
+
   Router.post('/photos/storage/photos/partial', passportAuth, (req, res) => {
     const { email } = req.user;
     Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
@@ -178,7 +188,8 @@ module.exports = (Router, Service, App) => {
       req.user,
       xphoto.originalname,
       xphoto.path,
-      req.body.hash
+      req.body.hash,
+      req.body.creationTime
     ).then((result) => {
       res.status(201).json(result);
     }).catch(async (err) => {

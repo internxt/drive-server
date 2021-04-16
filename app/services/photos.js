@@ -83,7 +83,7 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (user, photoName, photoPath, hash) => new Promise(async (resolve, reject) => {
+  const UploadPhoto = (user, photoName, photoPath, hash, creationTime) => new Promise(async (resolve, reject) => {
     try {
       const isValidMnemonic = validateMnemonic(user.mnemonic);
       if (user.mnemonic === 'null' || !isValidMnemonic) {
@@ -127,7 +127,7 @@ module.exports = (Model, App) => {
         if (!size) return reject(Error('Missing photo size'));
 
         const newPhotoInfo = {
-          name: fileName, type: ext, fileId, bucketId, size, userId, hash
+          name: fileName, type: ext, fileId, bucketId, size, userId, hash, creationTime
         };
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);
@@ -258,6 +258,42 @@ module.exports = (Model, App) => {
       return photos;
     }
 
+    return result;
+  };
+
+  const GetPaginationRemotePhotos = async (user, userPhotos, i = 20, o = 0) => {
+    const limit = parseInt(i);
+    const offset = parseInt(o);
+
+    if (Number.isNaN(limit) || Number.isNaN(offset)) {
+      return res.status(400).send({ error: 'Bad Index' });
+    }
+    const result = await Model.photos.findAll({
+      limit,
+      offset,
+      where: {
+        bucketId: { [Op.eq]: userPhotos.rootAlbumId }
+      },
+      order: [['creationTime', 'DESC']],
+      include: [
+        {
+          model: Model.previews,
+          as: 'preview'
+        }
+      ]
+    });
+
+    // Null result implies empty bucket.
+    // TODO: Should send an error to be handled and showed on website.
+
+    if (result !== null) {
+      const photos = result.map((photo) => {
+        photo.name = `${App.services.Crypt.decryptName(photo.name, 111)}`;
+
+        return photo;
+      });
+      return photos;
+    }
     return result;
   };
 
@@ -417,6 +453,7 @@ module.exports = (Model, App) => {
     getPhotosByUser,
     getPreviewsByBucketId,
     FindPhotoByHash,
-    GetPartialPhotosContent
+    GetPartialPhotosContent,
+    GetPaginationRemotePhotos
   };
 };
