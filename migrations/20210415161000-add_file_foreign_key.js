@@ -1,5 +1,5 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => {
+  up: (queryInterface) => {
     return Promise.all([
       queryInterface.addConstraint('files', {
         type: 'FOREIGN KEY',
@@ -15,7 +15,7 @@ module.exports = {
     ]);
   },
 
-  down: (queryInterface, Sequelize) => {
+  down: (queryInterface) => {
     return Promise.all([
       queryInterface.removeConstraint('files', 'files_folder_id_foreign_id_fk')
     ]);
