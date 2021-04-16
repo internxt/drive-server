@@ -282,7 +282,6 @@ module.exports = (Model, App) => {
         }
       ]
     });
-    console.log(result.length);
 
     // Null result implies empty bucket.
     // TODO: Should send an error to be handled and showed on website.
