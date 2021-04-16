@@ -119,7 +119,7 @@ module.exports = (App, Service, socket) => {
       }).catch((err) => {
         App.logger.info(err);
         App.logger.info('Invalid token');
-        socket.emit(`get-file-share-${content.token}-error`, 'Invalid token');
+        socket.emit(`get-file-share-${content.token}-error`, 'This secure link has expired');
       });
     }
   });
