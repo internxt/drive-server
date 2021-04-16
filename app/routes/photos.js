@@ -184,8 +184,6 @@ module.exports = (Router, Service, App) => {
       return res.status(409).json(photoExists);
     }
 
-    console.log(req.body.creationTime);
-
     Service.Photos.UploadPhoto(
       req.user,
       xphoto.originalname,
