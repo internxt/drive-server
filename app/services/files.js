@@ -339,13 +339,12 @@ module.exports = (Model, App) => {
               return next(Error('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
-            next(null, file);
+            return next(null, file);
           }).catch(next);
       },
       (file, next) => {
         if (newMeta.name !== file.name) {
-          file
-            .update(newMeta).then((update) => next(null, update)).catch(next);
+          file.update(newMeta).then((update) => next(null, update)).catch(next);
         } else {
           next();
         }
