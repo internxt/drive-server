@@ -1,8 +1,9 @@
 const path = require('path');
-
 const async = require('async');
-
 const { passportAuth } = require('../middleware/passport');
+const logger = require('../../lib/logger');
+
+const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
@@ -182,6 +183,19 @@ module.exports = (Router, Service) => {
         // console.log(pathResults)
         res.status(200).send({ result: 'ok', isRoot: false, path: pathResults });
       }
+    });
+  });
+
+  Router.post('/desktop/folders/:parentId', passportAuth, (req, res) => {
+    const folders = req.body;
+    const parentFolderId = req.params.parentId;
+    const { user } = req;
+
+    Service.Desktop.CreateChildren(user, folders, parentFolderId).then((result) => {
+      res.status(201).json(result);
+    }).catch((err) => {
+      Logger.warn(err);
+      res.status(500).json({ error: err.message });
     });
   });
 };
