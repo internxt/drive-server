@@ -11,7 +11,7 @@ module.exports = (Model, App) => {
 
   const FindPreviewByPhotoId = (photoId) => Model.previews.findOne({ where: { photoId: { [Op.eq]: photoId } } });
 
-  const UploadPreview = (user, photoName, photoPath, photoId, hash) => new Promise(async (resolve, reject) => {
+  const UploadPreview = async (user, photoName, photoPath, photoId, hash) => {
     try {
       const isValidMnemonic = validateMnemonic(user.mnemonic);
       if (user.mnemonic === 'null' || !isValidMnemonic) {
@@ -50,9 +50,9 @@ module.exports = (Model, App) => {
         ext,
         bucketId
       }) => {
-        if (!fileId) return reject(Error('Missing preview id'));
+        if (!fileId) throw Error('Missing preview id');
 
-        if (!size) return reject(Error('Missing preview size'));
+        if (!size) throw Error('Missing preview size');
 
         const newPhotoInfo = {
           name: fileName,
@@ -66,23 +66,23 @@ module.exports = (Model, App) => {
 
         const addedPhoto = await Model.previews.create(newPhotoInfo);
 
-        return resolve(addedPhoto);
+        return addedPhoto;
       })
         .catch((err) => {
           log.error('upload preview 2', err);
-          reject(err.message);
+          throw Error(err.message);
         });
     } catch (err) {
       log.error('upload preview', err.message);
 
-      return reject(err.message);
+      throw Error(err.message);
     } finally {
       fs.unlink(photoPath, (error) => {
         if (error) throw error;
         log.info(`Deleted:  ${photoPath}`);
       });
     }
-  });
+  };
   return {
     Name: 'Previews',
     UploadPreview,
