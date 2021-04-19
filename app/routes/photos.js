@@ -173,6 +173,11 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
     const xphoto = req.file;
+    let { creationTime, hash } = req.body;
+
+    if (creationTime === undefined) {
+      creationTime = new Date();
+    }
 
     const userPhotos = await req.user.getUsersphoto();
     // Set mnemonic to decrypted mnemonic
@@ -188,8 +193,8 @@ module.exports = (Router, Service, App) => {
       req.user,
       xphoto.originalname,
       xphoto.path,
-      req.body.hash,
-      req.body.creationTime
+      hash,
+      creationTime
     ).then((result) => {
       res.status(201).json(result);
     }).catch(async (err) => {
