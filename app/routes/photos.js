@@ -110,11 +110,17 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/photos/storage/remote/photos/:limit/:offset', passportAuth, (req, res) => {
     const { email } = req.user;
-    Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
-      const photos = await Service.Photos.GetPaginationRemotePhotos(userData, userData.usersphoto, req.params.limit, req.params.offset);
-      res.status(200).send(photos);
+    if (Number.isNaN(req.params.limit) || Number.isNaN(req.params.offset)) {
+      return res.status(400).send({ error: 'Bad Index' });
+    }
+    const limit = parseInt(req.params.limit, 10);
+    const offset = parseInt(req.params.offset, 10);
+
+    return Service.UserPhotos.FindUserByEmail(email).then(async (userData) => {
+      const photos = await Service.Photos.GetPaginationRemotePhotos(userData, userData.usersphoto, limit, offset);
+      return res.status(200).send(photos);
     }).catch((err) => {
-      res.status(500).json({ error: err.message });
+      return res.status(500).json({ error: err.message });
     });
   });
 
@@ -173,6 +179,11 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/photos/storage/photo/upload', passportAuth, upload.single('xfile'), async (req, res) => {
     const xphoto = req.file;
+    let { creationTime } = req.body;
+
+    if (creationTime === undefined) {
+      creationTime = new Date();
+    }
 
     const userPhotos = await req.user.getUsersphoto();
     // Set mnemonic to decrypted mnemonic
@@ -184,14 +195,14 @@ module.exports = (Router, Service, App) => {
       return res.status(409).json(photoExists);
     }
 
-    Service.Photos.UploadPhoto(
+    return Service.Photos.UploadPhoto(
       req.user,
       xphoto.originalname,
       xphoto.path,
       req.body.hash,
-      req.body.creationTime
+      creationTime
     ).then((result) => {
-      res.status(201).json(result);
+      return res.status(201).json(result);
     }).catch(async (err) => {
       if (err.includes && err.includes('Bridge rate limit error')) {
         res.status(402).json({ message: err });
@@ -234,14 +245,14 @@ module.exports = (Router, Service, App) => {
       // Set mnemonic to decrypted mnemonic
       userInfo.mnemonic = req.headers['internxt-mnemonic'];
 
-      Service.Previews.UploadPreview(
+      return Service.Previews.UploadPreview(
         userInfo,
         xpreview.originalname,
         xpreview.path,
         photoId,
         req.body.hash
       ).then(async (result) => {
-        res.status(201).json(result);
+        return res.status(201).json(result);
       }).catch((err) => {
         log.error(`${err.message}\n${err.stack}`);
         if (err.includes && err.includes('Bridge rate limit error')) {

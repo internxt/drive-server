@@ -83,7 +83,7 @@ module.exports = (Model, App) => {
       });
   });
 
-  const UploadPhoto = (user, photoName, photoPath, hash, creationTime) => new Promise(async (resolve, reject) => {
+  const UploadPhoto = async (user, photoName, photoPath, hash, creationTime) => {
     try {
       const isValidMnemonic = validateMnemonic(user.mnemonic);
       if (user.mnemonic === 'null' || !isValidMnemonic) {
@@ -122,9 +122,9 @@ module.exports = (Model, App) => {
         bucketId,
         userId
       }) => {
-        if (!fileId) return reject(Error('Missing photo id'));
+        if (!fileId) throw Error('Missing photo id');
 
-        if (!size) return reject(Error('Missing photo size'));
+        if (!size) throw Error('Missing photo size');
 
         const newPhotoInfo = {
           name: fileName, type: ext, fileId, bucketId, size, userId, hash, creationTime
@@ -132,22 +132,21 @@ module.exports = (Model, App) => {
 
         const addedPhoto = await Model.photos.create(newPhotoInfo);
 
-        resolve(addedPhoto);
+        return addedPhoto;
       }).catch((err) => {
         log.error('upload photo 2', err);
-        reject(err.message);
+        throw Error(err.message);
       });
     } catch (err) {
       log.error('upload photo', err.message);
-
-      return reject(err.message);
+      throw Error(err.message);
     } finally {
       fs.unlink(photoPath, (error) => {
         if (error) throw error;
         log.info(`Deleted:  ${photoPath}`);
       });
     }
-  });
+  };
 
   const DownloadPhoto = (user, item) => {
     const maxAcceptableSize = 1024 * 1024 * 300; // 300MB
@@ -261,13 +260,7 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const GetPaginationRemotePhotos = async (user, userPhotos, i = 20, o = 0) => {
-    const limit = parseInt(i);
-    const offset = parseInt(o);
-
-    if (Number.isNaN(limit) || Number.isNaN(offset)) {
-      return res.status(400).send({ error: 'Bad Index' });
-    }
+  const GetPaginationRemotePhotos = async (user, userPhotos, limit = 20, offset = 0) => {
     const result = await Model.photos.findAll({
       limit,
       offset,
