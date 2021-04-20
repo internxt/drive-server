@@ -1,17 +1,13 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.addColumn('previews', 'hash', { type: Sequelize.STRING }),
-      queryInterface.addColumn('previews', 'created_at', { type: Sequelize.DATE }),
-      queryInterface.addColumn('previews', 'updated_at', { type: Sequelize.DATE })
-    ]);
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('previews', 'hash', { type: Sequelize.STRING });
+    await queryInterface.addColumn('previews', 'created_at', { type: Sequelize.DATE });
+    await queryInterface.addColumn('previews', 'updated_at', { type: Sequelize.DATE });
   },
 
-  down: (queryInterface) => {
-    return Promise.all([
-      queryInterface.removeColumn('previews', 'hash'),
-      queryInterface.removeColumn('previews', 'created_at'),
-      queryInterface.removeColumn('previews', 'updated_at')
-    ]);
+  down: async (queryInterface) => {
+    await queryInterface.removeColumn('previews', 'hash');
+    await queryInterface.removeColumn('previews', 'created_at');
+    await queryInterface.removeColumn('previews', 'updated_at');
   }
 };

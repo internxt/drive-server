@@ -1,13 +1,9 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.addColumn('teams', 'total_members', { type: Sequelize.INTEGER })
-    ]);
+    return queryInterface.addColumn('teams', 'total_members', { type: Sequelize.INTEGER });
   },
 
-  down: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.removeColumn('teams', 'total_members')
-    ]);
+  down: (queryInterface) => {
+    return queryInterface.removeColumn('teams', 'total_members');
   }
 };

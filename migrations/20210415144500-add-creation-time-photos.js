@@ -1,18 +1,14 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.addColumn('photos', 'creation_time', {
-        type: Sequelize.DATE,
-        allowNull: false,
-      }),
-      queryInterface.addColumn('photos', 'device', { type: Sequelize.STRING(10) })
-    ]);
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('photos', 'creation_time', {
+      type: Sequelize.DATE,
+      allowNull: false
+    });
+    await queryInterface.addColumn('photos', 'device', { type: Sequelize.STRING(10) });
   },
 
-  down: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.removeColumn('photos', 'creation_time'),
-      queryInterface.removeColumn('photos', 'device')
-    ]);
+  down: async (queryInterface) => {
+    await queryInterface.removeColumn('photos', 'creation_time');
+    await queryInterface.removeColumn('photos', 'device');
   }
 };

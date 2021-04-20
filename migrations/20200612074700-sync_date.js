@@ -3,7 +3,7 @@ module.exports = {
     return queryInterface.addColumn('users', 'sync_date', Sequelize.DATE);
   },
 
-  down: (queryInterface, Sequelize) => {
+  down: (queryInterface) => {
     return queryInterface.removeColumn('users', 'sync_date');
   }
 };

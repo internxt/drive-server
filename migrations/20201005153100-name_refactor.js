@@ -1,23 +1,19 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.renameColumn('teams', 'bridge_email', 'bridge_mnemonic'),
-      queryInterface.renameColumn('teams', 'user', 'admin'),
-      queryInterface.removeColumn('teamsinvitations', 'is_used'),
-      queryInterface.removeColumn('teamsmembers', 'is_active')
-    ]);
+  up: async (queryInterface) => {
+    await queryInterface.renameColumn('teams', 'bridge_email', 'bridge_mnemonic');
+    await queryInterface.renameColumn('teams', 'user', 'admin');
+    await queryInterface.removeColumn('teamsinvitations', 'is_used');
+    await queryInterface.removeColumn('teamsmembers', 'is_active');
   },
 
-  down: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.addColumn('teamsmembers', 'is_active', {
-        type: Sequelize.BOOLEAN
-      }),
-      queryInterface.addColumn('teamsinvitations', 'is_used', {
-        type: Sequelize.BOOLEAN
-      }),
-      queryInterface.renameColumn('teams', 'admin', 'user'),
-      queryInterface.renameColumn('teams', 'bridge_mnemonic', 'bridge_email')
-    ]);
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.addColumn('teamsmembers', 'is_active', {
+      type: Sequelize.BOOLEAN
+    });
+    await queryInterface.addColumn('teamsinvitations', 'is_used', {
+      type: Sequelize.BOOLEAN
+    });
+    await queryInterface.renameColumn('teams', 'admin', 'user');
+    await queryInterface.renameColumn('teams', 'bridge_mnemonic', 'bridge_email');
   }
 };

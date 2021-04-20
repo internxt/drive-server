@@ -10,7 +10,7 @@ module.exports = {
     ]);
   },
 
-  down: (queryInterface, Sequelize) => {
+  down: (queryInterface) => {
     return Promise.all([
       queryInterface.removeColumn('files', 'fileId'),
       queryInterface.removeColumn('files', 'bucket')

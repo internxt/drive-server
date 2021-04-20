@@ -1,19 +1,15 @@
 module.exports = {
-  up: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.changeColumn('teamsmembers', 'bridge_password', {
-        type: Sequelize.STRING(528)
-      }),
-      queryInterface.changeColumn('teamsmembers', 'bridge_mnemonic', {
-        type: Sequelize.STRING(428)
-      })
-    ]);
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.changeColumn('teamsmembers', 'bridge_password', {
+      type: Sequelize.STRING(528)
+    });
+    await queryInterface.changeColumn('teamsmembers', 'bridge_mnemonic', {
+      type: Sequelize.STRING(428)
+    });
   },
 
-  down: (queryInterface, Sequelize) => {
-    return Promise.all([
-      queryInterface.changeColumn('teamsmembers', 'bridge_password', { type: Sequelize.STRING }),
-      queryInterface.changeColumn('teamsmembers', 'bridge_mnemonic', { type: Sequelize.STRING })
-    ]);
+  down: async (queryInterface, Sequelize) => {
+    await queryInterface.changeColumn('teamsmembers', 'bridge_password', { type: Sequelize.STRING });
+    await queryInterface.changeColumn('teamsmembers', 'bridge_mnemonic', { type: Sequelize.STRING });
   }
 };
