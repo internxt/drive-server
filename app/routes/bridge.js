@@ -6,30 +6,11 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
   Router.get('/usage', passportAuth, (req, res) => {
-    const userData = req.user;
-
-    const pwd = userData.userId;
-    const pwdHash = Service.Crypt.hashSha256(pwd);
-
-    const credential = Buffer.from(`${userData.email}:${pwdHash}`).toString('base64');
-
-    axios.get(`${App.config.get('STORJ_BRIDGE')}/usage`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
-    }).then((data) => {
-      Service.Analytics.identify({
-        userId: req.user.uuid,
-        email: req.user.email,
-        traits: {
-          storage_usage: data.data ? data.data.total : 0
-        }
-      });
-      res.status(200).send(data.data ? data.data : { total: 0 });
+    Service.User.getUsage(req.user).then(result => {
+      res.status(200).send(result);
     }).catch(() => {
-      res.status(400).send({ result: 'Error retrieving bridge information' });
-    });
+      res.status(400).send({ result: 'Error retrieving usage information' });
+    })
   });
 
   // TODO
