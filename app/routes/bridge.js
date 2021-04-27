@@ -6,7 +6,7 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
   Router.get('/usage', passportAuth, (req, res) => {
-    Service.User.getUsage(req.user).then(result => {
+    Service.User.getUsage(req.user).then((result) => {
       res.status(200).send(result);
     }).catch(() => {
       res.status(400).send({ result: 'Error retrieving usage information' });

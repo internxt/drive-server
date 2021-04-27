@@ -409,13 +409,7 @@ module.exports = (Model, App) => {
     return { token, user, uuid: userData.uuid };
   };
 
-  const getUsage = async (email) => {
-    const user = await Model.users.findOne({ where: { email: email } })
-
-    if (!user) {
-      throw Error('User not found');
-    }
-
+  const getUsage = async (user) => {
     const usage = await Model.folder.findAll({
       where: { user_id: user.id },
       include: [{ model: Model.file, attributes: [] }],
