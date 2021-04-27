@@ -52,9 +52,7 @@ module.exports = (Model, App) => {
       };
     }));
     foldersCreated.forEach((folder) => {
-      result.push(
-        folder
-      );
+      result.push(folder);
     });
     return result;
   };

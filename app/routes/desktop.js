@@ -188,7 +188,7 @@ module.exports = (Router, Service) => {
     });
   });
 
-  Router.post('/desktop/folders', passportAuth), (req, res) => {
+  Router.post('/desktop/folders', passportAuth, (req, res) => {
     const folders = req.body;
     const { user } = req;
 
