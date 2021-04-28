@@ -217,6 +217,7 @@ module.exports = (Router, Service, App) => {
     Service.User.RegisterUser(req.body)
       .then((result) => {
         if (req.body.referrer) {
+          Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);
           return Service.AppSumo.ApplyLicense(result.user, req.body.referrer).then(() => result);
         }
         return result;
