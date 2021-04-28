@@ -1,5 +1,7 @@
 const path = require('path');
 const async = require('async');
+const { json } = require('body-parser');
+
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
 
@@ -186,12 +188,11 @@ module.exports = (Router, Service) => {
     });
   });
 
-  Router.post('/desktop/folders/:parentId', passportAuth, (req, res) => {
+  Router.post('/desktop/folders', passportAuth, (req, res) => {
     const folders = req.body;
-    const parentFolderId = req.params.parentId;
     const { user } = req;
 
-    Service.Desktop.CreateChildren(user, folders, parentFolderId).then((result) => {
+    Service.Desktop.CreateChildren(user, folders).then((result) => {
       res.status(201).json(result);
     }).catch((err) => {
       Logger.warn(err);
