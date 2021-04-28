@@ -39,9 +39,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       encrypt_version: {
         type: DataTypes.STRING
-      },
-      id_team: {
-        type: DataTypes.INTEGER
       }
     },
     {

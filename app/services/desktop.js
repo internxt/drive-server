@@ -1,72 +1,58 @@
 const sequelize = require('sequelize');
 
-const invalidName = /[\\/]|[. ]$/;
-
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const CreateChildren = async (user, folders, parentFolderId) => {
-    const existsParentFolder = await Model.folder.findOne({
+  const CreateChildren = async (user, folders) => {
+    let newFolders = [];
+    const existsParentFolder = await Model.folder.findAll({
       where: {
-        id: { [Op.eq]: parentFolderId },
+        id: { [Op.in]: Object.keys(folders) },
         user_id: { [Op.eq]: user.id }
       }
     });
-
-    if (!existsParentFolder) {
-      throw Error('Parent folder is not yours');
-    }
-
-    folders = folders.filter((folderName) => {
-      return !(folderName === '' || invalidName.test(folderName));
-    });
-
-    // Encrypt folder name, TODO: use versioning for encryption
-    const foldersDict = {};
-    let cryptoFolderNames = folders.map((folderName) => {
-      const cryptoName = App.services.Crypt.encryptName(folderName, parentFolderId);
-      foldersDict[cryptoName] = folderName;
-      return cryptoName;
+    existsParentFolder.forEach((folder) => {
+      newFolders = newFolders.concat(folders[folder.dataValues.id].map((encryptedName) => { return [encryptedName, folder.dataValues.id]; }));
     });
     const exists = await Model.folder.findAll({
-      attributes: ['name'],
+      attributes: ['id', 'name', 'parentId', 'createdAt', 'updatedAt'],
       where: {
-        parentId: { [Op.eq]: parentFolderId },
-        name: { [Op.in]: cryptoFolderNames }
+        user_id: { [Op.eq]: user.id },
+        name: { [Op.in]: newFolders.map(([encryptedName]) => encryptedName) }
       }
     });
-    exists.forEach((folder) => {
-      exists[folder.dataValues.name] = true;
-    });
 
+    exists.forEach((folder) => {
+      exists[folder.dataValues.name] = folder.dataValues;
+    });
+    const result = [];
     if (exists) {
       // TODO: If the folder already exists,
       // return the folder data to make desktop
       // incorporate new info to its database
-      cryptoFolderNames = cryptoFolderNames.filter((cryptoName) => {
+      newFolders = newFolders.filter(([cryptoName]) => {
         if (exists[cryptoName]) {
-          delete foldersDict[cryptoName];
+          result.push(
+            exists[cryptoName]
+          );
           return false;
         }
         return true;
       });
     }
-
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-    const foldersCreated = await Model.folder.bulkCreate(cryptoFolderNames.map((cryptoName) => {
+    const foldersCreated = await Model.folder.bulkCreate(newFolders.map(([cryptoName, parentFolderId]) => {
       return {
         name: cryptoName,
         bucket: null,
         parentId: parentFolderId || null,
-        user_id: user.id
+        user_id: user.id,
+        encrypt_version: '03-aes'
       };
     }));
-    const result = foldersCreated.map((folder) => {
-      return {
-        name: foldersDict[folder.name],
-        value: folder
-      };
+    foldersCreated.forEach((folder) => {
+      result.push(folder);
     });
     return result;
   };

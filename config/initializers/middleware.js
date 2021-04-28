@@ -19,7 +19,17 @@ module.exports = (App, Config) => {
     if (req.user && req.user.email) {
       return req.user.email;
     }
-    return req.headers['X-Forwarded-For'] || req.ip;
+
+    try {
+      const auth = jwt.decode(req.headers.authorization.split(' ')[1], App.config.get('secrets').JWT);
+      if (auth.email) {
+        return auth.email;
+      }
+    } catch {
+      // no op
+    }
+
+    return req.headers['x-forwarded-for'] || req.ip;
   };
 
   const limitSkipper = (req) => {
@@ -32,8 +42,8 @@ module.exports = (App, Config) => {
 
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
-    windowMs: 24 * 60 * 60 * 1000,
-    max: 3,
+    windowMs: 60 * 1000,
+    max: 1,
     keyGenerator: limiterKeyGenerator
   }));
 

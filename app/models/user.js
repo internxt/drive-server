@@ -38,9 +38,6 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
-      isFreeTier: {
-        type: DataTypes.BOOLEAN
-      },
       isCreated: {
         type: DataTypes.VIRTUAL
       },

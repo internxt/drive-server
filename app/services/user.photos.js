@@ -62,11 +62,9 @@ module.exports = (Model, App) => {
 
         Logger.info('User Service | created brigde user: %s', userResult.email);
 
-        const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
         // Store bcryptid on user register
         await userResult.update({
           userId: bcryptId,
-          isFreeTier: freeTier,
           uuid: bridgeUser.data.uuid
         }, { transaction: t });
 

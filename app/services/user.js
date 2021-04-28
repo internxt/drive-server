@@ -2,7 +2,7 @@ const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
 const uuid = require('uuid');
-const { Sequelize } = require('sequelize');
+const { Sequelize, col, fn } = require('sequelize');
 const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
@@ -73,11 +73,9 @@ module.exports = (Model, App) => {
 
         Logger.info('User Service | created brigde user: %s', userResult.email);
 
-        const freeTier = bridgeUser.data ? bridgeUser.data.isFreeTier : 1;
         // Store bcryptid on user register
         await userResult.update({
           userId: bcryptId,
-          isFreeTier: freeTier,
           uuid: bridgeUser.data.uuid
         }, { transaction: t });
 
@@ -411,6 +409,17 @@ module.exports = (Model, App) => {
     return { token, user, uuid: userData.uuid };
   };
 
+  const getUsage = async (user) => {
+    const usage = await Model.folder.findAll({
+      where: { user_id: user.id },
+      include: [{ model: Model.file, attributes: [] }],
+      attributes: [[fn('sum', col('size')), 'total']],
+      raw: true
+    });
+
+    return { ...usage[0], _id: user.email };
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -434,6 +443,7 @@ module.exports = (Model, App) => {
     UpdateUserSync,
     UnlockSync,
     ActivateUser,
-    GetUserBucket
+    GetUserBucket,
+    getUsage
   };
 };
