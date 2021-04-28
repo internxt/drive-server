@@ -93,7 +93,7 @@ module.exports = (Model, App) => {
   };
 
   const RegisterIncomplete = async (email, plan, uuid, invoice) => {
-    if (plan === 'lifetime_2TB') {
+    if (plan.includes('lifetime')) {
       return RegisterIncompleteLifetime(email, plan);
     }
 
