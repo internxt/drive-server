@@ -346,6 +346,7 @@ module.exports = (Model, App) => {
 
     newUser.email = newUser.email.toLowerCase().trim();
     newUser.credit = 0;
+    newUser.referral = newUser.referrer;
 
     Logger.warn('Register request for %s', email);
 

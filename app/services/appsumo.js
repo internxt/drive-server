@@ -16,6 +16,7 @@ const AppSumoTiers = [
   { name: 'lifetime_2TB', size: '2TB' },
   { name: 'lifetime_10TB', size: '10TB' },
   { name: 'sharewareonsale', size: '20GB' }
+  { name: 'giveawayoftheday', size: '20GB' }
 ];
 
 function GetLicenseByName(name) {
