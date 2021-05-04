@@ -303,7 +303,12 @@ module.exports = (Model, App) => {
 
   const GetFoldersPagination = async (user, index) => {
     const userObject = user;
-
+    const root = await Model.folder.findOne({
+      where: { id: { [Op.eq]: userObject.root_folder_id } }
+    });
+    if (!root) {
+      throw new Error('root folder does not exists');
+    }
     const folders = await Model.folder.findAll({
       where: { user_id: { [Op.eq]: userObject.id } },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
