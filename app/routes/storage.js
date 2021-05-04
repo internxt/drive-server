@@ -63,10 +63,10 @@ module.exports = (Router, Service, App) => {
     const folderId = req.params.id;
 
     Service.Folder.Delete(user, folderId).then((result) => {
-      res.status(204).json(result);
+      res.status(204).send(result);
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
-      res.status(500).json(err);
+      res.status(500).send({ error: err.message });
     });
   });
 

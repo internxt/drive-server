@@ -79,7 +79,7 @@ module.exports = (Model, App) => {
 
   const Delete = async (user, folderId) => {
     if (user.mnemonic === 'null') {
-      return new Error('Your mnemonic is invalid');
+      throw new Error('Your mnemonic is invalid');
     }
 
     const folder = await Model.folder.findOne({
@@ -87,11 +87,11 @@ module.exports = (Model, App) => {
     });
 
     if (!folder) {
-      return new Error('Folder does not exists');
+      throw new Error('Folder does not exists');
     }
 
     if (folder.id === user.root_folder_id) {
-      return new Error('Cannot delete root folder');
+      throw new Error('Cannot delete root folder');
     }
 
     if (folder.bucket) {
