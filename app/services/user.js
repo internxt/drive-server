@@ -418,7 +418,16 @@ module.exports = (Model, App) => {
       raw: true
     });
 
-    return { ...usage[0], _id: user.email };
+    const driveUsage = usage[0].total;
+
+    const photosUsage = await (async () => {
+      const photosUser = await Model.usersphotos.findOne({ where: { userId: user.id } });
+      const photosList = await photosUser.getPhotos();
+      const photosSizeList = photosList.map(p => p.size);
+      return photosSizeList.reduce((a, b) => a + b);
+    })().catch(() => 0);
+
+    return { total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0 };
   };
 
   return {
