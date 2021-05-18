@@ -50,7 +50,7 @@ module.exports = (Model, App) => {
         user_id: user.id,
         encrypt_version: '03-aes'
       };
-    }));
+    }), { returning: true, individualHooks: true });
     foldersCreated.forEach((folder) => {
       result.push(folder);
     });
