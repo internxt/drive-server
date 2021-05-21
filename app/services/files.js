@@ -268,20 +268,10 @@ module.exports = (Model, App) => {
         if (!fileObj) {
           reject(new Error('Folder not found'));
         } else if (fileObj.fileId) {
-          App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
-            fileObj.destroy().then(resolve).catch(reject);
-          }).catch((err) => {
-            const resourceNotFoundPattern = /Resource not found/;
-
-            if (resourceNotFoundPattern.exec(err.message)) {
-              fileObj.destroy().then(resolve).catch(reject);
-            } else {
-              log.error('Error deleting file from bridge:', err.message);
-              reject(err);
-            }
+          fileObj.update({
+            deleted: true
           });
-        } else {
-          fileObj.destroy().then(resolve).catch(reject);
+          resolve();
         }
       }).catch((err) => {
         log.error('Failed to find folder on database:', err.message);
