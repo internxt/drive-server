@@ -199,11 +199,9 @@ module.exports = (Router, Service, App) => {
       return res.status(500).json({ error: 'No file ID provided' });
     }
 
-    const { user } = req;
-    const bucketId = req.params.bucketid;
     const fileIdInBucket = req.params.fileid;
 
-    return Service.Files.Delete(user, bucketId, fileIdInBucket).then(() => {
+    return Service.Files.Delete(fileIdInBucket).then(() => {
       res.status(200).json({ deleted: true });
     }).catch((err) => {
       Logger.error(err.stack);
