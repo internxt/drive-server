@@ -2,6 +2,7 @@ const fs = require('fs');
 const sequelize = require('sequelize');
 const async = require('async');
 const AdmZip = require('adm-zip');
+const { fn, col } = require('sequelize');
 const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
 
@@ -588,6 +589,62 @@ module.exports = (Model, App) => {
     }
   });
 
+  const changeDuplicateName = async (user) => {
+    const userObject = user;
+    let index = 0;
+    let duplicateName = ['inicial'];
+    const dict = new Map();
+    while (duplicateName.length !== 0) {
+      // eslint-disable-next-line no-await-in-loop
+      duplicateName = await Model.folder.findAll({
+        where: { user_id: { [Op.eq]: userObject.id } },
+        attributes: ['name', [fn('COUNT', col('*')), 'count_name']],
+        group: ['name'],
+        having: {
+          count_name: {
+            [Op.gt]: 1
+          }
+        },
+        limit: 5000,
+        offset: index
+      });
+      if (duplicateName.length === 0) {
+        break;
+      }
+      duplicateName = duplicateName.map((obj) => { return obj.name; });
+      // eslint-disable-next-line no-await-in-loop
+      const folders = await Model.folder.findAll({
+        where: {
+          user_id: {
+            [Op.eq]: userObject.id
+          },
+          name: { [Op.in]: duplicateName }
+        },
+        attributes: ['id', 'name', 'parent_id']
+      });
+      dict.clear();
+      folders.forEach(async (folder) => {
+        if (dict.get(folder.name)) {
+          let resolved = false;
+          let i = 1;
+          while (!resolved) {
+            const originalName = App.services.Crypt.decryptName(folder.name, folder.parent_id);
+            try {
+              // eslint-disable-next-line no-await-in-loop
+              await UpdateMetadata(user, folder.id, { itemName: `${originalName}(${i})` });
+              resolved = true;
+            } catch (e) {
+              i += 1;
+            }
+          }
+        } else {
+          dict.set(folder.name, true);
+        }
+      });
+      index += 5000;
+    }
+  };
+
   return {
     Name: 'Folder',
     Create,
@@ -606,6 +663,7 @@ module.exports = (Model, App) => {
     GetFolders,
     isFolderOfTeam,
     GetFoldersPagination,
-    GetTreeHierarchy
+    GetTreeHierarchy,
+    changeDuplicateName
   };
 };
