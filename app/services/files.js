@@ -150,7 +150,8 @@ module.exports = (Model, App) => {
           type: fileExt,
           fileId,
           bucket: rootFolder.bucket,
-          size
+          size,
+          userId: user.id
         };
 
         try {

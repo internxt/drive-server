@@ -33,6 +33,13 @@ module.exports = (sequelize, DataTypes) => {
       },
       encrypt_version: {
         type: DataTypes.STRING
+      },
+      user_id: {
+        type: DataTypes.INTEGER,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
       }
     },
     {
@@ -43,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
 
   file.associate = (models) => {
     file.belongsTo(models.folder);
+    file.belongsTo(models.users);
   };
 
   return file;
