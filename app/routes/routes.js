@@ -243,6 +243,7 @@ module.exports = (Router, Service, App) => {
         // Successfull initialization
         const user = {
           email: userData.email,
+          bucket: userData.bucket,
           mnemonic: userData.mnemonic,
           root_folder_id: userData.root_folder_id
         };
