@@ -226,26 +226,68 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
-  const Delete = async (fileId) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+  const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
+    App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
-    if (!file) {
-      throw new Error('File not found');
-    }
+      const folder = await Model.folder.findOne({ where: { id: file.folder_id } });
 
-    await file.update({ deleted: true, deletedAt: new Date() });
-  };
+      if (!folder) {
+        reject(Error('File not found'));
+      }
 
-  const DeleteFile = (user, folderid, fileid) => {
-    return Model.file
-      .findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
-        if (!fileObj) {
-          throw new Error('Folder not found');
+      if (file) {
+        const isDestroyed = await file.destroy();
+        if (isDestroyed) {
+          resolve('File deleted');
+        } else {
+          reject(Error('Cannot delete file'));
+        }
+      } else {
+        reject(Error('File not found'));
+      }
+    }).catch(async (err) => {
+      if (err.message.includes('Resource not found')) {
+        const file = await Model.file.findOne({
+          where: { fileId: { [Op.eq]: fileId } }
+        });
+        if (file) {
+          await file.destroy();
         }
 
-        return fileObj.update({ deleted: true, deletedAt: new Date() });
+        resolve();
+      } else {
+        reject(err);
+      }
+    });
+  });
+
+  const DeleteFile = (user, folderid, fileid) => new Promise((resolve, reject) => {
+    Model.file
+      .findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
+        if (!fileObj) {
+          reject(new Error('Folder not found'));
+        } else if (fileObj.fileId) {
+          App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
+            fileObj.destroy().then(resolve).catch(reject);
+          }).catch((err) => {
+            const resourceNotFoundPattern = /Resource not found/;
+
+            if (resourceNotFoundPattern.exec(err.message)) {
+              fileObj.destroy().then(resolve).catch(reject);
+            } else {
+              log.error('Error deleting file from bridge:', err.message);
+              reject(err);
+            }
+          });
+        } else {
+          fileObj.destroy().then(resolve).catch(reject);
+        }
+      }).catch((err) => {
+        log.error('Failed to find folder on database:', err.message);
+        reject(err);
       });
-  };
+  });
 
   const UpdateMetadata = (user, fileId, metadata) => {
     const newMeta = {};
