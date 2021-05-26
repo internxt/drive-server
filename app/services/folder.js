@@ -378,15 +378,16 @@ module.exports = (Model, App) => {
 
     // Null result implies empty folder.
     // TODO: Should send an error to be handled and showed on website.
+    let newFiles = []
 
     if (result !== null) {
       result.name = App.services.Crypt.decryptName(result.name, result.parentId);
       result.children = mapChildrenNames(result.children);
       result.files = result.files.map((file) => {
         file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`;
-
-        return file;
+        if (!file.deleted) { newFiles.push(file) }
       });
+      result.dataValues.files = newFiles;
     }
 
     return result;
