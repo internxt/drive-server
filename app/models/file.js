@@ -33,6 +33,13 @@ module.exports = (sequelize, DataTypes) => {
       },
       encrypt_version: {
         type: DataTypes.STRING
+      },
+      deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      },
+      deletedAt: {
+        type: DataTypes.DATE
       }
     },
     {

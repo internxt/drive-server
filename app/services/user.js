@@ -123,6 +123,7 @@ module.exports = (Model, App) => {
       // Set decrypted mnemonic to returning object
       const updatedUser = userData;
       updatedUser.mnemonic = user.mnemonic;
+      updatedUser.bucket = rootBucket.id;
 
       return updatedUser;
     }));
