@@ -39,7 +39,14 @@ module.exports = (sequelize, DataTypes) => {
         references: {
           model: 'users',
           key: 'id'
-        },
+        }
+      },
+      deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      },
+      deletedAt: {
+        type: DataTypes.DATE
       }
     },
     {
