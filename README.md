@@ -1,23 +1,31 @@
-### Drive Server
+# Drive Server
 
-#### Prerrequisites
+## Prerrequisites
 
-Node ^10.23.0
+* Node v10
 
-`npm i -g yarn pm2`
+  ```nvm install v10```
 
-`sudo apt install curl pkg-config build-essential`
+* Yarn
 
-`yarn`
+  ```npm i -g yarn pm2```
 
-#### Database setup
+* Node-gyp essentials
+
+  ```sudo apt install python build-essential```
+
+# Install
+
+```yarn```
+
+#### Database setup (MariaDB)
 
 Create schema and configure `config/environments/development.json`
 
-Run `npm run migrate` to create tables.
+Run `yarn run migrate` to create tables.
 
 #### Start app
 
-Run `npm start` 
+Run `yarn start` to start server in production mode.
 
-Run `npm run dev` to start with nodemon
+Run `yarn run dev` to start with nodemon and development environment.
