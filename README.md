@@ -5,6 +5,8 @@
 * Node v10
 
   ```nvm install v10```
+  
+  (Cannot be upgraded to higher version until [node-lib](https://github.com/internxt/node-lib) bindings fixed).
 
 * Yarn
 
@@ -16,9 +18,15 @@
 
 * Node-gyp essentials
 
-  ```sudo apt install python build-essential```
+  Ubuntu: ```sudo apt install python build-essential```
+
+  Windows: ```npm i -g windows-build-tools```
+
+  Mac: ```xcode-select --install```
 
 # Install
+
+Install project dependencies:
 
 ```yarn```
 
