@@ -63,7 +63,7 @@ module.exports = (Router, Service) => {
     Service.User.GetOrSetUserSync(user).then((result) => {
       res.status(200).json({
         data: result,
-        ensure: ENSURE.RANDOM
+        ensure: ENSURE.OFF
       });
     }).catch((err) => {
       res.status(500).json({ error: err.message });
