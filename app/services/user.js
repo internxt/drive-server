@@ -411,6 +411,34 @@ module.exports = (Model, App) => {
     return { token, user, uuid: userData.uuid };
   };
 
+  const updateKeys = async (userUpdated) => {
+    if (!userUpdated.uuid) {
+      throw new Error('No User uuid provided');
+    }
+
+    if (!userUpdated.privateKey) {
+      throw new Error('No Private key provided');
+    }
+
+    if (!userUpdated.publicKey) {
+      throw new Error('No Public key provided');
+    }
+
+    if (!userUpdated.revocationKey) {
+      throw new Error('No Public key provided');
+    }
+
+    const user = await FindUserByUuid(userUpdated.uuid);
+
+    return Model.keyserver.update({
+      public_key: userUpdated.publicKey,
+      private_key: userUpdated.privateKey,
+      revocationKey: userUpdated.revocationKey
+    }, {
+      where: { user_id: user.id }
+    });
+  }
+
   const getUsage = async (user) => {
     const usage = await Model.folder.findAll({
       where: { user_id: user.id },
@@ -455,6 +483,7 @@ module.exports = (Model, App) => {
     UnlockSync,
     ActivateUser,
     GetUserBucket,
-    getUsage
+    getUsage,
+    updateKeys
   };
 };
