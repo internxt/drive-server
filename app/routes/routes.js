@@ -328,6 +328,18 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.patch('/user/keys', passportAuth, (req, res) => {
+    const userUpdated = req.body.user;
+
+    Service.User.updateKeys(userUpdated).then(() => {
+      Logger.info('User %s updated its keys', userUpdated.id);
+
+      res.status(200).send({});
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    })
+  })
+
   Router.get('/user/credit', passportAuth, (req, res) => {
     const { user } = req;
     return res.status(200).send({ userCredit: user.credit });
