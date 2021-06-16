@@ -424,8 +424,7 @@ module.exports = (Model, App) => {
       throw new Error('No Public key provided');
     }
 
-    if (!userUpdated.revocationKey) {
-      throw new Error('No Public key provided');
+      throw new Error('No Revocation key provided');
     }
 
     const user = await FindUserByUuid(userUpdated.uuid);
