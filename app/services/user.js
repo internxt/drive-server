@@ -424,11 +424,11 @@ module.exports = (Model, App) => {
       throw new Error('No Revocation key provided');
     }
 
-    const userKeys = await KeyServer.getKeys(user);
+    const userKeys = await user.getKeyserver();
 
-    userKeys.privateKey = data.privateKey;
-    userKeys.publicKey = data.publicKey;
-    userKeys.revocationKey = data.revocationKey;
+    userKeys.private_key = data.privateKey;
+    userKeys.public_key = data.publicKey;
+    userKeys.revocation_key = data.revocationKey;
 
     return userKeys.save();
   };
