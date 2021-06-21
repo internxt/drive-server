@@ -95,7 +95,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/access', (req, res) => {
-    const MAX_LOGIN_FAIL_ATTEMPTS = 5;
+    const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
