@@ -446,11 +446,13 @@ module.exports = (Model, App) => {
     const photosUsage = await (async () => {
       const photosUser = await Model.usersphotos.findOne({ where: { userId: user.id } });
       const photosList = await photosUser.getPhotos();
-      const photosSizeList = photosList.map(p => p.size);
+      const photosSizeList = photosList.map((p) => p.size);
       return photosSizeList.reduce((a, b) => a + b);
     })().catch(() => 0);
 
-    return { total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0 };
+    return {
+      total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0
+    };
   };
 
   return {

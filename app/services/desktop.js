@@ -2,7 +2,7 @@ const sequelize = require('sequelize');
 
 const { Op } = sequelize;
 
-module.exports = (Model, App) => {
+module.exports = (Model) => {
   const CreateChildren = async (user, folders) => {
     let newFolders = [];
     const existsParentFolder = await Model.folder.findAll({

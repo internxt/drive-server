@@ -1,6 +1,5 @@
 const path = require('path');
 const async = require('async');
-const { json } = require('body-parser');
 
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
