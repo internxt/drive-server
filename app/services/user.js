@@ -411,6 +411,28 @@ module.exports = (Model, App) => {
     return { token, user, uuid: userData.uuid };
   };
 
+  const updateKeys = async (user, data) => {
+    if (!data.privateKey) {
+      throw new Error('No Private key provided');
+    }
+
+    if (!data.publicKey) {
+      throw new Error('No Public key provided');
+    }
+
+    if (!data.revocationKey) {
+      throw new Error('No Revocation key provided');
+    }
+
+    const userKeys = await user.getKeyserver();
+
+    userKeys.private_key = data.privateKey;
+    userKeys.public_key = data.publicKey;
+    userKeys.revocation_key = data.revocationKey;
+
+    return userKeys.save();
+  };
+
   const getUsage = async (user) => {
     const usage = await Model.folder.findAll({
       where: { user_id: user.id },
@@ -424,11 +446,13 @@ module.exports = (Model, App) => {
     const photosUsage = await (async () => {
       const photosUser = await Model.usersphotos.findOne({ where: { userId: user.id } });
       const photosList = await photosUser.getPhotos();
-      const photosSizeList = photosList.map(p => p.size);
+      const photosSizeList = photosList.map((p) => p.size);
       return photosSizeList.reduce((a, b) => a + b);
     })().catch(() => 0);
 
-    return { total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0 };
+    return {
+      total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0
+    };
   };
 
   return {
@@ -455,6 +479,7 @@ module.exports = (Model, App) => {
     UnlockSync,
     ActivateUser,
     GetUserBucket,
-    getUsage
+    getUsage,
+    updateKeys
   };
 };

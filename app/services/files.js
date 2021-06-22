@@ -231,22 +231,14 @@ module.exports = (Model, App) => {
     App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
-      const folder = await Model.folder.findOne({ where: { id: file.folder_id } });
-
-      if (!folder) {
-        reject(Error('File not found'));
-      }
-
       if (file) {
         const isDestroyed = await file.destroy();
         if (isDestroyed) {
-          resolve('File deleted');
-        } else {
-          reject(Error('Cannot delete file'));
+          return resolve('File deleted');
         }
-      } else {
-        reject(Error('File not found'));
+        return reject(Error('Cannot delete file'));
       }
+      return reject(Error('File not found'));
     }).catch(async (err) => {
       if (err.message.includes('Resource not found')) {
         const file = await Model.file.findOne({

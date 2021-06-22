@@ -95,7 +95,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/access', (req, res) => {
-    const MAX_LOGIN_FAIL_ATTEMPTS = 5;
+    const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
     // Call user service to find or create user
     Service.User.FindUserByEmail(req.body.email).then(async (userData) => {
@@ -325,6 +325,14 @@ module.exports = (Router, Service, App) => {
     }).catch((err) => {
       Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
       res.status(200).send({});
+    });
+  });
+
+  Router.patch('/user/keys', passportAuth, (req, res) => {
+    Service.User.updateKeys(req.user, req.body).then(() => {
+      res.status(200).send({});
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
     });
   });
 

@@ -10,7 +10,7 @@ module.exports = (Router, Service, App) => {
       res.status(200).send(result);
     }).catch(() => {
       res.status(400).send({ result: 'Error retrieving usage information' });
-    })
+    });
   });
 
   // TODO

@@ -1,6 +1,5 @@
 const path = require('path');
 const async = require('async');
-const { json } = require('body-parser');
 
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
@@ -63,7 +62,7 @@ module.exports = (Router, Service) => {
     Service.User.GetOrSetUserSync(user).then((result) => {
       res.status(200).json({
         data: result,
-        ensure: ENSURE.RANDOM
+        ensure: ENSURE.OFF
       });
     }).catch((err) => {
       res.status(500).json({ error: err.message });
