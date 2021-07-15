@@ -7,10 +7,10 @@ const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
+const { FREE_PLAN_BYTES, SYNC_KEEPALIVE_INTERVAL_MS } = require('./constants');
+const { couponBytes } = require('../integrations/dealify/dealify');
 
 const { Op } = sequelize;
-
-const SYNC_KEEPALIVE_INTERVAL_MS = 60 * 1000; // 60 seconds
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
@@ -60,8 +60,9 @@ module.exports = (Model, App) => {
 
         // Create bridge pass using email (because id is unconsistent)
         const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
+        const maxSpaceBytes = couponBytes(user.coupon) || FREE_PLAN_BYTES;
 
-        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId, maxSpaceBytes);
 
         if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
           throw Error(bridgeUser.response.data.error);
