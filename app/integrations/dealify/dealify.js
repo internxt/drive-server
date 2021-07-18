@@ -1,19 +1,19 @@
-const { dealify99, dealify49 } = require('./dealifyProducts');
+const storageBought = {
+  49: 214748364800, // 200GB
+  99: 1099511627776 // 1TB
+};
 
-function couponBytes(coupon) {
-  if (!coupon) {
+const maxTimesRedemption = 1;
+
+function couponBytes(code) {
+  if (!code) {
     return null;
   }
-  const dealifyProduct = coupon.slice(-2);
-  let maxSpaceBytes = null;
-  if (dealifyProduct === '49' && dealify49.includes(coupon)) {
-    maxSpaceBytes = 214748364800; // 200 GB
-  } else if (dealifyProduct === '99' && dealify99.includes(coupon)) {
-    maxSpaceBytes = 1099511627776; // 1TB
-  }
-  return maxSpaceBytes;
+  const dealifyProduct = code.slice(-2);
+  return storageBought[dealifyProduct];
 }
 
 module.exports = {
-  couponBytes
+  couponBytes,
+  maxTimesRedemption
 };
