@@ -8,7 +8,6 @@ const { Environment } = require('storj');
 const mime = require('mime');
 const prettysize = require('prettysize');
 const CryptService = require('./crypt');
-const { FREE_PLAN_BYTES } = require('./constants');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -50,7 +49,7 @@ module.exports = (Model, App) => {
     }
   }
 
-  const RegisterBridgeUser = (email, password, maxSpaceBytes = FREE_PLAN_BYTES) => {
+  const RegisterBridgeUser = (email, password) => {
     // Set variables
     const hashPwd = pwdToHex(password);
 
@@ -58,8 +57,7 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = {
       email,
-      password: hashPwd,
-      maxSpaceBytes
+      password: hashPwd
     };
 
     // Do api call
