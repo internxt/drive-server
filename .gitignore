@@ -5,4 +5,4 @@ uploads
 downloads
 config/environments/development.js
 core
-
+app/integrations/dealify/dealifyProducts.js

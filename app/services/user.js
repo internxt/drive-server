@@ -7,15 +7,16 @@ const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
+const { SYNC_KEEPALIVE_INTERVAL_MS, FREE_PLAN_BYTES } = require('./constants');
+const CouponService = require('./coupons');
 
 const { Op } = sequelize;
-
-const SYNC_KEEPALIVE_INTERVAL_MS = 60 * 1000; // 60 seconds
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
+  const couponService = CouponService(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -61,10 +62,21 @@ module.exports = (Model, App) => {
         // Create bridge pass using email (because id is unconsistent)
         const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
 
-        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+        // Check if user has coupon to reedem
+        let couponMaxSpaceBytes = FREE_PLAN_BYTES;
 
+        if (user.coupon) {
+          couponMaxSpaceBytes = await couponService.applyCoupon(user.coupon);
+        }
+
+        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
         if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
           throw Error(bridgeUser.response.data.error);
+        }
+
+        // Apply coupon to user
+        if (user.coupon) {
+          await couponService.applySpace(user.coupon, couponMaxSpaceBytes);
         }
 
         if (!bridgeUser.data) {
