@@ -272,7 +272,7 @@ module.exports = (Model, App) => {
   const UpdatePasswordMnemonic = async (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => {
     const storedPassword = user.password.toString();
     if (storedPassword !== currentPassword) {
-      throw Error('Invalid password');
+      throw Error('The introduced password doesn\'t match your current password');
     }
 
     await Model.users.update({
