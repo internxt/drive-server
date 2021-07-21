@@ -1,6 +1,6 @@
 const { default: axios } = require('axios');
 const Dealify = require('../integrations/dealify/dealify');
-const { FREE_PLAN_BYTES } = require('./constants');
+const { FREE_PLAN_BYTES } = require('../constants');
 
 module.exports = (Model, App) => {
   const Logger = App.logger;

@@ -1,0 +1,4 @@
+module.exports = {
+  FREE_PLAN_BYTES: 2147483648,
+  SYNC_KEEPALIVE_INTERVAL_MS: 60 * 1000 // 60 seconds
+};
