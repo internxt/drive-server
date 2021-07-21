@@ -7,7 +7,7 @@ const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
-const { SYNC_KEEPALIVE_INTERVAL_MS, FREE_PLAN_BYTES } = require('./constants');
+const { SYNC_KEEPALIVE_INTERVAL_MS, FREE_PLAN_BYTES } = require('../constants');
 const CouponService = require('./coupons');
 
 const { Op } = sequelize;
