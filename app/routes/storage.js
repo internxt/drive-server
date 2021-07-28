@@ -320,4 +320,21 @@ module.exports = (Router, Service, App) => {
       res.status(500).send({ error: 'Invalid token' });
     });
   });
+
+  Router.get('/storage/file/info/:fileId/:folderId', passportAuth, (req, res) => {
+    const { fileId, folderId } = req.params;
+    Service.Folder.isFolderOfUser(req.user.id, folderId).then((folder) => {
+      if (folder) {
+        Service.Files.getFileInfo(fileId).then((file) => {
+          res.status(200).json(file);
+        }).catch((err) => {
+          Logger.error(`Can not get file info of user: ${req.user.email}`);
+          res.status(500).send({ error: `Can not get file info, ${err}` });
+        });
+      }
+    }).catch(() => {
+      Logger.error(`Unauthorized to get file info: ${req.user.email}`);
+      res.status(401).send({ error: 'Unauthorized to get info file' });
+    });
+  });
 };

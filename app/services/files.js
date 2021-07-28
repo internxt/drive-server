@@ -421,6 +421,20 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
+  const getFileInfo = async (fileId) => {
+    const file = await Model.file.findOne({
+      where: {
+        file_id: { [Op.eq]: fileId }
+      }
+    });
+
+    if (!file) {
+      throw Error('File not found on database');
+    }
+
+    return file;
+  };
+
   return {
     Name: 'Files',
     Upload,
@@ -433,6 +447,7 @@ module.exports = (Model, App) => {
     MoveFile,
     ListAllFiles,
     DownloadFolderFile,
-    isFileOfTeamFolder
+    isFileOfTeamFolder,
+    getFileInfo
   };
 };
