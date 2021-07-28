@@ -323,7 +323,7 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
     Service.Stripe.getStripeProductInfoUser(req.user.email, req.params.isTest).then((stripeProductInfoUser) => {
-      res.status(200).send({ stripeProductInfoUser });
+      res.status(200).json({ stripeProductInfoUser });
     }).catch((err) => {
       if (err.statusCode) {
         Logger.error(`Error stripe get info from ${req.user.email}: ${err.message}`);
