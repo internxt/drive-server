@@ -97,6 +97,27 @@ module.exports = () => {
     return result.url;
   };
 
+  const getStripeProductInfoUser = async (email, isTest) => {
+    const stripe = await getStripe(isTest);
+
+    const customer = await findCustomerByEmail(email, isTest);
+    const expandedCostumer = await stripe.customers.retrieve(customer.id, {
+      expand: ['subscriptions']
+    });
+    const { plan } = expandedCostumer.subscriptions.data[expandedCostumer.subscriptions.data.length - 1];
+
+    const retrieveProduct = await stripe.products.retrieve(plan.product);
+
+    const stripeProductInfoUser = {
+      productId: retrieveProduct.id,
+      name: retrieveProduct.name,
+      price: retrieveProduct.metadata.price_eur,
+      paymentInterval: plan.nickname,
+      planId: plan.id
+    };
+    return stripeProductInfoUser;
+  };
+
   return {
     Name: 'Stripe',
     getStorageProducts,
@@ -104,6 +125,7 @@ module.exports = () => {
     getTeamProducts,
     getTeamPlans,
     findCustomerByEmail,
-    getBilling
+    getBilling,
+    getStripeProductInfoUser
   };
 };

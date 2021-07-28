@@ -320,4 +320,18 @@ module.exports = (Router, Service, App) => {
       res.status(500).send({ error: 'Invalid token' });
     });
   });
+
+  Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
+    Service.Stripe.getStripeProductInfoUser(req.user.email, req.params.isTest).then((stripeProductInfoUser) => {
+      res.status(200).send({ stripeProductInfoUser });
+    }).catch((err) => {
+      if (err.statusCode) {
+        Logger.error(`Error stripe get info from ${req.user.email}: ${err.message}`);
+        res.status(err.statusCode).send({ error: err.message });
+      } else {
+        Logger.error(`Error internal get stripe info from ${req.user.email}: ${err}`);
+        res.status(500).send({ error: 'Can not get stripe info of the user' });
+      }
+    });
+  });
 };
