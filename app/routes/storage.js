@@ -320,4 +320,21 @@ module.exports = (Router, Service, App) => {
       res.status(500).send({ error: 'Invalid token' });
     });
   });
+
+  Router.post('/storage/recents/files', passportAuth, (req, res) => {
+    const { limit, folderId, bucket } = req.body;
+    Service.Folder.isFolderOfUser(req.user.id, folderId).then((folder) => {
+      if (folder) {
+        Service.Files.ListRecentsFiles(limit, bucket).then((files) => {
+          res.status(200).json(files);
+        }).catch((err) => {
+          Logger.error(`Can not get recents files of user: ${req.user.email}`);
+          res.status(500).send({ error: `Can not get recents files, ${err}` });
+        });
+      }
+    }).catch(() => {
+      Logger.error(`Unauthorized to get recents files: ${req.user.email}`);
+      res.status(401).send({ error: 'Unauthorized to get info file' });
+    });
+  });
 };

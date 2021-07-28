@@ -421,6 +421,21 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
+  const ListRecentsFiles = async (limit, bucket) => {
+    const recentsFiles = await Model.file.findAll({
+      where: {
+        bucket: { [Op.eq]: bucket }
+      },
+      order: [['id', 'DESC']],
+      limit
+    });
+    if (!recentsFiles) {
+      throw Error('Files with this bucket not found on database');
+    }
+
+    return recentsFiles;
+  };
+
   return {
     Name: 'Files',
     Upload,
@@ -433,6 +448,7 @@ module.exports = (Model, App) => {
     MoveFile,
     ListAllFiles,
     DownloadFolderFile,
-    isFileOfTeamFolder
+    isFileOfTeamFolder,
+    ListRecentsFiles
   };
 };
