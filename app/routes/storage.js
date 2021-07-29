@@ -322,11 +322,11 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
-    Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((stripeProductInfoUser) => {
-      if (!stripeProductInfoUser) {
-        return res.status(404).send({ error: 'Customer not found' });
+    Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((product) => {
+      if (!product) {
+        return res.status(404).send({ error: 'Product not found' });
       }
-      res.status(200).json({ stripeProductInfoUser });
+      res.status(200).json(product);
     }).catch((err) => {
       if (err.statusCode) {
         res.status(err.statusCode).send({ error: err.message });
