@@ -97,25 +97,25 @@ module.exports = () => {
     return result.url;
   };
 
-  const getStripeProductInfoUser = async (email, isTest) => {
+  const getProductFromUser = async (email, isTest) => {
     const stripe = await getStripe(isTest);
 
     const customer = await findCustomerByEmail(email, isTest);
+
+    if (!customer) {
+      return customer;
+    }
+
     const expandedCostumer = await stripe.customers.retrieve(customer.id, {
       expand: ['subscriptions']
     });
     const { plan } = expandedCostumer.subscriptions.data[expandedCostumer.subscriptions.data.length - 1];
 
-    const retrieveProduct = await stripe.products.retrieve(plan.product);
+    const product = await stripe.products.retrieve(plan.product);
 
-    const stripeProductInfoUser = {
-      productId: retrieveProduct.id,
-      name: retrieveProduct.name,
-      price: retrieveProduct.metadata.price_eur,
-      paymentInterval: plan.nickname,
-      planId: plan.id
+    return {
+      productId: product.id, name: product.name, price: product.metadata.price_eur, paymentInterval: plan.nickname, planId: plan.id
     };
-    return stripeProductInfoUser;
   };
 
   return {
@@ -126,6 +126,6 @@ module.exports = () => {
     getTeamPlans,
     findCustomerByEmail,
     getBilling,
-    getStripeProductInfoUser
+    getProductFromUser
   };
 };

@@ -322,16 +322,18 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
-    Service.Stripe.getStripeProductInfoUser(req.user.email, req.params.isTest).then((stripeProductInfoUser) => {
+    Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((stripeProductInfoUser) => {
+      if (!stripeProductInfoUser) {
+        return res.status(404).send({ error: 'Customer not found' });
+      }
       res.status(200).json({ stripeProductInfoUser });
     }).catch((err) => {
       if (err.statusCode) {
-        Logger.error(`Error stripe get info from ${req.user.email}: ${err.message}`);
         res.status(err.statusCode).send({ error: err.message });
       } else {
-        Logger.error(`Error internal get stripe info from ${req.user.email}: ${err}`);
         res.status(500).send({ error: 'Can not get stripe info of the user' });
       }
+      Logger.error(`Error get product stripe info from ${req.user.email}: ${err.message}`);
     });
   });
 };
