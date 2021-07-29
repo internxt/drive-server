@@ -323,18 +323,22 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/file/info/:fileId/:folderId', passportAuth, (req, res) => {
     const { fileId, folderId } = req.params;
-    Service.Folder.isFolderUser(req.user.id, folderId).then((folder) => {
+    Service.Folder.folderExists(req.user.id, folderId).then((folder) => {
       if (folder) {
-        Service.Files.getFileInfo(fileId).then((file) => {
+        Service.Files.getFileById(fileId).then((file) => {
           res.status(200).json(file);
         }).catch((err) => {
-          Logger.error(`Can not get file info of user: ${req.user.email}`);
-          res.status(500).send({ error: `Can not get file info, ${err}` });
+          if (err.message.includes('File not found')) {
+            Logger.error(`Can not get the file of user, file not found: ${req.user.email}`);
+            return res.status(404).send({ error: `Can not get the file, ${err.message}` });
+          }
+          Logger.error(`Can not get the file of user: ${req.user.email}`);
+          return res.status(500).send({ error: `Can not get the file, ${err.message}` });
         });
       }
     }).catch(() => {
-      Logger.error(`Unauthorized to get file info: ${req.user.email}`);
-      res.status(401).send({ error: 'Unauthorized to get info file' });
+      Logger.error(`Can not get the file: ${req.user.email}`);
+      res.status(401).send({ error: 'Can not get the file' });
     });
   });
 };

@@ -644,7 +644,7 @@ module.exports = (Model, App) => {
     }
   };
 
-  const isFolderUser = async (userId, folderId) => {
+  const folderExists = (userId, folderId) => {
     return Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
@@ -679,6 +679,6 @@ module.exports = (Model, App) => {
     GetFoldersPagination,
     GetTreeHierarchy,
     changeDuplicateName,
-    isFolderUser
+    folderExists
   };
 };

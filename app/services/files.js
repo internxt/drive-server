@@ -421,7 +421,7 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
-  const getFileInfo = async (fileId) => {
+  const getFileById = async (fileId) => {
     const file = await Model.file.findOne({
       where: {
         file_id: { [Op.eq]: fileId }
@@ -448,6 +448,6 @@ module.exports = (Model, App) => {
     ListAllFiles,
     DownloadFolderFile,
     isFileOfTeamFolder,
-    getFileInfo
+    getFileById
   };
 };
