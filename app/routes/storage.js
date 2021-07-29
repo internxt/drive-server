@@ -321,11 +321,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
+  Router.get('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
     const { limit, folderId, bucket } = req.params;
     Service.Folder.isFolderUser(req.user.id, folderId).then((folder) => {
       if (folder) {
-        Service.Files.ListRecent(limit, bucket).then((files) => {
+        Service.Files.ListRecentFiles(limit, bucket).then((files) => {
           res.status(200).json(files);
         }).catch((err) => {
           Logger.error(`Can not get recent files of user: ${req.user.email}`);

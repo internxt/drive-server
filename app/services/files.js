@@ -421,7 +421,7 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
-  const ListRecent = async (limit, bucket) => {
+  const ListRecentFiles = async (limit, bucket) => {
     const recent = await Model.file.findAll({
       where: {
         bucket: { [Op.eq]: bucket }
@@ -449,6 +449,6 @@ module.exports = (Model, App) => {
     ListAllFiles,
     DownloadFolderFile,
     isFileOfTeamFolder,
-    ListRecent
+    ListRecentFiles
   };
 };
