@@ -109,7 +109,10 @@ module.exports = () => {
     const expandedCostumer = await stripe.customers.retrieve(customer.id, {
       expand: ['subscriptions']
     });
-    const { plan } = expandedCostumer.subscriptions.data[expandedCostumer.subscriptions.data.length - 1];
+
+    expandedCostumer.subscriptions.data.sort((a, b) => b.created - a.created);
+
+    const { plan } = expandedCostumer.subscriptions.data[0];
 
     const product = await stripe.products.retrieve(plan.product);
 
