@@ -322,7 +322,8 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
-    const { limit, folderId, bucket } = req.params;
+    const { folderId, bucket } = req.params;
+    const limit = parseInt(req.params.limit, 10);
     Service.Files.ListRecentFilesByFolderId(limit, bucket, folderId, req.user.id).then((files) => {
       if (!files) {
         return res.status(404).send({ error: 'Files not found' });
