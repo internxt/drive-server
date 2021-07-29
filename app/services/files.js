@@ -422,7 +422,6 @@ module.exports = (Model, App) => {
   });
 
   const ListRecentFilesByFolderId = (limit, bucket, folderId, userId) => {
-    limit = parseInt(limit, 10);
     return Model.file.findAll({
       where: {
         bucket: { [Op.eq]: bucket }
