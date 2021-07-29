@@ -421,18 +421,22 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
-  const getFileById = async (fileId) => {
-    const file = await Model.file.findOne({
+  const getFileByFolder = (fileId, folderId, userId) => {
+    return Model.file.findOne({
       where: {
         file_id: { [Op.eq]: fileId }
-      }
+      },
+      raw: true,
+      include: [
+        {
+          model: Model.folder,
+          where: {
+            user_id: { [Op.eq]: userId },
+            id: { [Op.eq]: folderId }
+          }
+        }
+      ]
     });
-
-    if (!file) {
-      throw Error('File not found on database');
-    }
-
-    return file;
   };
 
   return {
@@ -448,6 +452,6 @@ module.exports = (Model, App) => {
     ListAllFiles,
     DownloadFolderFile,
     isFileOfTeamFolder,
-    getFileById
+    getFileByFolder
   };
 };

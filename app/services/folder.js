@@ -644,21 +644,6 @@ module.exports = (Model, App) => {
     }
   };
 
-  const folderExists = (userId, folderId) => {
-    return Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-        user_id: { [Op.eq]: userId }
-      }
-    }).then((folder) => {
-      if (!folder) {
-        throw Error('Folder not found on database');
-      }
-
-      return true;
-    });
-  };
-
   return {
     Name: 'Folder',
     Create,
@@ -678,7 +663,6 @@ module.exports = (Model, App) => {
     isFolderOfTeam,
     GetFoldersPagination,
     GetTreeHierarchy,
-    changeDuplicateName,
-    folderExists
+    changeDuplicateName
   };
 };

@@ -323,22 +323,16 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/file/info/:fileId/:folderId', passportAuth, (req, res) => {
     const { fileId, folderId } = req.params;
-    Service.Folder.folderExists(req.user.id, folderId).then((folder) => {
-      if (folder) {
-        Service.Files.getFileById(fileId).then((file) => {
-          res.status(200).json(file);
-        }).catch((err) => {
-          if (err.message.includes('File not found')) {
-            Logger.error(`Can not get the file of user, file not found: ${req.user.email}`);
-            return res.status(404).send({ error: `Can not get the file, ${err.message}` });
-          }
-          Logger.error(`Can not get the file of user: ${req.user.email}`);
-          return res.status(500).send({ error: `Can not get the file, ${err.message}` });
-        });
+
+    Service.Files.getFileByFolder(fileId, folderId, req.user.id).then((file) => {
+      if (!file) {
+        return res.status(404).send({ error: 'Folder not found' });
       }
-    }).catch(() => {
-      Logger.error(`Can not get the file: ${req.user.email}`);
-      res.status(401).send({ error: 'Can not get the file' });
+
+      return res.status(200).json(file);
+    }).catch((err) => {
+      Logger.error(`Can not get the file: ${req.user.email} : ${err.message}`);
+      res.status(500).send({ error: 'Can not get the file' });
     });
   });
 };
