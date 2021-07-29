@@ -323,18 +323,14 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
     const { limit, folderId, bucket } = req.params;
-    Service.Folder.isFolderUser(req.user.id, folderId).then((folder) => {
-      if (folder) {
-        Service.Files.ListRecentFiles(limit, bucket).then((files) => {
-          res.status(200).json(files);
-        }).catch((err) => {
-          Logger.error(`Can not get recent files of user: ${req.user.email}`);
-          res.status(500).send({ error: `Can not get recent files, ${err}` });
-        });
+    Service.Files.ListRecentFilesByFolderId(limit, bucket, folderId, req.user.id).then((files) => {
+      if (!files) {
+        return res.status(404).send({ error: 'Files not found' });
       }
-    }).catch(() => {
-      Logger.error(`Unauthorized to get recent files: ${req.user.email}`);
-      res.status(401).send({ error: 'Unauthorized to get info file' });
+      return res.status(200).json(files);
+    }).catch((err) => {
+      Logger.error(`Can not get recent files: ${req.user.email} : ${err.message}`);
+      res.status(500).send({ error: 'Can not get recent files' });
     });
   });
 };
