@@ -644,7 +644,7 @@ module.exports = (Model, App) => {
     }
   };
 
-  const isFolderOfUser = async (userId, folderId) => {
+  const isFolderUser = async (userId, folderId) => {
     return Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
@@ -655,7 +655,7 @@ module.exports = (Model, App) => {
         throw Error('Folder not found on database');
       }
 
-      return folder;
+      return true;
     });
   };
 
@@ -679,6 +679,6 @@ module.exports = (Model, App) => {
     GetFoldersPagination,
     GetTreeHierarchy,
     changeDuplicateName,
-    isFolderOfUser
+    isFolderUser
   };
 };
