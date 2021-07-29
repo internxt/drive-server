@@ -421,6 +421,24 @@ module.exports = (Model, App) => {
       }).catch(reject);
   });
 
+  const getFileByFolder = (fileId, folderId, userId) => {
+    return Model.file.findOne({
+      where: {
+        file_id: { [Op.eq]: fileId }
+      },
+      raw: true,
+      include: [
+        {
+          model: Model.folder,
+          where: {
+            user_id: { [Op.eq]: userId },
+            id: { [Op.eq]: folderId }
+          }
+        }
+      ]
+    });
+  };
+
   return {
     Name: 'Files',
     Upload,
@@ -433,6 +451,7 @@ module.exports = (Model, App) => {
     MoveFile,
     ListAllFiles,
     DownloadFolderFile,
-    isFileOfTeamFolder
+    isFileOfTeamFolder,
+    getFileByFolder
   };
 };
