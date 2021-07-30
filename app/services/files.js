@@ -439,6 +439,26 @@ module.exports = (Model, App) => {
     });
   };
 
+  const ListRecentFilesByFolderId = (limit, bucket, folderId, userId) => {
+    return Model.file.findAll({
+      where: {
+        bucket: { [Op.eq]: bucket }
+      },
+      order: [['id', 'DESC']],
+      limit,
+      raw: true,
+      include: [
+        {
+          model: Model.folder,
+          where: {
+            user_id: { [Op.eq]: userId },
+            id: { [Op.eq]: folderId }
+          }
+        }
+      ]
+    });
+  }
+
   return {
     Name: 'Files',
     Upload,
@@ -452,6 +472,7 @@ module.exports = (Model, App) => {
     ListAllFiles,
     DownloadFolderFile,
     isFileOfTeamFolder,
+    ListRecentFilesByFolderId,
     getFileByFolder
   };
 };

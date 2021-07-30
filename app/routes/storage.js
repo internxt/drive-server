@@ -337,6 +337,20 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.get('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
+    const { folderId, bucket } = req.params;
+    const limit = parseInt(req.params.limit, 10);
+    Service.Files.ListRecentFilesByFolderId(limit, bucket, folderId, req.user.id).then((files) => {
+      if (!files) {
+        return res.status(404).send({ error: 'Files not found' });
+      }
+      return res.status(200).json(files);
+    }).catch((err) => {
+      Logger.error(`Can not get recent files: ${req.user.email} : ${err.message}`);
+      res.status(500).send({ error: 'Can not get recent files' });
+    });
+  });
+
   Router.get('/storage/file/info/:fileId/:folderId', passportAuth, (req, res) => {
     const { fileId, folderId } = req.params;
 
