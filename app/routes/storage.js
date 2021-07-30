@@ -321,6 +321,22 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
+    Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((product) => {
+      if (!product) {
+        return res.status(404).send({ error: 'Product not found' });
+      }
+      return res.status(200).json(product);
+    }).catch((err) => {
+      if (err.statusCode) {
+        res.status(err.statusCode).send({ error: err.message });
+      } else {
+        res.status(500).send({ error: 'Can not get stripe info of the user' });
+      }
+      Logger.error(`Error get product stripe info from ${req.user.email}: ${err.message}`);
+    });
+  });
+
   Router.get('/storage/file/info/:fileId/:folderId', passportAuth, (req, res) => {
     const { fileId, folderId } = req.params;
 
