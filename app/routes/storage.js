@@ -246,78 +246,10 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.FindOne(req.params.token).then((result) => {
-      Service.User.FindUserByEmail(result.user).then((userData) => {
-        const fileIdInBucket = result.file;
-        const isFolder = result.is_folder;
-
-        userData.mnemonic = result.mnemonic;
-
-        if (isFolder) {
-          Service.Folder.GetTree({
-            email: result.user
-          }, result.file).then((tree) => {
-            const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
-            const treeSize = Service.Folder.GetTreeSize(tree);
-
-            if (treeSize <= maxAcceptableSize) {
-              Service.Folder.Download(tree, userData).then(() => {
-                const folderName = App.services.Crypt.decryptName(tree.name,
-                  tree.parentId);
-
-                Service.Folder.CreateZip(`./downloads/${tree.id}/${folderName}.zip`,
-                  [`downloads/${tree.id}/${folderName}`]);
-
-                res.set('x-file-name', `${folderName}.zip`);
-                res.download(`./downloads/${tree.id}/${folderName}.zip`);
-
-                rimraf(`./downloads/${tree.id}`);
-              }).catch(() => {
-                if (fs.existsSync(`./downloads/${tree.id}`)) {
-                  rimraf(`./downloads/${tree.id}`);
-                }
-
-                res
-                  .status(402)
-                  .json({ error: 'Error downloading folder' });
-              });
-            } else {
-              res.status(402).json({ error: 'Folder too large' });
-            }
-          }).catch(() => {
-            res.status(402).json({ error: 'Error downloading folder' });
-          });
-        } else {
-          Service.Files.Download(userData, fileIdInBucket).then(({
-            filestream, mimetype, downloadFile, folderId, name, type
-          }) => {
-            const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
-
-            res.setHeader('Content-type', mimetype);
-
-            const decryptedFileNameB64 = Buffer.from(`${decryptedFileName}${type ? `.${type}` : ''}`).toString('base64');
-            const encodedFileName = encodeURI(`${decryptedFileName}${type ? `.${type}` : ''}`);
-
-            res.setHeader('content-disposition', contentDisposition(encodedFileName));
-            res.set('x-file-name', decryptedFileNameB64);
-
-            filestream.pipe(res);
-            fs.unlink(downloadFile, (error) => {
-              if (error) throw error;
-            });
-          }).catch(({ message }) => {
-            if (message === 'Bridge rate limit error') {
-              res.status(402).json({ message });
-              return;
-            }
-            res.status(500).json({ message });
-          });
-        }
-      }).catch(() => {
-        res.status(500).send({ error: 'User not found' });
-      });
-    }).catch(() => {
-      res.status(500).send({ error: 'Invalid token' });
+    Service.Share.FindOne(req.params.token).then(({ encryptionKey }) => {
+      res.status(200).send({ result: { encryptionKey } });
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
     });
   });
 
