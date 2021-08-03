@@ -226,12 +226,12 @@ module.exports = (Router, Service, App) => {
     const user = req.user.email;
     const itemId = req.params.id;
     const mnemonic = req.headers['internxt-mnemonic'];
-    const { isFolder, views } = req.body;
+    const { isFolder, views, encryptionKey } = req.body;
 
-    Service.Share.GenerateToken(user, itemId, mnemonic, isFolder, views).then((result) => {
+    Service.Share.GenerateToken(user, itemId, mnemonic, encryptionKey, isFolder, views).then((result) => {
       res.status(200).send({ token: result });
     }).catch((err) => {
-      res.status(402).send(err.error ? err.error : { error: 'Internal Server Error' });
+      res.status(500).send({ error: err.message });
     });
   });
 
