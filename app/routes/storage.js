@@ -7,6 +7,7 @@ const bip39 = require('bip39');
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
 const logger = require('../../lib/logger');
+const CONSTANTS = require('../constants');
 
 const Logger = logger.getInstance();
 
@@ -269,13 +270,21 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/storage/recents/:limit/:folderId/:bucket', passportAuth, (req, res) => {
-    const { folderId, bucket } = req.params;
-    const limit = parseInt(req.params.limit, 10);
-    Service.Files.ListRecentFilesByFolderId(limit, bucket, folderId, req.user.id).then((files) => {
+  Router.get('/storage/recents', passportAuth, (req, res) => {
+    let { limit } = req.query;
+
+    limit = Math.min(parseInt(limit, 10), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
+
+    Service.Files.getRecentFiles(req.user.id, limit).then((files) => {
       if (!files) {
         return res.status(404).send({ error: 'Files not found' });
       }
+
+      files = files.map((file) => ({
+        ...file,
+        name: App.services.Crypt.decryptName(file.name, file.folder_id)
+      }));
+
       return res.status(200).json(files);
     }).catch((err) => {
       Logger.error(`Can not get recent files: ${req.user.email} : ${err.message}`);

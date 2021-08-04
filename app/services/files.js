@@ -439,25 +439,24 @@ module.exports = (Model, App) => {
     });
   };
 
-  const ListRecentFilesByFolderId = (limit, bucket, folderId, userId) => {
-    return Model.file.findAll({
-      where: {
-        bucket: { [Op.eq]: bucket }
-      },
-      order: [['id', 'DESC']],
+  const getRecentFiles = async (userId, limit) => {
+    const results = await Model.file.findAll({
+      order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
       include: [
         {
           model: Model.folder,
           where: {
-            user_id: { [Op.eq]: userId },
-            id: { [Op.eq]: folderId }
-          }
+            user_id: { [Op.eq]: userId }
+          },
+          attributes: []
         }
       ]
     });
-  }
+
+    return results;
+  };
 
   return {
     Name: 'Files',
@@ -472,7 +471,7 @@ module.exports = (Model, App) => {
     ListAllFiles,
     DownloadFolderFile,
     isFileOfTeamFolder,
-    ListRecentFilesByFolderId,
+    getRecentFiles,
     getFileByFolder
   };
 };
