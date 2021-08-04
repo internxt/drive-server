@@ -226,7 +226,9 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
     const itemId = req.params.id;
-    const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
+    const {
+      isFolder, views, encryptionKey, fileToken, bucket
+    } = req.body;
 
     Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views).then((result) => {
       res.status(200).send({ token: result });
