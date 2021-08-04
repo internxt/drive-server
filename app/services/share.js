@@ -111,8 +111,8 @@ module.exports = (Model, App) => {
     return Model.shares.findAll({
       where: {
         user: user.email,
-        encryptionKey: {
-          [Op.ne]: ''
+        mnemonic: {
+          [Op.eq]: ''
         }
       },
       attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views']
