@@ -226,10 +226,9 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
     const user = req.user.email;
     const itemId = req.params.id;
-    const mnemonic = req.headers['internxt-mnemonic'];
-    const { isFolder, views, encryptionKey } = req.body;
+    const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
 
-    Service.Share.GenerateToken(user, itemId, mnemonic, encryptionKey, isFolder, views).then((result) => {
+    Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views).then((result) => {
       res.status(200).send({ token: result });
     }).catch((err) => {
       res.status(500).send({ error: err.message });
@@ -247,8 +246,8 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.FindOne(req.params.token).then(({ encryptionKey }) => {
-      res.status(200).send({ result: { encryptionKey } });
+    Service.Share.get(req.params.token).then((share) => {
+      res.status(200).json(share);
     }).catch((err) => {
       res.status(500).send({ error: err.message });
     });

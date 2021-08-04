@@ -16,6 +16,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(64),
       allowNull: false
     },
+    bucket: {
+      type: DataTypes.STRING(24),
+      allowNull: false
+    },
+    fileToken: {
+      type: DataTypes.STRING(64),
+      allowNull: false
+    },
     mnemonic: DataTypes.STRING,
     isFolder: {
       type: DataTypes.BOOLEAN,

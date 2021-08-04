@@ -9,13 +9,15 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const FolderServiceInstance = FolderService(Model, App);
 
-  const FindOne = async (token) => {
+  const get = async (token) => {
+    const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
+
     const result = await Model.shares.findOne({
       where: { token: { [Op.eq]: token } }
     });
 
     if (!result) {
-      throw Error('Token does not exists');
+      throw Error('Token does not exist');
     }
 
     if (result.views === 1) {
@@ -24,10 +26,22 @@ module.exports = (Model, App) => {
       await Model.shares.update({ views: result.views - 1 }, { where: { id: { [Op.eq]: result.id } } });
     }
 
-    return result;
+    const file = await Model.file.findOne({
+      where: { fileId: { [Op.eq]: result.file } }
+    });
+
+    if (!file) {
+      throw Error('File not found on database, please refresh');
+    }
+
+    if (file.size > maxAcceptableSize) {
+      throw Error('File too large');
+    }
+
+    return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
-  const GenerateToken = async (user, fileIdInBucket, mnemonic, encryptionKey, isFolder = false, views = 1) => {
+  const GenerateToken = async (user, fileIdInBucket, mnemonic, bucket, encryptionKey, fileToken, isFolder = false, views = 1) => {
     if (!encryptionKey) {
       throw Error('Encryption key cannot be empty');
     }
@@ -79,7 +93,7 @@ module.exports = (Model, App) => {
       // Update token
       Model.shares.update(
         {
-          token: newToken, mnemonic, isFolder, views
+          token: newToken, mnemonic, isFolder, views, fileToken, encryptionKey
         },
         { where: { id: { [Op.eq]: tokenData.id } } }
       );
@@ -87,7 +101,7 @@ module.exports = (Model, App) => {
     }
 
     const newShare = await Model.shares.create({
-      token: newToken, mnemonic, encryptionKey, file: fileIdInBucket, user, isFolder, views
+      token: newToken, mnemonic, encryptionKey, file: fileIdInBucket, user, isFolder, views, bucket, fileToken
     });
 
     return newShare.token;
@@ -95,7 +109,7 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Share',
-    FindOne,
+    get,
     GenerateToken
   };
 };
