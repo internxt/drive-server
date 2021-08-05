@@ -107,9 +107,22 @@ module.exports = (Model, App) => {
     return newShare.token;
   };
 
+  const list = (user) => {
+    return Model.shares.findAll({
+      where: {
+        user: user.email,
+        mnemonic: {
+          [Op.eq]: ''
+        }
+      },
+      attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views']
+    });
+  };
+
   return {
     Name: 'Share',
     get,
+    list,
     GenerateToken
   };
 };

@@ -328,7 +328,7 @@ module.exports = (Model, App) => {
     }
 
     try {
-    await Model.users.update({ syncDate: sync }, { where: { email: user.email } });
+      await Model.users.update({ syncDate: sync }, { where: { email: user.email } });
     } catch (err) {
       Logger.error(err);
       throw Error('Internal server error');
