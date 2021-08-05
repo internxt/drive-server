@@ -115,6 +115,12 @@ module.exports = (Model, App) => {
           [Op.eq]: ''
         }
       },
+      include: [
+        {
+          model: Model.file,
+          as: 'fileInfo'
+        }
+      ],
       attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views']
     });
   };
