@@ -50,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
 
   file.associate = (models) => {
     file.belongsTo(models.folder);
+    file.hasMany(models.shares, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
   };
 
   return file;

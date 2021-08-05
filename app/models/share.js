@@ -38,5 +38,9 @@ module.exports = (sequelize, DataTypes) => {
     timestamps: false
   });
 
+  Share.associate = (models) => {
+    Share.hasOne(models.file, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
+  };
+
   return Share;
 };
