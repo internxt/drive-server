@@ -11,6 +11,8 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const Logger = App.logger;
+
   const FileServiceInstance = FileService(Model, App);
 
   // Create folder entry, for desktop
@@ -335,6 +337,7 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
+    Logger.info('FIX20210806 Service Folder.GetContent called (folderId: %s, user: %s, teamId: %s)', folderId, user.email, teamId);
     let teamMember = null;
     if (teamId) {
       teamMember = await Model.teamsmembers.findOne({
@@ -346,6 +349,7 @@ module.exports = (Model, App) => {
     }
 
     if (teamId && !teamMember) {
+      Logger.error('FIX20210806 User %s is not team member ERROR', user.email);
       return null; // User isn't member of this team
     }
 
