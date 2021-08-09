@@ -423,6 +423,12 @@ module.exports = (Model, App) => {
         }
       },
       (next) => {
+        if (metadata.itemName && (metadata.itemName === '' || invalidName.test(metadata.itemName))) {
+          return next(Error('Invalid folder name'));
+        }
+        return next();
+      },
+      (next) => {
         // Get the target folder from database
         Model.folder
           .findOne({

@@ -8,6 +8,7 @@ const async = require('async');
 const AesUtil = require('../../lib/AesUtil');
 
 const invalidName = /[\\/]|[. ]$/;
+const invalidNameWithExt = /[\\/]/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
@@ -295,6 +296,18 @@ module.exports = (Model, App) => {
               next(null, file);
             }
           }).catch(next);
+      },
+      (file, next) => {
+        if (metadata.itemName) {
+          if (file.type) {
+            if (invalidNameWithExt.test(metadata.itemName)) {
+              return next(Error('Cannot upload, invalid file name'));
+            }
+          } else if (invalidName.test(metadata.itemName)) {
+            return next(Error('Cannot upload, invalid file name'));
+          }
+        }
+        return next(null, file);
       },
       (file, next) => {
         Model.folder
