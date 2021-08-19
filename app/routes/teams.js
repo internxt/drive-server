@@ -256,11 +256,12 @@ module.exports = (Router, Service, App) => {
         await Service.Team.ApplyLicenseTeams(team.bridge_user, sizeBytes * session.metadata.total_members);
         await Service.TeamsMembers.addTeamMember(team.id, team.admin, team.bridge_password, team.bridge_mnemonic);
 
-        return res.status(200).send({ team });
+        res.status(200).send({ team });
+      } else {
+        throw new Error('Team is not paid!');
       }
-      throw Error();
-    } catch (err) {
-      return res.status(400).send({ error: 'Team is not paid' });
+    } catch (error) {
+      res.status(400).send({ error });
     }
   });
 

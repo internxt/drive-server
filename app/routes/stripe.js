@@ -72,8 +72,8 @@ module.exports = (Router, Service) => {
 
         const sessionParams = {
           payment_method_types: ['card'],
-          success_url: req.body.SUCCESS_URL || 'https://drive.internxt.com/',
-          cancel_url: req.body.CANCELED_URL || 'https://drive.internxt.com/',
+          success_url: `${process.env.HOST_DRIVE_WEB}`,
+          cancel_url: `${process.env.HOST_DRIVE_WEB}`,
           subscription_data: {
             items: [{ plan: req.body.plan }]
           },
