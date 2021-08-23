@@ -7,8 +7,9 @@ const async = require('async');
 
 const AesUtil = require('../../lib/AesUtil');
 
-const invalidName = /[\\/]|[. ]$/;
-const invalidNameWithExt = /[\\/]/;
+// Filenames that contain "/", "\" or only spaces are invalid
+const invalidName = /[/\\]|^\s*$/;
+
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
@@ -298,12 +299,8 @@ module.exports = (Model, App) => {
           }).catch(next);
       },
       (file, next) => {
-        if (metadata.itemName) {
-          if (file.type) {
-            if (invalidNameWithExt.test(metadata.itemName)) {
-              return next(Error('Cannot upload, invalid file name'));
-            }
-          } else if (invalidName.test(metadata.itemName)) {
+        if (metadata.itemName !== undefined) {
+          if (invalidName.test(metadata.itemName)) {
             return next(Error('Cannot upload, invalid file name'));
           }
         }
