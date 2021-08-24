@@ -1,5 +1,9 @@
+const createHttpError = require('http-errors');
+
 const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+
+const envService = require('./envService')();
 
 module.exports = () => {
   const getStripe = (isTest = false) => {
@@ -97,28 +101,90 @@ module.exports = () => {
     return result.url;
   };
 
-  const getProductFromUser = async (email, isTest) => {
+  const getProductFromUser = async (email) => {
+    const isTest = !envService.isProduction();
     const stripe = await getStripe(isTest);
-
     const customer = await findCustomerByEmail(email, isTest);
 
     if (!customer) {
       return customer;
     }
 
-    const expandedCostumer = await stripe.customers.retrieve(customer.id, {
+    const expandedCustomer = await stripe.customers.retrieve(customer.id, {
       expand: ['subscriptions']
     });
 
-    expandedCostumer.subscriptions.data.sort((a, b) => b.created - a.created);
+    expandedCustomer.subscriptions.data.sort((a, b) => b.created - a.created);
 
-    const { plan } = expandedCostumer.subscriptions.data[0];
+    const { plan } = expandedCustomer.subscriptions.data[0];
 
     const product = await stripe.products.retrieve(plan.product);
 
     return {
-      productId: product.id, name: product.name, price: product.metadata.price_eur, paymentInterval: plan.nickname, planId: plan.id
+      productId: product.id,
+      name: product.name,
+      price: product.metadata.price_eur,
+      paymentInterval: plan.nickname,
+      planId: plan.id
     };
+  };
+
+  const getUserSubscriptionPlans = async (email) => {
+    const isTest = !envService.isProduction();
+    const stripe = await getStripe(isTest);
+    const customer = await findCustomerByEmail(email, isTest);
+
+    if (!customer) {
+      throw createHttpError(404, `Stripe customer not found: ${email}`);
+    }
+
+    const expandedCustomer = await stripe.customers.retrieve(customer.id, {
+      expand: ['subscriptions.data.plan.product']
+    });
+
+    expandedCustomer.subscriptions.data
+      // .filter((subscription) => subscription.status === 'active')
+      .sort((a, b) => b.created - a.created);
+
+    return expandedCustomer.subscriptions.data.map((subscription) => ({
+      planId: subscription.plan.id,
+      productId: subscription.plan.product.id,
+      name: subscription.plan.product.name,
+      simpleName: subscription.plan.product.metadata.simple_name,
+      price: subscription.plan.product.metadata.price_eur,
+      isTeam: !!subscription.plan.product.metadata.is_teams,
+      storageLimit: subscription.plan.product.metadata.size_bytes,
+      paymentInterval: subscription.plan.nickname
+    }));
+  };
+
+  const getUserLifetimePlans = async (email) => {
+    const isTest = !envService.isProduction();
+    const stripe = await getStripe(isTest);
+    const customer = await findCustomerByEmail(email, isTest);
+
+    if (!customer) {
+      throw createHttpError(404, `Stripe customer not found: ${email}`);
+    }
+
+    const expandedCustomer = await stripe.customers.retrieve(customer.id, {
+      expand: ['subscriptions.data.plan.product']
+    });
+
+    expandedCustomer.subscriptions.data
+      // .filter((subscription) => subscription.status === 'active')
+      .sort((a, b) => b.created - a.created);
+
+    return expandedCustomer.subscriptions.data.map((subscription) => ({
+      planId: subscription.plan.id,
+      productId: subscription.plan.product.id,
+      name: subscription.plan.product.name,
+      simpleName: subscription.plan.product.metadata.simple_name,
+      price: subscription.plan.product.metadata.price_eur,
+      isTeam: !!subscription.plan.product.metadata.is_teams,
+      storageLimit: subscription.plan.product.metadata.size_bytes,
+      paymentInterval: subscription.plan.nickname
+    }));
   };
 
   return {
@@ -129,6 +195,8 @@ module.exports = () => {
     getTeamPlans,
     findCustomerByEmail,
     getBilling,
-    getProductFromUser
+    getProductFromUser,
+    getUserSubscriptionPlans,
+    getUserLifetimePlans
   };
 };
