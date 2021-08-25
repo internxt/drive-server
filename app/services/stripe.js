@@ -154,36 +154,8 @@ module.exports = () => {
       price: subscription.plan.product.metadata.price_eur,
       isTeam: !!subscription.plan.product.metadata.is_teams,
       storageLimit: subscription.plan.product.metadata.size_bytes,
-      paymentInterval: subscription.plan.nickname
-    }));
-  };
-
-  const getUserLifetimePlans = async (email) => {
-    const isTest = !envService.isProduction();
-    const stripe = await getStripe(isTest);
-    const customer = await findCustomerByEmail(email, isTest);
-
-    if (!customer) {
-      throw createHttpError(404, `Stripe customer not found: ${email}`);
-    }
-
-    const expandedCustomer = await stripe.customers.retrieve(customer.id, {
-      expand: ['subscriptions.data.plan.product']
-    });
-
-    expandedCustomer.subscriptions.data
-      // .filter((subscription) => subscription.status === 'active')
-      .sort((a, b) => b.created - a.created);
-
-    return expandedCustomer.subscriptions.data.map((subscription) => ({
-      planId: subscription.plan.id,
-      productId: subscription.plan.product.id,
-      name: subscription.plan.product.name,
-      simpleName: subscription.plan.product.metadata.simple_name,
-      price: subscription.plan.product.metadata.price_eur,
-      isTeam: !!subscription.plan.product.metadata.is_teams,
-      storageLimit: subscription.plan.product.metadata.size_bytes,
-      paymentInterval: subscription.plan.nickname
+      paymentInterval: subscription.plan.nickname,
+      isLifetime: false
     }));
   };
 
@@ -196,7 +168,6 @@ module.exports = () => {
     findCustomerByEmail,
     getBilling,
     getProductFromUser,
-    getUserSubscriptionPlans,
-    getUserLifetimePlans
+    getUserSubscriptionPlans
   };
 };

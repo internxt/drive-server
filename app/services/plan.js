@@ -1,6 +1,7 @@
 const { FREE_PLAN_BYTES } = require('../constants');
 
-const stripeService = require('./stripe')();
+const StripeService = require('./stripe');
+const LimitService = require('./limit');
 
 const FREE_PLAN = {
   planId: '',
@@ -10,26 +11,56 @@ const FREE_PLAN = {
   price: 0,
   isTeam: false,
   storageLimit: FREE_PLAN_BYTES,
-  paymentInterval: null
+  paymentInterval: null,
+  isLifetime: false
 };
 
-module.exports = () => {
+const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
+  planId: '',
+  productId: '',
+  name: 'Lifetime',
+  simpleName: 'lifetime',
+  price: 0,
+  isTeam,
+  storageLimit: maxSpaceBytes,
+  paymentInterval: null,
+  isLifetime: true
+});
+
+module.exports = (Model, App) => {
+  const stripeService = StripeService(Model, App);
+  const limitService = LimitService(Model, App);
+
   const getIndividualPlan = async (email) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(email))
       .filter((plan) => !plan.isTeam);
-    const lifetimePlans = (await stripeService.getUserLifetimePlans(email))
-      .filter((plan) => !plan.isTeam);
+    let result = subscriptionPlans[0];
 
-    return lifetimePlans[0] || subscriptionPlans[0] || FREE_PLAN;
+    if (!result) {
+      const { maxSpaceBytes } = (await limitService.getLimit());
+
+      result = maxSpaceBytes > FREE_PLAN_BYTES
+        ? lifetimePlanFactory(maxSpaceBytes, false)
+        : FREE_PLAN;
+    }
+
+    return result;
   };
 
   const getTeamPlan = async (email) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(email))
       .filter((plan) => plan.isTeam);
-    const lifetimePlans = (await stripeService.getUserLifetimePlans(email))
-      .filter((plan) => plan.isTeam);
+    let result = subscriptionPlans[0];
 
-    return lifetimePlans[0] || subscriptionPlans[0] || FREE_PLAN;
+    if (!result) {
+      const { maxSpaceBytes } = (await limitService.getLimit());
+
+      result = maxSpaceBytes > FREE_PLAN_BYTES
+        ? lifetimePlanFactory(maxSpaceBytes, true)
+        : FREE_PLAN;
+    }
+
+    return result;
   };
 
   return {
