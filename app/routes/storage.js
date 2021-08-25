@@ -264,7 +264,7 @@ module.exports = (Router, Service, App) => {
   });
 
   // TODO: Dejar de usar este endpoint en todas las plataformas
-  Router.get('/storage/user/info/stripe/:isTest', passportAuth, async (req, res) => {
+  Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
     Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((product) => {
       if (!product) {
         return res.status(404).send({ error: 'Product not found' });
