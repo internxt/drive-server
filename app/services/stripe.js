@@ -20,7 +20,7 @@ module.exports = () => {
         reject(err);
       } else {
         const productsMin = products.data
-          .filter((p) => p.metadata.is_drive === '1')
+          .filter((p) => p.metadata.is_drive === '1' && p.metadata.show === '1')
           .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
           .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
         resolve(productsMin);
@@ -38,7 +38,7 @@ module.exports = () => {
         reject(err);
       } else {
         const productsMin = products.data
-          .filter((p) => p.metadata.is_teams === '1')
+          .filter((p) => p.metadata.is_teams === '1' && p.metadata.show === '1')
           .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
           .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
         resolve(productsMin);
