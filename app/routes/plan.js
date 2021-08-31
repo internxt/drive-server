@@ -9,7 +9,8 @@ const { passportAuth } = passport;
 module.exports = (Router, Service) => {
   Router.get('/plan/individual', passportAuth, async (req, res) => {
     try {
-      const plan = await Service.Plan.getIndividualPlan(req.user.email);
+      const { user } = req;
+      const plan = await Service.Plan.getIndividualPlan(user.email, user.userId);
 
       if (!plan) {
         throw createHttpError(404, 'Individual plan not found');
@@ -33,7 +34,8 @@ module.exports = (Router, Service) => {
         throw createHttpError(404, `Team not found by member email: ${req.user.email}`);
       }
 
-      const plan = await Service.Plan.getTeamPlan(team.admin);
+      const teamAdminUser = await Service.User.FindUserByEmail(team.admin);
+      const plan = await Service.Plan.getTeamPlan(teamAdminUser.email, teamAdminUser.userId);
 
       if (!plan) {
         throw createHttpError(404, 'Team plan not found');
