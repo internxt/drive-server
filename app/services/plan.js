@@ -31,13 +31,13 @@ module.exports = (Model, App) => {
   const stripeService = StripeService(Model, App);
   const limitService = LimitService(Model, App);
 
-  const getIndividualPlan = async (email) => {
-    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(email))
+  const getIndividualPlan = async (userEmail, userId) => {
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
       .filter((plan) => !plan.isTeam);
     let result = subscriptionPlans[0];
 
     if (!result) {
-      const { maxSpaceBytes } = (await limitService.getLimit());
+      const { maxSpaceBytes } = (await limitService.getLimit(userEmail, userId));
 
       result = maxSpaceBytes > FREE_PLAN_BYTES
         ? lifetimePlanFactory(maxSpaceBytes, false)
@@ -47,13 +47,13 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const getTeamPlan = async (email) => {
-    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(email))
+  const getTeamPlan = async (userEmail, userId) => {
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
       .filter((plan) => plan.isTeam);
     let result = subscriptionPlans[0];
 
     if (!result) {
-      const { maxSpaceBytes } = (await limitService.getLimit());
+      const { maxSpaceBytes } = (await limitService.getLimit(userEmail, userId));
 
       result = maxSpaceBytes > FREE_PLAN_BYTES
         ? lifetimePlanFactory(maxSpaceBytes, true)
