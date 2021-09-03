@@ -2,6 +2,7 @@ const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
 const async = require('async');
+const cache = require('memory-cache');
 
 const envService = require('./envService')();
 
@@ -48,8 +49,15 @@ module.exports = () => {
       });
   });
 
+  // TODO: Flag force reload
   const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
+
+    const cachedPlans = cache.get('stripe_plans');
+
+    if (cachedPlans) {
+      return resolve(cachedPlans);
+    }
 
     stripe.products.list({
       limit: 100
@@ -72,6 +80,7 @@ module.exports = () => {
             return reject(err2);
           }
 
+          cache.put('stripe_plans', productsMin, 1000 * 60 * 30);
           return resolve(productsMin);
         });
       }
