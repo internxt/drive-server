@@ -1,6 +1,8 @@
 const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
+const async = require('async');
+
 const envService = require('./envService')();
 
 module.exports = () => {
@@ -26,24 +28,6 @@ module.exports = () => {
     });
   });
 
-  const getTeamProducts = (test = false) => new Promise((resolve, reject) => {
-    const stripe = getStripe(test);
-
-    stripe.products.list({
-      limit: 100
-    }, (err, products) => {
-      if (err) {
-        reject(err);
-      } else {
-        const productsMin = products.data
-          .filter((p) => p.metadata.is_teams === '1' && p.metadata.show === '1')
-          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
-          .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
-        resolve(productsMin);
-      }
-    });
-  });
-
   const getStoragePlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(test);
 
@@ -62,6 +46,54 @@ module.exports = () => {
           resolve(plansMin);
         }
       });
+  });
+
+  const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
+    const stripe = getStripe(isTest);
+
+    stripe.products.list({
+      limit: 100
+    }, (err, products) => {
+      if (err) {
+        reject(err);
+      } else {
+        const productsMin = products.data
+          .filter((p) => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1')
+            && p.metadata.show === '1')
+          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
+          .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
+
+        async.eachSeries(productsMin, async (product) => {
+          const plans = await getStoragePlans(product.id, isTest);
+          product.plans = plans;
+        }, (err2) => {
+          // err2: Avoid shadowed variables
+          if (err2) {
+            return reject(err2);
+          }
+
+          return resolve(productsMin);
+        });
+      }
+    });
+  });
+
+  const getTeamProducts = (test = false) => new Promise((resolve, reject) => {
+    const stripe = getStripe(test);
+
+    stripe.products.list({
+      limit: 100
+    }, (err, products) => {
+      if (err) {
+        reject(err);
+      } else {
+        const productsMin = products.data
+          .filter((p) => p.metadata.is_teams === '1' && p.metadata.show === '1')
+          .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
+          .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
+        resolve(productsMin);
+      }
+    });
   });
 
   const getTeamPlans = (stripeProduct, test = false) => new Promise((resolve, reject) => {
@@ -161,6 +193,7 @@ module.exports = () => {
   return {
     Name: 'Stripe',
     getStorageProducts,
+    getAllStorageProducts,
     getStoragePlans,
     getTeamProducts,
     getTeamPlans,
