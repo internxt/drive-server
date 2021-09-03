@@ -183,6 +183,16 @@ module.exports = (Router, Service) => {
     });
   });
 
+  Router.get('/v2/stripe/products', (req, res) => {
+    const test = req.query.test || false;
+
+    Service.Stripe.getAllStorageProducts(test).then((products) => {
+      res.status(200).send(products);
+    }).catch((err) => {
+      res.status(500).send({ error: err });
+    });
+  });
+
   Router.get('/stripe/teams/products', passportAuth, (req, res) => {
     const test = req.query.test || false;
 
