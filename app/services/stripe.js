@@ -53,7 +53,9 @@ module.exports = () => {
   const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
 
-    const cachedPlans = cache.get('stripe_plans');
+    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`
+
+    const cachedPlans = cache.get(cacheName);
 
     if (cachedPlans) {
       return resolve(cachedPlans);
@@ -80,7 +82,7 @@ module.exports = () => {
             return reject(err2);
           }
 
-          cache.put('stripe_plans', productsMin, 1000 * 60 * 30);
+          cache.put(cacheName, productsMin, 1000 * 60 * 30);
           return resolve(productsMin);
         });
       }
