@@ -184,7 +184,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.get('/v2/stripe/products', (req, res) => {
-    const test = req.query.test || false;
+    const test = req.query.test === 'true' || false;
 
     Service.Stripe.getAllStorageProducts(test).then((products) => {
       res.status(200).send(products);
