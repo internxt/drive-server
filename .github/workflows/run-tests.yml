@@ -1,0 +1,16 @@
+name: tests
+# on:
+#   pull_request:
+#     branches: [master]
+on:
+  push:
+    branches:
+      - "feature/add-tests-before-build"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+      - name: Lint & Test
+        run: yarn run test
