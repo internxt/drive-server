@@ -1,0 +1,13 @@
+name: run-tests
+on:
+  pull_request:
+    branches:
+      - "master"
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+      - name: Lint & Test
+        run: yarn add eslint && yarn run test
