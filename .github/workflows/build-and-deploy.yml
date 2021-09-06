@@ -39,12 +39,12 @@ jobs:
       - name: Update drive-server image
         uses: steebchen/kubectl@v2.0.0
         with: # defaults to latest kubectl binary version
-          config: ${{ secrets.KUBECONFIG }}
-          command: set image deployments/drive-server drive-server=${{ secrets.DOCKERHUB_USERNAME }}/drive-server:${{ github.sha }} --record true
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          command: set image --record deployment/drive-server drive-server=${{ secrets.DOCKERHUB_USERNAME }}/drive-server:${{ github.sha }}
       - name: Verify drive-server deployment
         uses: steebchen/kubectl@v2.0.0
         with:
-          config: ${{ secrets.KUBECONFIG }}
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
           version: v1.20.2 # specify kubectl binary version explicitly
           command: rollout status deployment/drive-server
 
@@ -52,11 +52,11 @@ jobs:
       - name: Update desktop-server image
         uses: steebchen/kubectl@v2.0.0
         with:
-          config: ${{ secrets.KUBECONFIG }}
-          command: set image deployments/desktop-server desktop-server=${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }} --record true
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          command: set image --record deployment/desktop-server desktop-server=${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }}
       - name: Verify desktop-server deployment
         uses: steebchen/kubectl@v2.0.0
         with:
-          config: ${{ secrets.KUBECONFIG }}
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
           version: v1.20.2
           command: rollout status deployment/desktop-server
