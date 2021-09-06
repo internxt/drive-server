@@ -53,7 +53,7 @@ module.exports = () => {
   const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
 
-    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`
+    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`;
 
     const cachedPlans = cache.get(cacheName);
 
@@ -61,7 +61,7 @@ module.exports = () => {
       return resolve(cachedPlans);
     }
 
-    stripe.products.list({
+    return stripe.products.list({
       limit: 100
     }, (err, products) => {
       if (err) {
