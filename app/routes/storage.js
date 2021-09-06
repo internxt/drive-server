@@ -2,7 +2,6 @@ const fs = require('fs');
 
 const contentDisposition = require('content-disposition');
 const bip39 = require('bip39');
-const uuid = require('uuid');
 
 const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
@@ -15,24 +14,16 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
-    const requestId = uuid.v4();
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
 
-    Logger.info('FIX20210806 %s User %s request folder %s content (idTeam: %s)', requestId, req.user.email, folderId, teamId);
-
     Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
       if (result == null) {
-        Logger.error('FIX20210806 %s User %s REQUEST FAIL (empty result: %s)', requestId, req.user.email, result);
         res.status(500).send([]);
       } else {
-        Logger.info('FIX20210806 %s User %s REQUEST SUCCESS', requestId, req.user.email);
         res.status(200).json(result);
       }
     }).catch((err) => {
-      Logger.error('FIX20210806 %s User %s request folder %s content ERROR', requestId, req.user.email, folderId);
-      Logger.error('FIX20210806 %s %s message %s', requestId, req.user.email, err.message);
-      Logger.error('FIX20210806 %s %s stack %s', requestId, req.user.email, err.stack);
       // Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).json(err);
     });
