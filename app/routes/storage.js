@@ -3,7 +3,6 @@ const fs = require('fs');
 const contentDisposition = require('content-disposition');
 const bip39 = require('bip39');
 
-const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
@@ -68,33 +67,6 @@ module.exports = (Router, Service, App) => {
       Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).send({ error: err.message });
     });
-  });
-
-  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
-    const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
-    const isValidMnemonic = bip39.validateMnemonic(user.mnemonic);
-
-    if (!isValidMnemonic) {
-      return res.status(400).send({ message: 'Missing encryption key' });
-    }
-    const xfile = req.file;
-    const folderId = req.params.id;
-
-    return Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
-      .then((result) => {
-        res.status(201).json(result);
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        if (err.includes && err.includes('Bridge rate limit error')) {
-          res.status(402).json({ message: err });
-          return;
-        }
-
-        res.status(500).json({ message: err });
-      });
   });
 
   Router.post('/storage/moveFolder', passportAuth, (req, res) => {
