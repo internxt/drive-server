@@ -1,7 +1,6 @@
 const fs = require('fs');
 const sequelize = require('sequelize');
 const async = require('async');
-const AdmZip = require('adm-zip');
 const { fn, col } = require('sequelize');
 const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
@@ -118,23 +117,6 @@ module.exports = (Model, App) => {
     const removed = await folder.destroy();
 
     return removed;
-  };
-
-  const CreateZip = (zipFileName, pathNames = []) => {
-    const zip = new AdmZip();
-
-    pathNames.forEach((path) => {
-      const p = fs.statSync(path);
-
-      if (p.isFile()) {
-        zip.addLocalFile(path);
-      } else if (p.isDirectory()) {
-        const zipInternalPath = path.split('/')[2];
-        zip.addLocalFolder(path, zipInternalPath);
-      }
-    });
-
-    zip.writeZip(zipFileName);
   };
 
   const Download = async (tree, userData) => {
@@ -663,7 +645,6 @@ module.exports = (Model, App) => {
     GetBucketList,
     MoveFolder,
     Download,
-    CreateZip,
     GetBucket,
     GetFolders,
     isFolderOfTeam,
