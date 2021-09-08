@@ -10,7 +10,7 @@ module.exports = (Router, Service) => {
   Router.get('/plan/individual', passportAuth, async (req, res) => {
     try {
       const { user } = req;
-      const plan = await Service.Plan.getIndividualPlan(user.email, user.userId);
+      const plan = await Service.Plan.getIndividualPlan(user.bridgeUser, user.userId);
 
       if (!plan) {
         throw createHttpError(404, 'Individual plan not found');

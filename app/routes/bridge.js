@@ -14,7 +14,7 @@ module.exports = (Router, Service) => {
   Router.get('/limit', passportAuth, (req, res) => {
     const { user } = req;
 
-    Service.Limit.getLimit(user.email, user.userId).then((data) => {
+    Service.Limit.getLimit(user.bridgeUser, user.userId).then((data) => {
       res.status(200).send(data);
     }).catch(() => {
       res.status(400).send({ result: 'Error retrieving bridge information' });

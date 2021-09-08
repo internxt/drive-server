@@ -159,7 +159,9 @@ module.exports = (Router, Service, App) => {
           revocateKey: keys ? keys.revocation_key : null,
           bucket: userBucket,
           registerCompleted: userData.registerCompleted,
-          teams: hasTeams
+          teams: hasTeams,
+          username: userData.username,
+          bridgeUser: userData.bridgeUser
         };
 
         const userTeam = null;
