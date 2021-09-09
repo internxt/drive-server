@@ -57,11 +57,11 @@ module.exports = (Router, Service) => {
 
     const { id: userId } = req.user;
 
-    const { fileId, hash, interval } = req.body;
+    const { fileId, hash, interval, lastBackupAt, enabled } = req.body;
 
-    if (!fileId && !hash && !interval) return res.status(400).send({ message: 'fileId, hash or interval must be present in the body' });
+    if (!fileId && !hash && !interval && !lastBackupAt && enabled === undefined) return res.status(400).send({ message: 'fileId, hash, interval, enabled or lastBackupAt must be present in the body' });
 
-    Service.Backup.updateOne(userId, deviceId, id, { fileId, hash, interval })
+    Service.Backup.updateOne(userId, deviceId, id, { fileId, hash, interval, lastBackupAt, enabled })
       .then((result) => res.status(200).send(result))
       .catch((err) => res.status(500).send({ error: err.message }));
   });

@@ -29,6 +29,12 @@ module.exports = (sequelize, DataTypes) => {
       bucket: {
         type: DataTypes.STRING(24)
       },
+      lastBackupAt: {
+        type: DataTypes.DATE
+      },
+      enabled: {
+        type: DataTypes.BOOLEAN
+      },
       created_at: {
         type: DataTypes.VIRTUAL,
         get() {
