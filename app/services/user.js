@@ -247,6 +247,7 @@ module.exports = (Model, App) => {
             await user.destroy();
           } catch (e) {
             user.email += '-DELETED';
+            user.username = user.email;
             user.save();
           }
 
@@ -457,7 +458,7 @@ module.exports = (Model, App) => {
   };
 
   const getUsage = async (user) => {
-    const targetUser = await Model.users.findOne({ email: user.bridgeUser });
+    const targetUser = await Model.users.findOne({ where: { email: user.bridgeUser } });
     const usage = await Model.folder.findAll({
       where: { user_id: targetUser.id },
       include: [{ model: Model.file, attributes: [] }],
