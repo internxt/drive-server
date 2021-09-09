@@ -5,7 +5,7 @@ module.exports = () => {
   };
 
   return {
-    Name: 'Folder',
+    Name: 'Guest',
     enableShareWorkspace
   };
 };
