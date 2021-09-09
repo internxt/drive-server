@@ -317,6 +317,10 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
+    if (user.email !== user.bridgeEmail) {
+      user = await Model.users.findOne({ where: { email: user.bridgeUser } });
+    }
+
     let teamMember = null;
     if (teamId) {
       teamMember = await Model.teamsmembers.findOne({

@@ -90,6 +90,13 @@ module.exports = (sequelize, DataTypes) => {
       registerCompleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+      },
+      sharedWorkspace: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      },
+      tempKey: {
+        type: DataTypes.STRING
       }
     },
     {
