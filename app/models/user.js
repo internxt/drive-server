@@ -94,6 +94,9 @@ module.exports = (sequelize, DataTypes) => {
       sharedWorkspace: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+      },
+      tempKey: {
+        type: DataTypes.STRING
       }
     },
     {
