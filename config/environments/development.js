@@ -5,7 +5,7 @@ exports.data = {
   database: {
     name: process.env.RDS_DBNAME,
     user: 'root',
-    password: '',
+    password: 'example',
     sequelizeConfig: {
       dialect: 'mariadb',
       port: 3306,

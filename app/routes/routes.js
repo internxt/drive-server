@@ -17,6 +17,7 @@ const AppSumoRoutes = require('./appsumo');
 const PaymentRoutes = require('./payments');
 const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
+const BackupsRoutes = require('./backup');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -53,6 +54,8 @@ module.exports = (Router, Service, App) => {
   PhotosRoutes(Router, Service, App);
   // Routes used by Internxt Photos
   ShareRoutes(Router, Service, App);
+  // Routes used by Desktop Backups
+  BackupsRoutes(Router, Service, App);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {

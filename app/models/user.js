@@ -83,6 +83,10 @@ module.exports = (sequelize, DataTypes) => {
       registerCompleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+      },
+      backupsBucket: {
+        type: DataTypes.STRING,
+        allowNull: true
       }
     },
     {
@@ -100,6 +104,7 @@ module.exports = (sequelize, DataTypes) => {
     User.hasOne(models.usersphotos);
     User.hasOne(models.AppSumo);
     User.hasOne(models.keyserver);
+    User.hasMany(models.device);
   };
 
   return User;
