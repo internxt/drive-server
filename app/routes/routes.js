@@ -161,7 +161,8 @@ module.exports = (Router, Service, App) => {
           registerCompleted: userData.registerCompleted,
           teams: hasTeams,
           username: userData.username,
-          bridgeUser: userData.bridgeUser
+          bridgeUser: userData.bridgeUser,
+          sharedWorkspace: userData.sharedWorkspace
         };
 
         const userTeam = null;
