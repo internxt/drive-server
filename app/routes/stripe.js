@@ -72,8 +72,8 @@ module.exports = (Router, Service) => {
 
         const sessionParams = {
           payment_method_types: ['card'],
-          success_url: `${process.env.HOST_DRIVE_WEB}`,
-          cancel_url: `${process.env.HOST_DRIVE_WEB}`,
+          success_url: req.body.SUCCESS_URL || process.env.HOST_DRIVE_WEB,
+          cancel_url: req.body.CANCELED_URL || process.env.HOST_DRIVE_WEB,
           subscription_data: {
             items: [{ plan: req.body.plan }]
           },
@@ -177,6 +177,16 @@ module.exports = (Router, Service) => {
     const test = req.query.test || false;
 
     Service.Stripe.getStorageProducts(test).then((products) => {
+      res.status(200).send(products);
+    }).catch((err) => {
+      res.status(500).send({ error: err });
+    });
+  });
+
+  Router.get('/v2/stripe/products', (req, res) => {
+    const test = req.query.test === 'true' || false;
+
+    Service.Stripe.getAllStorageProducts(test).then((products) => {
       res.status(200).send(products);
     }).catch((err) => {
       res.status(500).send({ error: err });

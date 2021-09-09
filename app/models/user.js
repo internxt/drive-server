@@ -20,6 +20,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false
       },
+      username: {
+        type: DataTypes.STRING,
+        unique: true
+      },
+      bridgeUser: {
+        type: DataTypes.STRING
+      },
       password: {
         type: DataTypes.STRING
       },

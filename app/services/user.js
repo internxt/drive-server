@@ -40,7 +40,9 @@ module.exports = (Model, App) => {
         uuid: null,
         credit: user.credit,
         welcomePack: true,
-        registerCompleted: user.registerCompleted
+        registerCompleted: user.registerCompleted,
+        username: user.username,
+        bridgeUser: user.bridgeUser
       },
       transaction: t
     }).then(async ([userResult, isNewRecord]) => {
@@ -363,6 +365,8 @@ module.exports = (Model, App) => {
     }
 
     newUser.email = newUser.email.toLowerCase().trim();
+    newUser.username = newUser.email;
+    newUser.bridgeUser = newUser.email;
     newUser.credit = 0;
     newUser.referral = newUser.referrer;
 
@@ -413,7 +417,9 @@ module.exports = (Model, App) => {
       credit: userData.credit,
       createdAt: userData.createdAt,
       registerCompleted: userData.registerCompleted,
-      email: userData.email
+      email: userData.email,
+      username: userData.username,
+      bridgeUser: userData.bridgeUser
     };
 
     try {

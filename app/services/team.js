@@ -2,13 +2,10 @@ const sequelize = require('sequelize');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const CryptService = require('./crypt');
 
 const { Op } = sequelize;
 
-module.exports = (Model, App) => {
-  const CryptServiceInstance = CryptService(Model, App);
-
+module.exports = (Model) => {
   const create = (team) => Model.teams.create({
     admin: team.admin,
     name: team.name,
@@ -38,20 +35,6 @@ module.exports = (Model, App) => {
     where: { bridge_user: { [Op.eq]: user } }
   });
 
-  const getPlans = async (user) => {
-    const dataBridge = await getTeamBridgeUser(user);
-    const pwd = dataBridge.bridge_password;
-    const pwdHash = CryptServiceInstance.hashSha256(pwd);
-    const credential = Buffer.from(`${dataBridge.bridge_user}:${pwdHash}`).toString('base64');
-    const limit = await axios.get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
-    }).then((res) => res.data).catch(() => null);
-    return limit;
-  };
-
   const getTeamByMember = (email) => getIdTeamByUser(email).then((team) => (!team ? Promise.resolve() : getTeamById(team.id_team)));
 
   const ApplyLicenseTeams = async (user, size) => {
@@ -74,7 +57,6 @@ module.exports = (Model, App) => {
     getIdTeamByUser,
     getTeamByMember,
     getTeamBridgeUser,
-    getPlans,
     ApplyLicenseTeams
   };
 };

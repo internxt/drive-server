@@ -1,0 +1,62 @@
+name: build & deploy
+on:
+  push:
+    branches: ["master", "feature/cd"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Out Repo
+        uses: actions/checkout@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Build and push to drive-server
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drive-server:${{ github.sha }}
+      - name: Build and push to desktop-server
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@master
+      - name: Update drive-server image
+        uses: steebchen/kubectl@v2.0.0
+        with: # defaults to latest kubectl binary version
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          command: set image --record deployment/drive-server drive-server=${{ secrets.DOCKERHUB_USERNAME }}/drive-server:${{ github.sha }}
+      - name: Verify drive-server deployment
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          version: v1.20.2 # specify kubectl binary version explicitly
+          command: rollout status deployment/drive-server
+
+      - uses: actions/checkout@master
+      - name: Update desktop-server image
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          command: set image --record deployment/desktop-server desktop-server=${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }}
+      - name: Verify desktop-server deployment
+        uses: steebchen/kubectl@v2.0.0
+        with:
+          config: ${{ secrets.KUBE_CONFIG_DATA }}
+          version: v1.20.2
+          command: rollout status deployment/desktop-server

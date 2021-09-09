@@ -50,6 +50,8 @@ module.exports = (Model, App) => {
       const maxSpaceBytes = integration.couponBytes(couponToReedem.code) || FREE_PLAN_BYTES;
       return maxSpaceBytes;
     }
+
+    return null;
   };
 
   return {

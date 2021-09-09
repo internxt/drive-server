@@ -2,9 +2,7 @@ const fs = require('fs');
 
 const contentDisposition = require('content-disposition');
 const bip39 = require('bip39');
-const uuid = require('uuid');
 
-const upload = require('../middleware/multer');
 const passport = require('../middleware/passport');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
@@ -15,24 +13,16 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
-    const requestId = uuid.v4();
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
 
-    Logger.info('FIX20210806 %s User %s request folder %s content (idTeam: %s)', requestId, req.user.email, folderId, teamId);
-
     Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
       if (result == null) {
-        Logger.error('FIX20210806 %s User %s REQUEST FAIL (empty result: %s)', requestId, req.user.email, result);
         res.status(500).send([]);
       } else {
-        Logger.info('FIX20210806 %s User %s REQUEST SUCCESS', requestId, req.user.email);
         res.status(200).json(result);
       }
     }).catch((err) => {
-      Logger.error('FIX20210806 %s User %s request folder %s content ERROR', requestId, req.user.email, folderId);
-      Logger.error('FIX20210806 %s %s message %s', requestId, req.user.email, err.message);
-      Logger.error('FIX20210806 %s %s stack %s', requestId, req.user.email, err.stack);
       // Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).json(err);
     });
@@ -77,33 +67,6 @@ module.exports = (Router, Service, App) => {
       Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).send({ error: err.message });
     });
-  });
-
-  Router.post('/storage/folder/:id/upload', passportAuth, upload.single('xfile'), (req, res) => {
-    const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
-    const isValidMnemonic = bip39.validateMnemonic(user.mnemonic);
-
-    if (!isValidMnemonic) {
-      return res.status(400).send({ message: 'Missing encryption key' });
-    }
-    const xfile = req.file;
-    const folderId = req.params.id;
-
-    return Service.Files.Upload(user, folderId, xfile.originalname, xfile.path)
-      .then((result) => {
-        res.status(201).json(result);
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        if (err.includes && err.includes('Bridge rate limit error')) {
-          res.status(402).json({ message: err });
-          return;
-        }
-
-        res.status(500).json({ message: err });
-      });
   });
 
   Router.post('/storage/moveFolder', passportAuth, (req, res) => {
@@ -263,6 +226,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  // TODO: Dejar de usar este endpoint en todas las plataformas
   Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
     Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((product) => {
       if (!product) {

@@ -1,7 +1,6 @@
 const fs = require('fs');
 const sequelize = require('sequelize');
 const async = require('async');
-const AdmZip = require('adm-zip');
 const { fn, col } = require('sequelize');
 const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
@@ -11,8 +10,6 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const Logger = App.logger;
-
   const FileServiceInstance = FileService(Model, App);
 
   // Create folder entry, for desktop
@@ -120,23 +117,6 @@ module.exports = (Model, App) => {
     const removed = await folder.destroy();
 
     return removed;
-  };
-
-  const CreateZip = (zipFileName, pathNames = []) => {
-    const zip = new AdmZip();
-
-    pathNames.forEach((path) => {
-      const p = fs.statSync(path);
-
-      if (p.isFile()) {
-        zip.addLocalFile(path);
-      } else if (p.isDirectory()) {
-        const zipInternalPath = path.split('/')[2];
-        zip.addLocalFolder(path, zipInternalPath);
-      }
-    });
-
-    zip.writeZip(zipFileName);
   };
 
   const Download = async (tree, userData) => {
@@ -337,7 +317,6 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
-    Logger.info('FIX20210806 Service Folder.GetContent called (folderId: %s, user: %s, teamId: %s)', folderId, user.email, teamId);
     let teamMember = null;
     if (teamId) {
       teamMember = await Model.teamsmembers.findOne({
@@ -349,7 +328,6 @@ module.exports = (Model, App) => {
     }
 
     if (teamId && !teamMember) {
-      Logger.error('FIX20210806 User %s is not team member ERROR', user.email);
       return null; // User isn't member of this team
     }
 
@@ -667,7 +645,6 @@ module.exports = (Model, App) => {
     GetBucketList,
     MoveFolder,
     Download,
-    CreateZip,
     GetBucket,
     GetFolders,
     isFolderOfTeam,
