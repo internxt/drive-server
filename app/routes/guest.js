@@ -24,6 +24,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/guest/accept', passportAuth, (req, res) => {
-    Logger.info('ACCEPT INVITATION GUEST from %s', req.user.email);
+    Logger.info('ACCEPT INVITATION GUEST from %s - %s', req.user.email, JSON.stringify(req.body));
+    res.status(200).send();
   })
 };
