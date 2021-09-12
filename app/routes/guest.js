@@ -12,10 +12,18 @@ module.exports = (Router, Service) => {
     Logger.info('REQUEST GUEST from %s to %s with key %s', req.user.email, guestUser, tempKey);
 
     Service.Guest.enableShareWorkspace(req.user, guestUser, tempKey).then(() => {
-      res.status(200).send({ ok: 1 });
+      return Service.Mail.sendGuestInvitation(req.user, guestUser).then(() => {
+        res.status(200).send({ ok: 1 });
+      }).catch(err => {
+        throw Error(err.message)
+      })
     }).catch((err) => {
       res.status(500).send({ error: 1 });
       Logger.error(err);
     });
   });
+
+  Router.post('/guest/accept', passportAuth, (req, res) => {
+    Logger.info('ACCEPT INVITATION GUEST from %s', req.user.email);
+  })
 };
