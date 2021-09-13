@@ -71,16 +71,16 @@ module.exports = () => {
 
     return new Promise((resolve, reject) => {
       mailer.dispatchSendGrid(guest, 'join-workspace', {
-        host: user.name + ' ' + user.lastname,
-        guest: guest,
+        host: `${user.name} ${user.lastname}`,
+        guest,
         url: `${process.env.HOST_DRIVE_WEB}/guest/invite`
       }, (err) => {
         if (err) {
-          return reject('Cannot send guest invitation')
+          return reject(Error('Cannot send guest invitation'));
         }
 
         return resolve();
-      })
+      });
     });
   };
 
