@@ -15,7 +15,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(24)
       },
       deviceId: {
-        type: DataTypes.STRING
+        type: DataTypes.INTEGER
+      },
+      userId: {
+        type: DataTypes.INTEGER
       },
       hash: {
         type: DataTypes.STRING
@@ -52,6 +55,7 @@ module.exports = (sequelize, DataTypes) => {
 
   backup.associate = (models) => {
     backup.belongsTo(models.device);
+    backup.belongsTo(models.users);
   };
 
   return backup;

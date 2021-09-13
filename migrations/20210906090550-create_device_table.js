@@ -2,8 +2,13 @@ module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.createTable('devices', {
       id: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
         primaryKey: true,
+        allowNull: false,
+        autoIncrement: true
+      },
+      mac: {
+        type: Sequelize.STRING,
         allowNull: false
       },
       userId: {

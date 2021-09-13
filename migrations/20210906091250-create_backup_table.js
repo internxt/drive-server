@@ -14,9 +14,16 @@ module.exports = {
         type: Sequelize.STRING(24)
       },
       deviceId: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
         references: {
           model: 'devices',
+          key: 'id'
+        }
+      },
+      userId: {
+        type: Sequelize.INTEGER,
+        references: {
+          model: 'users',
           key: 'id'
         }
       },
