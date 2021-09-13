@@ -66,10 +66,28 @@ module.exports = () => {
     });
   };
 
+  const sendGuestInvitation = (user, guest) => {
+    const mailer = mailInstance();
+
+    return new Promise((resolve, reject) => {
+      mailer.dispatchSendGrid(guest, 'join-workspace', {
+        host: `${user.name} ${user.lastname}`,
+        guest,
+        url: `${process.env.HOST_DRIVE_WEB}/guest/invite`
+      }, (err) => {
+        if (err) {
+          return reject(Error('Cannot send guest invitation'));
+        }
+
+        return resolve();
+      });
+    });
+  };
+
   return {
     Name: 'Mail',
     sendInvitationMail,
-    sendEmailTeamsMember
-
+    sendEmailTeamsMember,
+    sendGuestInvitation
   };
 };
