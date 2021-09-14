@@ -1,4 +1,3 @@
-const bip39 = require('bip39');
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
 
