@@ -231,7 +231,7 @@ module.exports = (Router, Service, App) => {
       const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
       await ReCaptchaV3.verify(req.body.captcha, ipaddress);
     } catch (err) {
-      return res.status(400).send({ error: 'only humans allowed' });
+      return res.status(400).send({ error: 'Only humans allowed' });
     }
 
     return Service.User.RegisterUser(req.body)
