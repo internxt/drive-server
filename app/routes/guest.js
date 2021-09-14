@@ -6,7 +6,7 @@ const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
   Router.post('/guest/invite', passportAuth, (req, res) => {
-    const tempKey = bip39.mnemonicToSeedSync(req.headers['internxt-mnemonic']).toString('hex');
+    const tempKey = 'M-' + Buffer.from(req.headers['internxt-mnemonic']).toString('hex');
     const guestUser = req.body.guest && req.body.guest.toLowerCase();
 
     Logger.info('REQUEST GUEST from %s to %s with key %s', req.user.email, guestUser, tempKey);
