@@ -23,6 +23,7 @@ const GuestRoutes = require('./guest');
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger');
+const ReCaptchaV3 = require('../../lib/recaptcha');
 
 const { passportAuth } = passport;
 
@@ -225,9 +226,17 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/register', (req, res) => {
-    const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-    Service.User.RegisterUser({ ...req.body, remoteip: ipaddress })
+  Router.post('/register', async (req, res) => {
+
+    try {
+      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+      await ReCaptchaV3.verify(req.body.captcha, ipaddress);
+    } catch (err) {
+      console.log('recaptcha error', err)
+      return res.status(400).send({ error: 'Captcha not solved' })
+    }
+
+    Service.User.RegisterUser(req.body)
       .then((result) => {
         if (req.body.referrer) {
           Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);
