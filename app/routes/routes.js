@@ -227,16 +227,14 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/register', async (req, res) => {
-
     try {
       const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
       await ReCaptchaV3.verify(req.body.captcha, ipaddress);
     } catch (err) {
-      console.log('recaptcha error', err)
-      return res.status(400).send({ error: 'Captcha not solved' })
+      return res.status(400).send({ error: 'only humans allowed' });
     }
 
-    Service.User.RegisterUser(req.body)
+    return Service.User.RegisterUser(req.body)
       .then((result) => {
         if (req.body.referrer) {
           Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);
