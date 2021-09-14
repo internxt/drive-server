@@ -226,7 +226,8 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/register', (req, res) => {
-    Service.User.RegisterUser(req.body)
+    const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+    Service.User.RegisterUser({ ...req.body, remoteip: ipaddress })
       .then((result) => {
         if (req.body.referrer) {
           Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);

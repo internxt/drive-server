@@ -9,6 +9,7 @@ const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS, FREE_PLAN_BYTES } = require('../constants');
 const CouponService = require('./coupons');
+const ReCaptchaV3 = require('../../lib/recaptcha');
 
 const { Op } = sequelize;
 
@@ -358,12 +359,16 @@ module.exports = (Model, App) => {
   const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`);
 
   const RegisterUser = async (newUser) => {
-    const { referral, email, password } = newUser;
+    const {
+      referral, email, password, captcha, remoteip
+    } = newUser;
 
     // Data validation for process only request with all data
     if (!(email && password)) {
       throw Error('You must provide registration data');
     }
+
+    await ReCaptchaV3.verify(captcha, remoteip);
 
     newUser.email = newUser.email.toLowerCase().trim();
     newUser.username = newUser.email;
