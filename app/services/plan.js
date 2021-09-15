@@ -9,10 +9,13 @@ const FREE_PLAN = {
   name: 'Free Plan',
   simpleName: '2GB',
   price: 0,
+  monthlyPrice: 0,
+  currency: '',
   isTeam: false,
   storageLimit: FREE_PLAN_BYTES,
   paymentInterval: null,
-  isLifetime: false
+  isLifetime: false,
+  renewalPeriod: ''
 };
 
 const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
@@ -21,10 +24,13 @@ const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
   name: 'Lifetime',
   simpleName: 'lifetime',
   price: 0,
+  monthlyPrice: 0,
+  currency: '',
   isTeam,
   storageLimit: maxSpaceBytes,
   paymentInterval: null,
-  isLifetime: true
+  isLifetime: true,
+  renewalPeriod: 'lifetime'
 });
 
 module.exports = (Model, App) => {

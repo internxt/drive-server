@@ -6,6 +6,41 @@ const cache = require('memory-cache');
 
 const envService = require('./envService')();
 
+const RenewalPeriod = {
+  Monthly: 'monthly',
+  Semiannually: 'semiannually',
+  Annually: 'annually',
+  Lifetime: 'lifetime'
+};
+
+function getMonthCount(intervalCount, timeInterval) {
+  const byTimeIntervalCalculator = {
+    month: () => intervalCount,
+    year: () => intervalCount * 12
+  };
+
+  return byTimeIntervalCalculator[timeInterval]();
+}
+
+function getMonthlyAmount(totalPrice, intervalCount, timeInterval) {
+  const monthCount = getMonthCount(intervalCount, timeInterval);
+  const monthlyPrice = totalPrice / monthCount;
+
+  return monthlyPrice;
+}
+
+function getRenewalPeriod(intervalCount, interval) {
+  let renewalPeriod = RenewalPeriod.Monthly;
+
+  if (interval === 'month' && intervalCount === 6) {
+    renewalPeriod = RenewalPeriod.Semiannually;
+  } else if (interval === 'year') {
+    renewalPeriod = RenewalPeriod.Annually;
+  }
+
+  return renewalPeriod;
+}
+
 module.exports = () => {
   const getStripe = (isTest = false) => {
     return isTest ? StripeTest : StripeProduction;
@@ -49,6 +84,28 @@ module.exports = () => {
       });
   });
 
+  const getProductPrices = (productId, test = false) => new Promise((resolve, reject) => {
+    const stripe = getStripe(test);
+
+    stripe.prices.list({ product: productId, active: true },
+      (err, response) => {
+        if (err) {
+          reject(err.message);
+        } else {
+          const prices = response.data.map((p) => ({
+            id: p.id,
+            name: p.nickname,
+            amount: p.unit_amount,
+            currency: p.currency,
+            recurring: p.recurring,
+            type: p.type
+          })).sort((a, b) => a.amount * 1 - b.amount * 1);
+
+          resolve(prices);
+        }
+      });
+  });
+
   // TODO: Flag force reload
   const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
@@ -84,6 +141,72 @@ module.exports = () => {
 
           cache.put(cacheName, productsMin, 1000 * 60 * 30);
           return resolve(productsMin);
+        });
+      }
+    });
+  });
+
+  /**
+   * @description Adds a product for every product.price found
+   * @param {*} isTest
+   * @returns
+   */
+  const getAllStorageProducts2 = (isTest = false) => new Promise((resolve, reject) => {
+    const stripe = getStripe(isTest);
+    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`;
+    const cachedPlans = cache.get(cacheName);
+
+    if (cachedPlans) {
+      return resolve(cachedPlans);
+    }
+
+    return stripe.products.list({
+      limit: 100
+    }, async (err, response) => {
+      if (err) {
+        reject(err);
+      } else {
+        const stripeProducts = response.data
+          .filter((p) => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1')
+            && p.metadata.show === '1')
+          .map((p) => ({
+            id: p.id,
+            name: p.name,
+            metadata: {
+              ...p.metadata,
+              is_drive: !!p.metadata.is_drive,
+              is_teams: !!p.metadata.is_teams,
+              show: !!p.metadata.show,
+              size_bytes: p.metadata.size_bytes && parseInt(p.metadata.size_bytes, 10)
+            }
+          }))
+          .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
+        const products = [];
+
+        async.eachSeries(stripeProducts, async (stripeProduct) => {
+          const prices = await getProductPrices(stripeProduct.id, isTest);
+
+          products.push(...prices.map((price) => ({
+            ...stripeProduct,
+            price: {
+              ...price,
+              amount: price.amount * 0.01,
+              monthlyAmount: (price.recurring
+                ? getMonthlyAmount(price.amount, price.recurring.interval_count, price.recurring.interval)
+                : price.amount) * 0.01
+            },
+            renewalPeriod: price.recurring
+              ? getRenewalPeriod(price.recurring.interval_count, price.recurring.interval)
+              : RenewalPeriod.Lifetime
+          })));
+        }, (err2) => {
+          // err2: Avoid shadowed variables
+          if (err2) {
+            return reject(err2);
+          }
+
+          cache.put(cacheName, products, 1000 * 60 * 30);
+          return resolve(products);
         });
       }
     });
@@ -190,11 +313,14 @@ module.exports = () => {
         productId: subscription.plan.product.id,
         name: subscription.plan.product.name,
         simpleName: subscription.plan.product.metadata.simple_name,
-        price: subscription.plan.product.metadata.price_eur,
+        price: subscription.plan.amount * 0.01,
+        monthlyPrice: getMonthlyAmount(subscription.plan.amount * 0.01, subscription.plan.interval_count, subscription.plan.interval),
+        currency: subscription.plan.currency,
         isTeam: !!subscription.plan.product.metadata.is_teams,
         storageLimit: subscription.plan.product.metadata.size_bytes,
         paymentInterval: subscription.plan.nickname,
-        isLifetime: false
+        isLifetime: false,
+        renewalPeriod: getRenewalPeriod(subscription.plan.intervalCount, subscription.plan.interval)
       }));
     }
 
@@ -205,7 +331,9 @@ module.exports = () => {
     Name: 'Stripe',
     getStorageProducts,
     getAllStorageProducts,
+    getAllStorageProducts2,
     getStoragePlans,
+    getProductPrices,
     getTeamProducts,
     getTeamPlans,
     findCustomerByEmail,
