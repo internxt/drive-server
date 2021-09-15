@@ -358,7 +358,9 @@ module.exports = (Model, App) => {
   const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`);
 
   const RegisterUser = async (newUser) => {
-    const { referral, email, password } = newUser;
+    const {
+      referral, email, password
+    } = newUser;
 
     // Data validation for process only request with all data
     if (!(email && password)) {
