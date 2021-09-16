@@ -151,7 +151,8 @@ module.exports = (Model, App) => {
 
           resolve(user);
         } else {
-          reject(Error('User not found on Drive database'));
+          Logger.error('User %s not found on Drive database', email);
+          reject(Error('Wrong email/password'));
         }
       }).catch((err) => reject(err));
   });

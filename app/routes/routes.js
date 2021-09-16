@@ -89,18 +89,13 @@ module.exports = (Router, Service, App) => {
             res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
           });
         }
-      }).catch((err) => {
-        res.status(400).send({
-          error: 'User not found on Bridge database',
-          message: err.response ? err.response.data : err
-        });
+      }).catch(() => {
+        Logger.error('User %s not found on Bridge database', req.body.email);
+        res.status(400).send({ error: 'Wrong email/password' });
       });
-    }).catch((err) => {
-      Logger.error(`${err}: ${req.body.email}`);
-      res.status(400).send({
-        error: 'User not found on Cloud database',
-        message: err.message
-      });
+    }).catch(() => {
+      Logger.error('User %s not found on Cloud database', req.body.email);
+      res.status(400).send({ error: 'Wrong email/password' });
     });
   });
 
@@ -186,7 +181,8 @@ module.exports = (Router, Service, App) => {
       return res.status(400).json({ error: 'Wrong email/password' });
     }).catch((err) => {
       Logger.error(`${err.message}\n${err.stack}`);
-      return res.status(400).send({ error: 'User not found on Cloud database', message: err.message });
+      Logger.error('User %s not found on Cloud database', req.body.email);
+      return res.status(400).send({ error: 'Wrong email/password' });
     });
   });
 
