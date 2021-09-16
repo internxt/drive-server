@@ -221,22 +221,48 @@ module.exports = (Router, Service) => {
         // Open session
         const customerId = customer !== null ? customer.id || null : null;
 
-        const sessionParams = {
-          payment_method_types: ['card'],
-          success_url: req.body.SUCCESS_URL || process.env.HOST_DRIVE_WEB,
-          cancel_url: req.body.CANCELED_URL || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
-          mode: req.body.mode,
-          line_items: [
-            {
-              price: req.body.priceId,
-              quantity: 1
+        let sessionParams;
+
+        if (req.body.mode === 'subscription') {
+          sessionParams = {
+            payment_method_types: ['card'],
+            success_url: req.body.SUCCESS_URL || process.env.HOST_DRIVE_WEB,
+            cancel_url: req.body.CANCELED_URL || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
+            subscription_data: {
+              items: [{ plan: req.body.priceId }]
+            },
+            customer_email: user,
+            customer: customerId,
+            allow_promotion_codes: true,
+            billing_address_collection: 'required'
+          };
+        } else if (req.body.mode === 'payment') {
+          sessionParams = {
+            payment_method_types: ['card'],
+            success_url: req.body.SUCCESS_URL || process.env.HOST_DRIVE_WEB,
+            cancel_url: req.body.CANCELED_URL || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
+            mode: req.body.mode,
+            line_items: [
+              {
+                price: req.body.priceId,
+                quantity: 1
+              }
+            ],
+            customer_email: user,
+            customer: customerId,
+            allow_promotion_codes: true,
+            billing_address_collection: 'required',
+            metadata: {
+              member_tier: 'lifetime'
+            },
+            payment_intent_data: {
+              metadata: {
+                member_tier: 'lifetime',
+                lifetime_tier: req.body.lifetime_tier
+              }
             }
-          ],
-          customer_email: user,
-          customer: customerId,
-          allow_promotion_codes: true,
-          billing_address_collection: 'required'
-        };
+          };
+        }
 
         if (sessionParams.customer) {
           delete sessionParams.customer_email;
