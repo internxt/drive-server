@@ -92,14 +92,17 @@ module.exports = () => {
         if (err) {
           reject(err.message);
         } else {
-          const prices = response.data.map((p) => ({
-            id: p.id,
-            name: p.nickname,
-            amount: p.unit_amount,
-            currency: p.currency,
-            recurring: p.recurring,
-            type: p.type
-          })).sort((a, b) => a.amount * 1 - b.amount * 1);
+          const prices = response.data
+            .filter((p) => !!p.metadata.show)
+            .map((p) => ({
+              id: p.id,
+              name: p.nickname,
+              amount: p.unit_amount,
+              currency: p.currency,
+              recurring: p.recurring,
+              type: p.type
+            }))
+            .sort((a, b) => a.amount * 1 - b.amount * 1);
 
           resolve(prices);
         }
