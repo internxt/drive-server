@@ -92,8 +92,6 @@ module.exports = () => {
         if (err) {
           reject(err.message);
         } else {
-          console.log('prices: ', response.data);
-
           const prices = response.data
             .filter((p) => !!p.metadata.show)
             .map((p) => ({
