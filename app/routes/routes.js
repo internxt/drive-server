@@ -224,8 +224,10 @@ module.exports = (Router, Service, App) => {
 
   Router.post('/register', async (req, res) => {
     try {
-      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-      await ReCaptchaV3.verify(req.body.captcha, ipaddress);
+      if (req.headers['internxt-client'] !== 'drive-mobile') {
+        const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+        await ReCaptchaV3.verify(req.body.captcha, ipaddress);
+      }
     } catch (err) {
       return res.status(400).send({ error: 'Only humans allowed' });
     }
