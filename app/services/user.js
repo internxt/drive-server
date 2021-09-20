@@ -295,6 +295,22 @@ module.exports = (Model, App) => {
     await updatePrivateKey(user, privateKey);
   };
 
+  const recoverPassword = async (user, newPassword, newSalt, oldMnemonic, oldPrivateKey) => {
+    // Update password, salt & mnemonic
+    user.hKey = newSalt;
+    user.mnemonic = oldMnemonic;
+    user.password = newPassword;
+    await user.save();
+
+    const keys = await user.getKeyserver();
+    if (!oldPrivateKey) {
+      keys.destroy();
+    } else {
+      keys.private_key = oldPrivateKey;
+      await keys.save().catch(() => { });
+    }
+  };
+
   const LoginFailed = (user, loginFailed) => Model.users.update({
     errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
   }, { where: { email: user } });
@@ -508,6 +524,7 @@ module.exports = (Model, App) => {
     ActivateUser,
     GetUserBucket,
     getUsage,
-    updateKeys
+    updateKeys,
+    recoverPassword
   };
 };

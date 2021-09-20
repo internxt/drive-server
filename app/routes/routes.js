@@ -301,6 +301,20 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.patch('/user/recover', passportAuth, (req, res) => {
+    const newPassword = App.services.Crypt.decryptText(req.body.password);
+    const newSalt = App.services.Crypt.decryptText(req.body.salt);
+
+    // Old data, but re-encrypted
+    const { mnemonic: oldMnemonic, privateKey: oldPrivateKey } = req.body;
+
+    Service.User.recoverPassword(req.user, newPassword, newSalt, oldMnemonic, oldPrivateKey).then(() => {
+      res.status(200).send({});
+    }).catch(() => {
+      res.status(500).send({ error: 'Could not restore password' });
+    });
+  });
+
   Router.post('/user/claim', passportAuth, (req, res) => {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
     const msg = {
