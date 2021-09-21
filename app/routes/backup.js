@@ -46,7 +46,7 @@ module.exports = (Router, Service) => {
         .send({ message: 'deviceName must be present in the body' });
     }
 
-    Service.Backup.createDevice(req.user.id, mac, deviceName)
+    return Service.Backup.createDevice(req.user.id, mac, deviceName)
       .then((device) => res.status(200).send(device))
       .catch((err) => res.status(500).send({ error: err.message }));
   });
@@ -75,7 +75,7 @@ module.exports = (Router, Service) => {
       });
     }
 
-    Service.Backup.create({
+    return Service.Backup.create({
       userId: req.user.id,
       path,
       deviceId,
@@ -136,7 +136,7 @@ module.exports = (Router, Service) => {
       });
     }
 
-    Service.Backup.updateOne(userId, id, bodyFiltered)
+    return Service.Backup.updateOne(userId, id, bodyFiltered)
       .then((result) => res.status(200).send(result))
       .catch((err) => res.status(500).send({ error: err.message }));
   });
@@ -154,7 +154,7 @@ module.exports = (Router, Service) => {
         .send({ message: 'interval must be present in the body' });
     }
 
-    Service.Backup.updateManyOfDevice(userId, deviceId, {
+    return Service.Backup.updateManyOfDevice(userId, deviceId, {
       interval
     })
       .then(() => res.status(200).send())
