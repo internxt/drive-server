@@ -33,8 +33,8 @@ module.exports = (Model, App) => {
     const { Storj, User } = App.services;
     let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
     if (!backupsBucket) {
-	    backupsBucket = (await Storj.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
-  	  Model.users.update({ backupsBucket },
+      backupsBucket = (await Storj.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
+      Model.users.update({ backupsBucket },
         { where: { email: { [Op.eq]: userData.email } } });
     }
   };

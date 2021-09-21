@@ -25,7 +25,8 @@ module.exports = (sequelize, DataTypes) => {
       }
     },
     {
-      timestamps: true
+      timestamps: true,
+      indexes: [{ fields: ['userId', 'mac'], name: 'mac_device_index' }]
     });
 
   device.associate = (models) => {
