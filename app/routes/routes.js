@@ -19,6 +19,7 @@ const PlanRoutes = require('./plan');
 const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
+const GuestRoutes = require('./guest');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -59,6 +60,8 @@ module.exports = (Router, Service, App) => {
   ShareRoutes(Router, Service, App);
   // Routes used by Desktop Backups
   BackupsRoutes(Router, Service, App);
+  // Invite guest routes
+  GuestRoutes(Router, Service, App);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
@@ -162,7 +165,10 @@ module.exports = (Router, Service, App) => {
           revocateKey: keys ? keys.revocation_key : null,
           bucket: userBucket,
           registerCompleted: userData.registerCompleted,
-          teams: hasTeams
+          teams: hasTeams,
+          username: userData.username,
+          bridgeUser: userData.bridgeUser,
+          sharedWorkspace: userData.sharedWorkspace
         };
 
         const userTeam = null;

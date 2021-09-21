@@ -94,6 +94,13 @@ module.exports = (sequelize, DataTypes) => {
       backupsBucket: {
         type: DataTypes.STRING,
         allowNull: true
+      },
+      sharedWorkspace: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      },
+      tempKey: {
+        type: DataTypes.STRING
       }
     },
     {

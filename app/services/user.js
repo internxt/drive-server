@@ -247,6 +247,7 @@ module.exports = (Model, App) => {
             await user.destroy();
           } catch (e) {
             user.email += '-DELETED';
+            user.username = user.email;
             user.save();
           }
 
@@ -457,8 +458,9 @@ module.exports = (Model, App) => {
   };
 
   const getUsage = async (user) => {
+    const targetUser = await Model.users.findOne({ where: { email: user.bridgeUser } });
     const usage = await Model.folder.findAll({
-      where: { user_id: user.id },
+      where: { user_id: targetUser.id },
       include: [{ model: Model.file, attributes: [] }],
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true
@@ -467,7 +469,7 @@ module.exports = (Model, App) => {
     const driveUsage = usage[0].total;
 
     const photosUsage = await (async () => {
-      const photosUser = await Model.usersphotos.findOne({ where: { userId: user.id } });
+      const photosUser = await Model.usersphotos.findOne({ where: { userId: targetUser.id } });
       const photosList = await photosUser.getPhotos();
       const photosSizeList = photosList.map((p) => p.size);
       return photosSizeList.reduce((a, b) => a + b);
