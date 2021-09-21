@@ -110,7 +110,7 @@ module.exports = () => {
   const getAllStorageProducts = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
 
-    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`;
+    const cacheName = `stripe_plans_v2${isTest ? 'test' : 'production'}`;
 
     const cachedPlans = cache.get(cacheName);
 
@@ -153,7 +153,7 @@ module.exports = () => {
    */
   const getAllStorageProducts2 = (isTest = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(isTest);
-    const cacheName = `stripe_plans_${isTest ? 'test' : 'production'}`;
+    const cacheName = `stripe_plans_v3${isTest ? 'test' : 'production'}`;
     const cachedPlans = cache.get(cacheName);
 
     if (cachedPlans) {
