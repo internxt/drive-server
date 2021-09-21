@@ -18,6 +18,7 @@ const PaymentRoutes = require('./payments');
 const PlanRoutes = require('./plan');
 const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
+const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
 
 const passport = require('../middleware/passport');
@@ -58,6 +59,8 @@ module.exports = (Router, Service, App) => {
   PhotosRoutes(Router, Service, App);
   // Routes used by Internxt Photos
   ShareRoutes(Router, Service, App);
+  // Routes used by Desktop Backups
+  BackupsRoutes(Router, Service, App);
   // Invite guest routes
   GuestRoutes(Router, Service, App);
 
