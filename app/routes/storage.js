@@ -226,23 +226,6 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  // TODO: Dejar de usar este endpoint en todas las plataformas
-  Router.get('/storage/user/info/stripe/:isTest', passportAuth, (req, res) => {
-    Service.Stripe.getProductFromUser(req.user.email, req.params.isTest).then((product) => {
-      if (!product) {
-        return res.status(404).send({ error: 'Product not found' });
-      }
-      return res.status(200).json(product);
-    }).catch((err) => {
-      if (err.statusCode) {
-        res.status(err.statusCode).send({ error: err.message });
-      } else {
-        res.status(500).send({ error: 'Can not get stripe info of the user' });
-      }
-      Logger.error(`Error get product stripe info from ${req.user.email}: ${err.message}`);
-    });
-  });
-
   Router.get('/storage/recents', passportAuth, (req, res) => {
     let { limit } = req.query;
 
