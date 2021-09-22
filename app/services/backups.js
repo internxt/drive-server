@@ -15,6 +15,10 @@ module.exports = (Model, App) => {
     return device;
   };
 
+  const getAllDevices = async (userId) => {
+    return Model.device.findAll({ where: { userId } });
+  };
+
   const createDevice = async (userId, mac, deviceName) => {
     try {
       return await getDevice(userId, mac);
@@ -82,6 +86,7 @@ module.exports = (Model, App) => {
     deleteOne,
     updateOne,
     getDevice,
+    getAllDevices,
     createDevice,
     updateDevice,
     updateManyOfDevice

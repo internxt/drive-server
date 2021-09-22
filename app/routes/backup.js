@@ -23,6 +23,16 @@ module.exports = (Router, Service) => {
       });
   });
 
+  Router.get('/backup/device', passportAuth, (req, res) => {
+    Service.Backup.getAllDevices(req.user.id)
+      .then((results) => {
+        res.status(200).send(results);
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
+  });
+
   Router.patch('/backup/device/:deviceId', passportAuth, (req, res) => {
     const { deviceId } = req.params;
     const { deviceName } = req.body;
