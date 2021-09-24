@@ -145,6 +145,9 @@ module.exports = (Router, Service, App) => {
 
         const keys = await Service.KeyServer.getKeys(userData);
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
+        let appSumoDetails = null;
+
+        appSumoDetails = await Service.AppSumo.GetDetails(userData).catch();
 
         const user = {
           email: req.body.email,
@@ -164,7 +167,8 @@ module.exports = (Router, Service, App) => {
           teams: hasTeams,
           username: userData.username,
           bridgeUser: userData.bridgeUser,
-          sharedWorkspace: userData.sharedWorkspace
+          sharedWorkspace: userData.sharedWorkspace,
+          appSumoDetails: appSumoDetails || null
         };
 
         const userTeam = null;
