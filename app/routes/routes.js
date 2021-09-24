@@ -147,7 +147,7 @@ module.exports = (Router, Service, App) => {
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
         let appSumoDetails = null;
 
-        appSumoDetails = await Service.AppSumo.GetDetails(userData).catch();
+        appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
 
         const user = {
           email: req.body.email,
