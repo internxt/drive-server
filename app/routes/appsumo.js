@@ -15,7 +15,7 @@ module.exports = (Router, Service, App) => {
       const token = Sign(userData.email, App.config.get('secrets').JWT, true);
       let appSumoDetails = null;
 
-      appSumoDetails = await Service.AppSumo.GetDetails(userData).catch();
+      appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
 
       const user = {
         userId: userData.userId,
