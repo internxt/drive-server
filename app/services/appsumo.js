@@ -87,7 +87,9 @@ module.exports = (Model, App) => {
       uuid: null,
       credit: 0,
       welcomePack: true,
-      registerCompleted: false
+      registerCompleted: false,
+      username: email,
+      bridgeUser: email
     };
 
     const user = await UserServiceInstance.FindOrCreate(userObject);
@@ -120,7 +122,9 @@ module.exports = (Model, App) => {
       uuid: null,
       credit: 0,
       welcomePack: true,
-      registerCompleted: false
+      registerCompleted: false,
+      username: email,
+      bridgeUser: email
     };
 
     const user = await UserServiceInstance.FindOrCreate(userObject);
