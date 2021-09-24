@@ -25,7 +25,9 @@ module.exports = (Router, Service, App) => {
         credit: userData.credit,
         createdAt: userData.createdAt,
         registerCompleted: userData.registerCompleted,
-        email: userData.email
+        email: userData.email,
+        bridgeUser: userData.email,
+        username: userData.email
       };
 
       res.status(200).send({ token, user });
