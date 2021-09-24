@@ -10,10 +10,12 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/appsumo/update', passportAuth, (req, res) => {
-    Service.AppSumo.CompleteInfo(req.user, req.body).then(() => {
+    Service.AppSumo.CompleteInfo(req.user, req.body).then(async () => {
       const userData = req.user;
-
       const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+      let appSumoDetails = null;
+
+      appSumoDetails = await Service.AppSumo.GetDetails(userData).catch();
 
       const user = {
         userId: userData.userId,
@@ -27,7 +29,8 @@ module.exports = (Router, Service, App) => {
         registerCompleted: userData.registerCompleted,
         email: userData.email,
         bridgeUser: userData.email,
-        username: userData.email
+        username: userData.email,
+        appSumoDetails: appSumoDetails || null
       };
 
       res.status(200).send({ token, user });
