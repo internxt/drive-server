@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
         get() {
           return this.getDataValue('createdAt');
         }
+      },
+      platform: {
+        type: DataTypes.STRING(20),
+        allowNull: true
       }
     },
     {

@@ -1,6 +1,6 @@
 const sequelize = require('sequelize');
 
-const { Op } = sequelize;
+const { Op, fn, col } = sequelize;
 
 module.exports = (Model, App) => {
   const getDevice = async (userId, mac) => {
@@ -16,14 +16,22 @@ module.exports = (Model, App) => {
   };
 
   const getAllDevices = async (userId) => {
-    return Model.device.findAll({ where: { userId } });
+    return Model.device.findAll({
+      where: { userId },
+      attributes: { include: [[fn('SUM', col('backups.size')), 'size']] },
+      include: [{ model: Model.backup, attributes: ['size'] }]
+    });
   };
 
-  const createDevice = async (userId, mac, deviceName) => {
+  const createDevice = async (userId, mac, deviceName, platform) => {
     try {
       return await getDevice(userId, mac);
     } catch (err) {
-      if (err.name === 'NOT_FOUND') return Model.device.create({ mac, userId, name: deviceName });
+      if (err.name === 'NOT_FOUND') {
+        return Model.device.create({
+          mac, userId, name: deviceName, platform
+        });
+      }
 
       throw err;
     }

@@ -47,7 +47,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/backup/device/:mac', passportAuth, (req, res) => {
-    const { deviceName } = req.body;
+    const { deviceName, platform } = req.body;
     const { mac } = req.params;
 
     if (!deviceName) {
@@ -56,7 +56,7 @@ module.exports = (Router, Service) => {
         .send({ message: 'deviceName must be present in the body' });
     }
 
-    return Service.Backup.createDevice(req.user.id, mac, deviceName)
+    return Service.Backup.createDevice(req.user.id, mac, deviceName, platform)
       .then((device) => res.status(200).send(device))
       .catch((err) => res.status(500).send({ error: err.message }));
   });
