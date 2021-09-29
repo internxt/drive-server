@@ -1,8 +1,6 @@
-const fs = require('fs');
 const sequelize = require('sequelize');
 const async = require('async');
 const { fn, col } = require('sequelize');
-const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
 
 const invalidName = /[\\/]|[. ]$/;
@@ -10,8 +8,6 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const FileServiceInstance = FileService(Model, App);
-
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
@@ -117,54 +113,6 @@ module.exports = (Model, App) => {
     const removed = await folder.destroy();
 
     return removed;
-  };
-
-  const Download = async (tree, userData) => {
-    const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
-    const rootPath = `./downloads/${tree.id}/${rootFolder}`;
-    const listFilesToDownload = [];
-
-    function traverseFile(files, path = rootPath) {
-      files.forEach((file) => { listFilesToDownload.push({ id: file.fileId, path }); });
-    }
-
-    function traverseChildren(children, path = rootPath) {
-      children.forEach((child) => {
-        const subFolder = App.services.Crypt.decryptName(child.name, child.parentId);
-
-        fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
-          if (err) throw err;
-        });
-
-        if (child.files && child.files.length > 0) {
-          traverseFile(child.files, `${path}/${subFolder}`);
-        }
-
-        if (child.children && child.children.length > 0) {
-          traverseChildren(child.children, `${path}/${subFolder}`);
-        }
-      });
-    }
-
-    fs.mkdir(rootPath, { recursive: true }, (err) => {
-      if (err) throw err;
-    });
-
-    if (tree.files && tree.files.length > 0) {
-      traverseFile(tree.files);
-    }
-
-    if (tree.children && tree.children.length > 0) {
-      traverseChildren(tree.children);
-    }
-
-    return async.eachSeries(listFilesToDownload, (file, next) => {
-      FileServiceInstance.DownloadFolderFile(userData, file.id, file.path).then(() => {
-        next();
-      }).catch((err) => {
-        next(err);
-      });
-    });
   };
 
   const GetTreeSize = (tree) => {
@@ -648,7 +596,6 @@ module.exports = (Model, App) => {
     UpdateMetadata,
     GetBucketList,
     MoveFolder,
-    Download,
     GetBucket,
     GetFolders,
     isFolderOfTeam,

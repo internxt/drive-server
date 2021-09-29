@@ -13,21 +13,6 @@ module.exports = (Router, Service) => {
     });
   });
 
-  Router.get('/user/isactivated', passportAuth, (req, res) => {
-    const user = req.user.email;
-
-    Service.Storj.IsUserActivated(user).then((response) => {
-      if (response.data) {
-        res.status(200).send({ activated: response.data.activated });
-      } else {
-        res.status(400).send({ error: 'User activation info not found' });
-      }
-    }).catch((error) => {
-      Logger.error(error.stack);
-      res.status(500).json({ error: error.message });
-    });
-  });
-
   Router.get('/team/isactivated/:email', passportAuth, (req, res) => {
     const user = req.user.email;
     const bridgeUser = req.params.email;
