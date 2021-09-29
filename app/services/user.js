@@ -492,8 +492,16 @@ module.exports = (Model, App) => {
       return photosSizeList.reduce((a, b) => a + b);
     })().catch(() => 0);
 
+    const backupsQuery = await Model.backup.findAll({
+      where: { userId: targetUser.id },
+      attributes: [[fn('sum', col('size')), 'total']],
+      raw: true
+    });
+
+    const backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
+
     return {
-      total: driveUsage + photosUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0
+      total: driveUsage + photosUsage + backupsUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0, backups: backupsUsage
     };
   };
 

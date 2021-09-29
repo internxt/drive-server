@@ -159,7 +159,8 @@ module.exports = (Router, Service, App) => {
           username: userData.username,
           bridgeUser: userData.bridgeUser,
           sharedWorkspace: userData.sharedWorkspace,
-          appSumoDetails: appSumoDetails || null
+          appSumoDetails: appSumoDetails || null,
+          backupsBucket: userData.backupsBucket
         };
 
         const userTeam = null;
