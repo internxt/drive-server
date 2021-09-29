@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const shortid = require('shortid');
 const { Environment } = require('storj');
 const prettysize = require('prettysize');
-const { default: axios } = require('axios');
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -138,15 +137,6 @@ module.exports = (Model, App) => {
     });
   };
 
-  const IsUserActivated = (email) => {
-    // Set api call settings
-    const params = { headers: { 'Content-Type': 'application/json', email } };
-
-    // Do api call
-    return axios.get(`${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params);
-  };
-
   const DeletePhoto = (user, bucketId, photo) => new Promise((resolve, reject) => {
     const storj = getEnvironment(user.email, user.userId, user.mnemonic);
     storj.deleteFile(bucketId, photo, (err, result) => {
@@ -161,7 +151,6 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'StorjPhotos',
-    IsUserActivated,
     CreatePhotosBucket,
     StorePhoto,
     ResolvePhoto,

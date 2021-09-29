@@ -372,8 +372,6 @@ module.exports = (Model, App) => {
     return user.save();
   };
 
-  const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/activations/${token}`);
-
   const RegisterUser = async (newUser) => {
     const {
       referral, email, password
@@ -529,7 +527,6 @@ module.exports = (Model, App) => {
     GetOrSetUserSync,
     UpdateUserSync,
     UnlockSync,
-    ActivateUser,
     GetUserBucket,
     getUsage,
     updateKeys,

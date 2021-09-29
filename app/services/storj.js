@@ -50,34 +50,18 @@ module.exports = (Model, App) => {
   }
 
   const RegisterBridgeUser = (email, password) => {
-    // Set variables
     const hashPwd = pwdToHex(password);
 
-    // Set api call settings
     const params = { headers: { 'Content-Type': 'application/json' } };
-    const data = {
-      email,
-      password: hashPwd
-    };
+    const data = { email, password: hashPwd };
 
-    // Do api call
     return axios
       .post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).then((response) => response).catch((err) => err);
   };
 
-  const IsUserActivated = (email) => {
-    // Set api call settings
-    const params = { headers: { 'Content-Type': 'application/json', email } };
-
-    // Do api call
-    return axios.get(`${App.config.get('STORJ_BRIDGE')}/users/isactivated`,
-      params);
-  };
-
   const CreateBucket = (email, password, mnemonic, name) => {
-    const bucketName = name
-      ? `${name}_${shortid.generate()}`
-      : `${shortid.generate()}_ROOT`;
+    const bucketName = name ? `${name}_${shortid.generate()}` : `${shortid.generate()}_ROOT`;
+
     try {
       const storj = getEnvironment(email, password, mnemonic);
 
@@ -264,7 +248,6 @@ module.exports = (Model, App) => {
     DeleteFile,
     ListBuckets,
     ListBucketFiles,
-    IsUserActivated,
     ResolveFolderFile
   };
 };
