@@ -114,32 +114,26 @@ module.exports = (Model, App) => {
     });
   });
 
-  const DeleteFile = (user, folderid, fileid) => new Promise((resolve, reject) => {
-    Model.file
-      .findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
-        if (!fileObj) {
-          reject(new Error('Folder not found'));
-        } else if (fileObj.fileId) {
-          App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
-            fileObj.destroy().then(resolve).catch(reject);
-          }).catch((err) => {
-            const resourceNotFoundPattern = /Resource not found/;
+  const DeleteFile = async (user, folderId, fileId) => {
+    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId } });
 
-            if (resourceNotFoundPattern.exec(err.message)) {
-              fileObj.destroy().then(resolve).catch(reject);
-            } else {
-              log.error('Error deleting file from bridge:', err.message);
-              reject(err);
-            }
-          });
-        } else {
-          fileObj.destroy().then(resolve).catch(reject);
-        }
-      }).catch((err) => {
-        log.error('Failed to find folder on database:', err.message);
-        reject(err);
-      });
-  });
+    await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
+
+    if (!file) {
+      throw Error('File/Folder not found');
+    }
+
+    try {
+      await App.services.Storj.DeleteFile(user, file.bucket, file.fileId);
+    } catch (err) {
+      const resourceNotFoundPattern = /Resource not found/;
+
+      if (!resourceNotFoundPattern.exec(err.message)) {
+        throw err;
+      }
+    }
+    await file.destroy();
+  };
 
   const UpdateMetadata = (user, fileId, metadata) => {
     const newMeta = {};
