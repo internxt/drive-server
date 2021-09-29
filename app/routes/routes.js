@@ -12,7 +12,6 @@ const StripeRoutes = require('./stripe');
 const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
-const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
 const PaymentRoutes = require('./payments');
 const PlanRoutes = require('./plan');
@@ -45,8 +44,6 @@ module.exports = (Router, Service, App) => {
   MobileRoutes(Router, Service, App);
   // Routes to create, edit and delete the 2-factor-authentication
   TwoFactorRoutes(Router, Service, App);
-  // Extra routes uncategorized
-  ExtraRoutes(Router, Service, App);
   // Teams routes
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
@@ -266,14 +263,8 @@ module.exports = (Router, Service, App) => {
         };
 
         try {
-          const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id);
-          const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id);
-          personalFolder.iconId = 1;
-          personalFolder.color = 'pink';
-          familyFolder.iconId = 18;
-          familyFolder.color = 'yellow';
-          await personalFolder.save();
-          await familyFolder.save();
+          await Service.Folder.Create(userData, 'Family', user.root_folder_id).save();
+          await Service.Folder.Create(userData, 'Personal', user.root_folder_id).save();
         } catch (e) {
           Logger.error('Cannot initialize welcome folders: %s', e.message);
         } finally {
