@@ -1,5 +1,6 @@
 .vscode
 .env
+.npmrc
 node_modules
 uploads
 downloads
