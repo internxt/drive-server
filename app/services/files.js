@@ -8,8 +8,6 @@ const invalidName = /[/\\]|^\s*$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const log = App.logger;
-
   const CreateFile = async (user, file) => {
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       throw Error('Invalid metadata for new file');
