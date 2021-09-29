@@ -153,6 +153,7 @@ module.exports = (Model, App) => {
 
     user.name = info.name;
     user.lastname = info.lastname;
+    user.sharedWorkspace = true;
     // user.registerCompleted = true;
     await user.save();
     await UserServiceInstance.UpdatePasswordMnemonic(user, hashedCurrentPassword, newPassword, newSalt, info.mnemonic);
