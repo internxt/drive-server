@@ -1,4 +1,3 @@
-const axios = require('axios');
 const sequelize = require('sequelize');
 
 const { Op } = sequelize;

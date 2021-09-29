@@ -1,10 +1,5 @@
-const fs = require('fs');
-const path = require('path');
-
 const sequelize = require('sequelize');
-
 const async = require('async');
-
 const AesUtil = require('../../lib/AesUtil');
 
 // Filenames that contain "/", "\" or only spaces are invalid

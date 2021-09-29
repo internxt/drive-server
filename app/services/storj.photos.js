@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const shortid = require('shortid');
 const { Environment } = require('storj');
 const prettysize = require('prettysize');
-const { default: axios } = require('axios');
 
 module.exports = (Model, App) => {
   const log = App.logger;
