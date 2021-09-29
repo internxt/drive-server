@@ -4,6 +4,7 @@
   "description": "Drive Server API",
   "main": "app.js",
   "dependencies": {
+    "@internxt/inxt-js": "^1.2.3-6",
     "@sendgrid/mail": "^7.2.1",
     "analytics-node": "^3.4.0-beta.3",
     "async": "^3.2.0",
@@ -72,5 +73,5 @@
   "license": "MIT",
   "engines": {
     "node": ">=10 <11"
-}
+  }
 }

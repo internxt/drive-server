@@ -1,10 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-
 const sequelize = require('sequelize');
-
 const async = require('async');
-
+const inxtJs = require('@internxt/inxt-js/build/index');
 const AesUtil = require('../../lib/AesUtil');
 
 // Filenames that contain "/", "\" or only spaces are invalid
@@ -354,8 +352,12 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const MoveFile = async (user, fileId, destination) => {
+  const MoveFile = async (user, fileId, destination, bucketId) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+
+    console.log('bucketId: ', bucketId);
+    console.log('inxt-js: ', inxtJs);
+
     if (!file) {
       throw Error('File not found');
     }

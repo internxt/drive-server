@@ -69,7 +69,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/moveFolder', passportAuth, (req, res) => {
+  Router.post('/storage/move/folder', passportAuth, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
     const { user } = req;
@@ -146,12 +146,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/moveFile', passportAuth, (req, res) => {
-    const { fileId } = req.body;
-    const { destination } = req.body;
+  Router.post('/storage/move/file', passportAuth, (req, res) => {
+    const { fileId, destination, bucketId } = req.body;
     const { user } = req;
 
-    Service.Files.MoveFile(user, fileId, destination).then((result) => {
+    Service.Files.MoveFile(user, fileId, destination, bucketId).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
       Logger.error(err);

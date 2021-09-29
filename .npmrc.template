@@ -4,5 +4,5 @@ unsafe-perm=true
 engineStrict=true
   
 @internxt:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=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
+//npm.pkg.github.com/:_authToken=TOKEN
 always-auth=true
