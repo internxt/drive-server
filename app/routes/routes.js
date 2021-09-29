@@ -263,8 +263,8 @@ module.exports = (Router, Service, App) => {
         };
 
         try {
-          await Service.Folder.Create(userData, 'Family', user.root_folder_id).save();
-          await Service.Folder.Create(userData, 'Personal', user.root_folder_id).save();
+          (await Service.Folder.Create(userData, 'Family', user.root_folder_id)).save();
+          (await Service.Folder.Create(userData, 'Personal', user.root_folder_id)).save();
         } catch (e) {
           Logger.error('Cannot initialize welcome folders: %s', e.message);
         } finally {

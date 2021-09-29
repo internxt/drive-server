@@ -30,7 +30,8 @@ module.exports = (Router, Service, App) => {
         email: userData.email,
         bridgeUser: userData.email,
         username: userData.email,
-        appSumoDetails: appSumoDetails || null
+        appSumoDetails: appSumoDetails || null,
+        sharedWorkspace: true
       };
 
       res.status(200).send({ token, user });
