@@ -82,19 +82,10 @@ module.exports = (Router, Service, App) => {
         return res.status(400).json({ error: 'Wrong email/password' });
       }
 
-      return Service.Storj.IsUserActivated(req.body.email).then((resActivation) => {
-        if (!resActivation.data.activated) {
-          res.status(400).send({ error: 'User is not activated' });
-        } else {
-          const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-          const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then((keyExist) => {
-            res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
-          });
-        }
-      }).catch(() => {
-        Logger.error('User %s not found on Bridge database', req.body.email);
-        res.status(400).send({ error: 'Wrong email/password' });
+      const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
+      const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+      return Service.KeyServer.keysExists(userData).then((keyExist) => {
+        res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
       });
     }).catch(() => {
       Logger.error('User %s not found on Cloud database', req.body.email);

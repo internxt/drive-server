@@ -178,8 +178,6 @@ module.exports = (Model, App) => {
 
   const GetUserRootAlbum = () => Model.usersPhotos.findAll({ include: [Model.album] });
 
-  const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/photos/activations/${token}`);
-
   return {
     Name: 'UserPhotos',
     UserFindOrCreate,
@@ -189,7 +187,6 @@ module.exports = (Model, App) => {
     FindUserById,
     FindUserByEmail,
     FindUserByUuid,
-    GetUserRootAlbum,
-    ActivateUser
+    GetUserRootAlbum
   };
 };
