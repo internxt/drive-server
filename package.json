@@ -50,7 +50,7 @@
   },
   "scripts": {
     "start": "node app.js",
-    "dev": "cross-env NODE_ENV=development nodemon",
+    "dev": "cross-env NODE_ENV=staging nodemon",
     "docker": "cross-env NODE_ENV=docker nodemon",
     "testsuite": "cross-env NODE_ENV=test mocha test/**/*.js",
     "test": "npm run lint && npm run testsuite",
@@ -72,5 +72,5 @@
   "license": "MIT",
   "engines": {
     "node": ">=10 <11"
-}
+  }
 }
