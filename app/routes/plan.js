@@ -10,6 +10,19 @@ module.exports = (Router, Service) => {
   Router.get('/plan/individual', passportAuth, async (req, res) => {
     try {
       const { user } = req;
+
+      const appSumoPlan = await Service.AppSumo.GetDetails(user).catch(() => null);
+
+      if (appSumoPlan && appSumoPlan.planId !== 'internxt_free1') {
+        const result = {
+          isAppSumo: true,
+          price: 0,
+          details: appSumoPlan
+        };
+
+        return res.status(200).send(result);
+      }
+
       const plan = await Service.Plan.getIndividualPlan(user.bridgeUser, user.userId);
 
       if (!plan) {
