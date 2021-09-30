@@ -29,13 +29,13 @@ module.exports = (Router, Service) => {
         throw createHttpError(404, 'Individual plan not found');
       }
 
-      res.status(200).json(plan);
+      return res.status(200).json(plan);
     } catch (error) {
       const statusCode = error.statusCode || 500;
       const errorMessage = error.message || '';
 
       Logger.error(`Error getting stripe individual plan ${req.user.email}: ${error.message}`);
-      res.status(statusCode).send({ error: errorMessage });
+      return res.status(statusCode).send({ error: errorMessage });
     }
   });
 
