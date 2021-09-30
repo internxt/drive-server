@@ -17,8 +17,8 @@ module.exports = (Router, Service) => {
         throw Error(err.message);
       });
     }).catch((err) => {
-      res.status(500).send({ error: 1 });
-      Logger.error(err);
+      res.status(500).send({ error: err.message });
+      Logger.error(err.message);
     });
   });
 

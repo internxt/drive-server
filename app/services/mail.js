@@ -1,6 +1,6 @@
 const InternxtMailer = require('inxt-service-mailer');
 
-module.exports = () => {
+module.exports = (Model) => {
   const mailInstance = () => {
     const mailConfig = {
       host: process.env.INXT_MAILER_HOST,
@@ -66,7 +66,13 @@ module.exports = () => {
     });
   };
 
-  const sendGuestInvitation = (user, guest) => {
+  const sendGuestInvitation = async (user, guest) => {
+    const guestExists = await Model.users.findOne({ where: { email: guest } }).catch(() => null);
+
+    if (!guestExists) {
+      throw Error('Guest email does not exists');
+    }
+
     const mailer = mailInstance();
 
     return new Promise((resolve, reject) => {
