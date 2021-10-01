@@ -270,7 +270,7 @@ module.exports = () => {
   };
 
   const getProductFromUser = async (email) => {
-    const isTest = !envService.isProduction();
+    const isTest = process.env.NODE_ENV !== 'production';
     const stripe = await getStripe(isTest);
     const customer = await findCustomerByEmail(email, isTest);
 
@@ -298,7 +298,7 @@ module.exports = () => {
   };
 
   const getUserSubscriptionPlans = async (email) => {
-    const isTest = !envService.isProduction();
+    const isTest = process.env.NODE_ENV !== 'production';
     const stripe = await getStripe(isTest);
     const customer = await findCustomerByEmail(email, isTest);
     let plans = [];
