@@ -90,10 +90,6 @@ module.exports = (Model, App) => {
       throw new Error('Cannot delete root folder');
     }
 
-    if (folder.bucket) {
-      await App.services.Storj.DeleteBucket(user, folder.bucket);
-    }
-
     // Delete all the files in the folder
     // Find all subfolders and repeat
     /*
@@ -424,8 +420,6 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const GetBucketList = (user) => App.services.Storj.ListBuckets(user);
-
   const GetChildren = async (user, folderId, options = {}) => {
     const query = {
       where: {
@@ -594,7 +588,6 @@ module.exports = (Model, App) => {
     GetContent,
     GetNewMoveName,
     UpdateMetadata,
-    GetBucketList,
     MoveFolder,
     GetBucket,
     GetFolders,

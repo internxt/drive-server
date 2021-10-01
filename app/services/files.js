@@ -254,10 +254,6 @@ module.exports = (Model, App) => {
     return response;
   };
 
-  const ListAllFiles = (user, bucketId) => new Promise((resolve, reject) => {
-    App.services.Storj.ListBucketFiles(user, bucketId).then(resolve).catch((err) => reject(err.message));
-  });
-
   const isFileOfTeamFolder = (fileId) => new Promise((resolve, reject) => {
     Model.file
       .findOne({
@@ -326,7 +322,6 @@ module.exports = (Model, App) => {
     UpdateMetadata,
     GetNewMoveName,
     MoveFile,
-    ListAllFiles,
     isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder

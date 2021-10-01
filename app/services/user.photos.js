@@ -117,53 +117,6 @@ module.exports = (Model, App) => {
       })); // end transaction
   };
 
-  const InitializeUserPhotos = (user) => Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
-    userData.mnemonic = user.mnemonic;
-
-    const userPhotos = await Model.usersphotos.findOne({ where: { user_id: userData.id } });
-
-    if (userPhotos && (userPhotos.rootAlbumId && userPhotos.rootPreviewId)) {
-      throw Error('User Photos already initializaed');
-    }
-
-    // Create photos bucket
-    const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
-    Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
-
-    // Create previews bucket
-    const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
-    Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
-
-    // Update user register with root album Id
-    return Model.usersphotos.findOrCreate({
-      where: { user_id: userData.id },
-      defaults: {
-        userId: userData.id,
-        rootAlbumId: rootAlbumBucket.id,
-        rootPreviewId: rootPreviewBucket.id
-      }
-    }).then((userResult, created) => {
-      if (created) {
-        // Set created flag for Frontend management
-        Object.assign(userResult, { isCreated: created });
-      }
-      return userResult;
-    }).catch((err) => {
-      if (err.response) {
-        // This happens when email is registered in bridge
-        Logger.error(err.response.data);
-      } else {
-        Logger.error(err.stack);
-      }
-
-      throw Error(err);
-    });
-  })
-    .catch((error) => {
-      Logger.error(error.stack);
-      throw Error(error);
-    });
-
   const GetUserById = (id) => Model.usersPhotos.findOne({ where: { id: { [Op.eq]: id } } });
 
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
@@ -181,7 +134,6 @@ module.exports = (Model, App) => {
     Name: 'UserPhotos',
     UserFindOrCreate,
     UserPhotosFindOrCreate,
-    InitializeUserPhotos,
     GetUserById,
     FindUserById,
     FindUserByEmail,
