@@ -4,8 +4,6 @@ const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: 
 const async = require('async');
 const cache = require('memory-cache');
 
-const envService = require('./envService')();
-
 const RenewalPeriod = {
   Monthly: 'monthly',
   Semiannually: 'semiannually',
