@@ -22,28 +22,6 @@ module.exports = (Model) => {
     return new InternxtMailer(mailConfig);
   };
 
-  const sendInvitationMail = (emailTo, user) => {
-    const mailer = mailInstance();
-
-    return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(emailTo,
-        'referral',
-        {
-          template: 'referral',
-          go: { in: 'here' },
-          senderUser: user.name,
-          url: `https://internxt.com/?ref=${user.uuid}`
-        },
-        (err) => {
-          if (!err) {
-            resolve();
-          } else {
-            reject(err);
-          }
-        });
-    });
-  };
-
   const sendEmailTeamsMember = (name, member, cryptedToken, teamName) => {
     const mailer = mailInstance();
     return new Promise((resolve, reject) => {
@@ -92,7 +70,6 @@ module.exports = (Model) => {
 
   return {
     Name: 'Mail',
-    sendInvitationMail,
     sendEmailTeamsMember,
     sendGuestInvitation
   };
