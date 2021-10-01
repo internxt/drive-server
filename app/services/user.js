@@ -1,8 +1,7 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
-const uuid = require('uuid');
-const { Sequelize, col, fn } = require('sequelize');
+const { col, fn } = require('sequelize');
 const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
@@ -161,23 +160,6 @@ module.exports = (Model, App) => {
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
 
-  const GetUserCredit = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } }).then((response) => response.dataValues);
-
-  const UpdateCredit = (userUuid) => {
-    // Logger.info("€5 added to ", referral);
-    Logger.info('€5 added to user with UUID %s', userUuid);
-
-    return Model.users.update({ credit: Sequelize.literal('credit + 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } });
-  };
-
-  const DecrementCredit = (userUuid) => {
-    Logger.info('€5 decremented to user with UUID %s', userUuid);
-
-    return Model.users.update({ credit: Sequelize.literal('credit - 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } });
-  };
-
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
     .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
       const password = crypto.SHA256(user.userId).toString();
@@ -220,11 +202,6 @@ module.exports = (Model, App) => {
           }
 
           try {
-            const referralUuid = user.referral;
-            if (uuid.validate(referralUuid)) {
-              DecrementCredit(referralUuid);
-            }
-
             // DELETE FOREIGN KEYS
             user.root_folder_id = null;
             await user.save();
@@ -374,7 +351,7 @@ module.exports = (Model, App) => {
 
   const RegisterUser = async (newUser) => {
     const {
-      referral, email, password
+      email, password
     } = newUser;
 
     // Data validation for process only request with all data
@@ -390,8 +367,8 @@ module.exports = (Model, App) => {
 
     Logger.warn('Register request for %s', email);
 
-    let hasReferral = false;
-    let referrer = null;
+    const hasReferral = false;
+    const referrer = null;
 
     // Call user service to find or create user
     const userData = await FindOrCreate(newUser);
@@ -402,17 +379,6 @@ module.exports = (Model, App) => {
 
     if (!userData.isNewRecord) {
       throw Error('This account already exists');
-    }
-
-    if (uuid.validate(referral)) {
-      await FindUserByUuid(referral).then((referalUser) => {
-        if (referalUser) {
-          newUser.credit = 5;
-          hasReferral = true;
-          referrer = referalUser;
-          UpdateCredit(referral);
-        }
-      }).catch(() => { });
     }
 
     if (hasReferral) {
@@ -513,9 +479,6 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     FindUserByUuid,
     InitializeUser,
-    GetUserCredit,
-    UpdateCredit,
-    DecrementCredit,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,
