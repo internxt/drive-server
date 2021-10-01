@@ -74,7 +74,7 @@ module.exports = (Model, App) => {
   };
 
   return {
-    Name: 'Storj',
+    Name: 'Inxt',
     IdToBcrypt,
     RegisterBridgeUser,
     CreateBucket,

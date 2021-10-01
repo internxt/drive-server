@@ -47,9 +47,9 @@ module.exports = (Model, App) => {
         }
 
         // Create bridge pass using email (because id is unconsistent)
-        const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
+        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
 
-        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
 
         if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
           throw Error(bridgeUser.response.data.error);

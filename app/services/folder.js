@@ -61,7 +61,7 @@ module.exports = (Model, App) => {
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
     const xCloudFolder = await user.createFolder({
       name: cryptoFolderName,

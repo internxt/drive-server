@@ -85,7 +85,7 @@ module.exports = (Model, App) => {
   };
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
-    App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
+    App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
       if (file) {
@@ -122,7 +122,7 @@ module.exports = (Model, App) => {
     }
 
     try {
-      await App.services.Storj.DeleteFile(user, file.bucket, file.fileId);
+      await App.services.Inxt.DeleteFile(user, file.bucket, file.fileId);
     } catch (err) {
       const resourceNotFoundPattern = /Resource not found/;
 
