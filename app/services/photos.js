@@ -44,8 +44,6 @@ module.exports = (Model, App) => {
     return Model.albums.create({
       name: cryptoAlbumName,
       userId
-    }).then((result) => {
-      resolve(result);
     })
       .catch((err) => {
         log('Error creating album', err);
@@ -73,7 +71,6 @@ module.exports = (Model, App) => {
 
     return Model.photo
       .create(photoInfo)
-      .then((newPhoto) => resolve(newPhoto))
       .catch((err) => {
         log('Error creating entry', err);
         reject(Error('Unable to create photo in database'));
@@ -164,29 +161,6 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const GetAlbumList = (userId) => new Promise((resolve, reject) => {
-    return Model.albums.findAll({
-      where: { user_id: { [Op.eq]: userId } }
-    }).then(async (albumList) => {
-      await albumList.map(async (album) => {
-        const albumPhotos = await Model.photosalbums.findAll({
-          where: { albumId: { [Op.eq]: album.id } }
-        });
-
-        if (albumPhotos.length > 12) {
-          const albumPreview = albumPhotos.split(0, 11);
-          album.albumPreview = albumPreview;
-        } else {
-          album.albumPreview = albumPhotos;
-        }
-        return album;
-      });
-      resolve(albumList);
-    }).catch((err) => {
-      reject(err.message);
-    });
-  });
-
   const GetDeletedPhotos = (deleteFolderId) => new Promise((resolve, reject) => {
     return Model.albums.findOne({
       where: { id: { [Op.eq]: deleteFolderId } }
@@ -223,16 +197,8 @@ module.exports = (Model, App) => {
 
         }
       ]
-    }).then((albumPhotos) => {
-      resolve(albumPhotos);
     }).catch((err) => {
       reject(err.message);
-    });
-  });
-
-  const MoveToAlbum = (photo, album) => new Promise((resolve, reject) => {
-    album.addPhotos([photo]).then(() => resolve).catch((err) => {
-      reject(err);
     });
   });
 
@@ -252,25 +218,13 @@ module.exports = (Model, App) => {
   };
 
   const getPhotosByUser = (user) => {
-    return new Promise((resolve, reject) => {
-      Model.usersphotos
-        .findOne({ where: { userId: { [Op.eq]: user.id } } })
-        .then((userPhoto) => {
-          resolve(userPhoto);
-        })
-        .catch(() => {
-          reject();
-        });
-    });
+    return Model.usersphotos
+      .findOne({ where: { userId: { [Op.eq]: user.id } } });
   };
 
   const getPreviewsByBucketId = (bucket) => {
-    return new Promise((resolve, reject) => {
-      Model.previews.findAll({
-        where: { bucketId: { [Op.eq]: bucket } }
-      }).then((listPreviews) => {
-        resolve(listPreviews);
-      }).catch(() => reject());
+    return Model.previews.findAll({
+      where: { bucketId: { [Op.eq]: bucket } }
     });
   };
 
@@ -281,9 +235,7 @@ module.exports = (Model, App) => {
     GetAllPhotosContent,
     FindAlbumById,
     FindPhotoById,
-    GetAlbumList,
     GetDeletedPhotos,
-    MoveToAlbum,
     GetAlbumContent,
     DeleteAlbum,
     getPhotosByUser,
