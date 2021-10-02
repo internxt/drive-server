@@ -102,8 +102,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/storage/moveFile', passportAuth, (req, res) => {
-    const { fileId } = req.body;
-    const { destination } = req.body;
+    const { fileId, destination } = req.body;
     const { user } = req;
 
     Service.Files.MoveFile(user, fileId, destination).then((result) => {
