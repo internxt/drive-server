@@ -1,10 +1,34 @@
 const crypto = require('crypto');
-
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
+const bip39 = require('bip39');
+
+const BUCKET_META_MAGIC = Buffer.from([66, 150, 71, 16, 50, 114, 88, 160, 163, 35, 154, 65, 162,
+  213, 226, 215, 70, 138, 57, 61, 52, 19, 210, 170, 38, 164, 162, 200, 86, 201, 2, 81]);
 
 module.exports = (Model, App) => {
   const log = App.logger;
+
+  function encryptFilename(mnemonic, bucketId, decryptedName) {
+    const seed = bip39.mnemonicToSeedSync(mnemonic).toString('hex');
+    const sha512input = seed + bucketId;
+    const bucketKey = crypto.createHash('sha512').update(Buffer.from(sha512input, 'hex')).digest('hex').slice(0, 64);
+
+    if (!bucketKey) {
+      throw Error('Bucket key missing');
+    }
+
+    const key = crypto.createHmac('sha512', Buffer.from(bucketKey, 'hex')).update(BUCKET_META_MAGIC).digest('hex');
+    const iv = crypto.createHmac('sha512', Buffer.from(bucketKey, 'hex')).update(bucketId).update(decryptedName).digest('hex');
+
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key, 'hex').slice(0, 32), Buffer.from(iv, 'hex').slice(0, 32));
+    const encrypted = Buffer.concat([cipher.update(decryptedName, 'utf8'), cipher.final()]);
+    const digest = cipher.getAuthTag();
+
+    const finalEnc = Buffer.concat([digest, Buffer.from(iv, 'hex').slice(0, 32), encrypted]);
+
+    return finalEnc.toString('base64');
+  }
 
   function pwdToHex(pwd) {
     try {
@@ -25,6 +49,25 @@ module.exports = (Model, App) => {
       return null;
     }
   }
+
+  const renameFile = (email, password, mnemonic, bucket, bucketEntry, newName) => {
+    const pwdHash = pwdToHex(password);
+    const credential = Buffer.from(`${email}:${pwdHash}`).toString('base64');
+
+    // encryptFilename may throw an error
+    const newNameEncrypted = encryptFilename(mnemonic, bucket, newName);
+
+    const params = {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${credential}`
+      }
+    };
+
+    return axios.patch(`${App.config.get('STORJ_BRIDGE')}/buckets/${bucket}/files/${bucketEntry}`, {
+      name: newNameEncrypted
+    }, params);
+  };
 
   const RegisterBridgeUser = (email, password) => {
     const hashPwd = pwdToHex(password);
@@ -78,6 +121,7 @@ module.exports = (Model, App) => {
     IdToBcrypt,
     RegisterBridgeUser,
     CreateBucket,
-    DeleteFile
+    DeleteFile,
+    renameFile
   };
 };

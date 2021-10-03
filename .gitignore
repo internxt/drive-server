@@ -3,4 +3,4 @@
 node_modules
 config/environments/development.js
 core
-app/integrations/dealify/dealifyProducts.js
+yarn-error.log
