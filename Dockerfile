@@ -1,37 +1,18 @@
-FROM ubuntu:20.04
+FROM mhart/alpine-node:14
+LABEL author="internxt"
 
 WORKDIR /app
 
-# https://docs.diladele.com/docker/timezones.html
-# Prevent docker to stop build due to asking timezone, 
-# (see https://rtfm.co.ua/en/docker-configure-tzdata-and-timezone-during-build/)
-ENV TZ=Etc/UTC
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
-# Create package cache
-RUN apt update
-
-# Install utilities
-RUN apt install curl cron build-essential python git -y \
-  && git clone https://github.com/internxt/drive-server.git
-
-# Install nvm
-ENV NVM_DIR /root/.nvm
-ENV NODE_VERSION 14.18.0
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.38.0/install.sh | bash  \
-  && . $NVM_DIR/nvm.sh \
-  && nvm install $NODE_VERSION \
-  && npm i -g yarn \ 
-  && cd drive-server \
-  && yarn
-
-ENV NODE_PATH $NVM_DIR/v$NODE_VERSION/lib/node_modules
-ENV PATH $NVM_DIR/versions/node/v$NODE_VERSION/bin:$PATH
+# Add useful packages
+RUN apk add git curl && git clone -b remove-storj https://github.com/internxt/drive-server.git
 
 WORKDIR /app/drive-server
 
-# Create Prometheus directories
-RUN mkdir -p /mnt/prometheusvol1
-RUN mkdir -p /mnt/prometheusvol2
+# Install deps
+RUN yarn && yarn cache clean
 
-CMD cron && node app.js
+# Create prometheus directories
+RUN mkdir -p /mnt/prometheusvol{1,2}
+
+# Start farmer
+CMD node app.js
