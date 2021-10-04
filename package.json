@@ -12,7 +12,6 @@
     "bip39": "^3.0.2",
     "body-parser": "^1.19.0",
     "bytes": "^3.1.0",
-    "content-disposition": "^0.5.3",
     "cors": "^2.8.5",
     "crypto-js": "^4.0.0",
     "dotenv": "^10.0.0",
@@ -26,26 +25,17 @@
     "lodash": "^4.17.15",
     "mariadb": "^2.5.2",
     "memory-cache": "^0.2.0",
-    "mime": "^2.4.4",
-    "mime-types": "^2.1.27",
-    "mysql2": "^2.1.0",
     "nconf": "^0.11.1",
     "openpgp": "^4.10.8",
     "passport": "^0.4.1",
     "passport-jwt": "^4.0.0",
-    "passport-local": "^1.0.0",
-    "prettysize": "^2.0.0",
     "qrcode": "^1.4.4",
-    "rimraf": "^3.0.2",
     "sanitize-filename": "^1.6.3",
     "sequelize": "^6.3.5",
-    "shortid": "^2.2.15",
     "socket.io": "^4.2.0",
     "speakeasy": "^2.0.0",
     "sql-formatter": "^4.0.2",
-    "storj": "github:internxt/node-lib",
     "stripe": "8.49.0",
-    "uuid": "^8.3.2",
     "winston": "^3.2.1"
   },
   "scripts": {
@@ -71,6 +61,6 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=10 <11"
-}
+    "node": ">=14"
+  }
 }

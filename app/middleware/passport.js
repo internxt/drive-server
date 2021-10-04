@@ -11,13 +11,7 @@ function Sign(data, secret, useNewToken = false) {
   return token;
 }
 
-// eslint-disable-next-line no-unused-vars
-function Verify(token, secret) {
-  throw Error('Not implemented yet');
-}
-
 module.exports = {
   passportAuth,
-  Sign,
-  Verify
+  Sign
 };

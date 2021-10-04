@@ -27,16 +27,6 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
-      icon_id: {
-        type: DataTypes.INTEGER,
-        references: {
-          model: 'icon',
-          key: 'id'
-        }
-      },
-      color: {
-        type: DataTypes.STRING
-      },
       encrypt_version: {
         type: DataTypes.STRING
       }
@@ -48,10 +38,8 @@ module.exports = (sequelize, DataTypes) => {
     });
 
   folder.associate = (models) => {
-    folder.hasOne(models.folder_metadata);
     folder.hasMany(models.file);
     folder.belongsTo(models.users);
-    folder.belongsTo(models.icon);
     folder.hasMany(models.folder, {
       foreignKey: 'parent_id',
       as: 'children'
