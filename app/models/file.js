@@ -40,6 +40,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       deletedAt: {
         type: DataTypes.DATE
+      },
+      userId: {
+        type: DataTypes.INTEGER
       }
     },
     {
