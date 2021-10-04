@@ -1,8 +1,6 @@
 .vscode
 .env
 node_modules
-uploads
-downloads
 config/environments/development.js
 core
-app/integrations/dealify/dealifyProducts.js
+yarn-error.log

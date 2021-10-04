@@ -1,14 +1,12 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
-const uuid = require('uuid');
-const { Sequelize, col, fn } = require('sequelize');
+const { col, fn } = require('sequelize');
 const crypto = require('crypto-js');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
-const { SYNC_KEEPALIVE_INTERVAL_MS, FREE_PLAN_BYTES } = require('../constants');
-const CouponService = require('./coupons');
+const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 
 const { Op } = sequelize;
 
@@ -16,7 +14,6 @@ module.exports = (Model, App) => {
   const Logger = App.logger;
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
-  const couponService = CouponService(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -62,23 +59,11 @@ module.exports = (Model, App) => {
         }
 
         // Create bridge pass using email (because id is unconsistent)
-        const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
+        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
 
-        // Check if user has coupon to reedem
-        let couponMaxSpaceBytes = FREE_PLAN_BYTES;
-
-        if (user.coupon) {
-          couponMaxSpaceBytes = await couponService.applyCoupon(user.coupon);
-        }
-
-        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
         if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
           throw Error(bridgeUser.response.data.error);
-        }
-
-        // Apply coupon to user
-        if (user.coupon) {
-          await couponService.applySpace(user.coupon, couponMaxSpaceBytes);
         }
 
         if (!bridgeUser.data) {
@@ -119,8 +104,8 @@ module.exports = (Model, App) => {
         return userData;
       }
 
-      const { Storj, Crypt } = App.services;
-      const rootBucket = await Storj.CreateBucket(userData.email, userData.userId, user.mnemonic);
+      const { Inxt, Crypt } = App.services;
+      const rootBucket = await Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic);
       Logger.info('User init | root bucket created %s', rootBucket.name);
 
       const rootFolderName = await Crypt.encryptName(`${rootBucket.name}`);
@@ -160,23 +145,6 @@ module.exports = (Model, App) => {
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
-
-  const GetUserCredit = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } }).then((response) => response.dataValues);
-
-  const UpdateCredit = (userUuid) => {
-    // Logger.info("€5 added to ", referral);
-    Logger.info('€5 added to user with UUID %s', userUuid);
-
-    return Model.users.update({ credit: Sequelize.literal('credit + 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } });
-  };
-
-  const DecrementCredit = (userUuid) => {
-    Logger.info('€5 decremented to user with UUID %s', userUuid);
-
-    return Model.users.update({ credit: Sequelize.literal('credit - 5') },
-      { where: { uuid: { [Op.eq]: userUuid } } });
-  };
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
     .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
@@ -220,11 +188,6 @@ module.exports = (Model, App) => {
           }
 
           try {
-            const referralUuid = user.referral;
-            if (uuid.validate(referralUuid)) {
-              DecrementCredit(referralUuid);
-            }
-
             // DELETE FOREIGN KEYS
             user.root_folder_id = null;
             await user.save();
@@ -374,7 +337,7 @@ module.exports = (Model, App) => {
 
   const RegisterUser = async (newUser) => {
     const {
-      referral, email, password
+      email, password
     } = newUser;
 
     // Data validation for process only request with all data
@@ -390,8 +353,8 @@ module.exports = (Model, App) => {
 
     Logger.warn('Register request for %s', email);
 
-    let hasReferral = false;
-    let referrer = null;
+    const hasReferral = false;
+    const referrer = null;
 
     // Call user service to find or create user
     const userData = await FindOrCreate(newUser);
@@ -402,17 +365,6 @@ module.exports = (Model, App) => {
 
     if (!userData.isNewRecord) {
       throw Error('This account already exists');
-    }
-
-    if (uuid.validate(referral)) {
-      await FindUserByUuid(referral).then((referalUser) => {
-        if (referalUser) {
-          newUser.credit = 5;
-          hasReferral = true;
-          referrer = referalUser;
-          UpdateCredit(referral);
-        }
-      }).catch(() => { });
     }
 
     if (hasReferral) {
@@ -513,9 +465,6 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     FindUserByUuid,
     InitializeUser,
-    GetUserCredit,
-    UpdateCredit,
-    DecrementCredit,
     DeactivateUser,
     ConfirmDeactivateUser,
     Store2FA,

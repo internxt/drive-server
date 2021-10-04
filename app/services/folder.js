@@ -61,7 +61,7 @@ module.exports = (Model, App) => {
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
     const xCloudFolder = await user.createFolder({
       name: cryptoFolderName,
@@ -88,10 +88,6 @@ module.exports = (Model, App) => {
 
     if (folder.id === user.root_folder_id) {
       throw new Error('Cannot delete root folder');
-    }
-
-    if (folder.bucket) {
-      await App.services.Storj.DeleteBucket(user, folder.bucket);
     }
 
     // Delete all the files in the folder
@@ -291,21 +287,11 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'children',
-          include: [
-            {
-              model: Model.icon,
-              as: 'icon'
-            }
-          ]
+          as: 'children'
         },
         {
           model: Model.file,
           as: 'files'
-        },
-        {
-          model: Model.icon,
-          as: 'icon'
         }
       ]
     });
@@ -346,7 +332,7 @@ module.exports = (Model, App) => {
     return async.waterfall([
       (next) => {
         // Is there something to change?
-        if (!metadata || (!metadata.itemName && !metadata.icon && !metadata.color)) {
+        if (!metadata || !metadata.itemName) {
           next(Error('Nothing to change'));
         } else {
           next();
@@ -401,30 +387,12 @@ module.exports = (Model, App) => {
         }
       },
       (folder, next) => {
-        // Set optional changes
-        if (metadata.color) {
-          newMeta.color = metadata.color;
-        }
-
-        if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
-          newMeta.icon_id = metadata.icon;
-        }
-
-        if (metadata.icon === 'none') {
-          newMeta.icon_id = null;
-        }
-
-        next(null, folder);
-      },
-      (folder, next) => {
         // Perform the update
         folder
           .update(newMeta).then((result) => next(null, result)).catch(next);
       }
     ]);
   };
-
-  const GetBucketList = (user) => App.services.Storj.ListBuckets(user);
 
   const GetChildren = async (user, folderId, options = {}) => {
     const query = {
@@ -594,7 +562,6 @@ module.exports = (Model, App) => {
     GetContent,
     GetNewMoveName,
     UpdateMetadata,
-    GetBucketList,
     MoveFolder,
     GetBucket,
     GetFolders,

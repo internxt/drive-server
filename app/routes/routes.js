@@ -1,9 +1,4 @@
-const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
-const Analytics = require('analytics-node');
-
-const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
-
 const openpgp = require('openpgp');
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
@@ -13,7 +8,6 @@ const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
 const AppSumoRoutes = require('./appsumo');
-const PaymentRoutes = require('./payments');
 const PlanRoutes = require('./plan');
 const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
@@ -48,8 +42,6 @@ module.exports = (Router, Service, App) => {
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
   AppSumoRoutes(Router, Service, App);
-  // Payment routes
-  PaymentRoutes(Router, Service, App);
   // Plan routes
   PlanRoutes(Router, Service, App);
   // Routes used by Internxt Photos
@@ -304,49 +296,6 @@ module.exports = (Router, Service, App) => {
       res.status(200).send({});
     }).catch(() => {
       res.status(500).send({ error: 'Could not restore password' });
-    });
-  });
-
-  Router.post('/user/claim', passportAuth, (req, res) => {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const msg = {
-      to: 'marketing@internxt.com',
-      from: 'marketing@internxt.com',
-      subject: 'New credit request',
-      text: `Hello Internxt! I am ready to receive my credit for referring friends. My email is ${req.user.email}`
-    };
-    if (req.user.credit > 0) {
-      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', properties: { credit: req.user.credit } });
-      sgMail
-        .send(msg).then(() => {
-          res.status(200).send({});
-        }).catch((err) => {
-          res.status(500).send(err);
-        });
-    } else {
-      res.status(500).send({ error: 'No credit' });
-    }
-  });
-
-  Router.post('/user/invite', passportAuth, (req, res) => {
-    const { email } = req.body;
-
-    Service.User.FindUserObjByEmail(email).then((user) => {
-      if (user === null) {
-        Service.Mail.sendInvitationMail(email, req.user).then(() => {
-          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
-          res.status(200).send({});
-        }).catch(() => {
-          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
-          res.status(200).send({});
-        });
-      } else {
-        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
-        res.status(200).send({});
-      }
-    }).catch((err) => {
-      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
-      res.status(200).send({});
     });
   });
 

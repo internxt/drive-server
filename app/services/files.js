@@ -86,7 +86,7 @@ module.exports = (Model, App) => {
   };
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
-    App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
+    App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
       if (file) {
@@ -123,7 +123,7 @@ module.exports = (Model, App) => {
     }
 
     try {
-      await App.services.Storj.DeleteFile(user, file.bucket, file.fileId);
+      await App.services.Inxt.DeleteFile(user, file.bucket, file.fileId);
     } catch (err) {
       const resourceNotFoundPattern = /Resource not found/;
 
@@ -255,10 +255,6 @@ module.exports = (Model, App) => {
     return response;
   };
 
-  const ListAllFiles = (user, bucketId) => new Promise((resolve, reject) => {
-    App.services.Storj.ListBucketFiles(user, bucketId).then(resolve).catch((err) => reject(err.message));
-  });
-
   const isFileOfTeamFolder = (fileId) => new Promise((resolve, reject) => {
     Model.file
       .findOne({
@@ -331,7 +327,6 @@ module.exports = (Model, App) => {
     UpdateMetadata,
     GetNewMoveName,
     MoveFile,
-    ListAllFiles,
     isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder,

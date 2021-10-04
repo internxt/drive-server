@@ -43,7 +43,7 @@ module.exports = (Model, App) => {
     let result = subscriptionPlans[0];
 
     if (!result) {
-      const { maxSpaceBytes } = (await limitService.getLimit(userEmail, userId));
+      const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
 
       result = maxSpaceBytes > FREE_PLAN_BYTES
         ? lifetimePlanFactory(maxSpaceBytes, false)
