@@ -4,7 +4,7 @@ LABEL author="internxt"
 WORKDIR /app
 
 # Add useful packages
-RUN apk add git curl && git clone -b remove-storj https://github.com/internxt/drive-server.git
+RUN apk add git curl && git clone https://github.com/internxt/drive-server.git
 
 WORKDIR /app/drive-server
 
