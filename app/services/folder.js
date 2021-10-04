@@ -18,7 +18,7 @@ module.exports = (Model, App) => {
     const isGuest = user.email !== user.bridgeUser;
 
     if (isGuest) {
-      const bridgeUser = user.bridgeUser;
+      const { bridgeUser } = user;
 
       user = await Model.users.findOne({
         where: { email: bridgeUser }
