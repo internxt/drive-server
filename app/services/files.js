@@ -299,6 +299,10 @@ module.exports = (Model, App) => {
     });
   };
 
+  const getByFolderAndUserId = (folderId, userId) => {
+    return Model.file.findAll({ where: { folderId, userId } });
+  }
+
   const getRecentFiles = async (userId, limit) => {
     const results = await Model.file.findAll({
       order: [['updatedAt', 'DESC']],
@@ -329,6 +333,7 @@ module.exports = (Model, App) => {
     ListAllFiles,
     isFileOfTeamFolder,
     getRecentFiles,
-    getFileByFolder
+    getFileByFolder,
+    getByFolderAndUserId
   };
 };
