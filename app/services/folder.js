@@ -15,6 +15,15 @@ module.exports = (Model, App) => {
     }
     // parent folder is yours?
     const whereCondition = { where: null };
+    const isGuest = user.email !== user.bridgeUser;
+
+    if (isGuest) {
+      const { bridgeUser } = user;
+
+      user = await Model.users.findOne({
+        where: { email: bridgeUser }
+      });
+    }
 
     if (teamId) {
       whereCondition.where = {
@@ -261,7 +270,7 @@ module.exports = (Model, App) => {
   });
 
   const GetContent = async (folderId, user, teamId = null) => {
-    if (user.email !== user.bridgeEmail) {
+    if (user.email !== user.bridgeUser) {
       user = await Model.users.findOne({ where: { email: user.bridgeUser } });
     }
 
