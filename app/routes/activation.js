@@ -4,64 +4,6 @@ const logger = require('../../lib/logger');
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
-  Router.get('/user/activations/:token', (req, res) => {
-    Service.User.ActivateUser(req.params.token).then((response) => {
-      const body = response.data;
-      res.status(200).send(body);
-    }).catch((err) => {
-      res.status(err.response.status).send(err.response.data);
-    });
-  });
-
-  Router.get('/user/isactivated', passportAuth, (req, res) => {
-    const user = req.user.email;
-
-    Service.Storj.IsUserActivated(user).then((response) => {
-      if (response.data) {
-        res.status(200).send({ activated: response.data.activated });
-      } else {
-        res.status(400).send({ error: 'User activation info not found' });
-      }
-    }).catch((error) => {
-      Logger.error(error.stack);
-      res.status(500).json({ error: error.message });
-    });
-  });
-
-  Router.get('/team/isactivated/:email', passportAuth, (req, res) => {
-    const user = req.user.email;
-    const bridgeUser = req.params.email;
-
-    Service.Team.getTeamByMember(user).then((team) => {
-      if (team.dataValues.bridge_user === bridgeUser) {
-        Service.Storj.IsUserActivated(bridgeUser).then((responseTeam) => {
-          if (responseTeam.status === 200) {
-            const isTeamActivated = responseTeam.data.activated;
-            const teamId = team.id;
-
-            res.status(200).send({
-              isTeamActivated,
-              teamId
-            });
-          } else {
-            res.status(400).send({ error: 'User activation info not found' });
-          }
-        }).catch((error) => {
-          Logger.error(error.stack);
-          res.status(500).json({ error: error.message });
-        });
-      } else {
-        res.status(500).json({});
-      }
-    }).catch((error) => {
-      if (!error) {
-        // Not admin
-        res.status(200).json({});
-      }
-      Logger.error(error.stack);
-    });
-  });
-
   Router.get('/deactivate', passportAuth, (req, res) => {
     const user = req.user.email;
 

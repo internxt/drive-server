@@ -1,8 +1,3 @@
-const fs = require('fs');
-
-const contentDisposition = require('content-disposition');
-const bip39 = require('bip39');
-
 const passport = require('../middleware/passport');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
@@ -90,46 +85,6 @@ module.exports = (Router, Service, App) => {
     }).catch((error) => {
       Logger.error(error);
       res.status(400).json({ message: error.message });
-    });
-  });
-
-  Router.get('/storage/file/:id', passportAuth, (req, res) => {
-    const { user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
-
-    const isValidMnemopnic = bip39.validateMnemonic(user.mnemonic);
-
-    if (!isValidMnemopnic) {
-      return res.status(400).send({ message: 'Missing encryption key' });
-    }
-
-    const fileIdInBucket = req.params.id;
-    if (fileIdInBucket === 'null') {
-      return res.status(500).send({ message: 'Missing file id' });
-    }
-
-    return Service.Files.Download(user, fileIdInBucket).then(({
-      filestream, mimetype, downloadFile, folderId, name, type, size
-    }) => {
-      const decryptedFileName = App.services.Crypt.decryptName(name, folderId);
-
-      const fileNameDecrypted = `${decryptedFileName}${type ? `.${type}` : ''}`;
-      const decryptedFileNameB64 = Buffer.from(fileNameDecrypted).toString('base64');
-
-      res.setHeader('content-length', size);
-      res.setHeader('content-disposition', contentDisposition(fileNameDecrypted));
-      res.setHeader('content-type', mimetype);
-      res.set('x-file-name', decryptedFileNameB64);
-      filestream.pipe(res);
-      fs.unlink(downloadFile, (error) => {
-        if (error) throw error;
-      });
-    }).catch((err) => {
-      if (err.message === 'Bridge rate limit error') {
-        return res.status(402).json({ message: err.message });
-      }
-      return res.status(500).json({ message: err.message });
     });
   });
 
@@ -225,6 +180,7 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  // Needs db index
   Router.get('/storage/recents', passportAuth, (req, res) => {
     let { limit } = req.query;
 

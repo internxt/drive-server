@@ -159,6 +159,7 @@ module.exports = (Model, App) => {
 
     // Finish
     user.registerCompleted = true;
+    user.sharedWorkspace = true;
     return user.save();
   };
 

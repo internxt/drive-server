@@ -19,6 +19,7 @@ module.exports = (Model, App) => {
     return Model.device.findAll({
       where: { userId },
       attributes: { include: [[fn('SUM', col('backups.size')), 'size']] },
+      group: ['id'],
       include: [{ model: Model.backup, attributes: ['size'] }]
     });
   };
@@ -42,10 +43,10 @@ module.exports = (Model, App) => {
   };
 
   const activate = async (userData) => {
-    const { Storj, User } = App.services;
+    const { Inxt, User } = App.services;
     let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
     if (!backupsBucket) {
-      backupsBucket = (await Storj.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
+      backupsBucket = (await Inxt.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
       Model.users.update({ backupsBucket },
         { where: { email: { [Op.eq]: userData.email } } });
     }

@@ -1,8 +1,6 @@
-const fs = require('fs');
 const sequelize = require('sequelize');
 const async = require('async');
 const { fn, col } = require('sequelize');
-const FileService = require('./files');
 const AesUtil = require('../../lib/AesUtil');
 
 const invalidName = /[\\/]|[. ]$/;
@@ -10,8 +8,6 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const FileServiceInstance = FileService(Model, App);
-
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
@@ -65,7 +61,7 @@ module.exports = (Model, App) => {
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Storj.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
     const xCloudFolder = await user.createFolder({
       name: cryptoFolderName,
@@ -94,10 +90,6 @@ module.exports = (Model, App) => {
       throw new Error('Cannot delete root folder');
     }
 
-    if (folder.bucket) {
-      await App.services.Storj.DeleteBucket(user, folder.bucket);
-    }
-
     // Delete all the files in the folder
     // Find all subfolders and repeat
     /*
@@ -117,54 +109,6 @@ module.exports = (Model, App) => {
     const removed = await folder.destroy();
 
     return removed;
-  };
-
-  const Download = async (tree, userData) => {
-    const rootFolder = App.services.Crypt.decryptName(tree.name, tree.parentId);
-    const rootPath = `./downloads/${tree.id}/${rootFolder}`;
-    const listFilesToDownload = [];
-
-    function traverseFile(files, path = rootPath) {
-      files.forEach((file) => { listFilesToDownload.push({ id: file.fileId, path }); });
-    }
-
-    function traverseChildren(children, path = rootPath) {
-      children.forEach((child) => {
-        const subFolder = App.services.Crypt.decryptName(child.name, child.parentId);
-
-        fs.mkdir(`${path}/${subFolder}`, { recursive: true }, (err) => {
-          if (err) throw err;
-        });
-
-        if (child.files && child.files.length > 0) {
-          traverseFile(child.files, `${path}/${subFolder}`);
-        }
-
-        if (child.children && child.children.length > 0) {
-          traverseChildren(child.children, `${path}/${subFolder}`);
-        }
-      });
-    }
-
-    fs.mkdir(rootPath, { recursive: true }, (err) => {
-      if (err) throw err;
-    });
-
-    if (tree.files && tree.files.length > 0) {
-      traverseFile(tree.files);
-    }
-
-    if (tree.children && tree.children.length > 0) {
-      traverseChildren(tree.children);
-    }
-
-    return async.eachSeries(listFilesToDownload, (file, next) => {
-      FileServiceInstance.DownloadFolderFile(userData, file.id, file.path).then(() => {
-        next();
-      }).catch((err) => {
-        next(err);
-      });
-    });
   };
 
   const GetTreeSize = (tree) => {
@@ -343,21 +287,11 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'children',
-          include: [
-            {
-              model: Model.icon,
-              as: 'icon'
-            }
-          ]
+          as: 'children'
         },
         {
           model: Model.file,
           as: 'files'
-        },
-        {
-          model: Model.icon,
-          as: 'icon'
         }
       ]
     });
@@ -398,7 +332,7 @@ module.exports = (Model, App) => {
     return async.waterfall([
       (next) => {
         // Is there something to change?
-        if (!metadata || (!metadata.itemName && !metadata.icon && !metadata.color)) {
+        if (!metadata || !metadata.itemName) {
           next(Error('Nothing to change'));
         } else {
           next();
@@ -453,30 +387,12 @@ module.exports = (Model, App) => {
         }
       },
       (folder, next) => {
-        // Set optional changes
-        if (metadata.color) {
-          newMeta.color = metadata.color;
-        }
-
-        if (typeof metadata.icon === 'number' && metadata.icon >= 0) {
-          newMeta.icon_id = metadata.icon;
-        }
-
-        if (metadata.icon === 'none') {
-          newMeta.icon_id = null;
-        }
-
-        next(null, folder);
-      },
-      (folder, next) => {
         // Perform the update
         folder
           .update(newMeta).then((result) => next(null, result)).catch(next);
       }
     ]);
   };
-
-  const GetBucketList = (user) => App.services.Storj.ListBuckets(user);
 
   const GetChildren = async (user, folderId, options = {}) => {
     const query = {
@@ -646,9 +562,7 @@ module.exports = (Model, App) => {
     GetContent,
     GetNewMoveName,
     UpdateMetadata,
-    GetBucketList,
     MoveFolder,
-    Download,
     GetBucket,
     GetFolders,
     isFolderOfTeam,

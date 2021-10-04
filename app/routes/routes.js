@@ -1,9 +1,4 @@
-const sgMail = require('@sendgrid/mail');
 const speakeasy = require('speakeasy');
-const Analytics = require('analytics-node');
-
-const analytics = new Analytics(process.env.APP_SEGMENT_KEY);
-
 const openpgp = require('openpgp');
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
@@ -12,9 +7,7 @@ const StripeRoutes = require('./stripe');
 const DesktopRoutes = require('./desktop');
 const MobileRoutes = require('./mobile');
 const TwoFactorRoutes = require('./twofactor');
-const ExtraRoutes = require('./extra');
 const AppSumoRoutes = require('./appsumo');
-const PaymentRoutes = require('./payments');
 const PlanRoutes = require('./plan');
 const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
@@ -45,14 +38,10 @@ module.exports = (Router, Service, App) => {
   MobileRoutes(Router, Service, App);
   // Routes to create, edit and delete the 2-factor-authentication
   TwoFactorRoutes(Router, Service, App);
-  // Extra routes uncategorized
-  ExtraRoutes(Router, Service, App);
   // Teams routes
   TeamsRoutes(Router, Service, App);
   // AppSumo routes
   AppSumoRoutes(Router, Service, App);
-  // Payment routes
-  PaymentRoutes(Router, Service, App);
   // Plan routes
   PlanRoutes(Router, Service, App);
   // Routes used by Internxt Photos
@@ -82,19 +71,10 @@ module.exports = (Router, Service, App) => {
         return res.status(400).json({ error: 'Wrong email/password' });
       }
 
-      return Service.Storj.IsUserActivated(req.body.email).then((resActivation) => {
-        if (!resActivation.data.activated) {
-          res.status(400).send({ error: 'User is not activated' });
-        } else {
-          const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
-          const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
-          Service.KeyServer.keysExists(userData).then((keyExist) => {
-            res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
-          });
-        }
-      }).catch(() => {
-        Logger.error('User %s not found on Bridge database', req.body.email);
-        res.status(400).send({ error: 'Wrong email/password' });
+      const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
+      const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
+      return Service.KeyServer.keysExists(userData).then((keyExist) => {
+        res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
       });
     }).catch(() => {
       Logger.error('User %s not found on Cloud database', req.body.email);
@@ -168,7 +148,8 @@ module.exports = (Router, Service, App) => {
           username: userData.username,
           bridgeUser: userData.bridgeUser,
           sharedWorkspace: userData.sharedWorkspace,
-          appSumoDetails: appSumoDetails || null
+          appSumoDetails: appSumoDetails || null,
+          backupsBucket: userData.backupsBucket
         };
 
         const userTeam = null;
@@ -274,14 +255,8 @@ module.exports = (Router, Service, App) => {
         };
 
         try {
-          const familyFolder = await Service.Folder.Create(userData, 'Family', user.root_folder_id);
-          const personalFolder = await Service.Folder.Create(userData, 'Personal', user.root_folder_id);
-          personalFolder.iconId = 1;
-          personalFolder.color = 'pink';
-          familyFolder.iconId = 18;
-          familyFolder.color = 'yellow';
-          await personalFolder.save();
-          await familyFolder.save();
+          (await Service.Folder.Create(userData, 'Family', user.root_folder_id)).save();
+          (await Service.Folder.Create(userData, 'Personal', user.root_folder_id)).save();
         } catch (e) {
           Logger.error('Cannot initialize welcome folders: %s', e.message);
         } finally {
@@ -321,49 +296,6 @@ module.exports = (Router, Service, App) => {
       res.status(200).send({});
     }).catch(() => {
       res.status(500).send({ error: 'Could not restore password' });
-    });
-  });
-
-  Router.post('/user/claim', passportAuth, (req, res) => {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-    const msg = {
-      to: 'marketing@internxt.com',
-      from: 'marketing@internxt.com',
-      subject: 'New credit request',
-      text: `Hello Internxt! I am ready to receive my credit for referring friends. My email is ${req.user.email}`
-    };
-    if (req.user.credit > 0) {
-      analytics.track({ userId: req.user.uuid, event: 'user-referral-claim', properties: { credit: req.user.credit } });
-      sgMail
-        .send(msg).then(() => {
-          res.status(200).send({});
-        }).catch((err) => {
-          res.status(500).send(err);
-        });
-    } else {
-      res.status(500).send({ error: 'No credit' });
-    }
-  });
-
-  Router.post('/user/invite', passportAuth, (req, res) => {
-    const { email } = req.body;
-
-    Service.User.FindUserObjByEmail(email).then((user) => {
-      if (user === null) {
-        Service.Mail.sendInvitationMail(email, req.user).then(() => {
-          Logger.info('Usuario %s envia invitación a %s', req.user.email, req.body.email);
-          res.status(200).send({});
-        }).catch(() => {
-          Logger.error('Error: Send mail from %s to %s', req.user.email, req.body.email);
-          res.status(200).send({});
-        });
-      } else {
-        Logger.warn('Error: Send mail from %s to %s, already registered', req.user.email, req.body.email);
-        res.status(200).send({});
-      }
-    }).catch((err) => {
-      Logger.error('Error: Send mail from %s to %s, SMTP error', req.user.email, req.body.email, err.message);
-      res.status(200).send({});
     });
   });
 

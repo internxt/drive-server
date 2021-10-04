@@ -1,4 +1,3 @@
-const axios = require('axios');
 const sequelize = require('sequelize');
 
 const { Op } = sequelize;
@@ -48,9 +47,9 @@ module.exports = (Model, App) => {
         }
 
         // Create bridge pass using email (because id is unconsistent)
-        const bcryptId = await App.services.Storj.IdToBcrypt(userResult.email);
+        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
 
-        const bridgeUser = await App.services.Storj.RegisterBridgeUser(userResult.email, bcryptId);
+        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
 
         if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
           throw Error(bridgeUser.response.data.error);
@@ -118,53 +117,6 @@ module.exports = (Model, App) => {
       })); // end transaction
   };
 
-  const InitializeUserPhotos = (user) => Model.users.findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
-    userData.mnemonic = user.mnemonic;
-
-    const userPhotos = await Model.usersphotos.findOne({ where: { user_id: userData.id } });
-
-    if (userPhotos && (userPhotos.rootAlbumId && userPhotos.rootPreviewId)) {
-      throw Error('User Photos already initializaed');
-    }
-
-    // Create photos bucket
-    const rootAlbumBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'photosbucket');
-    Logger.info('User init | Photos root bucket created %s', rootAlbumBucket.name);
-
-    // Create previews bucket
-    const rootPreviewBucket = await App.services.StorjPhotos.CreatePhotosBucket(userData.email, userData.userId, user.mnemonic, 'previewsbucket');
-    Logger.info('User init | Root previews bucket created %s', rootPreviewBucket.name);
-
-    // Update user register with root album Id
-    return Model.usersphotos.findOrCreate({
-      where: { user_id: userData.id },
-      defaults: {
-        userId: userData.id,
-        rootAlbumId: rootAlbumBucket.id,
-        rootPreviewId: rootPreviewBucket.id
-      }
-    }).then((userResult, created) => {
-      if (created) {
-        // Set created flag for Frontend management
-        Object.assign(userResult, { isCreated: created });
-      }
-      return userResult;
-    }).catch((err) => {
-      if (err.response) {
-        // This happens when email is registered in bridge
-        Logger.error(err.response.data);
-      } else {
-        Logger.error(err.stack);
-      }
-
-      throw Error(err);
-    });
-  })
-    .catch((error) => {
-      Logger.error(error.stack);
-      throw Error(error);
-    });
-
   const GetUserById = (id) => Model.usersPhotos.findOne({ where: { id: { [Op.eq]: id } } });
 
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
@@ -178,18 +130,14 @@ module.exports = (Model, App) => {
 
   const GetUserRootAlbum = () => Model.usersPhotos.findAll({ include: [Model.album] });
 
-  const ActivateUser = (token) => axios.get(`${App.config.get('STORJ_BRIDGE')}/photos/activations/${token}`);
-
   return {
     Name: 'UserPhotos',
     UserFindOrCreate,
     UserPhotosFindOrCreate,
-    InitializeUserPhotos,
     GetUserById,
     FindUserById,
     FindUserByEmail,
     FindUserByUuid,
-    GetUserRootAlbum,
-    ActivateUser
+    GetUserRootAlbum
   };
 };

@@ -1,8 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const sequelize = require('sequelize');
 const async = require('async');
-const inxtJs = require('@internxt/inxt-js/build/index');
 const AesUtil = require('../../lib/AesUtil');
 
 // Filenames that contain "/", "\" or only spaces are invalid
@@ -11,8 +8,6 @@ const invalidName = /[/\\]|^\s*$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const log = App.logger;
-
   const CreateFile = async (user, file) => {
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       throw Error('Invalid metadata for new file');
@@ -89,145 +84,8 @@ module.exports = (Model, App) => {
     return { cryptedName: nextCryptedName, name: nextName };
   };
 
-  const Upload = async (user, folderId, fileName, filePath) => {
-    try {
-      if (user.mnemonic === 'null') {
-        throw Error('Your mnemonic is invalid');
-      }
-
-      if (invalidName.test(fileName)) {
-        throw Error('Cannot upload, invalid file name');
-      }
-
-      log.info(`Starting file upload: ${fileName}`);
-
-      const rootFolder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: user.root_folder_id } }
-      });
-      const folder = await Model.folder.findOne({
-        where: { id: { [Op.eq]: folderId } }
-      });
-
-      if (!rootFolder.bucket) throw Error('Missing file bucket');
-
-      // Separate filename from extension
-      const fileNameParts = path.parse(fileName);
-
-      let encryptedFileName = App.services.Crypt.encryptName(fileNameParts.name, folderId);
-
-      const fileExt = fileNameParts.ext ? fileNameParts.ext.substring(1) : '';
-
-      // Check if file already exists.
-      const exists = await Model.file.findOne({
-        where: {
-          name: { [Op.eq]: encryptedFileName },
-          folder_id: { [Op.eq]: folderId },
-          type: { [Op.eq]: fileExt }
-        }
-      });
-
-      // Change name if exists
-      let originalEncryptedFileName;
-      let newName;
-      if (exists) {
-        newName = await GetNewMoveName(folderId, fileNameParts.name, fileExt);
-        encryptedFileName = newName.cryptedName;
-        originalEncryptedFileName = App.services.Crypt.encryptName(newName.name,
-          folderId);
-      }
-
-      originalEncryptedFileName = originalEncryptedFileName || App.services.Crypt.encryptName(fileNameParts.name, folderId);
-      const originalEncryptedFileNameWithExt = `${originalEncryptedFileName}${fileExt ? `.${fileExt}` : ''}`;
-      log.info('Uploading file to network');
-
-      return App.services.Storj.StoreFile(user, rootFolder.bucket, originalEncryptedFileNameWithExt, filePath).then(async ({ fileId, size }) => {
-        if (!fileId) throw Error('Missing file id');
-
-        if (!size) throw Error('Missing file size');
-
-        const newFileInfo = {
-          name: encryptedFileName,
-          type: fileExt,
-          fileId,
-          bucket: rootFolder.bucket,
-          size
-        };
-
-        try {
-          AesUtil.decrypt(encryptedFileName, folderId);
-          newFileInfo.encrypt_version = '03-aes';
-        } catch (e) {
-          (() => { })(e);
-        }
-
-        const addedFile = await Model.file.create(newFileInfo);
-        try {
-          await folder.addFile(addedFile);
-        } catch (e) {
-          log.error('Cannot add file to non existent folder');
-        }
-
-        return addedFile;
-      });
-    } finally {
-      fs.unlink(filePath, (error) => {
-        if (error) throw error;
-      });
-    }
-  };
-
-  const Download = (user, fileId) => {
-    const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
-
-    return new Promise((resolve, reject) => {
-      if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
-
-      Model.file
-        .findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
-          if (!file) {
-            throw Error('File not found on database, please refresh');
-          } else if (file.size > maxAcceptableSize) {
-            throw Error('File too large');
-          }
-
-          App.services.Storj.ResolveFile(user, file).then((result) => {
-            resolve({
-              ...result, folderId: file.folder_id, name: file.name, type: file.type, raw: file, size: file.size
-            });
-          }).catch((err) => {
-            if (err.message === 'File already exists') {
-              resolve({ file: { name: `${file.name}${file.type ? `${file.type}` : ''}` } });
-            } else {
-              reject(err);
-            }
-          });
-        }).catch(reject);
-    });
-  };
-
-  const DownloadFolderFile = (user, fileId, localPath) => new Promise((resolve, reject) => {
-    if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
-
-    Model.file
-      .findOne({ where: { file_id: { [Op.eq]: fileId } } }).then((file) => {
-        if (!file) {
-          throw Error('File not found on database, please refresh');
-        }
-
-        App.services.Storj.ResolveFolderFile(user, file, localPath).then((result) => {
-          resolve({ ...result, folderId: file.folder_id });
-        }).catch((err) => {
-          if (err.message === 'File already exists') {
-            resolve({ file: { name: `${file.name}.${file.type}` } });
-          } else {
-            reject(err);
-          }
-        });
-      }).catch(reject);
-  });
-
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
-    App.services.Storj.DeleteFile(user, bucket, fileId).then(async () => {
+    App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
       const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
       if (file) {
@@ -254,32 +112,26 @@ module.exports = (Model, App) => {
     });
   });
 
-  const DeleteFile = (user, folderid, fileid) => new Promise((resolve, reject) => {
-    Model.file
-      .findOne({ where: { id: fileid, folder_id: folderid } }).then((fileObj) => {
-        if (!fileObj) {
-          reject(new Error('Folder not found'));
-        } else if (fileObj.fileId) {
-          App.services.Storj.DeleteFile(user, fileObj.bucket, fileObj.fileId).then(() => {
-            fileObj.destroy().then(resolve).catch(reject);
-          }).catch((err) => {
-            const resourceNotFoundPattern = /Resource not found/;
+  const DeleteFile = async (user, folderId, fileId) => {
+    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId } });
 
-            if (resourceNotFoundPattern.exec(err.message)) {
-              fileObj.destroy().then(resolve).catch(reject);
-            } else {
-              log.error('Error deleting file from bridge:', err.message);
-              reject(err);
-            }
-          });
-        } else {
-          fileObj.destroy().then(resolve).catch(reject);
-        }
-      }).catch((err) => {
-        log.error('Failed to find folder on database:', err.message);
-        reject(err);
-      });
-  });
+    await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
+
+    if (!file) {
+      throw Error('File/Folder not found');
+    }
+
+    try {
+      await App.services.Inxt.DeleteFile(user, file.bucket, file.fileId);
+    } catch (err) {
+      const resourceNotFoundPattern = /Resource not found/;
+
+      if (!resourceNotFoundPattern.exec(err.message)) {
+        throw err;
+      }
+    }
+    await file.destroy();
+  };
 
   const UpdateMetadata = (user, fileId, metadata) => {
     const newMeta = {};
@@ -356,7 +208,6 @@ module.exports = (Model, App) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
 
     console.log('bucketId: ', bucketId);
-    console.log('inxt-js: ', inxtJs);
 
     if (!file) {
       throw Error('File not found');
@@ -405,10 +256,6 @@ module.exports = (Model, App) => {
 
     return response;
   };
-
-  const ListAllFiles = (user, bucketId) => new Promise((resolve, reject) => {
-    App.services.Storj.ListBucketFiles(user, bucketId).then(resolve).catch((err) => reject(err.message));
-  });
 
   const isFileOfTeamFolder = (fileId) => new Promise((resolve, reject) => {
     Model.file
@@ -472,16 +319,12 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Files',
-    Upload,
     CreateFile,
     Delete,
     DeleteFile,
-    Download,
     UpdateMetadata,
     GetNewMoveName,
     MoveFile,
-    ListAllFiles,
-    DownloadFolderFile,
     isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder
