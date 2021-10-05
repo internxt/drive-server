@@ -115,6 +115,7 @@ module.exports = (sequelize, DataTypes) => {
 
   User.associate = (models) => {
     User.hasMany(models.folder);
+    User.hasMany(models.file);
     User.hasOne(models.usersphotos);
     User.hasOne(models.AppSumo);
     User.hasOne(models.keyserver);
