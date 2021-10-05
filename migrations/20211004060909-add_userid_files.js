@@ -4,10 +4,12 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.addColumn('files', 'user_id', {
       type: Sequelize.INTEGER,
+      allowNull: false,
       references: {
         model: 'users',
         key: 'id'
-      }
+      },
+      onDelete: 'CASCADE'
     });
   },
 
