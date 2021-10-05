@@ -180,6 +180,21 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.get('/storage/files/:folderId', passportAuth, (req, res) => {
+    const userId = req.user.id;
+    const { folderId } = req.params;
+
+    if (!folderId) {
+      res.status(400).send({ error: 'Missing folder id' });
+    } else {
+      Service.Files.getByFolderAndUserId(folderId, userId).then((files) => {
+        res.status(200).json(files);
+      }).catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
+    }
+  });
+
   // Needs db index
   Router.get('/storage/recents', passportAuth, (req, res) => {
     let { limit } = req.query;

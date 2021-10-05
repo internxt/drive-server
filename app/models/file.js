@@ -40,6 +40,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       deletedAt: {
         type: DataTypes.DATE
+      },
+      userId: {
+        type: DataTypes.INTEGER
       }
     },
     {
@@ -50,6 +53,7 @@ module.exports = (sequelize, DataTypes) => {
 
   file.associate = (models) => {
     file.belongsTo(models.folder);
+    file.belongsTo(models.users);
     file.hasMany(models.shares, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
   };
 
