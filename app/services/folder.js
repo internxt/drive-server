@@ -269,6 +269,26 @@ module.exports = (Model, App) => {
     return child;
   });
 
+  const GetFoldersTwo = async (parentFolderId, userId, teamId = null) => {
+    const folders = await Model.folder.findAll({
+      where: { parentId: parentFolderId, userId }
+    });
+
+    if (!folders) {
+      throw new Error('Folders not found');
+    }
+
+    if (folders.length === 0) {
+      return folders;
+    }
+
+    return folders.map(folder => {
+      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+
+      return folder;
+    });
+  };
+
   const GetContent = async (folderId, user, teamId = null) => {
     if (user.email !== user.bridgeUser) {
       user = await Model.users.findOne({ where: { email: user.bridgeUser } });
@@ -574,6 +594,7 @@ module.exports = (Model, App) => {
     MoveFolder,
     GetBucket,
     GetFolders,
+    GetFoldersTwo,
     isFolderOfTeam,
     GetFoldersPagination,
     GetTreeHierarchy,
