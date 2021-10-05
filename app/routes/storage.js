@@ -185,15 +185,14 @@ module.exports = (Router, Service, App) => {
     const { folderId } = req.params;
 
     if (!folderId) {
-      return res.status(400).send({ error: 'Missing folder id' });
+      res.status(400).send({ error: 'Missing folder id' });
+    } else {
+      Service.Files.getByFolderAndUserId(folderId, userId).then((files) => {
+        res.status(200).json(files);
+      }).catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
     }
-
-    Service.Files.getByFolderAndUserId(folderId, userId).then((files) => {
-      console.log(files);
-      res.status(200).json(files);
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
   });
 
   // Needs db index
