@@ -1,4 +1,5 @@
 const passport = require('../middleware/passport');
+const sharedMiddleware = require('../middleware/shared-workspace');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
 
@@ -7,11 +8,30 @@ const Logger = logger.getInstance();
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
+  const sharedAdapter = sharedMiddleware.build(Service);
+
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
 
     Service.Folder.GetContent(folderId, req.user, teamId).then((result) => {
+      if (result == null) {
+        res.status(500).send([]);
+      } else {
+        res.status(200).json(result);
+      }
+    }).catch((err) => {
+      // Logger.error(`${err.message}\n${err.stack}`);
+      res.status(500).json(err);
+    });
+  });
+
+  Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, (req, res) => {
+    const { params, behalfUser } = req;
+    const { id } = params;
+    const teamId = params.idTeam || null;
+
+    Service.Folder.GetFoldersTwo(id, behalfUser.id, teamId).then((result) => {
       if (result == null) {
         res.status(500).send([]);
       } else {
