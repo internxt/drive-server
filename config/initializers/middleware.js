@@ -1,4 +1,4 @@
-const bodyParser = require('body-parser');
+const { json, urlencoded } = require('express');
 const cors = require('cors');
 const Passport = require('passport');
 const JwtStrategy = require('passport-jwt').Strategy;
@@ -103,9 +103,8 @@ module.exports = (App, Config) => {
   })
   );
 
-  App.express.use(bodyParser.json());
-
-  App.express.use(bodyParser.urlencoded({ extended: true }));
+  App.express.use(json());
+  App.express.use(urlencoded({ extended: true }));
 
   /**
    * JWT configuration.
