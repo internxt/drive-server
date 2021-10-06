@@ -33,16 +33,21 @@ module.exports = (Router, Service, App) => {
     const { id } = params;
 
     return Promise.all([
+      Service.Folder.getById(id),
       Service.Folder.getFolders(id, behalfUser.id),
       Service.Files.getByFolderAndUserId(id, behalfUser.id)
-    ]).then(([folders, files]) => {
-      if (!folders || !files) {
+    ]).then(([currentFolder, childrenFolders, childrenFiles]) => {
+      if (!currentFolder || !childrenFolders || !childrenFiles) {
         return res.status(400).send();
       }
 
-      return res.status(200).json({ folders, files });
+      return res.status(200).json({
+        ...currentFolder,
+        children: childrenFolders,
+        files: childrenFiles
+      });
     }).catch((err) => {
-      return res.status(500).json(err);
+      return res.status(500).json({ error: err.message });
     });
   });
 

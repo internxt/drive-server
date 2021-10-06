@@ -8,6 +8,14 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const getById = (id) => {
+    return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
+      folder.name = App.services.Crypt.decryptName(folder.name, id);
+
+      return folder;
+    });
+  };
+
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
@@ -577,6 +585,7 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Folder',
+    getById,
     Create,
     Delete,
     GetChildren,
