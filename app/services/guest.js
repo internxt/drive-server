@@ -6,7 +6,7 @@ module.exports = (Model) => {
 
   const getHost = (email) => {
     return Model.users.findOne({ where: { email } });
-  }
+  };
 
   return {
     Name: 'Guest',

@@ -301,7 +301,7 @@ module.exports = (Model, App) => {
       if (!files) {
         throw new Error('Not found');
       }
-      return files.map(file => {
+      return files.map((file) => {
         file.name = App.services.Crypt.decryptName(file.name, folderId);
 
         return file;

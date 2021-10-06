@@ -37,12 +37,12 @@ module.exports = (Router, Service, App) => {
       Service.Files.getByFolderAndUserId(id, behalfUser.id)
     ]).then(([folders, files]) => {
       if (!folders || !files) {
-        return res.status(400).send()
+        return res.status(400).send();
       }
 
-      res.status(200).json({ folders, files });
+      return res.status(200).json({ folders, files });
     }).catch((err) => {
-      res.status(500).json(err);
+      return res.status(500).json(err);
     });
   });
 

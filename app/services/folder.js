@@ -275,7 +275,7 @@ module.exports = (Model, App) => {
       if (!folders) {
         throw new Error('Not found');
       }
-      return folders.map(folder => {
+      return folders.map((folder) => {
         folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
         return folder;

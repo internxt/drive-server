@@ -1,9 +1,9 @@
 // TODO: The auth should be replaced by an auth token that will
-// provide the team id of the user making the request 
+// provide the team id of the user making the request
 const build = (Service) => async (req, res, next) => {
   try {
     const teamId = req.params.idTeam || null;
-    const user = req.behalfUser ?? req.user;
+    const user = req.behalfUser ? req.behalfUser : req.user;
     let teamMember = null;
 
     if (teamId) {
@@ -14,12 +14,12 @@ const build = (Service) => async (req, res, next) => {
       return res.status(401).send();
     }
 
-    next();
+    return next();
   } catch (err) {
-    next(err);
+    return next(err);
   }
-}
+};
 
 module.exports = {
   build
-}
+};
