@@ -1,4 +1,4 @@
-module.exports = () => {
+module.exports = (Model) => {
   const enableShareWorkspace = (user, guest, key) => {
     user.tempKey = key;
     return user.save();

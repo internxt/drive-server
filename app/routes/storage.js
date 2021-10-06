@@ -1,5 +1,6 @@
 const passport = require('../middleware/passport');
-const sharedMiddleware = require('../middleware/shared-workspace');
+const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
+const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
 
@@ -8,7 +9,8 @@ const Logger = logger.getInstance();
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
-  const sharedAdapter = sharedMiddleware.build(Service);
+  const sharedAdapter = sharedMiddlewareBuilder.build(Service);
+  const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
@@ -26,19 +28,30 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, (req, res) => {
+  Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
     const { params, behalfUser } = req;
     const { id } = params;
     const teamId = params.idTeam || null;
 
-    Service.Folder.GetFoldersTwo(id, behalfUser.id, teamId).then((result) => {
-      if (result == null) {
-        res.status(500).send([]);
-      } else {
-        res.status(200).json(result);
+    let teamMember = null;
+    if (teamId) {
+      teamMember = Service.TeamsMembers.getMemberByIdTeam(teamId, behalfUser.email);
+    }
+
+    if (teamId && !teamMember) {
+      return res.status(401).send();
+    }
+
+    return Promise.all([
+      Service.Folder.getFolders(id, behalfUser.id),
+      Service.Files.getByFolderAndUserId(id, behalfUser.id)
+    ]).then(([folders, files]) => {
+      if (!folders || !files) {
+        return res.status(400).send()
       }
+
+      res.status(200).json({ folders, files });
     }).catch((err) => {
-      // Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).json(err);
     });
   });

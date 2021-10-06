@@ -224,7 +224,6 @@ module.exports = (Model, App) => {
 
     const folders = await Model.folder.findAll({
       where: { user_id: { [Op.eq]: userObject.id } },
-      // where: { user_id: 21810 },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
     });
     const foldersId = folders.map((result) => result.id);
@@ -269,23 +268,18 @@ module.exports = (Model, App) => {
     return child;
   });
 
-  const GetFoldersTwo = async (parentFolderId, userId, teamId = null) => {
-    const folders = await Model.folder.findAll({
+  const getFolders = (parentFolderId, userId) => {
+    return Model.folder.findAll({
       where: { parentId: parentFolderId, userId }
-    });
+    }).then((folders) => {
+      if (!folders) {
+        throw new Error('Not found');
+      }
+      return folders.map(folder => {
+        folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
-    if (!folders) {
-      throw new Error('Folders not found');
-    }
-
-    if (folders.length === 0) {
-      return folders;
-    }
-
-    return folders.map(folder => {
-      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
-
-      return folder;
+        return folder;
+      });
     });
   };
 
@@ -594,7 +588,7 @@ module.exports = (Model, App) => {
     MoveFolder,
     GetBucket,
     GetFolders,
-    GetFoldersTwo,
+    getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
     GetTreeHierarchy,
