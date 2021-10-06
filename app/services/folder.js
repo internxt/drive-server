@@ -13,8 +13,8 @@ module.exports = (Model, App) => {
       folder.name = App.services.Crypt.decryptName(folder.name, id);
 
       return folder;
-    })
-  }
+    });
+  };
 
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
@@ -116,7 +116,7 @@ module.exports = (Model, App) => {
     const folderFolders = await Model.folder.findAll({
       where: { parentId: folder.id }
     });
-  
+
     await Promise.all(folderFiles
       .map((file) => FileServiceInstance.Delete(user, file.bucket, file.fileId))
       .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id))));
