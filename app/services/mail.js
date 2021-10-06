@@ -44,19 +44,13 @@ module.exports = (Model) => {
     });
   };
 
-  const sendGuestInvitation = async (user, guest) => {
-    const guestExists = await Model.users.findOne({ where: { email: guest } }).catch(() => null);
-
-    if (!guestExists) {
-      throw Error('Guest email does not exists');
-    }
-
+  const sendGuestInvitation = async (user, guestEmail) => {
     const mailer = mailInstance();
 
     return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(guest, 'join-workspace', {
+      mailer.dispatchSendGrid(guestEmail, 'join-workspace', {
         host: `${user.name} ${user.lastname}`,
-        guest,
+        guestEmail,
         url: `${process.env.HOST_DRIVE_WEB}/guest/invite`
       }, (err) => {
         if (err) {

@@ -1,25 +1,34 @@
+const bip39 = require('bip39');
+const AesUtil = require('../../lib/AesUtil');
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger');
 
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
-  Router.post('/guest/invite', passportAuth, (req, res) => {
-    const tempKey = `M-${Buffer.from(req.headers['internxt-mnemonic']).toString('hex')}`;
+  Router.post('/guest/invite', passportAuth, async (req, res) => {
+    const sharedKey = req.headers['internxt-mnemonic'];
+
+    if (!sharedKey) {
+      return res.status(400).send({ error: 'Missing key' });
+    }
+
+    const sharedKeyEncrypted = AesUtil.encrypt(bip39.mnemonicToEntropy(sharedKey));
+
     const guestUser = req.body.guest && req.body.guest.toLowerCase();
 
-    Logger.info('REQUEST GUEST from %s to %s with key %s', req.user.email, guestUser, tempKey);
+    if (!guestUser) {
+      return res.status(400).send({ error: 'Missing guest user' });
+    }
 
-    Service.Guest.enableShareWorkspace(req.user, guestUser, tempKey).then(() => {
-      return Service.Mail.sendGuestInvitation(req.user, guestUser).then(() => {
-        res.status(200).send({ ok: 1 });
-      }).catch((err) => {
-        throw Error(err.message);
-      });
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-      Logger.error(err.message);
-    });
+    try {
+      await Service.Guest.invite(req.user, guestUser, sharedKeyEncrypted);
+      await Service.Mail.sendGuestInvitation(req.user, guestUser);
+
+      return res.status(200).send({});
+    } catch (err) {
+      return res.status(500).send({ error: err.message || 'Internal server error' });
+    }
   });
 
   Router.post('/guest/accept', passportAuth, (req, res) => {
