@@ -3,11 +3,15 @@
 const build = (Service) => async (req, res, next) => {
   try {
     const teamId = req.params.idTeam || null;
-    const user = req.behalfUser ? req.behalfUser : req.user;
+
+    if (!req.behalfUser) {
+      req.behalfUser = req.user;
+    }
+
     let teamMember = null;
 
     if (teamId) {
-      teamMember = await Service.TeamsMembers.getMemberByIdTeam(teamId, user.email);
+      teamMember = await Service.TeamsMembers.getMemberByIdTeam(teamId, req.behalfUser.email);
     }
 
     if (teamId && !teamMember) {
