@@ -76,6 +76,18 @@ module.exports = (Router, Service, App) => {
     });
   });
 
+  Router.post('/storage/rename-file-in-network', passportAuth, (req, res) => {
+    const { bucketId, fileId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const { user } = req;
+
+    App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath).then(() => {
+      res.status(200).json({ message: `File renamed in network: ${fileId}` });
+    }).catch((error) => {
+      res.status(500).json({ error: error.message });
+    });
+  });
+
   Router.post('/storage/file', passportAuth, (req, res) => {
     const { user } = req;
     const { file } = req.body;
