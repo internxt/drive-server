@@ -1,7 +1,7 @@
 const openpgp = require('openpgp');
 const { expect } = require('chai');
 const { describe, it } = require('mocha');
-const { encrypt } = require('../../lib/AesUtil')
+const { encrypt } = require('../../lib/AesUtil');
 
 describe('# openpgp', () => {
   it('should have correct length', async () => {
