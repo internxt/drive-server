@@ -31,16 +31,6 @@ module.exports = (Router, Service, App) => {
   Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
     const { params, behalfUser } = req;
     const { id } = params;
-    const teamId = params.idTeam || null;
-
-    let teamMember = null;
-    if (teamId) {
-      teamMember = Service.TeamsMembers.getMemberByIdTeam(teamId, behalfUser.email);
-    }
-
-    if (teamId && !teamMember) {
-      return res.status(401).send();
-    }
 
     return Promise.all([
       Service.Folder.getFolders(id, behalfUser.id),
