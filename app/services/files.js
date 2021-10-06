@@ -205,8 +205,9 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const MoveFile = async (user, fileId, destination) => {
+  const MoveFile = async (user, fileId, destination, bucketId, mnemonic, relativePath) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+
     if (!file) {
       throw Error('File not found');
     }
@@ -237,10 +238,12 @@ module.exports = (Model, App) => {
     }
 
     // Move
+    await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
     const result = await file.update({
       folder_id: parseInt(destination, 10),
       name: destinationName
     });
+
     // we don't want ecrypted name on front
     file.setDataValue('name',
       App.services.Crypt.decryptName(destinationName, destination));
