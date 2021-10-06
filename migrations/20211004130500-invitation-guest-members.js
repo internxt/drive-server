@@ -23,14 +23,14 @@ module.exports = {
           key: 'id'
         }
       },
-      inviteId: {
+      invite_id: {
         type: Sequelize.STRING(216),
         allowNull: false
       },
-      createdAt: {
+      created_at: {
         type: Sequelize.DATE
       },
-      updatedAt: {
+      updated_at: {
         type: Sequelize.DATE
       }
     });

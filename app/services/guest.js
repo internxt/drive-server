@@ -18,8 +18,10 @@ module.exports = (Model) => {
     }
 
     const invitation = await Model.Invitation.findOne({
-      host: host.id,
-      guest: guest.id
+      where: {
+        host: host.id,
+        guest: guest.id
+      }
     });
 
     if (invitation) {
