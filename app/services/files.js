@@ -297,7 +297,16 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId) => {
-    return Model.file.findAll({ where: { folderId, userId } });
+    return Model.file.findAll({ where: { folderId, userId } }).then((files) => {
+      if (!files) {
+        throw new Error('Not found');
+      }
+      return files.map((file) => {
+        file.name = App.services.Crypt.decryptName(file.name, folderId);
+
+        return file;
+      });
+    });
   };
 
   const getRecentFiles = async (userId, limit) => {
