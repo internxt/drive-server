@@ -1,6 +1,6 @@
 const InternxtMailer = require('inxt-service-mailer');
 
-module.exports = (Model) => {
+module.exports = () => {
   const mailInstance = () => {
     const mailConfig = {
       host: process.env.INXT_MAILER_HOST,
