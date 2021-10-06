@@ -3,7 +3,7 @@ exports.data = {
     port: 3007
   },
   database: {
-    name: 'xcloud_server_dev',
+    name: 'drive_test',
     user: 'developer',
     password: 'asdf1234',
     host: 'localhost'

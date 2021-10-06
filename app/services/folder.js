@@ -80,14 +80,14 @@ module.exports = (Model, App) => {
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
-    const xCloudFolder = await user.createFolder({
+    const folder = await user.createFolder({
       name: cryptoFolderName,
       bucket: null,
       parentId: parentFolderId || null,
       id_team: teamId
     });
 
-    return xCloudFolder;
+    return folder;
   };
 
   const Delete = async (user, folderId) => {
