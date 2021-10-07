@@ -134,7 +134,7 @@ module.exports = (Model, App) => {
     await file.destroy();
   };
 
-  const UpdateMetadata = (user, fileId, metadata) => {
+  const UpdateMetadata = (user, fileId, metadata, mnemonic, bucketId, relativePath) => {
     const newMeta = {};
 
     return async.waterfall([
@@ -197,7 +197,11 @@ module.exports = (Model, App) => {
       },
       (file, next) => {
         if (newMeta.name !== file.name) {
-          file.update(newMeta).then((update) => next(null, update)).catch(next);
+          file.update(newMeta).then(async (update) => {
+            await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
+
+            next(null, update);
+          }).catch(next);
         } else {
           next();
         }
