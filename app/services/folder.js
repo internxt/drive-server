@@ -1,6 +1,7 @@
 const sequelize = require('sequelize');
 const async = require('async');
 const { fn, col } = require('sequelize');
+const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 
 const invalidName = /[\\/]|[. ]$/;
@@ -441,29 +442,6 @@ module.exports = (Model, App) => {
     return Model.folder.findAll(query);
   };
 
-  const GetNewMoveName = async (user, destination, originalName) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(nextName, destination);
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.folder.findOne({
-        where: {
-          parent_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          user_id: { [Op.eq]: user.id }
-        },
-        raw: true
-      }));
-      i += 1;
-    }
-
-    return { cryptedName: nextCryptedName, name: nextName };
-  };
-
   const MoveFolder = async (user, folderId, destination) => {
     const folder = await Model.folder.findOne({
       where: {
@@ -484,7 +462,7 @@ module.exports = (Model, App) => {
 
     const originalName = App.services.Crypt.decryptName(folder.name,
       folder.parentId);
-    let destinationName = App.services.Crypt.encryptName(originalName,
+    const destinationName = App.services.Crypt.encryptName(originalName,
       destination);
     const exists = await Model.folder.findOne({
       where: {
@@ -494,9 +472,7 @@ module.exports = (Model, App) => {
     });
 
     if (exists) {
-      // Change folder origin name before move
-      const newName = await GetNewMoveName(user, destination, originalName);
-      destinationName = newName.cryptedName;
+      throw createHttpError(409, 'A folder with same name exists in destination');
     }
 
     if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
@@ -592,7 +568,6 @@ module.exports = (Model, App) => {
     GetTree,
     GetTreeSize,
     GetContent,
-    GetNewMoveName,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
