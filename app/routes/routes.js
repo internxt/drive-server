@@ -327,7 +327,7 @@ module.exports = (Router, Service, App) => {
       }
     } else {
       const { publicKeyArmored } = await openpgp.generateKey({
-        userIds: [{ email: 'inxt@inxt.com' }],
+        userIDs: [{ email: 'inxt@inxt.com' }],
         curve: 'ed25519'
       });
       const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');

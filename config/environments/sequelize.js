@@ -1,15 +1,15 @@
 module.exports = {
   development: {
     dialect: 'mariadb',
-    database: 'xCloud',
+    database: 'drive',
     username: 'root',
-    password: 'example',
+    password: '',
     host: 'localhost'
   },
   test: {
     username: 'root',
     password: null,
-    database: 'database_test',
+    database: 'drive_test',
     host: '127.0.0.1',
     dialect: 'mariadb'
   },
