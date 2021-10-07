@@ -123,6 +123,9 @@ module.exports = (Model, App) => {
     guestUser.root_folder_id = hostUser.root_folder_id;
     guestUser.userId = hostUser.userId;
 
+    invitation.accepted = true;
+
+    await invitation.save();
     await guestUser.save();
 
     Logger.info('User %s accepted shared workspace. Host: %s', guestUser.email, hostUser.email);
