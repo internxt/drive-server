@@ -26,6 +26,11 @@ module.exports = (sequelize, DataTypes) => {
       inviteId: {
         type: DataTypes.STRING(216),
         allowNull: false
+      },
+      accepted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        default: false
       }
     },
     {
