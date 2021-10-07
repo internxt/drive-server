@@ -1,9 +1,6 @@
 const bip39 = require('bip39');
 const AesUtil = require('../../lib/AesUtil');
 const { passportAuth } = require('../middleware/passport');
-const logger = require('../../lib/logger');
-
-const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
   Router.post('/guest/invite', passportAuth, async (req, res) => {
