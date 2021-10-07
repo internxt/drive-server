@@ -1,6 +1,6 @@
 const InternxtMailer = require('inxt-service-mailer');
 
-module.exports = () => {
+module.exports = (Model) => {
   const mailInstance = () => {
     const mailConfig = {
       host: process.env.INXT_MAILER_HOST,
@@ -47,10 +47,12 @@ module.exports = () => {
   const sendGuestInvitation = async (user, guestEmail) => {
     const mailer = mailInstance();
 
+    const guest = await Model.user.findOne({ where: { email: guestEmail } });
+
     return new Promise((resolve, reject) => {
       mailer.dispatchSendGrid(guestEmail, 'join-workspace', {
         host: `${user.name} ${user.lastname}`,
-        guest: guestEmail,
+        guest: `${guest.name} ${guest.lastname}`,
         url: `${process.env.HOST_DRIVE_WEB}/guest/invite`
       }, (err) => {
         if (err) {
