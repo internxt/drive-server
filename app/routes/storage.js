@@ -99,8 +99,8 @@ module.exports = (Router, Service, App) => {
 
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
-    }).catch((error) => {
-      res.status(500).json({ error: error.message });
+    }).catch((err) => {
+      res.status(err.status || 500).json({ error: err.message });
     });
   });
 
@@ -152,7 +152,7 @@ module.exports = (Router, Service, App) => {
       res.status(200).json(result);
     }).catch((err) => {
       Logger.error(err);
-      res.status(500).json({ error: err.message });
+      res.status(err.status || 500).json({ error: err.message });
     });
   });
 
