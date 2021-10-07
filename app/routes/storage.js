@@ -1,4 +1,6 @@
 const passport = require('../middleware/passport');
+const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
+const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger');
 const CONSTANTS = require('../constants');
 
@@ -7,6 +9,9 @@ const Logger = logger.getInstance();
 const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
+  const sharedAdapter = sharedMiddlewareBuilder.build(Service);
+  const teamsAdapter = teamsMiddlewareBuilder.build(Service);
+
   Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
     const folderId = req.params.id;
     const teamId = req.params.idTeam || null;
@@ -20,6 +25,29 @@ module.exports = (Router, Service, App) => {
     }).catch((err) => {
       // Logger.error(`${err.message}\n${err.stack}`);
       res.status(500).json(err);
+    });
+  });
+
+  Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
+    const { params, behalfUser } = req;
+    const { id } = params;
+
+    return Promise.all([
+      Service.Folder.getById(id),
+      Service.Folder.getFolders(id, behalfUser.id),
+      Service.Files.getByFolderAndUserId(id, behalfUser.id)
+    ]).then(([currentFolder, childrenFolders, childrenFiles]) => {
+      if (!currentFolder || !childrenFolders || !childrenFiles) {
+        return res.status(400).send();
+      }
+
+      return res.status(200).json({
+        ...currentFolder,
+        children: childrenFolders,
+        files: childrenFiles
+      });
+    }).catch((err) => {
+      return res.status(500).json({ error: err.message });
     });
   });
 
@@ -64,13 +92,25 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/moveFolder', passportAuth, (req, res) => {
+  Router.post('/storage/move/folder', passportAuth, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
     const { user } = req;
 
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
+    }).catch((err) => {
+      res.status(err.status || 500).json({ error: err.message });
+    });
+  });
+
+  Router.post('/storage/rename-file-in-network', passportAuth, (req, res) => {
+    const { bucketId, fileId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const { user } = req;
+
+    App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath).then(() => {
+      res.status(200).json({ message: `File renamed in network: ${fileId}` });
     }).catch((error) => {
       res.status(500).json({ error: error.message });
     });
@@ -101,15 +141,18 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/moveFile', passportAuth, (req, res) => {
-    const { fileId, destination } = req.body;
+  Router.post('/storage/move/file', passportAuth, (req, res) => {
+    const {
+      fileId, destination, bucketId, relativePath
+    } = req.body;
     const { user } = req;
+    const mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Files.MoveFile(user, fileId, destination).then((result) => {
+    Service.Files.MoveFile(user, fileId, destination, bucketId, mnemonic, relativePath).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
       Logger.error(err);
-      res.status(500).json({ error: err.message });
+      res.status(err.status || 500).json({ error: err.message });
     });
   });
 

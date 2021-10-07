@@ -1,5 +1,6 @@
 const sequelize = require('sequelize');
 const async = require('async');
+const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 
 // Filenames that contain "/", "\" or only spaces are invalid
@@ -59,30 +60,6 @@ module.exports = (Model, App) => {
 
       return Model.file.create(fileInfo);
     });
-  };
-
-  const GetNewMoveName = async (destination, originalName, type) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(App.services.Utils.getNewMoveName(originalName, i),
-        destination);
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.file.findOne({
-        where: {
-          folder_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          type: { [Op.eq]: type }
-        },
-        raw: true
-      }));
-      i += 1;
-    }
-
-    return { cryptedName: nextCryptedName, name: nextName };
   };
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
@@ -205,8 +182,9 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const MoveFile = async (user, fileId, destination) => {
+  const MoveFile = async (user, fileId, destination, bucketId, mnemonic, relativePath) => {
     const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+
     if (!file) {
       throw Error('File not found');
     }
@@ -217,7 +195,7 @@ module.exports = (Model, App) => {
 
     const originalName = App.services.Crypt.decryptName(file.name,
       file.folder_id);
-    let destinationName = App.services.Crypt.encryptName(originalName,
+    const destinationName = App.services.Crypt.encryptName(originalName,
       destination);
 
     const exists = await Model.file.findOne({
@@ -230,17 +208,16 @@ module.exports = (Model, App) => {
 
     // Change name if exists
     if (exists) {
-      const newName = await GetNewMoveName(destination,
-        originalName,
-        file.type);
-      destinationName = newName.cryptedName;
+      throw createHttpError(409, 'A file with same name exists in destination');
     }
 
     // Move
+    await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
     const result = await file.update({
       folder_id: parseInt(destination, 10),
       name: destinationName
     });
+
     // we don't want ecrypted name on front
     file.setDataValue('name',
       App.services.Crypt.decryptName(destinationName, destination));
@@ -297,7 +274,16 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId) => {
-    return Model.file.findAll({ where: { folderId, userId } });
+    return Model.file.findAll({ where: { folderId, userId } }).then((files) => {
+      if (!files) {
+        throw new Error('Not found');
+      }
+      return files.map((file) => {
+        file.name = App.services.Crypt.decryptName(file.name, folderId);
+
+        return file;
+      });
+    });
   };
 
   const getRecentFiles = async (userId, limit) => {
@@ -325,7 +311,6 @@ module.exports = (Model, App) => {
     Delete,
     DeleteFile,
     UpdateMetadata,
-    GetNewMoveName,
     MoveFile,
     isFileOfTeamFolder,
     getRecentFiles,

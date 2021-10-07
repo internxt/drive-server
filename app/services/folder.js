@@ -1,6 +1,7 @@
 const sequelize = require('sequelize');
 const async = require('async');
 const { fn, col } = require('sequelize');
+const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 
 const invalidName = /[\\/]|[. ]$/;
@@ -8,6 +9,14 @@ const invalidName = /[\\/]|[. ]$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const getById = (id) => {
+    return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
+      folder.name = App.services.Crypt.decryptName(folder.name, id);
+
+      return folder;
+    });
+  };
+
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
@@ -72,14 +81,14 @@ module.exports = (Model, App) => {
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
 
-    const xCloudFolder = await user.createFolder({
+    const folder = await user.createFolder({
       name: cryptoFolderName,
       bucket: null,
       parentId: parentFolderId || null,
       id_team: teamId
     });
 
-    return xCloudFolder;
+    return folder;
   };
 
   const Delete = async (user, folderId) => {
@@ -224,7 +233,6 @@ module.exports = (Model, App) => {
 
     const folders = await Model.folder.findAll({
       where: { user_id: { [Op.eq]: userObject.id } },
-      // where: { user_id: 21810 },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
     });
     const foldersId = folders.map((result) => result.id);
@@ -268,6 +276,21 @@ module.exports = (Model, App) => {
 
     return child;
   });
+
+  const getFolders = (parentFolderId, userId) => {
+    return Model.folder.findAll({
+      where: { parentId: parentFolderId, userId }
+    }).then((folders) => {
+      if (!folders) {
+        throw new Error('Not found');
+      }
+      return folders.map((folder) => {
+        folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+
+        return folder;
+      });
+    });
+  };
 
   const GetContent = async (folderId, user, teamId = null) => {
     if (user.email !== user.bridgeUser) {
@@ -419,29 +442,6 @@ module.exports = (Model, App) => {
     return Model.folder.findAll(query);
   };
 
-  const GetNewMoveName = async (user, destination, originalName) => {
-    let exists = true;
-    let i = 1;
-    let nextName;
-    let nextCryptedName;
-    while (exists) {
-      nextName = App.services.Utils.getNewMoveName(originalName, i);
-      nextCryptedName = App.services.Crypt.encryptName(nextName, destination);
-      // eslint-disable-next-line no-await-in-loop
-      exists = !!(await Model.folder.findOne({
-        where: {
-          parent_id: { [Op.eq]: destination },
-          name: { [Op.eq]: nextCryptedName },
-          user_id: { [Op.eq]: user.id }
-        },
-        raw: true
-      }));
-      i += 1;
-    }
-
-    return { cryptedName: nextCryptedName, name: nextName };
-  };
-
   const MoveFolder = async (user, folderId, destination) => {
     const folder = await Model.folder.findOne({
       where: {
@@ -462,7 +462,7 @@ module.exports = (Model, App) => {
 
     const originalName = App.services.Crypt.decryptName(folder.name,
       folder.parentId);
-    let destinationName = App.services.Crypt.encryptName(originalName,
+    const destinationName = App.services.Crypt.encryptName(originalName,
       destination);
     const exists = await Model.folder.findOne({
       where: {
@@ -472,9 +472,7 @@ module.exports = (Model, App) => {
     });
 
     if (exists) {
-      // Change folder origin name before move
-      const newName = await GetNewMoveName(user, destination, originalName);
-      destinationName = newName.cryptedName;
+      throw createHttpError(409, 'A folder with same name exists in destination');
     }
 
     if (user.mnemonic === 'null') throw Error('Your mnemonic is invalid');
@@ -563,17 +561,18 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Folder',
+    getById,
     Create,
     Delete,
     GetChildren,
     GetTree,
     GetTreeSize,
     GetContent,
-    GetNewMoveName,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
     GetFolders,
+    getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
     GetTreeHierarchy,

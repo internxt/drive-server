@@ -1,6 +1,5 @@
 .vscode
-.env
-.env.*
+.env*
 node_modules
 config/environments/development.js
 core
