@@ -14,7 +14,7 @@ module.exports = (Model) => {
   };
 
   const inviteUsage = async (host) => {
-    const invitations = await Model.Invitations.findAll({ where: { host: host.id } });
+    const invitations = await Model.Invitation.findAll({ where: { host: host.id } });
 
     if (!invitations) {
       return 0;
@@ -24,11 +24,7 @@ module.exports = (Model) => {
   };
 
   const inviteLimit = async (host) => {
-    const appsumo = await Model.AppSumo.findOne({
-      where: {
-        user_id: host.id
-      }
-    });
+    const appsumo = await Model.AppSumo.findOne({ where: { user_id: host.id } });
 
     if (!appsumo) {
       // Not appsumo user
@@ -76,7 +72,11 @@ module.exports = (Model) => {
 
     const left = await invitationsLeft(host);
 
-    return left > 0;
+    if (left === 0) {
+      throw Error('No invitations left');
+    }
+
+    return true;
   };
 
   const invite = async (host, guestEmail, key) => {
