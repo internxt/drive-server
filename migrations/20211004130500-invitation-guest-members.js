@@ -13,7 +13,9 @@ module.exports = {
         references: {
           model: 'users',
           key: 'id'
-        }
+        },
+        onDelete: 'cascade',
+        onUpdate: 'cascade'
       },
       guest: {
         type: Sequelize.INTEGER,
@@ -21,7 +23,9 @@ module.exports = {
         references: {
           model: 'users',
           key: 'id'
-        }
+        },
+        onDelete: 'cascade',
+        onUpdate: 'cascade'
       },
       invite_id: {
         type: Sequelize.STRING(216),
