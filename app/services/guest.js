@@ -1,3 +1,7 @@
+const bip39 = require('bip39');
+const AesUtil = require('../../lib/AesUtil');
+const CryptService = require('./crypt');
+
 const APPSUMO_TIER_LIMITS = {
   internxt_free1: 0,
   internxt_tier1: 1,
@@ -7,7 +11,9 @@ const APPSUMO_TIER_LIMITS = {
   internxt_tier5: 100
 };
 
-module.exports = (Model) => {
+module.exports = (Model, App) => {
+  const cryptService = CryptService(Model, App);
+
   const enableShareWorkspace = (user, guest, key) => {
     user.tempKey = key;
     return user.save();
@@ -90,9 +96,35 @@ module.exports = (Model) => {
     });
   };
 
+  const acceptInvitation = async (guest, payload) => {
+    if (!payload) {
+      throw Error('Missing user key');
+    }
+
+    const invitation = await Model.Invitation.findOne({ where: { guest: guest.id } });
+
+    if (!invitation) {
+      throw Error('User not invited');
+    }
+
+    const host = await Model.users.findOne({ where: { id: invitation.host } });
+    const guestKey = Buffer.from(payload, 'hex').toString();
+    const hostKey = AesUtil.decrypt(invitation.inviteId);
+    const masterKey = bip39.entropyToMnemonic(hostKey);
+    const newKey = cryptService.encryptTextWithKey(masterKey, guestKey);
+
+    guest.mnemonic = newKey;
+    guest.bridgeUser = host.bridgeUser;
+    guest.root_folder_id = host.root_folder_id;
+    guest.userId = host.userId;
+    // await guest.save();
+    console.log('SAVE');
+  };
+
   return {
     Name: 'Guest',
     enableShareWorkspace,
-    invite
+    invite,
+    acceptInvitation
   };
 };

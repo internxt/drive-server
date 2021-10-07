@@ -31,8 +31,14 @@ module.exports = (Router, Service) => {
     }
   });
 
-  Router.post('/guest/accept', passportAuth, (req, res) => {
-    Logger.info('ACCEPT INVITATION GUEST from %s - %s', req.user.email, JSON.stringify(req.body));
-    res.status(200).send();
+  Router.post('/guest/accept', passportAuth, async (req, res) => {
+    try {
+      const { payload } = req.body;
+
+      await Service.Guest.acceptInvitation(req.user, payload);
+      return res.status(200).send();
+    } catch (err) {
+      return res.status(500).send({ error: err.message });
+    }
   });
 };
