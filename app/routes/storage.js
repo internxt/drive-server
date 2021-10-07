@@ -131,9 +131,10 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/file/:fileid/meta', passportAuth, (req, res) => {
     const { user } = req;
     const fileId = req.params.fileid;
-    const { metadata } = req.body;
+    const { metadata, bucketId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
+    Service.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
       Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
