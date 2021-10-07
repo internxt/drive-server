@@ -50,7 +50,7 @@ module.exports = () => {
     return new Promise((resolve, reject) => {
       mailer.dispatchSendGrid(guestEmail, 'join-workspace', {
         host: `${user.name} ${user.lastname}`,
-        guestEmail,
+        guest: guestEmail,
         url: `${process.env.HOST_DRIVE_WEB}/guest/invite`
       }, (err) => {
         if (err) {
