@@ -120,6 +120,7 @@ module.exports = (sequelize, DataTypes) => {
     User.hasOne(models.AppSumo);
     User.hasOne(models.keyserver);
     User.hasMany(models.device);
+    User.hasMany(models.Invitation, { foreignKey: 'host' });
   };
 
   return User;
