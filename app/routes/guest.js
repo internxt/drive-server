@@ -36,7 +36,7 @@ module.exports = (Router, Service) => {
       const { payload } = req.body;
 
       await Service.Guest.acceptInvitation(req.user, payload);
-      return res.status(200).send();
+      return res.status(200).send({});
     } catch (err) {
       return res.status(500).send({ error: err.message });
     }
