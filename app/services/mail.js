@@ -47,7 +47,7 @@ module.exports = (Model) => {
   const sendGuestInvitation = async (user, guestEmail) => {
     const mailer = mailInstance();
 
-    const guest = await Model.user.findOne({ where: { email: guestEmail } });
+    const guest = await Model.users.findOne({ where: { email: guestEmail } });
 
     return new Promise((resolve, reject) => {
       mailer.dispatchSendGrid(guestEmail, 'join-workspace', {
