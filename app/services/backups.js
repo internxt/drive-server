@@ -75,8 +75,16 @@ module.exports = (Model, App) => {
     return Model.backup.findAll({ where: { deviceId: device.id } });
   };
 
-  const deleteOne = async (userId, id) => {
-    return Model.backup.destroy({ where: { userId, id } });
+  const deleteOne = async (user, id) => {
+    const backup = await Model.backup.findOne({ where: { id, userId: user.id } });
+
+    if (!backup) throw new Error(`This user does not have a backup with id ${id}`);
+
+    const { fileId, bucket } = backup;
+
+    if (fileId) { await App.services.Inxt.DeleteFile(user, bucket, fileId); }
+
+    return backup.destroy();
   };
 
   const updateOne = async (userId, id, data) => {

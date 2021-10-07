@@ -110,9 +110,7 @@ module.exports = (Router, Service) => {
   Router.delete('/backup/:id', passportAuth, (req, res) => {
     const { id } = req.params;
 
-    const { id: userId } = req.user;
-
-    Service.Backup.deleteOne(userId, id)
+    Service.Backup.deleteOne(req.user, id)
       .then(() => res.status(200).send())
       .catch((err) => res.status(500).send({ error: err.message }));
   });
