@@ -21,10 +21,10 @@ module.exports = (sequelize, DataTypes) => {
       type: {
         type: Sequelize.ENUM('subscription', 'one_time')
       },
-      created_at: {
+      createdAt: {
         type: Sequelize.DATE
       },
-      updated_at: {
+      updatedAt: {
         type: Sequelize.DATE
       },
       limit: {
