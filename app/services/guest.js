@@ -40,6 +40,13 @@ module.exports = (Model, App) => {
       return 0;
     }
 
+    const unlimitedMembers = await Model.plan.findOne({ where: { userId: host.id, name: 'appsumo_unlimited_members' } });
+
+    if (unlimitedMembers) {
+      // Infinite?
+      return Number.MAX_SAFE_INTEGER;
+    }
+
     if (!Object.keys(APPSUMO_TIER_LIMITS).indexOf(appsumo.planId) === -1) {
       // Not valid appsumo  plan
       return 0;
