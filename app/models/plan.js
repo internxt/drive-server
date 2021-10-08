@@ -33,7 +33,13 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       timestamps: true,
-      underscored: true
+      underscored: true,
+      indexes: [
+        {
+          unique: false,
+          fields: ['name']
+        }
+      ]
     }
   );
 
