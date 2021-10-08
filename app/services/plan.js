@@ -2,6 +2,7 @@ const { FREE_PLAN_BYTES } = require('../constants');
 
 const StripeService = require('./stripe');
 const LimitService = require('./limit');
+const { default: axios } = require('axios');
 
 const FREE_PLAN = {
   planId: '',
@@ -36,6 +37,25 @@ const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
 module.exports = (Model, App) => {
   const stripeService = StripeService(Model, App);
   const limitService = LimitService(Model, App);
+
+  const getByUserId = (userId) => Model.plan.findOne({ userId });
+  const getByName = (name) => Model.plan.findOne({ name });
+  const create = ({ name, type, createdAt, updatedAt, limit }) => {
+    return Model.plan.create({ name, type, created_at: createdAt, updated_at: updatedAt, limit });
+  };
+  const deleteByUserId = (userId) => Model.plan.destroy({ where: { userId }});
+  const createAndSetBucketLimit = (newPlan, bucketId, bucketLimit) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    return create(newPlan).then(() => {
+      return axios.patch(`${process.env.STORJ_BRIDGE}/gateway/bucket/${bucketId}`, {
+        limit: bucketLimit
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+      });
+    });
+  } 
 
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
@@ -72,6 +92,11 @@ module.exports = (Model, App) => {
   return {
     Name: 'Plan',
     getIndividualPlan,
-    getTeamPlan
+    getTeamPlan,
+    create,
+    getByName,
+    getByUserId,
+    deleteByUserId,
+    createAndSetBucketLimit
   };
 };
