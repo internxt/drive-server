@@ -19,13 +19,13 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING
       },
       type: {
-        type: Sequelize.ENUM('subscription', 'one_time')
+        type: DataTypes.ENUM('subscription', 'one_time')
       },
       createdAt: {
-        type: Sequelize.DATE
+        type: DataTypes.DATE
       },
       updatedAt: {
-        type: Sequelize.DATE
+        type: DataTypes.DATE
       },
       limit: {
         type: DataTypes.INTEGER
