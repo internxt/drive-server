@@ -119,6 +119,7 @@ module.exports = (sequelize, DataTypes) => {
     User.hasOne(models.usersphotos);
     User.hasOne(models.AppSumo);
     User.hasOne(models.keyserver);
+    User.hasOne(models.plan);
     User.hasMany(models.device);
     User.hasMany(models.Invitation, { foreignKey: 'host' });
   };
