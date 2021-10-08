@@ -40,8 +40,8 @@ module.exports = (Model, App) => {
 
   const getByUserId = (userId) => Model.plan.findOne({ userId });
   const getByName = (name) => Model.plan.findOne({ name });
-  const create = ({ name, type, createdAt, updatedAt, limit }) => {
-    return Model.plan.create({ name, type, created_at: createdAt, updated_at: updatedAt, limit });
+  const create = ({ userId, name, type, createdAt, updatedAt, limit }) => {
+    return Model.plan.create({ userId, name, type, created_at: createdAt, updated_at: updatedAt, limit });
   };
   const deleteByUserId = (userId) => Model.plan.destroy({ where: { userId }});
   const createAndSetBucketLimit = (newPlan, bucketId, bucketLimit) => {
