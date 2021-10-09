@@ -276,7 +276,7 @@ module.exports = (Model, App) => {
 
   const LoginFailed = (user, loginFailed) => Model.users.update({
     errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-  }, { where: { email: user } });
+  }, { where: { username: user } });
 
   const ResendActivationEmail = (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
