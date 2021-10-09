@@ -195,8 +195,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
-    const user = req.user.email;
+  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const itemId = req.params.id;
     const {
       isFolder, views, encryptionKey, fileToken, bucket

@@ -57,7 +57,7 @@ module.exports = (Model, App) => {
       itemExists = await Model.folder.findOne({ where: { id: { [Op.eq]: fileIdInBucket } } });
     } else {
       // Check if file exists
-      itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket } } });
+      itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
     }
 
     if (!itemExists) {
@@ -71,7 +71,7 @@ module.exports = (Model, App) => {
     }
 
     if (isFolder === 'true') {
-      const tree = await FolderServiceInstance.GetTree({ email: user }, fileIdInBucket);
+      const tree = await FolderServiceInstance.GetTree({ email: user.email }, fileIdInBucket);
 
       if (!tree) {
         throw Error('Tree not found');
@@ -87,7 +87,7 @@ module.exports = (Model, App) => {
     // Always generate a new token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const tokenData = await Model.shares.findOne({ where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user } } });
+    const tokenData = await Model.shares.findOne({ where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user.email } } });
 
     if (tokenData) {
       // Update token
@@ -101,7 +101,7 @@ module.exports = (Model, App) => {
     }
 
     const newShare = await Model.shares.create({
-      token: newToken, mnemonic, encryptionKey, file: fileIdInBucket, user, isFolder, views, bucket, fileToken
+      token: newToken, mnemonic, encryptionKey, file: fileIdInBucket, user: user.email, isFolder, views, bucket, fileToken
     });
 
     return newShare.token;
