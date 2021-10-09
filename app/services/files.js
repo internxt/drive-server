@@ -64,7 +64,7 @@ module.exports = (Model, App) => {
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
     App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
-      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } });
 
       if (file) {
         const isDestroyed = await file.destroy();
@@ -118,7 +118,7 @@ module.exports = (Model, App) => {
       (next) => {
         // Find the file in database
         Model.file
-          .findOne({ where: { fileId: { [Op.eq]: fileId } } }).then((file) => {
+          .findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } }).then((file) => {
             if (!file) {
               next(Error('Update Metadata Error: File not exists'));
             } else {
