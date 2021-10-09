@@ -240,12 +240,12 @@ module.exports = (Router, Service, App) => {
   });
 
   // Needs db index
-  Router.get('/storage/recents', passportAuth, (req, res) => {
+  Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
     let { limit } = req.query;
 
     limit = Math.min(parseInt(limit, 10), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
 
-    Service.Files.getRecentFiles(req.user.id, limit).then((files) => {
+    Service.Files.getRecentFiles(req.behalfUser.id, limit).then((files) => {
       if (!files) {
         return res.status(404).send({ error: 'Files not found' });
       }
