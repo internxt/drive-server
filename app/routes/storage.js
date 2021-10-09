@@ -78,8 +78,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.delete('/storage/folder/:id', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.delete('/storage/folder/:id', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const folderId = req.params.id;
@@ -182,10 +182,13 @@ module.exports = (Router, Service, App) => {
   });
 
   /*
-   * Delete file by database ids (mysql)
+   * Delete file by database ids (sql)
    */
-  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
-    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid).then(() => {
+  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user, params } = req;
+    const { folderid, fileid } = params;
+
+    Service.Files.DeleteFile(user, folderid, fileid).then(() => {
       res.status(200).json({ deleted: true });
     }).catch((err) => {
       res.status(500).json({ error: err.message });
