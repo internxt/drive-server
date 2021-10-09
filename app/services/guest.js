@@ -17,9 +17,8 @@ const APPSUMO_TIER_LIMITS = {
 module.exports = (Model, App) => {
   const cryptService = CryptService(Model, App);
 
-  const enableShareWorkspace = (user, guest, key) => {
-    user.tempKey = key;
-    return user.save();
+  const getHost = (email) => {
+    return Model.users.findOne({ where: { email } });
   };
 
   const inviteUsage = async (host) => {
@@ -140,7 +139,7 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Guest',
-    enableShareWorkspace,
+    getHost,
     invite,
     acceptInvitation
   };
