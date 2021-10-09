@@ -295,15 +295,9 @@ module.exports = (Model, App) => {
       order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
-      include: [
-        {
-          model: Model.folder,
           where: {
-            user_id: { [Op.eq]: userId }
-          },
-          attributes: []
+        userId
         }
-      ]
     });
 
     return results;
