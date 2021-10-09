@@ -198,36 +198,6 @@ module.exports = (Model, App) => {
     return folderContents;
   };
 
-  // Legacy hierarchy tree code (needs sequelize-hierarchy dependency)
-  const GetTreeHierarchy = async (user, rootFolderId = null) => {
-    const username = user.email;
-
-    const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
-    rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
-
-    const rootFolder = await Model.folder.findOne({
-      where: { id: { [Op.eq]: rootFolderId } },
-      include: [
-        {
-          model: Model.folder,
-          as: 'descendents',
-          include: [
-            {
-              model: Model.file,
-              as: 'files'
-            }
-          ]
-        },
-        {
-          model: Model.file,
-          as: 'files'
-        }
-      ]
-    });
-
-    return rootFolder;
-  };
-
   const GetFolders = async (user) => {
     const userObject = user;
 
@@ -582,7 +552,6 @@ module.exports = (Model, App) => {
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
-    GetTreeHierarchy,
     changeDuplicateName
   };
 };
