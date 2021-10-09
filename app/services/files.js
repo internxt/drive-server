@@ -28,7 +28,8 @@ module.exports = (Model, App) => {
         where: {
           name: { [Op.eq]: file.name },
           folder_id: { [Op.eq]: folder.id },
-          type: { [Op.eq]: file.type }
+          type: { [Op.eq]: file.type },
+          userId: { [Op.eq]: user.id }
         }
       });
 
@@ -77,7 +78,7 @@ module.exports = (Model, App) => {
     }).catch(async (err) => {
       if (err.message.includes('Resource not found')) {
         const file = await Model.file.findOne({
-          where: { fileId: { [Op.eq]: fileId } }
+          where: { fileId: { [Op.eq]: fileId }, userId: user.id }
         });
         if (file) {
           await file.destroy();
@@ -295,9 +296,7 @@ module.exports = (Model, App) => {
       order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
-          where: {
-        userId
-        }
+      where: { userId }
     });
 
     return results;
