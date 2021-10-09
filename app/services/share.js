@@ -118,7 +118,8 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.file,
-          as: 'fileInfo'
+          as: 'fileInfo',
+          where: { userId: user.id }
         }
       ],
       attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views']
