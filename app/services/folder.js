@@ -237,7 +237,7 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId } }
+      where: { folder_id: { [Op.in]: foldersId }, userId: user.id }
     });
     return {
       folders,
@@ -248,7 +248,10 @@ module.exports = (Model, App) => {
   const GetFoldersPagination = async (user, index) => {
     const userObject = user;
     const root = await Model.folder.findOne({
-      where: { id: { [Op.eq]: userObject.root_folder_id } }
+      where: {
+        id: { [Op.eq]: userObject.root_folder_id },
+        userId: user.id
+      }
     });
     if (!root) {
       throw new Error('root folder does not exists');
@@ -262,7 +265,7 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId } }
+      where: { folder_id: { [Op.in]: foldersId }, userId: user.id }
     });
     return {
       folders,
