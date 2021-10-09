@@ -116,11 +116,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/file', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser } = req;
     const { file } = req.body;
 
-    Service.Files.CreateFile(user, file).then((result) => {
+    Service.Files.CreateFile(behalfUser, file).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {
       Logger.error(error);
