@@ -172,13 +172,15 @@ module.exports = (Model, App) => {
           include: [
             {
               model: Model.file,
-              as: 'files'
+              as: 'files',
+              where: { userId: user.id }
             }
           ]
         },
         {
           model: Model.file,
-          as: 'files'
+          as: 'files',
+          where: { userId: user.id }
         }
       ]
     })).toJSON();

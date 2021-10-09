@@ -71,6 +71,7 @@ module.exports = (Model, App) => {
     }
 
     if (isFolder === 'true') {
+      // WARNING: Review GetTree before use it, it's a high cost function
       const tree = await FolderServiceInstance.GetTree({ email: user.email }, fileIdInBucket);
 
       if (!tree) {
