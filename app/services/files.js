@@ -91,7 +91,7 @@ module.exports = (Model, App) => {
   });
 
   const DeleteFile = async (user, folderId, fileId) => {
-    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId } });
+    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
 
     await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
 
@@ -187,7 +187,7 @@ module.exports = (Model, App) => {
   };
 
   const MoveFile = async (user, fileId, destination, bucketId, mnemonic, relativePath) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
 
     if (!file) {
       throw Error('File not found');
