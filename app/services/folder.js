@@ -11,7 +11,7 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const getById = (id) => {
     return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
-      folder.name = App.services.Crypt.decryptName(folder.name, id);
+      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
       return folder;
     });
