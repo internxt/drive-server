@@ -172,10 +172,17 @@ module.exports = (Model, App) => {
   };
 
   const GetDetails = async (user) => {
-    return Model.AppSumo.findOne({ where: { userId: user.id } }).then((license) => {
+    return Model.AppSumo.findOne({ where: { userId: user.id } }).then(async (license) => {
       if (!license) {
         throw Error('No AppSumo license');
       }
+
+      const unlimited = await Model.plan.findOne({ userId: user.id, name: 'appsumo_unlimited_members' });
+
+      if (unlimited) {
+        license.planId = 'unlimited';
+      }
+
       return license;
     });
   };
