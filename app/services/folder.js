@@ -319,11 +319,15 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'children'
+          as: 'children',
+          where: { userId: user.id },
+          separate: true
         },
         {
           model: Model.file,
-          as: 'files'
+          as: 'files',
+          where: { userId: user.id },
+          separate: true
         }
       ]
     });
