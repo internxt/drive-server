@@ -30,7 +30,7 @@ module.exports = (Model, App) => {
       const { bridgeUser } = user;
 
       user = await Model.users.findOne({
-        where: { email: bridgeUser }
+        where: { username: bridgeUser }
       });
     }
 
@@ -252,7 +252,7 @@ module.exports = (Model, App) => {
 
   const GetContent = async (folderId, user, teamId = null) => {
     if (user.email !== user.bridgeUser) {
-      user = await Model.users.findOne({ where: { email: user.bridgeUser } });
+      user = await Model.users.findOne({ where: { username: user.bridgeUser } });
     }
 
     let teamMember = null;

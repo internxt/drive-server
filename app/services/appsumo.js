@@ -29,7 +29,7 @@ module.exports = (Model, App) => {
   const CryptServiceInstance = CryptService(Model, App);
 
   const UserExists = async (email) => {
-    const user = await Model.users.findOne({ where: { email }, attributes: ['id'] });
+    const user = await Model.users.findOne({ where: { username: email }, attributes: ['id'] });
     return !!user;
   };
 
@@ -164,7 +164,7 @@ module.exports = (Model, App) => {
   };
 
   const UpdateLicense = async (email, newDetails) => {
-    const user = await Model.users.findOne({ where: { email } });
+    const user = await Model.users.findOne({ where: { username: email } });
     if (user) {
       return updateOrCreate(Model.AppSumo, { where: { userId: user.id } }, newDetails);
     }

@@ -26,7 +26,7 @@ module.exports = (Model, App) => {
     }
 
     return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
-      where: { email: user.email },
+      where: { username: user.email },
       defaults: {
         name: user.name,
         lastname: user.lastname,
@@ -97,7 +97,7 @@ module.exports = (Model, App) => {
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
+    .findOne({ where: { username: { [Op.eq]: user.email } } }).then(async (userData) => {
       if (userData.root_folder_id) {
         userData.mnemonic = user.mnemonic;
 
@@ -129,7 +129,7 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
+      .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
         if (userData) {
           const user = userData.dataValues;
           if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
@@ -144,10 +144,10 @@ module.exports = (Model, App) => {
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
-  const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+  const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
+    .findOne({ where: { username: { [Op.eq]: email } } }).then((user) => {
       const password = crypto.SHA256(user.userId).toString();
       const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
 
@@ -182,7 +182,7 @@ module.exports = (Model, App) => {
       },
       (data, next) => {
         userEmail = data.data.email;
-        Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then(async (user) => {
+        Model.users.findOne({ where: { username: { [Op.eq]: userEmail } } }).then(async (user) => {
           if (!user) {
             return;
           }
@@ -229,9 +229,9 @@ module.exports = (Model, App) => {
     ]);
   };
 
-  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
+  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { username: { [Op.eq]: user } } });
 
-  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } });
+  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { username: { [Op.eq]: user } } });
 
   const updatePrivateKey = (user, privateKey) => {
     return Model.keyserver.update({
@@ -252,7 +252,7 @@ module.exports = (Model, App) => {
       mnemonic,
       hKey: newSalt
     }, {
-      where: { email: { [Op.eq]: user.email } }
+      where: { username: { [Op.eq]: user.email } }
     });
 
     await updatePrivateKey(user, privateKey);
@@ -280,7 +280,7 @@ module.exports = (Model, App) => {
 
   const ResendActivationEmail = (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
-  const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { email: user } });
+  const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { username: user } });
 
   const getSyncDate = () => {
     let syncDate = Date.now();
@@ -427,7 +427,7 @@ module.exports = (Model, App) => {
   };
 
   const getUsage = async (user) => {
-    const targetUser = await Model.users.findOne({ where: { email: user.bridgeUser } });
+    const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
     const usage = await Model.folder.findAll({
       where: { user_id: targetUser.id },
       include: [{ model: Model.file, attributes: [] }],

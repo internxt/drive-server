@@ -16,7 +16,7 @@ module.exports = (Model, App) => {
     }
 
     return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
-      where: { email: user.email },
+      where: { username: user.email },
       defaults: {
         name: user.name,
         lastname: user.lastname,
@@ -122,7 +122,7 @@ module.exports = (Model, App) => {
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
 
   const FindUserByEmail = (email) => Model.users.findOne({
-    where: { email: { [Op.eq]: email } },
+    where: { username: { [Op.eq]: email } },
     include: [{ model: Model.usersphotos }]
   });
 
