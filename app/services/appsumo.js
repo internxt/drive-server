@@ -177,7 +177,7 @@ module.exports = (Model, App) => {
         throw Error('No AppSumo license');
       }
 
-      const unlimited = await Model.plan.findOne({ userId: user.id, name: 'appsumo_unlimited_members' });
+      const unlimited = await Model.plan.findOne({ where: { userId: user.id, name: 'appsumo_unlimited_members' } });
 
       if (unlimited) {
         license.planId = 'unlimited';
