@@ -51,8 +51,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/folder/:folderid/meta', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
 
@@ -92,10 +92,10 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/move/folder', passportAuth, (req, res) => {
+  Router.post('/storage/move/folder', passportAuth, sharedAdapter, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
-    const { user } = req;
+    const { behalfUser: user } = req;
 
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
@@ -104,10 +104,10 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/rename-file-in-network', passportAuth, (req, res) => {
+  Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
-    const { user } = req;
+    const { behalfUser: user } = req;
 
     App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath).then(() => {
       res.status(200).json({ message: `File renamed in network: ${fileId}` });
@@ -128,8 +128,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file/:fileid/meta', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const fileId = req.params.fileid;
     const { metadata, bucketId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
@@ -142,11 +142,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/move/file', passportAuth, (req, res) => {
+  Router.post('/storage/move/file', passportAuth, sharedAdapter, (req, res) => {
     const {
       fileId, destination, bucketId, relativePath
     } = req.body;
-    const { user } = req;
+    const { behalfUser: user } = req;
     const mnemonic = req.headers['internxt-mnemonic'];
 
     Service.Files.MoveFile(user, fileId, destination, bucketId, mnemonic, relativePath).then((result) => {
