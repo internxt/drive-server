@@ -200,23 +200,6 @@ module.exports = (Model, App) => {
     return folderContents;
   };
 
-  const GetFolders = async (user) => {
-    const userObject = user;
-
-    const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id } },
-      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
-    });
-    const foldersId = folders.map((result) => result.id);
-    const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: user.id }
-    });
-    return {
-      folders,
-      files
-    };
-  };
-
   const GetFoldersPagination = async (user, index) => {
     const userObject = user;
     const root = await Model.folder.findOne({
@@ -550,7 +533,6 @@ module.exports = (Model, App) => {
     UpdateMetadata,
     MoveFolder,
     GetBucket,
-    GetFolders,
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
