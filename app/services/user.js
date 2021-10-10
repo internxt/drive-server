@@ -1,14 +1,14 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
-const { col, fn } = require('sequelize');
-const crypto = require('crypto-js');
+const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 
-const { Op } = sequelize;
+const { Op, col, fn } = sequelize;
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
@@ -131,15 +131,18 @@ module.exports = (Model, App) => {
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
       .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
-        if (userData) {
-          const user = userData.dataValues;
-          if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-
-          resolve(user);
-        } else {
-          Logger.error('User %s not found on Drive database', email);
-          reject(Error('Wrong email/password'));
+        if (!userData) {
+          Logger.error('ERROR user %s not found on database', email);
+          return reject(Error('Wrong email/password'));
         }
+
+        const user = userData.dataValues;
+
+        if (user.mnemonic) {
+          user.mnemonic = user.mnemonic.toString();
+        }
+
+        return resolve(user);
       }).catch((err) => reject(err));
   });
 
@@ -149,7 +152,7 @@ module.exports = (Model, App) => {
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
     .findOne({ where: { username: { [Op.eq]: email } } }).then((user) => {
-      const password = crypto.SHA256(user.userId).toString();
+      const password = CryptoJS.SHA256(user.userId).toString();
       const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
 
       axios
@@ -189,7 +192,7 @@ module.exports = (Model, App) => {
           }
 
           try {
-            // DELETE FOREIGN KEYS
+            // DELETE FOREIGN KEYS (not cascade)
             user.root_folder_id = null;
             await user.save();
             const keys = await user.getKeyserver();
@@ -210,10 +213,14 @@ module.exports = (Model, App) => {
             if (usersPhoto) { await usersPhoto.destroy(); }
 
             await user.destroy();
-          } catch (e) {
-            user.email += '-DELETED';
-            user.username = user.email;
-            user.save();
+            Logger.info('User deactivation, remove on sql: %s', userEmail);
+          } catch (err) {
+            const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
+            Logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err.message);
+            user.email = tempUsername;
+            user.username = tempUsername;
+            user.bridgeUser = tempUsername;
+            await user.save();
           }
 
           analytics.track({
@@ -221,8 +228,6 @@ module.exports = (Model, App) => {
             event: 'user-deactivation-confirm',
             properties: { email: userEmail }
           });
-
-          Logger.info('User deleted on sql: %s', userEmail);
 
           next();
         }).catch(next);
