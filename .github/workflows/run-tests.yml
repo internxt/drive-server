@@ -18,4 +18,4 @@ jobs:
       - name: Check Out Repo
         uses: actions/checkout@v2
       - name: Lint & Test
-        run: yarn add eslint && yarn run test
+        run: yarn && yarn run test

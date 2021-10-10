@@ -28,7 +28,8 @@ module.exports = (Model, App) => {
         where: {
           name: { [Op.eq]: file.name },
           folder_id: { [Op.eq]: folder.id },
-          type: { [Op.eq]: file.type }
+          type: { [Op.eq]: file.type },
+          userId: { [Op.eq]: user.id }
         }
       });
 
@@ -64,7 +65,7 @@ module.exports = (Model, App) => {
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
     App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
-      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } });
 
       if (file) {
         const isDestroyed = await file.destroy();
@@ -77,7 +78,7 @@ module.exports = (Model, App) => {
     }).catch(async (err) => {
       if (err.message.includes('Resource not found')) {
         const file = await Model.file.findOne({
-          where: { fileId: { [Op.eq]: fileId } }
+          where: { fileId: { [Op.eq]: fileId }, userId: user.id }
         });
         if (file) {
           await file.destroy();
@@ -91,7 +92,7 @@ module.exports = (Model, App) => {
   });
 
   const DeleteFile = async (user, folderId, fileId) => {
-    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId } });
+    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
 
     await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
 
@@ -118,7 +119,7 @@ module.exports = (Model, App) => {
       (next) => {
         // Find the file in database
         Model.file
-          .findOne({ where: { fileId: { [Op.eq]: fileId } } }).then((file) => {
+          .findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } }).then((file) => {
             if (!file) {
               next(Error('Update Metadata Error: File not exists'));
             } else {
@@ -187,7 +188,7 @@ module.exports = (Model, App) => {
   };
 
   const MoveFile = async (user, fileId, destination, bucketId, mnemonic, relativePath) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
 
     if (!file) {
       throw Error('File not found');
@@ -295,15 +296,7 @@ module.exports = (Model, App) => {
       order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
-      include: [
-        {
-          model: Model.folder,
-          where: {
-            user_id: { [Op.eq]: userId }
-          },
-          attributes: []
-        }
-      ]
+      where: { userId }
     });
 
     return results;

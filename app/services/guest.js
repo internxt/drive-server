@@ -18,7 +18,7 @@ module.exports = (Model, App) => {
   const cryptService = CryptService(Model, App);
 
   const getHost = (email) => {
-    return Model.users.findOne({ where: { email } });
+    return Model.users.findOne({ where: { username: email } });
   };
 
   const inviteUsage = async (host) => {
@@ -95,7 +95,7 @@ module.exports = (Model, App) => {
   };
 
   const invite = async (host, guestEmail, key) => {
-    const guest = await Model.users.findOne({ where: { email: guestEmail } });
+    const guest = await Model.users.findOne({ where: { username: guestEmail } });
     await canInvite(host, guest);
 
     return Model.Invitation.create({
