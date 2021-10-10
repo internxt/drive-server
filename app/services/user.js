@@ -131,15 +131,18 @@ module.exports = (Model, App) => {
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
       .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
-        if (userData) {
-          const user = userData.dataValues;
-          if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-
-          resolve(user);
-        } else {
-          Logger.error('User %s not found on Drive database', email);
-          reject(Error('Wrong email/password'));
+        if (!userData) {
+          Logger.error('ERROR user %s not found on database', email);
+          return reject(Error('Wrong email/password'));
         }
+
+        const user = userData.dataValues;
+
+        if (user.mnemonic) {
+          user.mnemonic = user.mnemonic.toString();
+        }
+
+        return resolve(user);
       }).catch((err) => reject(err));
   });
 
