@@ -78,6 +78,7 @@ module.exports = (Model, App) => {
     return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params);
   };
 
+  // TODO: Remove mnemonic param
   const CreateBucket = (email, password, mnemonic, name) => {
     const pwdHash = pwdToHex(password);
     const credential = Buffer.from(`${email}:${pwdHash}`).toString('base64');
@@ -98,6 +99,15 @@ module.exports = (Model, App) => {
       throw err;
     });
   };
+
+  const updateBucketLimit = (bucketId, limit) => {
+    return axios.patch(`${App.config.get('STORJ_BRIDGE')}/gateway/bucket/${bucketId}`, {
+      maxFrameSize: limit
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+    })
+  }
 
   const DeleteFile = (user, bucket, bucketEntry) => {
     const pwd = user.userId;
@@ -121,6 +131,7 @@ module.exports = (Model, App) => {
     IdToBcrypt,
     RegisterBridgeUser,
     CreateBucket,
+    updateBucketLimit,
     DeleteFile,
     renameFile
   };
