@@ -66,19 +66,13 @@ module.exports = (Router, Service, App) => {
 
     // Call user service to find user
     return Service.User.FindUserByEmail(req.body.email).then((userData) => {
-      if (!userData) {
-        // Wrong user
-        return res.status(400).json({ error: 'Wrong email/password' });
-      }
-
       const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
       const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
       return Service.KeyServer.keysExists(userData).then((keyExist) => {
         res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
       });
     }).catch(() => {
-      Logger.error('User %s not found on Cloud database', req.body.email);
-      res.status(400).send({ error: 'Wrong email/password' });
+      res.status(401).send({ error: 'Wrong email/password' });
     });
   });
 
@@ -166,11 +160,10 @@ module.exports = (Router, Service, App) => {
         Service.User.LoginFailed(req.body.email, true);
       }
 
-      return res.status(400).json({ error: 'Wrong email/password' });
+      return res.status(401).json({ error: 'Wrong email/password' });
     }).catch((err) => {
-      Logger.error(`${err.message}\n${err.stack}`);
-      Logger.error('User %s not found on Cloud database', req.body.email);
-      return res.status(400).send({ error: 'Wrong email/password' });
+      Logger.error('ERROR access %s, reason: %s', req.body.email, err.message);
+      return res.status(401).send({ error: 'Wrong email/password' });
     });
   });
 

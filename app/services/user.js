@@ -1,14 +1,14 @@
 const axios = require('axios');
 const sequelize = require('sequelize');
 const async = require('async');
-const { col, fn } = require('sequelize');
-const crypto = require('crypto-js');
+const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 
-const { Op } = sequelize;
+const { Op, col, fn } = sequelize;
 
 module.exports = (Model, App) => {
   const Logger = App.logger;
@@ -26,8 +26,9 @@ module.exports = (Model, App) => {
     }
 
     return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
-      where: { email: user.email },
+      where: { username: user.email },
       defaults: {
+        email: user.email,
         name: user.name,
         lastname: user.lastname,
         password: userPass,
@@ -97,7 +98,7 @@ module.exports = (Model, App) => {
   };
 
   const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
-    .findOne({ where: { email: { [Op.eq]: user.email } } }).then(async (userData) => {
+    .findOne({ where: { username: { [Op.eq]: user.email } } }).then(async (userData) => {
       if (userData.root_folder_id) {
         userData.mnemonic = user.mnemonic;
 
@@ -129,26 +130,29 @@ module.exports = (Model, App) => {
 
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
     Model.users
-      .findOne({ where: { email: { [Op.eq]: email } } }).then((userData) => {
-        if (userData) {
-          const user = userData.dataValues;
-          if (user.mnemonic) user.mnemonic = user.mnemonic.toString();
-
-          resolve(user);
-        } else {
-          Logger.error('User %s not found on Drive database', email);
-          reject(Error('Wrong email/password'));
+      .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
+        if (!userData) {
+          Logger.error('ERROR user %s not found on database', email);
+          return reject(Error('Wrong email/password'));
         }
+
+        const user = userData.dataValues;
+
+        if (user.mnemonic) {
+          user.mnemonic = user.mnemonic.toString();
+        }
+
+        return resolve(user);
       }).catch((err) => reject(err));
   });
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
-  const FindUserObjByEmail = (email) => Model.users.findOne({ where: { email: { [Op.eq]: email } } });
+  const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
 
   const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
-    .findOne({ where: { email: { [Op.eq]: email } } }).then((user) => {
-      const password = crypto.SHA256(user.userId).toString();
+    .findOne({ where: { username: { [Op.eq]: email } } }).then((user) => {
+      const password = CryptoJS.SHA256(user.userId).toString();
       const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
 
       axios
@@ -182,13 +186,13 @@ module.exports = (Model, App) => {
       },
       (data, next) => {
         userEmail = data.data.email;
-        Model.users.findOne({ where: { email: { [Op.eq]: userEmail } } }).then(async (user) => {
+        Model.users.findOne({ where: { username: { [Op.eq]: userEmail } } }).then(async (user) => {
           if (!user) {
             return;
           }
 
           try {
-            // DELETE FOREIGN KEYS
+            // DELETE FOREIGN KEYS (not cascade)
             user.root_folder_id = null;
             await user.save();
             const keys = await user.getKeyserver();
@@ -209,10 +213,14 @@ module.exports = (Model, App) => {
             if (usersPhoto) { await usersPhoto.destroy(); }
 
             await user.destroy();
-          } catch (e) {
-            user.email += '-DELETED';
-            user.username = user.email;
-            user.save();
+            Logger.info('User deactivation, remove on sql: %s', userEmail);
+          } catch (err) {
+            const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
+            Logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err.message);
+            user.email = tempUsername;
+            user.username = tempUsername;
+            user.bridgeUser = tempUsername;
+            await user.save();
           }
 
           analytics.track({
@@ -221,17 +229,15 @@ module.exports = (Model, App) => {
             properties: { email: userEmail }
           });
 
-          Logger.info('User deleted on sql: %s', userEmail);
-
           next();
         }).catch(next);
       }
     ]);
   };
 
-  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { email: { [Op.eq]: user } } });
+  const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { username: { [Op.eq]: user } } });
 
-  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { email: { [Op.eq]: user } } });
+  const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { username: { [Op.eq]: user } } });
 
   const updatePrivateKey = (user, privateKey) => {
     return Model.keyserver.update({
@@ -252,7 +258,7 @@ module.exports = (Model, App) => {
       mnemonic,
       hKey: newSalt
     }, {
-      where: { email: { [Op.eq]: user.email } }
+      where: { username: { [Op.eq]: user.email } }
     });
 
     await updatePrivateKey(user, privateKey);
@@ -276,11 +282,11 @@ module.exports = (Model, App) => {
 
   const LoginFailed = (user, loginFailed) => Model.users.update({
     errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-  }, { where: { email: user } });
+  }, { where: { username: user } });
 
   const ResendActivationEmail = (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
-  const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { email: user } });
+  const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { username: user } });
 
   const getSyncDate = () => {
     let syncDate = Date.now();
@@ -311,7 +317,7 @@ module.exports = (Model, App) => {
     }
 
     try {
-      await Model.users.update({ syncDate: sync }, { where: { email: user.email } });
+      await Model.users.update({ syncDate: sync }, { where: { username: user.email } });
     } catch (err) {
       Logger.error(err);
       throw Error('Internal server error');
@@ -427,7 +433,7 @@ module.exports = (Model, App) => {
   };
 
   const getUsage = async (user) => {
-    const targetUser = await Model.users.findOne({ where: { email: user.bridgeUser } });
+    const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
     const usage = await Model.folder.findAll({
       where: { user_id: targetUser.id },
       include: [{ model: Model.file, attributes: [] }],

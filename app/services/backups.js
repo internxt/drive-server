@@ -48,7 +48,7 @@ module.exports = (Model, App) => {
     if (!backupsBucket) {
       backupsBucket = (await Inxt.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
       Model.users.update({ backupsBucket },
-        { where: { email: { [Op.eq]: userData.email } } });
+        { where: { username: { [Op.eq]: userData.email } } });
     }
   };
 

@@ -29,7 +29,7 @@ module.exports = (Model, App) => {
   const CryptServiceInstance = CryptService(Model, App);
 
   const UserExists = async (email) => {
-    const user = await Model.users.findOne({ where: { email }, attributes: ['id'] });
+    const user = await Model.users.findOne({ where: { username: email }, attributes: ['id'] });
     return !!user;
   };
 
@@ -164,7 +164,7 @@ module.exports = (Model, App) => {
   };
 
   const UpdateLicense = async (email, newDetails) => {
-    const user = await Model.users.findOne({ where: { email } });
+    const user = await Model.users.findOne({ where: { username: email } });
     if (user) {
       return updateOrCreate(Model.AppSumo, { where: { userId: user.id } }, newDetails);
     }
@@ -172,10 +172,17 @@ module.exports = (Model, App) => {
   };
 
   const GetDetails = async (user) => {
-    return Model.AppSumo.findOne({ where: { userId: user.id } }).then((license) => {
+    return Model.AppSumo.findOne({ where: { userId: user.id } }).then(async (license) => {
       if (!license) {
         throw Error('No AppSumo license');
       }
+
+      const unlimited = await Model.plan.findOne({ where: { userId: user.id, name: 'appsumo_unlimited_members' } });
+
+      if (unlimited) {
+        license.planId = 'unlimited';
+      }
+
       return license;
     });
   };
