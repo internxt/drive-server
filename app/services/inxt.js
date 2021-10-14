@@ -101,12 +101,14 @@ module.exports = (Model, App) => {
   };
 
   const updateBucketLimit = (bucketId, limit) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
     return axios.patch(`${App.config.get('STORJ_BRIDGE')}/gateway/bucket/${bucketId}`, {
       maxFrameSize: limit
     }, {
       headers: { 'Content-Type': 'application/json' },
       auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    })
+    });
   }
 
   const DeleteFile = (user, bucket, bucketEntry) => {
