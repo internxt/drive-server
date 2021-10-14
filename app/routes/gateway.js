@@ -32,10 +32,8 @@ module.exports = (Router, Service) => {
 
       return Service.Plan.createOrUpdate({ ...plan, userId: dbUser.id });
     }).then(() => {
-      return Service.Backup.getByUserId(user.id);
-    }).then((backup) => {
-      if (backup) {
-        return Service.Inxt.updateBucketLimit(backup.bucket, bucketLimit);
+      if (user.backupsBucket) {
+        return Service.Inxt.updateBucketLimit(user.backupsBucket, bucketLimit);
       }
     }).then(() => {
       return res.status(200).send();
