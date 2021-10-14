@@ -1,8 +1,8 @@
+const { default: axios } = require('axios');
 const { FREE_PLAN_BYTES } = require('../constants');
 
 const StripeService = require('./stripe');
 const LimitService = require('./limit');
-const { default: axios } = require('axios');
 
 const FREE_PLAN = {
   planId: '',
@@ -40,12 +40,16 @@ module.exports = (Model, App) => {
 
   const getByUserId = (userId) => Model.plan.findOne({ userId });
   const getByName = (name) => Model.plan.findOne({ name });
-  const create = ({ userId, name, type, limit }) => {
-    return Model.plan.create({ userId, name, type, limit });
+  const create = ({
+    userId, name, type, limit
+  }) => {
+    return Model.plan.create({
+      userId, name, type, limit
+    });
   };
 
   const createOrUpdate = (plan) => {
-    return Model.plan.findOne({ where: { userId: plan.userId }}).then((dbPlan) => {
+    return Model.plan.findOne({ where: { userId: plan.userId } }).then((dbPlan) => {
       if (!dbPlan) {
         return create(plan);
       }
@@ -57,7 +61,7 @@ module.exports = (Model, App) => {
       return dbPlan.save();
     });
   };
-  const deleteByUserId = (userId) => Model.plan.destroy({ where: { userId }});
+  const deleteByUserId = (userId) => Model.plan.destroy({ where: { userId } });
   const createAndSetBucketLimit = (newPlan, bucketId, bucketLimit) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
@@ -69,7 +73,7 @@ module.exports = (Model, App) => {
         auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
       });
     });
-  } 
+  };
 
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
@@ -88,8 +92,8 @@ module.exports = (Model, App) => {
   };
 
   const isValid = (plan) => {
-    return plan && plan.name && plan.limit > 0 && (plan.type === 'subscription' || plan.type === 'one_time'); 
-  }
+    return plan && plan.name && plan.limit > 0 && (plan.type === 'subscription' || plan.type === 'one_time');
+  };
 
   const getTeamPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))

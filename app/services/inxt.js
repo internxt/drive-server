@@ -109,7 +109,7 @@ module.exports = (Model, App) => {
       headers: { 'Content-Type': 'application/json' },
       auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
     });
-  }
+  };
 
   const DeleteFile = (user, bucket, bucketEntry) => {
     const pwd = user.userId;
