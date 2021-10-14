@@ -8,24 +8,33 @@ module.exports = (Router, Service) => {
   const basicAuth = basicAuthBuilder.build(GATEWAY_USER, GATEWAY_PASS);
 
   Router.post('/gateway/plan', basicAuth, (req, res) => {
-    const { bucket, plan } = req.body;
-    const { name, type, limit } = plan;
+    const { email, plan } = req.body;
 
-    // TODO: Retrieve user by stripe?
+    if (!Service.Plan.isValid(plan)) {
+      return res.status(400).json({ error: 'Invalid plan' });
+    }
 
-    if (type !== 'subscription' && type !== 'one_time') {
-      return res.status(400).send();
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email' });
     }
 
     const tenGb = 10 * 1024 * 1024 * 1024;
-    const plan = { name, type, createdAt: new Date(), updatedAt: new Date(), limit };
-    const bucketLimit = type === 'one_time' ? tenGb : -1;
-    
-    Service.Plan.createAndSetBucketLimit(plan, bucket, bucketLimit).then(() => {
+    const bucketLimit = plan.type === 'one_time' ? tenGb : -1;
+
+    Service.User.FindUserObjByEmail(email).then((user) => {
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return Service.Plan.createOrUpdate({ ...plan, userId: user.id });
+    }).then((plan) => {
+      return Service.Inxt.updateBucketLimit(plan, bucketLimit);
+    }).then(() => {
       return res.status(200).send();
     }).catch((err) => {
-      Logger.error('Error creating a plan for user %s: %s', )
-      return res.status(500).send({ error: err.message });
-    });
+      Logger.error('Error creating %s plan "%s" for user %s: %s', plan.type, plan.name, email, err.message);
+
+      return res.status(500).json({ error: err.message });
+    })
   });
 };
