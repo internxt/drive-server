@@ -8,27 +8,35 @@ module.exports = (Router, Service) => {
   const basicAuth = basicAuthBuilder.build(GATEWAY_USER, GATEWAY_PASS);
 
   Router.post('/gateway/plan', basicAuth, (req, res) => {
-    const { email, bucket, plan } = req.body;
+    const { email, plan } = req.body;
 
     if (!Service.Plan.isValid(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    if (!email || !bucket) {
-      return res.status(400).json({ error: 'Missing email / bucket' });
+    if (!email) {
+      return res.status(400).json({ error: 'Missing email' });
     }
 
     const tenGb = 10 * 1024 * 1024 * 1024;
     const bucketLimit = plan.type === 'one_time' ? tenGb : -1;
 
-    Service.User.FindUserObjByEmail(email).then((user) => {
-      if (!user) {
+    let user;
+
+    Service.User.FindUserObjByEmail(email).then((dbUser) => {
+      if (!dbUser) {
         throw new Error('User not found');
       }
 
-      return Service.Plan.createOrUpdate({ ...plan, userId: user.id });
+      user = dbUser;
+
+      return Service.Plan.createOrUpdate({ ...plan, userId: dbUser.id });
     }).then(() => {
-      return Service.Inxt.updateBucketLimit(bucket, bucketLimit);
+      return Service.Backup.getByUserId(user.id);
+    }).then((backup) => {
+      if (backup) {
+        return Service.Inxt.updateBucketLimit(backup.bucket, bucketLimit);
+      }
     }).then(() => {
       return res.status(200).send();
     }).catch((err) => {

@@ -104,11 +104,16 @@ module.exports = (Model, App) => {
     return Model.backup.update(data, { where: { userId, deviceId } });
   };
 
+  const getByUserId = (userId) => {
+    return Model.backup.findOne({ where: { userId } });
+  };
+
   return {
     Name: 'Backup',
     activate,
     create,
     getAll,
+    getByUserId,
     deleteOne,
     updateOne,
     getDevice,
