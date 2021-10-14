@@ -13,6 +13,7 @@ const PhotosRoutes = require('./photos');
 const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
+const GatewayRoutes = require('./gateway');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -52,6 +53,8 @@ module.exports = (Router, Service, App) => {
   BackupsRoutes(Router, Service, App);
   // Invite guest routes
   GuestRoutes(Router, Service, App);
+  // Gateway comunication
+  GatewayRoutes(Router, Service);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
