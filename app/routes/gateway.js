@@ -8,14 +8,14 @@ module.exports = (Router, Service) => {
   const basicAuth = basicAuthBuilder.build(GATEWAY_USER, GATEWAY_PASS);
 
   Router.post('/gateway/plan', basicAuth, (req, res) => {
-    const { email, plan } = req.body;
+    const { email, bucket, plan } = req.body;
 
     if (!Service.Plan.isValid(plan)) {
       return res.status(400).json({ error: 'Invalid plan' });
     }
 
-    if (!email) {
-      return res.status(400).json({ error: 'Missing email' });
+    if (!email || !bucket) {
+      return res.status(400).json({ error: 'Missing email / bucket' });
     }
 
     const tenGb = 10 * 1024 * 1024 * 1024;
@@ -27,8 +27,8 @@ module.exports = (Router, Service) => {
       }
 
       return Service.Plan.createOrUpdate({ ...plan, userId: user.id });
-    }).then((plan) => {
-      return Service.Inxt.updateBucketLimit(plan, bucketLimit);
+    }).then(() => {
+      return Service.Inxt.updateBucketLimit(bucket, bucketLimit);
     }).then(() => {
       return res.status(200).send();
     }).catch((err) => {
