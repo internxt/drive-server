@@ -50,15 +50,16 @@ module.exports = (Model, App) => {
     let limit = -1;
 
     if (!backupsBucket) {
+      // TODO: Remove mnemonic from here
       backupsBucket = (await Inxt.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
       await Model.users.update({ backupsBucket }, { where: { username: { [Op.eq]: userData.email } } });
     }
 
-    if (plan && plan.name === 'one_time') {
+    if (plan && plan.type === 'one_time') {
       limit = 10 * 1024 * 1024 * 1024;
     }
 
-    return Inxt.updateBucketLimit(backupsBucket.id, limit);
+    return Inxt.updateBucketLimit(backupsBucket, limit);
   };
 
   const create = async ({
