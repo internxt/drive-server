@@ -3,6 +3,7 @@ const async = require('async');
 const { fn, col } = require('sequelize');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
+const Logger = require('../../lib/logger');
 
 const invalidName = /[\\/]|[. ]$/;
 
@@ -91,6 +92,21 @@ module.exports = (Model, App) => {
     return folder;
   };
 
+  // Requires stored procedure
+  const DeleteOrphanFolders = async (userId) => {
+    const clear = await App.database.instance
+      .query('CALL clear_orphan_folders_by_user (:userId)',
+        { replacements: { userId } });
+
+    const totalLeft = clear[0].total_left;
+
+    if (totalLeft > 0) {
+      return DeleteOrphanFolders(userId);
+    }
+
+    return true;
+  };
+
   const Delete = async (user, folderId) => {
     if (user.mnemonic === 'null') {
       throw new Error('Your mnemonic is invalid');
@@ -108,23 +124,12 @@ module.exports = (Model, App) => {
       throw new Error('Cannot delete root folder');
     }
 
-    // Delete all the files in the folder
-    // Find all subfolders and repeat
-    /*
-    const folderFiles = await Model.file.findAll({
-      where: { folder_id: folder.id }
-    });
-    const folderFolders = await Model.folder.findAll({
-      where: { parentId: folder.id }
-    });
-
-    await Promise.all(folderFiles
-      .map((file) => FileServiceInstance.Delete(user, file.bucket, file.fileId))
-      .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id))));
-    */
-
     // Destroy folder
     const removed = await folder.destroy();
+
+    DeleteOrphanFolders(user.id).catch((err) => {
+      Logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+    });
 
     return removed;
   };
