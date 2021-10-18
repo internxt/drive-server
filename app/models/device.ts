@@ -9,7 +9,9 @@ interface DeviceAttributes {
   platform: string
 }
 
-export function addDevice(database: Sequelize): ModelDefined<DeviceAttributes, DeviceAttributes> {
+type DeviceModel = ModelDefined<DeviceAttributes, DeviceAttributes>;
+
+const create = (database: Sequelize): ModelDefined<DeviceAttributes, DeviceAttributes> => {
   const Device: ModelDefined<DeviceAttributes, DeviceAttributes> = database.define(
     'device',
     {
@@ -51,3 +53,5 @@ export function addDevice(database: Sequelize): ModelDefined<DeviceAttributes, D
 
   return Device;
 }
+
+export { create as default, DeviceModel };

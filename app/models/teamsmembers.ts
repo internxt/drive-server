@@ -8,8 +8,10 @@ interface TeamsMembersAttributes {
   bridgeMnemonic: string
 }
 
-export function addTeamsMembersModel(database: Sequelize): ModelDefined<TeamsMembersAttributes, TeamsMembersAttributes> {
-  const TeamsMembers: ModelDefined<TeamsMembersAttributes, TeamsMembersAttributes> = database.define(
+type TeamsMembersModel = ModelDefined<TeamsMembersAttributes, TeamsMembersAttributes>;
+
+const create = (database: Sequelize): TeamsMembersModel => {
+  const TeamsMembers: TeamsMembersModel = database.define(
     'teamsmembers',
     {
       id: {
@@ -52,3 +54,5 @@ export function addTeamsMembersModel(database: Sequelize): ModelDefined<TeamsMem
    */
   return TeamsMembers;
 }
+
+export { create as default, TeamsMembersModel };

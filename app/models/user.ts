@@ -28,8 +28,10 @@ interface UserAttributes {
   tempKey: string
 }
 
-export function addUserModel(database: Sequelize): ModelDefined<UserAttributes, UserAttributes> {
-  const User: ModelDefined<UserAttributes, UserAttributes> = database.define(
+type UserModel = ModelDefined<UserAttributes, UserAttributes>;
+
+const create = (database: Sequelize): UserModel => {
+  const User: UserModel = database.define(
     'users',
     {
       id: {
@@ -152,3 +154,5 @@ export function addUserModel(database: Sequelize): ModelDefined<UserAttributes, 
 
   return User;
 }
+
+export { create as default, UserModel };

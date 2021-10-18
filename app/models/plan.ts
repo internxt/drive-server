@@ -13,8 +13,10 @@ interface PlanAttributes {
   device: string
 }
 
-export default (database: Sequelize): ModelDefined<PlanAttributes, PlanAttributes> => {
-  const Plan: ModelDefined<PlanAttributes, PlanAttributes> = database.define(
+type PlanModel = ModelDefined<PlanAttributes, PlanAttributes>;
+
+const create = (database: Sequelize): PlanModel => {
+  const Plan: PlanModel = database.define(
     'plan',
     {
       id: {
@@ -63,3 +65,5 @@ export default (database: Sequelize): ModelDefined<PlanAttributes, PlanAttribute
 
   return Plan;
 }
+
+export { create as default, PlanModel };

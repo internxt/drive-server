@@ -11,8 +11,10 @@ interface UserPhotosAttributes {
 
 interface UserPhotosCreationAttributes extends Optional<UserPhotosAttributes, "id"> {}
 
-export function addUserPhotosModel(database: Sequelize): ModelDefined<UserPhotosAttributes, UserPhotosCreationAttributes> {
-  const UserPhotos: ModelDefined<UserPhotosAttributes, UserPhotosAttributes> = database.define(
+type UserPhotosModel = ModelDefined<UserPhotosAttributes, UserPhotosCreationAttributes> ;
+
+const create = (database: Sequelize): UserPhotosModel => {
+  const UserPhotos: UserPhotosModel = database.define(
     'usersphotos',
     {
       id: {
@@ -51,3 +53,5 @@ export function addUserPhotosModel(database: Sequelize): ModelDefined<UserPhotos
 
   return UserPhotos;
 };
+
+export { create as default, UserPhotosModel };

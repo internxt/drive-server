@@ -16,8 +16,10 @@ interface FileAttributes {
   encryptVersion: string
 }
 
-export function addFileModel(database: Sequelize): ModelDefined<FileAttributes, FileAttributes> {
-  const File: ModelDefined<FileAttributes, FileAttributes> = database.define(
+type FileModel = ModelDefined<FileAttributes, FileAttributes>
+
+const create = (database: Sequelize): FileModel => {
+  const File: FileModel = database.define(
     'file',
     {
       id: {
@@ -78,3 +80,5 @@ export function addFileModel(database: Sequelize): ModelDefined<FileAttributes, 
 
   return File;
 }
+
+export { create as default, FileModel };

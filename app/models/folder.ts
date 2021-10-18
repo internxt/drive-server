@@ -9,8 +9,10 @@ interface FolderAttributes {
   encryptVersion: string
 }
 
-export function addFolderModel(database: Sequelize): ModelDefined<FolderAttributes, FolderAttributes> {
-  const Folder: ModelDefined<FolderAttributes, FolderAttributes> = database.define(
+type FolderModel = ModelDefined<FolderAttributes, FolderAttributes>;
+
+const create = (database: Sequelize): FolderModel => {
+  const Folder: FolderModel = database.define(
     'folder',
     {
       id: {
@@ -59,3 +61,5 @@ export function addFolderModel(database: Sequelize): ModelDefined<FolderAttribut
 
   return Folder;
 }
+
+export { create as default, FolderModel };

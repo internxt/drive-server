@@ -8,8 +8,10 @@ interface BackupAttributes {
   invoiceItemUuid: string
 }
 
-export function addBackupModel(database: Sequelize): ModelDefined<BackupAttributes, BackupAttributes> {
-  const Backup: ModelDefined<BackupAttributes, BackupAttributes> = database.define(
+type BackupModel = ModelDefined<BackupAttributes, BackupAttributes>;
+
+const create = (database: Sequelize): BackupModel => {
+  const Backup: BackupModel = database.define(
     'backup',
     {
       id: {
@@ -69,3 +71,5 @@ export function addBackupModel(database: Sequelize): ModelDefined<BackupAttribut
 
   return Backup;
 }
+
+export { create as default, BackupModel };

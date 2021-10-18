@@ -12,8 +12,10 @@ interface ShareAttributes {
   views: number
 }
 
-export default (database: Sequelize): ModelDefined<ShareAttributes, ShareAttributes> => {
-  const Share: ModelDefined<ShareAttributes, ShareAttributes> = database.define(
+type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
+
+const create = (database: Sequelize): ShareModel => {
+  const Share: ShareModel = database.define(
     'shares',
     {
       id: {
@@ -60,3 +62,5 @@ export default (database: Sequelize): ModelDefined<ShareAttributes, ShareAttribu
 
   return Share;
 }
+
+export { create as default, ShareModel };

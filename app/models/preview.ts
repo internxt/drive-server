@@ -11,7 +11,9 @@ interface PreviewAttributes {
   bucketId: string
 }
 
-export function addFileModel(database: Sequelize): ModelDefined<PreviewAttributes, PreviewAttributes> {
+type PreviewModel = ModelDefined<PreviewAttributes, PreviewAttributes>;
+
+const create = (database: Sequelize): ModelDefined<PreviewAttributes, PreviewAttributes> => {
   const Preview: ModelDefined<PreviewAttributes, PreviewAttributes> = database.define(
     'previews',
     {
@@ -57,3 +59,5 @@ export function addFileModel(database: Sequelize): ModelDefined<PreviewAttribute
 
   return Preview;
 }
+
+export { create as default, PreviewModel };

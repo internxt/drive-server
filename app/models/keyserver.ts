@@ -16,8 +16,10 @@ interface KeyServerAttributes {
   encryptVersion: string
 }
 
-export default (database: Sequelize): ModelDefined<KeyServerAttributes, KeyServerAttributes> => {
-  const KeyServer: ModelDefined<KeyServerAttributes, KeyServerAttributes> = database.define(
+type KeyServerModel = ModelDefined<KeyServerAttributes, KeyServerAttributes>;
+
+const create = (database: Sequelize): KeyServerModel => {
+  const KeyServer: KeyServerModel = database.define(
     'keyserver',
     {
       id: {
@@ -59,3 +61,5 @@ export default (database: Sequelize): ModelDefined<KeyServerAttributes, KeyServe
 
   return KeyServer;
 }
+
+export { create as default, KeyServerModel };

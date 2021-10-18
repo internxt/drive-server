@@ -8,8 +8,10 @@ interface InvitationAttributes {
   accepted: boolean
 }
 
-export function addInvitationModel(database: Sequelize): ModelDefined<InvitationAttributes, InvitationAttributes> {
-  const Invitation: ModelDefined<InvitationAttributes, InvitationAttributes> = database.define(
+type InvitationModel = ModelDefined<InvitationAttributes, InvitationAttributes>;
+
+const create = (database: Sequelize): InvitationModel => {
+  const Invitation: InvitationModel = database.define(
     'Invitation',
     {
       id: {
@@ -56,3 +58,5 @@ export function addInvitationModel(database: Sequelize): ModelDefined<Invitation
 
   return Invitation;
 }
+
+export { create as default, InvitationModel };

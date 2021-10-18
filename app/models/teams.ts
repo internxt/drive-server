@@ -10,8 +10,10 @@ interface TeamAttributes {
   totalMembers: number
 }
 
-export default (database: Sequelize): ModelDefined<TeamAttributes, TeamAttributes> => {
-  const Team: ModelDefined<TeamAttributes, TeamAttributes> = database.define(
+type TeamModel = ModelDefined<TeamAttributes, TeamAttributes>;
+
+const create = (database: Sequelize): TeamModel => {
+  const Team: TeamModel = database.define(
     'teams',
     {
       id: {
@@ -35,3 +37,5 @@ export default (database: Sequelize): ModelDefined<TeamAttributes, TeamAttribute
 
   return Team;
 }
+
+export { create as default, TeamModel };

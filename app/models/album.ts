@@ -6,7 +6,9 @@ interface AlbumAttributes {
   userId: number
 }
 
-export function addAlbumModel(database: Sequelize) {
+type AlbumModel = ModelDefined<AlbumAttributes, AlbumAttributes>;
+
+const create = (database: Sequelize) => {
   const Album: ModelDefined<AlbumAttributes, AlbumAttributes> = database.define(
     'albums',
     {
@@ -39,3 +41,5 @@ export function addAlbumModel(database: Sequelize) {
 
   return Album;
 };
+
+export { create as default, AlbumModel };

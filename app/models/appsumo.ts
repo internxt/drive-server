@@ -1,3 +1,4 @@
+import e from 'express';
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface AppSumoAttributes {
@@ -8,8 +9,10 @@ interface AppSumoAttributes {
   invoiceItemUuid: string
 }
 
-export function addAppSumoModel(database: Sequelize): ModelDefined<AppSumoAttributes, AppSumoAttributes> {
-  const UserPhotos: ModelDefined<AppSumoAttributes, AppSumoAttributes> = database.define(
+type AppSumoModel = ModelDefined<AppSumoAttributes, AppSumoAttributes>;
+
+const create = (database: Sequelize): AppSumoModel => {
+  const UserPhotos: AppSumoModel = database.define(
     'AppSumo',
     {
       id: {
@@ -50,3 +53,5 @@ export function addAppSumoModel(database: Sequelize): ModelDefined<AppSumoAttrib
 
   return UserPhotos;
 };
+
+export { create as default, AppSumoModel };

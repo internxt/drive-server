@@ -13,8 +13,10 @@ interface PhotoAttributes {
   device: string
 }
 
-export default (database: Sequelize): ModelDefined<PhotoAttributes, PhotoAttributes> => {
-  const Photo: ModelDefined<PhotoAttributes, PhotoAttributes> = database.define(
+type PhotoModel = ModelDefined<PhotoAttributes, PhotoAttributes>;
+
+const create = (database: Sequelize): PhotoModel => {
+  const Photo: PhotoModel = database.define(
     'photos',
     {
       id: {
@@ -69,3 +71,5 @@ export default (database: Sequelize): ModelDefined<PhotoAttributes, PhotoAttribu
 
   return Photo;
 }
+
+export { create as default, PhotoModel };
