@@ -49,7 +49,7 @@ interface CreationAttributes {
   tempKey: string
 }
 
-export type UserModel = ModelDefined<Attributes, CreationAttributes>;
+export type UserModel = ModelDefined<Attributes, Attributes>;
 
 export default (database: Sequelize): UserModel => {
   const User: UserModel = database.define(
@@ -152,10 +152,7 @@ export default (database: Sequelize): UserModel => {
     {
       tableName: 'users',
       timestamps: true,
-      underscored: true,
-      defaultScope: {
-        attributes: { exclude: ['userId'] }
-      }
+      underscored: true
     }
   );
 
