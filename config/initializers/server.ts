@@ -48,7 +48,7 @@ export default class Server {
     process.on('uncaughtException', this.handleuncaughtException.bind(this));
 
     this.logger.info(`API started on: http://localhost:${port}`);
-    this.logger.info(`Brigde location: ${this.config.get('STORJ_BRIDGE')}`);
+    this.logger.info(`Bridge location: ${this.config.get('STORJ_BRIDGE')}`);
   }
 
   handleuncaughtException(err: Error) {
