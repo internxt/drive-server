@@ -51,8 +51,8 @@ export default (database: Sequelize) => {
   const Preview = initPreview(database);
   const Share = initShare(database);
   const Team = initTeam(database);
-  initTeamInvitation(database);
   const TeamMember = initTeamMember(database);
+  const TeamInvitation = initTeamInvitation(database);
   const User = initUser(database);
   const UserPhotos = initUserPhotos(database);
 
@@ -88,10 +88,6 @@ export default (database: Sequelize) => {
 
   Share.hasOne(File, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
 
-  Team.hasMany(TeamMember);
-
-  TeamMember.hasOne(Team);
-
   User.hasMany(Folder);
   User.hasMany(File);
   User.hasOne(UserPhotos);
@@ -118,6 +114,8 @@ export default (database: Sequelize) => {
     [Preview.name]: Preview,
     [Share.name]: Share,
     [Team.name]: Team,
+    [TeamMember.name]: TeamMember,
+    [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
     [UserPhotos.name]: UserPhotos
   }

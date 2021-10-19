@@ -44,13 +44,5 @@ export default (database: Sequelize): TeamMemberModel => {
     }
   );
 
-  /**
-   * TODO: Relations not done?
-   * TeamsMembers.hasOne(models.Team)
-   */
-
-  /**
-   * TODO: TeamsMember not TeamsMembers, change when typescript migration is completed (is easier then)
-   */
   return TeamMember;
 }
