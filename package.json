@@ -40,7 +40,7 @@
   },
   "scripts": {
     "start": "ts-node app.ts",
-    "dev": "cross-env NODE_ENV=development ts-node app.ts",
+    "dev": "cross-env NODE_ENV=development nodemon app.ts",
     "docker": "cross-env NODE_ENV=docker nodemon",
     "testsuite": "cross-env NODE_ENV=test ts-mocha test/**/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",
