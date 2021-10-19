@@ -1,6 +1,6 @@
-import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
+import { Sequelize, ModelDefined, DataTypes } from 'sequelize/types';
 
-interface UserAttributes {
+interface Attributes {
   id: number
   userId: string
   name: string
@@ -11,7 +11,6 @@ interface UserAttributes {
   password: string
   mnemonic: string
   rootFolderId: number
-  isCreated: any
   hKey: string
   secret_2FA: string
   errorLoginCount: number
@@ -28,9 +27,31 @@ interface UserAttributes {
   tempKey: string
 }
 
-type UserModel = ModelDefined<UserAttributes, UserAttributes>;
+interface CreationAttributes {
+  id: number
+  userId: string
+  name: string
+  lastname: string
+  email: string
+  username: string
+  bridgeUser: string
+  password: string
+  mnemonic: string
+  rootFolderId: number
+  hKey: string
+  secret_2FA: string
+  errorLoginCount: number
+  uuid: string
+  credit: number
+  welcomePack: boolean
+  registerCompleted: boolean
+  sharedWorkspace: boolean
+  tempKey: string
+}
 
-const create = (database: Sequelize): UserModel => {
+type UserModel = ModelDefined<Attributes, CreationAttributes>;
+
+const init = (database: Sequelize): UserModel => {
   const User: UserModel = database.define(
     'users',
     {
@@ -72,9 +93,6 @@ const create = (database: Sequelize): UserModel => {
           model: 'folders',
           key: 'id'
         }
-      },
-      isCreated: {
-        type: DataTypes.VIRTUAL
       },
       hKey: {
         type: DataTypes.STRING,
@@ -143,16 +161,7 @@ const create = (database: Sequelize): UserModel => {
     // }
   );
 
-  User.hasMany(models.folder);
-  User.hasMany(models.file);
-  User.hasOne(models.usersphotos);
-  User.hasOne(models.AppSumo);
-  User.hasOne(models.keyserver);
-  User.hasOne(models.plan);
-  User.hasMany(models.device);
-  User.hasMany(models.Invitation, { foreignKey: 'host' });
-
   return User;
 }
 
-export { create as default, UserModel };
+export { init as default, UserModel };

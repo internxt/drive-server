@@ -1,21 +1,23 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-interface PlanAttributes {
-  id: number,
-  fileId: string,
-  name: string,
-  type: string,
-  size: number,
-  hash: string,
-  bucketId: string,
-  userId: number,
-  creationTime: Date,
-  device: string
+enum PlanTypes {
+  subscription = 'subscription',
+  oneTime  = 'one_time'
 }
 
-type PlanModel = ModelDefined<PlanAttributes, PlanAttributes>;
+interface Attributes {
+  id: number,
+  userId: number,
+  name: string,
+  type: PlanTypes,
+  createdAt: Date,
+  updatedAt: Date,
+  limit: number
+}
 
-const create = (database: Sequelize): PlanModel => {
+type PlanModel = ModelDefined<Attributes, Attributes>;
+
+const init = (database: Sequelize): PlanModel => {
   const Plan: PlanModel = database.define(
     'plan',
     {
@@ -61,9 +63,7 @@ const create = (database: Sequelize): PlanModel => {
     }
   );
 
-  Plan.belongsTo(models.users);
-
   return Plan;
 }
 
-export { create as default, PlanModel };
+export { init as default, PlanModel }

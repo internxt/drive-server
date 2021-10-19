@@ -10,7 +10,7 @@ interface InvitationAttributes {
 
 type InvitationModel = ModelDefined<InvitationAttributes, InvitationAttributes>;
 
-const create = (database: Sequelize): InvitationModel => {
+const init = (database: Sequelize): InvitationModel => {
   const Invitation: InvitationModel = database.define(
     'Invitation',
     {
@@ -53,10 +53,7 @@ const create = (database: Sequelize): InvitationModel => {
     }
   );
 
-  Invitation.belongsTo(models.users, { foreignKey: 'host', targetKey: 'id' });
-  Invitation.belongsTo(models.users, { foreignKey: 'guest', targetKey: 'id' });
-
   return Invitation;
 }
 
-export { create as default, InvitationModel };
+export { init as default, InvitationModel };

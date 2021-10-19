@@ -11,7 +11,7 @@ interface FolderAttributes {
 
 type FolderModel = ModelDefined<FolderAttributes, FolderAttributes>;
 
-const create = (database: Sequelize): FolderModel => {
+const init = (database: Sequelize): FolderModel => {
   const Folder: FolderModel = database.define(
     'folder',
     {
@@ -52,14 +52,7 @@ const create = (database: Sequelize): FolderModel => {
     }
   );
 
-  Folder.hasMany(models.file);
-  Folder.belongsTo(models.users);
-  Folder.hasMany(models.folder, {
-    foreignKey: 'parent_id',
-    as: 'children'
-  });
-
   return Folder;
 }
 
-export { create as default, FolderModel };
+export { init as default, FolderModel };

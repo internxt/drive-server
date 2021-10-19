@@ -11,8 +11,8 @@ interface DeviceAttributes {
 
 type DeviceModel = ModelDefined<DeviceAttributes, DeviceAttributes>;
 
-const create = (database: Sequelize): ModelDefined<DeviceAttributes, DeviceAttributes> => {
-  const Device: ModelDefined<DeviceAttributes, DeviceAttributes> = database.define(
+const init = (database: Sequelize): DeviceModel => {
+  const Device: DeviceModel = database.define(
     'device',
     {
       id: {
@@ -48,10 +48,7 @@ const create = (database: Sequelize): ModelDefined<DeviceAttributes, DeviceAttri
     }
   );
 
-  Device.belongsTo(models.users, { foreignKey: 'userId' });
-  Device.hasMany(models.backup, { foreignKey: 'userId' });
-
   return Device;
 }
 
-export { create as default, DeviceModel };
+export { init as default, DeviceModel };

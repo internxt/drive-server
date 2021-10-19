@@ -13,8 +13,8 @@ interface PreviewAttributes {
 
 type PreviewModel = ModelDefined<PreviewAttributes, PreviewAttributes>;
 
-const create = (database: Sequelize): ModelDefined<PreviewAttributes, PreviewAttributes> => {
-  const Preview: ModelDefined<PreviewAttributes, PreviewAttributes> = database.define(
+const init = (database: Sequelize): PreviewModel => {
+  const Preview: PreviewModel = database.define(
     'previews',
     {
       id: {
@@ -55,9 +55,7 @@ const create = (database: Sequelize): ModelDefined<PreviewAttributes, PreviewAtt
     }
   );
 
-  Preview.belongsTo(models.photos, { foreignKey: 'photoId' });
-
   return Preview;
 }
 
-export { create as default, PreviewModel };
+export { init as default, PreviewModel };

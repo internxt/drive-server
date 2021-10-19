@@ -14,7 +14,7 @@ interface ShareAttributes {
 
 type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
 
-const create = (database: Sequelize): ShareModel => {
+const init = (database: Sequelize): ShareModel => {
   const Share: ShareModel = database.define(
     'shares',
     {
@@ -58,9 +58,7 @@ const create = (database: Sequelize): ShareModel => {
     }
   );
 
-  Share.hasOne(models.file, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
-
   return Share;
 }
 
-export { create as default, ShareModel };
+export { init as default, ShareModel };

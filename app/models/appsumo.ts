@@ -1,4 +1,3 @@
-import e from 'express';
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface AppSumoAttributes {
@@ -11,8 +10,8 @@ interface AppSumoAttributes {
 
 type AppSumoModel = ModelDefined<AppSumoAttributes, AppSumoAttributes>;
 
-const create = (database: Sequelize): AppSumoModel => {
-  const UserPhotos: AppSumoModel = database.define(
+const init = (database: Sequelize): AppSumoModel => {
+  const AppSumo: AppSumoModel = database.define(
     'AppSumo',
     {
       id: {
@@ -48,10 +47,7 @@ const create = (database: Sequelize): AppSumoModel => {
     }
   );
 
-  UserPhotos.belongsTo(models.users, { foreignKey: 'userId' });
-  UserPhotos.hasMany(models.photos, { foreignKey: 'userId' });
-
-  return UserPhotos;
+  return AppSumo;
 };
 
-export { create as default, AppSumoModel };
+export { init as default, AppSumoModel };

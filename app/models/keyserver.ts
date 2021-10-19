@@ -2,23 +2,16 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface KeyServerAttributes {
   id: number
-  path: string
-  fileId: string
-  deviceId: number
-  userId: number
-  hash: string
-  interval: number
-  size: number
-  bucket: string
-  lastBackupAt: Date
-  enabled: boolean
-  createdAt: Date,
+  userId: number,
+  publicKey: string,
+  privateKey: string,
+  revocationKey: string,
   encryptVersion: string
 }
 
 type KeyServerModel = ModelDefined<KeyServerAttributes, KeyServerAttributes>;
 
-const create = (database: Sequelize): KeyServerModel => {
+const init = (database: Sequelize): KeyServerModel => {
   const KeyServer: KeyServerModel = database.define(
     'keyserver',
     {
@@ -62,4 +55,4 @@ const create = (database: Sequelize): KeyServerModel => {
   return KeyServer;
 }
 
-export { create as default, KeyServerModel };
+export { init as default, KeyServerModel };

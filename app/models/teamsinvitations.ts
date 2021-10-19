@@ -11,7 +11,7 @@ interface TeamInvitationAttributes {
 
 type TeamInvitationModel = ModelDefined<TeamInvitationAttributes, TeamInvitationAttributes>
 
-const create = (database: Sequelize): TeamInvitationModel => {
+const init = (database: Sequelize): TeamInvitationModel => {
   const TeamInvitation: TeamInvitationModel = database.define(
     'teamsinvitations',
     {
@@ -35,4 +35,4 @@ const create = (database: Sequelize): TeamInvitationModel => {
   return TeamInvitation;
 }
 
-export { create as default, TeamInvitationModel };
+export { init as default, TeamInvitationModel };

@@ -1,19 +1,19 @@
 import { Sequelize, DataTypes, ModelDefined, Optional } from 'sequelize';
 
-// TODO: This ids are string or integer?
-interface UserPhotosAttributes {
+// TODO: This ids are missing relations
+interface Attributes {
   id: number,
-  userId: Number,
+  userId: number,
   rootAlbumId: string,
   rootPreviewId: string,
   deleteFolderId: string | null
 }
 
-interface UserPhotosCreationAttributes extends Optional<UserPhotosAttributes, "id"> {}
+interface CreationAttributes extends Optional<Attributes, "id"> {}
 
-type UserPhotosModel = ModelDefined<UserPhotosAttributes, UserPhotosCreationAttributes> ;
+type UserPhotosModel = ModelDefined<Attributes, CreationAttributes>;
 
-const create = (database: Sequelize): UserPhotosModel => {
+const init = (database: Sequelize): UserPhotosModel => {
   const UserPhotos: UserPhotosModel = database.define(
     'usersphotos',
     {
@@ -24,7 +24,7 @@ const create = (database: Sequelize): UserPhotosModel => {
         autoIncrement: true
       },
       userId: {
-        type: DataTypes.STRING,
+        type: DataTypes.INTEGER,
         references: {
           model: 'users',
           key: 'id'
@@ -48,10 +48,7 @@ const create = (database: Sequelize): UserPhotosModel => {
     }
   );
 
-  UserPhotos.belongsTo(models.users, { foreignKey: 'userId' });
-  UserPhotos.hasMany(models.photos, { foreignKey: 'userId' });
-
   return UserPhotos;
 };
 
-export { create as default, UserPhotosModel };
+export { init as default, UserPhotosModel };

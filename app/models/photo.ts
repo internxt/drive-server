@@ -15,7 +15,7 @@ interface PhotoAttributes {
 
 type PhotoModel = ModelDefined<PhotoAttributes, PhotoAttributes>;
 
-const create = (database: Sequelize): PhotoModel => {
+const init = (database: Sequelize): PhotoModel => {
   const Photo: PhotoModel = database.define(
     'photos',
     {
@@ -45,10 +45,10 @@ const create = (database: Sequelize): PhotoModel => {
       },
       userId: {
         type: DataTypes.INTEGER,
-        reference: {
-          model: 'usersphotos',
-          key: 'id'
-        }
+        // reference: {
+        //   model: 'usersphotos',
+        //   key: 'id'
+        // }
       },
       creationTime: {
         type: DataTypes.DATE,
@@ -65,11 +65,7 @@ const create = (database: Sequelize): PhotoModel => {
     }
   );
 
-  Photo.belongsToMany(models.albums, { through: 'photosalbums' });
-  Photo.hasOne(models.usersphotos, { foreignKey: 'userId' });
-  Photo.hasOne(models.previews)
-
   return Photo;
 }
 
-export { create as default, PhotoModel };
+export { init as default, PhotoModel };

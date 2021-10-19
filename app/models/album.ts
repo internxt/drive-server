@@ -8,8 +8,8 @@ interface AlbumAttributes {
 
 type AlbumModel = ModelDefined<AlbumAttributes, AlbumAttributes>;
 
-const create = (database: Sequelize) => {
-  const Album: ModelDefined<AlbumAttributes, AlbumAttributes> = database.define(
+const init = (database: Sequelize): AlbumModel => {
+  const Album: AlbumModel = database.define(
     'albums',
     {
       id: {
@@ -36,10 +36,7 @@ const create = (database: Sequelize) => {
     }
   );
 
-  Album.belongsToMany(models.photos, { through: 'photosalbums' });
-  Album.belongsTo(models.usersphotos, { foreignKey: 'userId' });
-
   return Album;
 };
 
-export { create as default, AlbumModel };
+export { init as default, AlbumModel };

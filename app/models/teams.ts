@@ -12,7 +12,7 @@ interface TeamAttributes {
 
 type TeamModel = ModelDefined<TeamAttributes, TeamAttributes>;
 
-const create = (database: Sequelize): TeamModel => {
+const init = (database: Sequelize): TeamModel => {
   const Team: TeamModel = database.define(
     'teams',
     {
@@ -33,9 +33,8 @@ const create = (database: Sequelize): TeamModel => {
     underscored: true
   });
 
-  Team.hasMany(models.user);
-
   return Team;
 }
 
-export { create as default, TeamModel };
+export { init as default, TeamModel };
+

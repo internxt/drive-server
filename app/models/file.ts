@@ -2,23 +2,22 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface FileAttributes {
   id: number
-  path: string
   fileId: string
-  deviceId: number
-  userId: number
-  hash: string
-  interval: number
+  name: string
+  type: string
   size: number
   bucket: string
-  lastBackupAt: Date
-  enabled: boolean
+  folderId: number
   createdAt: Date,
   encryptVersion: string
+  deleted: boolean
+  deletedAt: Date,
+  userId: number
 }
 
 type FileModel = ModelDefined<FileAttributes, FileAttributes>
 
-const create = (database: Sequelize): FileModel => {
+const init = (database: Sequelize): FileModel => {
   const File: FileModel = database.define(
     'file',
     {
@@ -28,23 +27,14 @@ const create = (database: Sequelize): FileModel => {
         allowNull: false,
         autoIncrement: true
       },
-      path: {
-        type: DataTypes.TEXT
-      },
       fileId: {
         type: DataTypes.STRING(24)
       },
-      deviceId: {
-        type: DataTypes.INTEGER
-      },
-      userId: {
-        type: DataTypes.INTEGER
-      },
-      hash: {
+      name: {
         type: DataTypes.STRING
       },
-      interval: {
-        type: DataTypes.INTEGER
+      type: {
+        type: DataTypes.STRING
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED
@@ -52,13 +42,9 @@ const create = (database: Sequelize): FileModel => {
       bucket: {
         type: DataTypes.STRING(24)
       },
-      lastBackupAt: {
-        type: DataTypes.DATE
+      folder_id: {
+        type: DataTypes.INTEGER
       },
-      enabled: {
-        type: DataTypes.BOOLEAN
-      },
-      // TODO: Is this required?
       created_at: {
         type: DataTypes.VIRTUAL,
         get() {
@@ -67,18 +53,26 @@ const create = (database: Sequelize): FileModel => {
       },
       encrypt_version: {
         type: DataTypes.STRING
+      },
+      deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+      },
+      deletedAt: {
+        type: DataTypes.DATE
+      },
+      userId: {
+        type: DataTypes.INTEGER
       }
     },
     {
-      timestamps: true
+      timestamps: true,
+      underscored: true,
+      indexes: [{ name: 'name', fields: ['name'] }]
     }
   );
-
-  File.belongsTo(models.folder);
-  File.belongsTo(models.users);
-  File.hasMany(models.shares, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
 
   return File;
 }
 
-export { create as default, FileModel };
+export { init as default, FileModel };

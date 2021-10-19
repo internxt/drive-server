@@ -10,7 +10,7 @@ interface TeamsMembersAttributes {
 
 type TeamsMembersModel = ModelDefined<TeamsMembersAttributes, TeamsMembersAttributes>;
 
-const create = (database: Sequelize): TeamsMembersModel => {
+const init = (database: Sequelize): TeamsMembersModel => {
   const TeamsMembers: TeamsMembersModel = database.define(
     'teamsmembers',
     {
@@ -55,4 +55,4 @@ const create = (database: Sequelize): TeamsMembersModel => {
   return TeamsMembers;
 }
 
-export { create as default, TeamsMembersModel };
+export { init as default, TeamsMembersModel };

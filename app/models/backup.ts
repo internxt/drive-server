@@ -6,11 +6,12 @@ interface BackupAttributes {
   planId: string
   uuid: string
   invoiceItemUuid: string
+  createdAt: Date
 }
 
 type BackupModel = ModelDefined<BackupAttributes, BackupAttributes>;
 
-const create = (database: Sequelize): BackupModel => {
+const init = (database: Sequelize): BackupModel => {
   const Backup: BackupModel = database.define(
     'backup',
     {
@@ -66,10 +67,7 @@ const create = (database: Sequelize): BackupModel => {
     }
   );
 
-  Backup.belongsTo(models.device, { foreignKey: 'userId' });
-  Backup.belongsTo(models.users, { foreignKey: 'userId' });
-
   return Backup;
 }
 
-export { create as default, BackupModel };
+export { init as default, BackupModel };
