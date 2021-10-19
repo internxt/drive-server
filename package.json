@@ -50,6 +50,7 @@
     "lint:fix": "npm run lint --fix"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.22",
     "@types/express": "^4.17.13",
     "@types/mocha": "^9.0.0",
     "@types/nconf": "^0.10.1",
