@@ -45,7 +45,8 @@ module.exports = (Model, App) => {
         fileId: file.file_id,
         bucket: file.bucket,
         encrypt_version: file.encrypt_version,
-        userId: user.id
+        userId: user.id,
+        modificationTime: file.modificationTime || new Date()
       };
 
       try {

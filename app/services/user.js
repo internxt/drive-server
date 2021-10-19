@@ -202,15 +202,19 @@ module.exports = (Model, App) => {
             if (appSumo) { await appSumo.destroy(); }
             const usersPhoto = await user.getUsersphoto();
 
-            const photos = await usersPhoto.getPhotos();
-            const photoIds = photos.map((x) => x.id);
+            if (usersPhoto) {
+              const photos = await usersPhoto.getPhotos();
+              const photoIds = photos.map((x) => x.id);
+              if (photoIds.length > 0) {
+                await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
+                await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
+              }
 
-            if (photoIds.length > 0) {
-              await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
-              await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
+              if (usersPhoto) { await usersPhoto.destroy(); }
             }
 
-            if (usersPhoto) { await usersPhoto.destroy(); }
+            await Model.backup.destroy({ where: { userId: user.id } });
+            await Model.device.destroy({ where: { userId: user.id } });
 
             await user.destroy();
             Logger.info('User deactivation, remove on sql: %s', userEmail);

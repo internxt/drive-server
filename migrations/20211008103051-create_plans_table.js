@@ -31,7 +31,9 @@ module.exports = {
         type: Sequelize.DATE
       },
       limit: {
-        type: Sequelize.BIGINT.UNSIGNED
+        type: Sequelize.BIGINT.UNSIGNED,
+        allowNull: false,
+        defaultValue: 0
       }
     });
 

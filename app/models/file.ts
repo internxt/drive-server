@@ -63,6 +63,9 @@ export default (database: Sequelize): FileModel => {
       },
       userId: {
         type: DataTypes.INTEGER
+      },
+      modificationTime: {
+        type: DataTypes.DATE
       }
     },
     {
