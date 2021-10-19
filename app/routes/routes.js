@@ -165,7 +165,6 @@ module.exports = (Router, Service, App) => {
 
       return res.status(401).json({ error: 'Wrong email/password' });
     }).catch((err) => {
-      console.log(err.stack);
       Logger.error('ERROR access %s, reason: %s', req.body.email, err.message);
       return res.status(401).send({ error: 'Wrong email/password' });
     });

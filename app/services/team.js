@@ -6,7 +6,6 @@ const crypto = require('crypto');
 const { Op } = sequelize;
 
 module.exports = (Model) => {
-  console.log(Model);
   const create = (team) => Model.teams.create({
     admin: team.admin,
     name: team.name,
