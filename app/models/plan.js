@@ -28,7 +28,9 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.DATE
       },
       limit: {
-        type: DataTypes.INTEGER
+        type: DataTypes.BIGINT.UNSIGNED,
+        allowNull: false,
+        defaultValue: 0
       }
     },
     {
