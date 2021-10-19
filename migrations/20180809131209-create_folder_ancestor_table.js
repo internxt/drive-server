@@ -1,21 +1,51 @@
 module.exports = {
-  up: (queryInterface) => {
-    const raw = 'CREATE TABLE `foldersancestors` ('
-      + '`folder_id` int(11) NOT NULL, '
-      + '`ancestor_id` int(11) NOT NULL, '
-      + 'PRIMARY KEY (`folder_id`,`ancestor_id`), '
-      + 'UNIQUE KEY `foldersancestors_folder_id_ancestor_id_unique` (`folder_id`,`ancestor_id`), '
-      + 'KEY `ancestor_id` (`ancestor_id`), '
-      + 'CONSTRAINT `foldersancestors_ibfk_1` '
-      + 'FOREIGN KEY (`folder_id`) REFERENCES `folders` (`id`) '
-      + 'ON DELETE CASCADE ON UPDATE CASCADE, '
-      + 'CONSTRAINT `foldersancestors_ibfk_2` FOREIGN KEY (`ancestor_id`) REFERENCES `folders` (`id`) '
-      + 'ON DELETE CASCADE ON UPDATE CASCADE ) '
-      + 'ENGINE=InnoDB DEFAULT CHARSET=utf8;';
-    return queryInterface.sequelize.query(raw);
+  up: async (queryInterface, Sequelize) => {
+    await queryInterface.createTable('foldersancestors', {
+      folder_id: {
+        type: Sequelize.INTEGER
+      },
+      ancestor_id: {
+        type: Sequelize.INTEGER
+      }
+    });
+
+    await queryInterface.addConstraint('foldersancestors', {
+      type: 'PRIMARY KEY',
+      fields: ['folder_id', 'ancestor_id']
+    });
+
+    await queryInterface.addConstraint('foldersancestors', {
+      type: 'UNIQUE',
+      fields: ['folder_id', 'ancestor_id'],
+      name: 'foldersancestors_folder_id_ancestor_id_unique'
+    });
+
+    await queryInterface.addConstraint('foldersancestors', {
+      type: 'FOREIGN KEY',
+      fields: ['folder_id'],
+      name: 'foldersancestors_ibfk_1',
+      references: {
+        table: 'folders',
+        field: 'id'
+      },
+      onDelete: 'cascade',
+      onUpdate: 'cascade'
+    });
+
+    await queryInterface.addConstraint('foldersancestors', {
+      type: 'FOREIGN KEY',
+      fields: ['ancestor_id'],
+      name: 'foldersancestors_ibfk_2',
+      references: {
+        table: 'folders',
+        field: 'id'
+      },
+      onDelete: 'cascade',
+      onUpdate: 'cascade'
+    });
   },
 
-  down: (queryInterface) => {
-    return queryInterface.dropTable('foldersancestors');
+  down: async (queryInterface) => {
+    await queryInterface.dropTable('foldersancestors');
   }
 };

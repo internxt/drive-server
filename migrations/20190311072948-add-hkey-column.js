@@ -1,7 +1,7 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     return queryInterface.addColumn('users', 'hKey', {
-      type: Sequelize.STRING,
+      type: Sequelize.BLOB('medium'),
       allowNull: false
     });
   },
