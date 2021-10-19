@@ -11,7 +11,6 @@ const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 const { Op, col, fn } = sequelize;
 
 module.exports = (Model, App) => {
-  console.log(Object.getOwnPropertyNames(Model.users));
   const Logger = App.logger;
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
@@ -130,7 +129,6 @@ module.exports = (Model, App) => {
     }));
 
   const FindUserByEmail = (email) => new Promise((resolve, reject) => {
-    console.log(Model.users.findOne);
     Model.users
       .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
         if (!userData) {
