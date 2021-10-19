@@ -8,9 +8,9 @@ interface InvitationAttributes {
   accepted: boolean
 }
 
-type InvitationModel = ModelDefined<InvitationAttributes, InvitationAttributes>;
+export type InvitationModel = ModelDefined<InvitationAttributes, InvitationAttributes>;
 
-const init = (database: Sequelize): InvitationModel => {
+export default (database: Sequelize): InvitationModel => {
   const Invitation: InvitationModel = database.define(
     'Invitation',
     {
@@ -55,5 +55,3 @@ const init = (database: Sequelize): InvitationModel => {
 
   return Invitation;
 }
-
-export { init as default, InvitationModel };

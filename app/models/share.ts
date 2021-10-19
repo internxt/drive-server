@@ -12,9 +12,9 @@ interface ShareAttributes {
   views: number
 }
 
-type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
+export type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
 
-const init = (database: Sequelize): ShareModel => {
+export default (database: Sequelize): ShareModel => {
   const Share: ShareModel = database.define(
     'shares',
     {
@@ -60,5 +60,3 @@ const init = (database: Sequelize): ShareModel => {
 
   return Share;
 }
-
-export { init as default, ShareModel };

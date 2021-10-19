@@ -1,4 +1,4 @@
-import { Sequelize, ModelDefined, DataTypes } from 'sequelize/types';
+import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface Attributes {
   id: number
@@ -49,9 +49,9 @@ interface CreationAttributes {
   tempKey: string
 }
 
-type UserModel = ModelDefined<Attributes, CreationAttributes>;
+export type UserModel = ModelDefined<Attributes, CreationAttributes>;
 
-const init = (database: Sequelize): UserModel => {
+export default (database: Sequelize): UserModel => {
   const User: UserModel = database.define(
     'users',
     {
@@ -152,16 +152,12 @@ const init = (database: Sequelize): UserModel => {
     {
       tableName: 'users',
       timestamps: true,
-      underscored: true
-    },
-    // {
-    //   defaultScope: {
-    //     attributes: { exclude: ['userId'] }
-    //   }
-    // }
+      underscored: true,
+      defaultScope: {
+        attributes: { exclude: ['userId'] }
+      }
+    }
   );
 
   return User;
 }
-
-export { init as default, UserModel };

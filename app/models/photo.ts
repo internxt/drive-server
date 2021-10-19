@@ -13,9 +13,9 @@ interface PhotoAttributes {
   device: string
 }
 
-type PhotoModel = ModelDefined<PhotoAttributes, PhotoAttributes>;
+export type PhotoModel = ModelDefined<PhotoAttributes, PhotoAttributes>;
 
-const init = (database: Sequelize): PhotoModel => {
+export default (database: Sequelize): PhotoModel => {
   const Photo: PhotoModel = database.define(
     'photos',
     {
@@ -67,5 +67,3 @@ const init = (database: Sequelize): PhotoModel => {
 
   return Photo;
 }
-
-export { init as default, PhotoModel };

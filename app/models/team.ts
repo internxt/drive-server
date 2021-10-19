@@ -10,9 +10,9 @@ interface TeamAttributes {
   totalMembers: number
 }
 
-type TeamModel = ModelDefined<TeamAttributes, TeamAttributes>;
+export type TeamModel = ModelDefined<TeamAttributes, TeamAttributes>;
 
-const init = (database: Sequelize): TeamModel => {
+export default (database: Sequelize): TeamModel => {
   const Team: TeamModel = database.define(
     'teams',
     {
@@ -35,6 +35,3 @@ const init = (database: Sequelize): TeamModel => {
 
   return Team;
 }
-
-export { init as default, TeamModel };
-

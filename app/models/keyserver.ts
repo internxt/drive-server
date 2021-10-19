@@ -9,9 +9,9 @@ interface KeyServerAttributes {
   encryptVersion: string
 }
 
-type KeyServerModel = ModelDefined<KeyServerAttributes, KeyServerAttributes>;
+export type KeyServerModel = ModelDefined<KeyServerAttributes, KeyServerAttributes>;
 
-const init = (database: Sequelize): KeyServerModel => {
+export default (database: Sequelize): KeyServerModel => {
   const KeyServer: KeyServerModel = database.define(
     'keyserver',
     {
@@ -53,6 +53,4 @@ const init = (database: Sequelize): KeyServerModel => {
   );
 
   return KeyServer;
-}
-
-export { init as default, KeyServerModel };
+};

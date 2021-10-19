@@ -15,9 +15,9 @@ interface FileAttributes {
   userId: number
 }
 
-type FileModel = ModelDefined<FileAttributes, FileAttributes>
+export type FileModel = ModelDefined<FileAttributes, FileAttributes>
 
-const init = (database: Sequelize): FileModel => {
+export default (database: Sequelize): FileModel => {
   const File: FileModel = database.define(
     'file',
     {
@@ -74,5 +74,3 @@ const init = (database: Sequelize): FileModel => {
 
   return File;
 }
-
-export { init as default, FileModel };

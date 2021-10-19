@@ -8,9 +8,9 @@ interface AppSumoAttributes {
   invoiceItemUuid: string
 }
 
-type AppSumoModel = ModelDefined<AppSumoAttributes, AppSumoAttributes>;
+export type AppSumoModel = ModelDefined<AppSumoAttributes, AppSumoAttributes>;
 
-const init = (database: Sequelize): AppSumoModel => {
+export default (database: Sequelize): AppSumoModel => {
   const AppSumo: AppSumoModel = database.define(
     'AppSumo',
     {
@@ -49,5 +49,3 @@ const init = (database: Sequelize): AppSumoModel => {
 
   return AppSumo;
 };
-
-export { init as default, AppSumoModel };

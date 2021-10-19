@@ -9,9 +9,9 @@ interface DeviceAttributes {
   platform: string
 }
 
-type DeviceModel = ModelDefined<DeviceAttributes, DeviceAttributes>;
+export type DeviceModel = ModelDefined<DeviceAttributes, DeviceAttributes>;
 
-const init = (database: Sequelize): DeviceModel => {
+export default (database: Sequelize): DeviceModel => {
   const Device: DeviceModel = database.define(
     'device',
     {
@@ -50,5 +50,3 @@ const init = (database: Sequelize): DeviceModel => {
 
   return Device;
 }
-
-export { init as default, DeviceModel };

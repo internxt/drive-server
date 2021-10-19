@@ -9,9 +9,9 @@ interface BackupAttributes {
   createdAt: Date
 }
 
-type BackupModel = ModelDefined<BackupAttributes, BackupAttributes>;
+export type BackupModel = ModelDefined<BackupAttributes, BackupAttributes>;
 
-const init = (database: Sequelize): BackupModel => {
+export default (database: Sequelize): BackupModel => {
   const Backup: BackupModel = database.define(
     'backup',
     {
@@ -69,5 +69,3 @@ const init = (database: Sequelize): BackupModel => {
 
   return Backup;
 }
-
-export { init as default, BackupModel };

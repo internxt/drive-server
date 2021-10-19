@@ -9,9 +9,9 @@ interface TeamInvitationAttributes {
   mnemonic: string
 }
 
-type TeamInvitationModel = ModelDefined<TeamInvitationAttributes, TeamInvitationAttributes>
+export type TeamInvitationModel = ModelDefined<TeamInvitationAttributes, TeamInvitationAttributes>
 
-const init = (database: Sequelize): TeamInvitationModel => {
+export default (database: Sequelize): TeamInvitationModel => {
   const TeamInvitation: TeamInvitationModel = database.define(
     'teamsinvitations',
     {
@@ -34,5 +34,3 @@ const init = (database: Sequelize): TeamInvitationModel => {
 
   return TeamInvitation;
 }
-
-export { init as default, TeamInvitationModel };

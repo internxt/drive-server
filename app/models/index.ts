@@ -12,13 +12,13 @@ import initPhoto, { PhotoModel } from './photo';
 import initPlan, { PlanModel } from './plan';
 import initPreview, { PreviewModel } from './preview';
 import initShare, { ShareModel } from './share';
-import initTeam, { TeamModel } from './teams';
-import initTeamInvitation, { TeamInvitationModel } from './teamsinvitations';
-import initTeamMember, { TeamsMembersModel } from './teamsmembers';
+import initTeam, { TeamModel } from './team';
+import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
+import initTeamMember, { TeamMemberModel } from './teammember';
 import initUser, { UserModel } from './user';
 import initUserPhotos, { UserPhotosModel } from './userphotos';
 
-type ModelType = AlbumModel
+export type ModelType = AlbumModel
   | AppSumoModel
   | BackupModel
   | DeviceModel
@@ -32,12 +32,12 @@ type ModelType = AlbumModel
   | ShareModel
   | TeamModel
   | TeamInvitationModel
-  | TeamsMembersModel
+  | TeamMemberModel
   | UserModel
   | UserPhotosModel;
 
 
-const initModels = (database: Sequelize) => {
+export default (database: Sequelize) => {
   const Album = initAlbum(database);
   const AppSumo = initAppSumo(database);
   const Backup = initBackup(database);
@@ -122,5 +122,3 @@ const initModels = (database: Sequelize) => {
     [UserPhotos.name]: UserPhotos
   }
 }
-
-export { initModels as default, ModelType };

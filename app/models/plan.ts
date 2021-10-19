@@ -15,9 +15,9 @@ interface Attributes {
   limit: number
 }
 
-type PlanModel = ModelDefined<Attributes, Attributes>;
+export type PlanModel = ModelDefined<Attributes, Attributes>;
 
-const init = (database: Sequelize): PlanModel => {
+export default (database: Sequelize): PlanModel => {
   const Plan: PlanModel = database.define(
     'plan',
     {
@@ -65,5 +65,3 @@ const init = (database: Sequelize): PlanModel => {
 
   return Plan;
 }
-
-export { init as default, PlanModel }

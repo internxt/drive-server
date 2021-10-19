@@ -11,9 +11,9 @@ interface PreviewAttributes {
   bucketId: string
 }
 
-type PreviewModel = ModelDefined<PreviewAttributes, PreviewAttributes>;
+export type PreviewModel = ModelDefined<PreviewAttributes, PreviewAttributes>;
 
-const init = (database: Sequelize): PreviewModel => {
+export default (database: Sequelize): PreviewModel => {
   const Preview: PreviewModel = database.define(
     'previews',
     {
@@ -57,5 +57,3 @@ const init = (database: Sequelize): PreviewModel => {
 
   return Preview;
 }
-
-export { init as default, PreviewModel };
