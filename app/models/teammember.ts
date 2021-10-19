@@ -45,4 +45,4 @@ export default (database: Sequelize): TeamMemberModel => {
   );
 
   return TeamMember;
-}
+};

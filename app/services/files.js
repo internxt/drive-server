@@ -51,8 +51,8 @@ module.exports = (Model, App) => {
       try {
         AesUtil.decrypt(file.name, file.file_id);
         fileInfo.encrypt_version = '03-aes';
-      } catch (e) {
-        (() => { })(e);
+      } catch {
+        // eslint-disable-next-line no-empty
       }
 
       if (file.date) {
@@ -94,7 +94,9 @@ module.exports = (Model, App) => {
   const DeleteFile = async (user, folderId, fileId) => {
     const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
 
-    await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
+    await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => {
+      // eslint-disable-next-line no-empty
+    });
 
     if (!file) {
       throw Error('File/Folder not found');

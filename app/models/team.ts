@@ -29,9 +29,9 @@ export default (database: Sequelize): TeamModel => {
       bridge_mnemonic: DataTypes.STRING,
       total_members: DataTypes.INTEGER
     }, {
-    timestamps: false,
-    underscored: true
-  });
+      timestamps: false,
+      underscored: true
+    });
 
   return Team;
-}
+};

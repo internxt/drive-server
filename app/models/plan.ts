@@ -28,11 +28,7 @@ export default (database: Sequelize): PlanModel => {
         autoIncrement: true
       },
       userId: {
-        type: DataTypes.INTEGER,
-        // reference: {
-        //   model: 'users',
-        //   key: 'id'
-        // }
+        type: DataTypes.INTEGER
       },
       name: {
         type: DataTypes.STRING
@@ -64,4 +60,4 @@ export default (database: Sequelize): PlanModel => {
   );
 
   return Plan;
-}
+};

@@ -27,28 +27,6 @@ interface Attributes {
   tempKey: string
 }
 
-interface CreationAttributes {
-  id: number
-  userId: string
-  name: string
-  lastname: string
-  email: string
-  username: string
-  bridgeUser: string
-  password: string
-  mnemonic: string
-  rootFolderId: number
-  hKey: string
-  secret_2FA: string
-  errorLoginCount: number
-  uuid: string
-  credit: number
-  welcomePack: boolean
-  registerCompleted: boolean
-  sharedWorkspace: boolean
-  tempKey: string
-}
-
 export type UserModel = ModelDefined<Attributes, Attributes>;
 
 export default (database: Sequelize): UserModel => {
@@ -157,4 +135,4 @@ export default (database: Sequelize): UserModel => {
   );
 
   return User;
-}
+};

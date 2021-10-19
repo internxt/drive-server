@@ -53,4 +53,4 @@ export default (database: Sequelize): FolderModel => {
   );
 
   return Folder;
-}
+};

@@ -118,5 +118,5 @@ export default (database: Sequelize) => {
     [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
     [UserPhotos.name]: UserPhotos
-  }
-}
+  };
+};

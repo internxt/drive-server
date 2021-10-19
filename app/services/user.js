@@ -276,7 +276,9 @@ module.exports = (Model, App) => {
       keys.destroy();
     } else {
       keys.private_key = oldPrivateKey;
-      await keys.save().catch(() => { });
+      await keys.save().catch(() => {
+        // eslint-disable-next-line no-empty
+      });
     }
   };
 

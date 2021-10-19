@@ -44,11 +44,7 @@ export default (database: Sequelize): PhotoModel => {
         type: DataTypes.STRING
       },
       userId: {
-        type: DataTypes.INTEGER,
-        // reference: {
-        //   model: 'usersphotos',
-        //   key: 'id'
-        // }
+        type: DataTypes.INTEGER
       },
       creationTime: {
         type: DataTypes.DATE,
@@ -66,4 +62,4 @@ export default (database: Sequelize): PhotoModel => {
   );
 
   return Photo;
-}
+};

@@ -56,4 +56,4 @@ export default (database: Sequelize): PreviewModel => {
   );
 
   return Preview;
-}
+};

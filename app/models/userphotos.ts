@@ -9,7 +9,7 @@ interface Attributes {
   deleteFolderId: string | null
 }
 
-interface CreationAttributes extends Optional<Attributes, "id"> {}
+type CreationAttributes = Optional<Attributes, 'id'>
 
 export type UserPhotosModel = ModelDefined<Attributes, CreationAttributes>;
 

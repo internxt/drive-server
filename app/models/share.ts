@@ -59,4 +59,4 @@ export default (database: Sequelize): ShareModel => {
   );
 
   return Share;
-}
+};

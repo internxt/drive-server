@@ -68,4 +68,4 @@ export default (database: Sequelize): BackupModel => {
   );
 
   return Backup;
-}
+};

@@ -49,4 +49,4 @@ export default (database: Sequelize): DeviceModel => {
   );
 
   return Device;
-}
+};

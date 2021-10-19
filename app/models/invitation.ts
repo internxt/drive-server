@@ -54,4 +54,4 @@ export default (database: Sequelize): InvitationModel => {
   );
 
   return Invitation;
-}
+};

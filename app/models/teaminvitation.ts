@@ -33,4 +33,4 @@ export default (database: Sequelize): TeamInvitationModel => {
   );
 
   return TeamInvitation;
-}
+};
