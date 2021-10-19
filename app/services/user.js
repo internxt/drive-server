@@ -210,7 +210,7 @@ module.exports = (Model, App) => {
                 await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
               }
 
-              if (usersPhoto) { await usersPhoto.destroy(); }
+              await usersPhoto.destroy();
             }
 
             await Model.backup.destroy({ where: { userId: user.id } });
