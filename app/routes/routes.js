@@ -17,7 +17,7 @@ const GatewayRoutes = require('./gateway');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 const ReCaptchaV3 = require('../../lib/recaptcha');
 
 const { passportAuth } = passport;
@@ -165,6 +165,7 @@ module.exports = (Router, Service, App) => {
 
       return res.status(401).json({ error: 'Wrong email/password' });
     }).catch((err) => {
+      console.log(err.stack);
       Logger.error('ERROR access %s, reason: %s', req.body.email, err.message);
       return res.status(401).send({ error: 'Wrong email/password' });
     });

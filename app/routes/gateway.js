@@ -1,5 +1,5 @@
 const basicAuthBuilder = require('../middleware/basic-auth');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 
 const Logger = logger.getInstance();
 

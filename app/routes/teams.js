@@ -3,7 +3,7 @@ const sgMail = require('@sendgrid/mail');
 const Stripe = require('stripe');
 const _ = require('lodash');
 const { passportAuth, Sign } = require('../middleware/passport');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 
 const Logger = logger.getInstance();
 

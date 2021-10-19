@@ -1,6 +1,6 @@
 const createHttpError = require('http-errors');
 const passport = require('../middleware/passport');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 
 const Logger = logger.getInstance();
 

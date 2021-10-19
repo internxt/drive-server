@@ -1,7 +1,7 @@
 const passport = require('../middleware/passport');
 const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
 const teamsMiddlewareBuilder = require('../middleware/teams');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 const CONSTANTS = require('../constants');
 
 const Logger = logger.getInstance();

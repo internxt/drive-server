@@ -1,7 +1,7 @@
 const bip39 = require('bip39');
 const AesUtil = require('../../lib/AesUtil');
 const CryptService = require('./crypt');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 
 const Logger = logger.getInstance();
 

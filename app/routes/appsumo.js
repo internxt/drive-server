@@ -1,5 +1,5 @@
 const { passportAuth, Sign } = require('../middleware/passport');
-const { getInstance } = require('../../lib/logger');
+const { getInstance } = require('../../lib/logger').default;
 
 const logger = getInstance();
 
