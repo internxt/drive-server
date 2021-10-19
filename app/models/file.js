@@ -43,6 +43,9 @@ module.exports = (sequelize, DataTypes) => {
       },
       userId: {
         type: DataTypes.INTEGER
+      },
+      modificationTime: {
+        type: DataTypes.DATE
       }
     },
     {
