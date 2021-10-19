@@ -1,22 +1,30 @@
-import { argv, env, required, use, get } from 'nconf';
+import nconf from 'nconf';
 
-class Config { 
+export default class Config {
+  private static instance: Config; 
+
+  static getInstance(): Config {
+    if (!Config.instance) {
+      Config.instance = new Config();
+    }
+
+    return Config.instance;
+  }
+ 
   constructor() {
     // eslint-disable-next-line global-require
-    argv();
-    env();
-    required(['NODE_ENV']);
-    use('conf', {
+    nconf.argv();
+    nconf.env();
+    nconf.required(['NODE_ENV']);
+    nconf.use('conf', {
       type: 'literal',
       // eslint-disable-next-line global-require
-      store: require(`./environments/${get('NODE_ENV')}.js`).data,
+      store: require(`./environments/${nconf.get('NODE_ENV')}.js`).data,
     });
-    required(['server:port']);
+    nconf.required(['server:port']);
   }
 
   get(key: string) {
-    return get(key);
+    return nconf.get(key);
   }
 }
-
-export const config = new Config();
