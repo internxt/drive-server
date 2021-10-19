@@ -1,11 +1,11 @@
-const { expect } = require('chai');
-const { describe, it } = require('mocha');
+import { expect } from 'chai';
+import { describe, it } from 'mocha';
+
+import Server from '../../config/initializers/server';
+
 const utilsService = require('../../app/services/utils');
 
-const Config = require('../../config/config');
-const Server = require('../../config/initializers/server');
-
-const App = new Server(new Config());
+const App = new Server();
 const utils = utilsService(null, App);
 
 const validBucketIds = ['aaaaaaaaaaaaaaaaaaaaaaaa', '154785478541256987458987'];

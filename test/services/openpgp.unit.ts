@@ -1,6 +1,6 @@
-const openpgp = require('openpgp');
-const { expect } = require('chai');
-const { describe, it } = require('mocha');
+import * as openpgp from 'openpgp';
+import { expect } from 'chai';
+import { describe, it } from 'mocha';
 const { encrypt } = require('../../lib/AesUtil');
 
 describe('# openpgp', () => {

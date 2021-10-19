@@ -1,7 +1,7 @@
 require('dotenv').config();
 
-const { expect } = require('chai');
-const { describe, it } = require('mocha');
+import { expect } from 'chai';
+import { describe, it } from 'mocha';
 const cryptService = require('../../app/services/crypt');
 
 const Server = require('../../config/initializers/server');
