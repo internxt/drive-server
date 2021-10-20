@@ -153,66 +153,58 @@ module.exports = () => {
    * @param {*} isTest
    * @returns
    */
-  const getAllStorageProducts2 = (isTest = false) => new Promise((resolve, reject) => {
+  const getAllStorageProducts2 = async (isTest = false) => {
     const stripe = getStripe(isTest);
     const cacheName = `stripe_plans_v3_${isTest ? 'test' : 'production'}`;
     const cachedPlans = cache.get(cacheName);
 
     if (cachedPlans) {
-      return resolve(cachedPlans);
+      return cachedPlans;
     }
 
-    return stripe.products.list({
-      limit: 100
-    }, async (err, response) => {
-      if (err) {
-        reject(err);
-      } else {
-        const stripeProducts = response.data
-          .filter((p) => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1')
-            && p.metadata.show === '1')
-          .map((p) => ({
-            id: p.id,
-            name: p.name,
-            metadata: {
-              ...p.metadata,
-              is_drive: !!p.metadata.is_drive,
-              is_teams: !!p.metadata.is_teams,
-              show: !!p.metadata.show,
-              size_bytes: p.metadata.size_bytes && parseInt(p.metadata.size_bytes, 10)
-            }
-          }))
-          .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
-        const products = [];
+    const response = await stripe.products.list({ limit: 100 });
 
-        async.eachSeries(stripeProducts, async (stripeProduct) => {
-          const prices = await getProductPrices(stripeProduct.id, isTest);
+    const stripeProducts = response.data
+      .filter((p) => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1')
+          && p.metadata.show === '1')
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        metadata: {
+          ...p.metadata,
+          is_drive: !!p.metadata.is_drive,
+          is_teams: !!p.metadata.is_teams,
+          show: !!p.metadata.show,
+          size_bytes: p.metadata.size_bytes && parseInt(p.metadata.size_bytes, 10)
+        }
+      }))
+      .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
+    
+    const products = [];
 
-          products.push(...prices.map((price) => ({
-            ...stripeProduct,
-            price: {
-              ...price,
-              amount: price.amount * 0.01,
-              monthlyAmount: (price.recurring
-                ? getMonthlyAmount(price.amount, price.recurring.interval_count, price.recurring.interval)
-                : price.amount) * 0.01
-            },
-            renewalPeriod: price.recurring
-              ? getRenewalPeriod(price.recurring.interval_count, price.recurring.interval)
-              : RenewalPeriod.Lifetime
-          })));
-        }, (err2) => {
-          // err2: Avoid shadowed variables
-          if (err2) {
-            return reject(err2);
-          }
+    for (const stripeProduct of stripeProducts) {
+      const prices = await getProductPrices(stripeProduct.id, isTest);
 
-          cache.put(cacheName, products, 1000 * 60 * 30);
-          return resolve(products);
-        });
-      }
-    });
-  });
+      products.push(
+        ...prices.map((price) => ({
+          ...stripeProduct,
+          price: {
+            ...price,
+            amount: price.amount * 0.01,
+            monthlyAmount: (price.recurring
+              ? getMonthlyAmount(price.amount, price.recurring.interval_count, price.recurring.interval)
+              : price.amount) * 0.01
+          },
+          renewalPeriod: price.recurring
+            ? getRenewalPeriod(price.recurring.interval_count, price.recurring.interval)
+            : RenewalPeriod.Lifetime
+        }))
+      );
+    }
+
+    cache.put(cacheName, products, 1000 * 60 * 30);
+    return products;
+  };
 
   const getTeamProducts = (test = false) => new Promise((resolve, reject) => {
     const stripe = getStripe(test);

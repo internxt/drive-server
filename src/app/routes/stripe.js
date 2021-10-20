@@ -312,7 +312,7 @@ module.exports = (Router, Service) => {
     Service.Stripe.getAllStorageProducts2(test).then((products) => {
       res.status(200).send(products);
     }).catch((err) => {
-      res.status(500).send({ error: err });
+      res.status(500).send({ error: err.message });
     });
   });
 
