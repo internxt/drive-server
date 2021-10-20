@@ -12,7 +12,8 @@ interface FileAttributes {
   encryptVersion: string
   deleted: boolean
   deletedAt: Date,
-  userId: number
+  userId: number,
+  modificationTime: Date
 }
 
 export type FileModel = ModelDefined<FileAttributes, FileAttributes>
