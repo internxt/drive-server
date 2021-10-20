@@ -25,7 +25,7 @@ export default class Config {
     nconf.use('conf', {
       type: 'literal',
       // eslint-disable-next-line global-require
-      store: environments[nconf.get('NODE_ENV')],
+      store: environments[nconf.get('NODE_ENV')]
     });
     nconf.required(['server:port']);
   }
