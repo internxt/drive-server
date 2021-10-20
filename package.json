@@ -2,7 +2,7 @@
   "name": "drive-server",
   "version": "1.1.0",
   "description": "Drive Server API",
-  "main": "app.js",
+  "main": "build/app.js",
   "dependencies": {
     "@sendgrid/mail": "^7.2.1",
     "analytics-node": "^5.1.0",
@@ -39,15 +39,16 @@
     "winston": "^3.2.1"
   },
   "scripts": {
-    "start": "ts-node app.ts",
-    "dev": "cross-env NODE_ENV=development nodemon app.ts",
-    "docker": "cross-env NODE_ENV=docker nodemon",
+    "start": "node ./build/app.js",
+    "dev": "cross-env NODE_ENV=development nodemon src/app.ts",
+    "docker": "cross-env NODE_ENV=docker nodemon app.ts",
     "testsuite": "cross-env NODE_ENV=test ts-mocha test/**/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",
     "migrate": "sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./lib ./app ./test",
-    "lint:fix": "npm run lint --fix"
+    "lint:fix": "npm run lint --fix",
+    "build": "tsc"
   },
   "devDependencies": {
     "@types/chai": "^4.2.22",
