@@ -51,8 +51,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/folder/:folderid/meta', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
 
@@ -78,8 +78,8 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.delete('/storage/folder/:id', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.delete('/storage/folder/:id', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     // Set mnemonic to decrypted mnemonic
     user.mnemonic = req.headers['internxt-mnemonic'];
     const folderId = req.params.id;
@@ -92,10 +92,10 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/move/folder', passportAuth, (req, res) => {
+  Router.post('/storage/move/folder', passportAuth, sharedAdapter, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
-    const { user } = req;
+    const { behalfUser: user } = req;
 
     Service.Folder.MoveFolder(user, folderId, destination).then((result) => {
       res.status(200).json(result);
@@ -104,10 +104,10 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/rename-file-in-network', passportAuth, (req, res) => {
+  Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
-    const { user } = req;
+    const { behalfUser: user } = req;
 
     App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath).then(() => {
       res.status(200).json({ message: `File renamed in network: ${fileId}` });
@@ -116,11 +116,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/file', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser } = req;
     const { file } = req.body;
 
-    Service.Files.CreateFile(user, file).then((result) => {
+    Service.Files.CreateFile(behalfUser, file).then((result) => {
       res.status(200).json(result);
     }).catch((error) => {
       Logger.error(error);
@@ -128,12 +128,13 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file/:fileid/meta', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const fileId = req.params.fileid;
-    const { metadata } = req.body;
+    const { metadata, bucketId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Files.UpdateMetadata(user, fileId, metadata).then((result) => {
+    Service.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath).then((result) => {
       res.status(200).json(result);
     }).catch((err) => {
       Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
@@ -141,11 +142,11 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/move/file', passportAuth, (req, res) => {
+  Router.post('/storage/move/file', passportAuth, sharedAdapter, (req, res) => {
     const {
       fileId, destination, bucketId, relativePath
     } = req.body;
-    const { user } = req;
+    const { behalfUser: user } = req;
     const mnemonic = req.headers['internxt-mnemonic'];
 
     Service.Files.MoveFile(user, fileId, destination, bucketId, mnemonic, relativePath).then((result) => {
@@ -181,18 +182,21 @@ module.exports = (Router, Service, App) => {
   });
 
   /*
-   * Delete file by database ids (mysql)
+   * Delete file by database ids (sql)
    */
-  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, (req, res) => {
-    Service.Files.DeleteFile(req.user, req.params.folderid, req.params.fileid).then(() => {
+  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user, params } = req;
+    const { folderid, fileid } = params;
+
+    Service.Files.DeleteFile(user, folderid, fileid).then(() => {
       res.status(200).json({ deleted: true });
     }).catch((err) => {
       res.status(500).json({ error: err.message });
     });
   });
 
-  Router.post('/storage/share/file/:id', passportAuth, (req, res) => {
-    const user = req.user.email;
+  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, (req, res) => {
+    const { behalfUser: user } = req;
     const itemId = req.params.id;
     const {
       isFolder, views, encryptionKey, fileToken, bucket
@@ -239,12 +243,12 @@ module.exports = (Router, Service, App) => {
   });
 
   // Needs db index
-  Router.get('/storage/recents', passportAuth, (req, res) => {
+  Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
     let { limit } = req.query;
 
     limit = Math.min(parseInt(limit, 10), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
 
-    Service.Files.getRecentFiles(req.user.id, limit).then((files) => {
+    Service.Files.getRecentFiles(req.behalfUser.id, limit).then((files) => {
       if (!files) {
         return res.status(404).send({ error: 'Files not found' });
       }

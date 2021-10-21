@@ -4,12 +4,12 @@ exports.data = {
   },
   database: {
     name: process.env.RDS_DBNAME,
-    user: 'root',
-    password: '',
+    user: process.env.RDS_USERNAME || 'root',
+    password: process.env.RDS_PASSWORD || '',
     sequelizeConfig: {
       dialect: 'mariadb',
       port: 3306,
-      host: 'localhost'
+      host: process.env.RDS_HOSTNAME || 'localhost'
     }
   },
   secrets: {

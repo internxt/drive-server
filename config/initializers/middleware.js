@@ -6,7 +6,6 @@ const { ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const slowDown = require('express-slow-down');
 
 module.exports = (App, Config) => {
   // use helmet
@@ -32,14 +31,6 @@ module.exports = (App, Config) => {
     return req.headers['x-forwarded-for'] || req.ip;
   };
 
-  const limitSkipper = (req) => {
-    const whiteEndpoint = /^\/api\/storage\/share\/file\/(\w+)/;
-    if (req.originalUrl.match(whiteEndpoint)) {
-      return true;
-    }
-    return false;
-  };
-
   // Rate limiter
   App.express.use('/api/user/claim', rateLimit({
     windowMs: 60 * 1000,
@@ -53,32 +44,11 @@ module.exports = (App, Config) => {
     keyGenerator: limiterKeyGenerator
   }));
 
-  /*
-  App.express.use('/api/register', rateLimit({
-    windowMs: 10 * 1000, max: 1,
-    keyGenerator: limiterKeyGenerator
-  }))
-  */
-
   App.express.use('/api/user/resend', rateLimit({
     windowMs: 10 * 1000,
     max: 1,
     keyGenerator: limiterKeyGenerator
   }));
-
-  const downloadLimiter = slowDown({
-    delayAfter: 2,
-    delayMs: 10000,
-    maxDelayMs: 20000,
-    skipFailedRequests: true,
-    keyGenerator: limiterKeyGenerator,
-    skip: limitSkipper
-  });
-
-  /*
-  App.express.use('/api/storage/share/', downloadLimiter);
-  App.express.use('/api/storage/file/', downloadLimiter);
-  */
 
   App.express.use('/api/teams/team-invitations', rateLimit({
     windowMs: 30 * 60 * 1000,

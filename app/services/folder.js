@@ -3,6 +3,7 @@ const async = require('async');
 const { fn, col } = require('sequelize');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
+const Logger = require('../../lib/logger');
 
 const invalidName = /[\\/]|[. ]$/;
 
@@ -11,7 +12,7 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const getById = (id) => {
     return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
-      folder.name = App.services.Crypt.decryptName(folder.name, id);
+      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
       return folder;
     });
@@ -30,7 +31,7 @@ module.exports = (Model, App) => {
       const { bridgeUser } = user;
 
       user = await Model.users.findOne({
-        where: { email: bridgeUser }
+        where: { username: bridgeUser }
       });
     }
 
@@ -91,6 +92,21 @@ module.exports = (Model, App) => {
     return folder;
   };
 
+  // Requires stored procedure
+  const DeleteOrphanFolders = async (userId) => {
+    const clear = await App.database.instance
+      .query('CALL clear_orphan_folders_by_user (:userId)',
+        { replacements: { userId } });
+
+    const totalLeft = clear[0].total_left;
+
+    if (totalLeft > 0) {
+      return DeleteOrphanFolders(userId);
+    }
+
+    return true;
+  };
+
   const Delete = async (user, folderId) => {
     if (user.mnemonic === 'null') {
       throw new Error('Your mnemonic is invalid');
@@ -108,23 +124,12 @@ module.exports = (Model, App) => {
       throw new Error('Cannot delete root folder');
     }
 
-    // Delete all the files in the folder
-    // Find all subfolders and repeat
-    /*
-    const folderFiles = await Model.file.findAll({
-      where: { folder_id: folder.id }
-    });
-    const folderFolders = await Model.folder.findAll({
-      where: { parentId: folder.id }
-    });
-
-    await Promise.all(folderFiles
-      .map((file) => FileServiceInstance.Delete(user, file.bucket, file.fileId))
-      .concat(folderFolders.map((subFolder) => Delete(user, subFolder.id))));
-    */
-
     // Destroy folder
     const removed = await folder.destroy();
+
+    DeleteOrphanFolders(user.id).catch((err) => {
+      Logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+    });
 
     return removed;
   };
@@ -172,13 +177,15 @@ module.exports = (Model, App) => {
           include: [
             {
               model: Model.file,
-              as: 'files'
+              as: 'files',
+              where: { userId: user.id }
             }
           ]
         },
         {
           model: Model.file,
-          as: 'files'
+          as: 'files',
+          where: { userId: user.id }
         }
       ]
     })).toJSON();
@@ -192,57 +199,13 @@ module.exports = (Model, App) => {
     return folderContents;
   };
 
-  // Legacy hierarchy tree code (needs sequelize-hierarchy dependency)
-  const GetTreeHierarchy = async (user, rootFolderId = null) => {
-    const username = user.email;
-
-    const userObject = await Model.users.findOne({ where: { email: { [Op.eq]: username } } });
-    rootFolderId = !rootFolderId ? userObject.root_folder_id : rootFolderId;
-
-    const rootFolder = await Model.folder.findOne({
-      where: { id: { [Op.eq]: rootFolderId } },
-      include: [
-        {
-          model: Model.folder,
-          as: 'descendents',
-          include: [
-            {
-              model: Model.file,
-              as: 'files'
-            }
-          ]
-        },
-        {
-          model: Model.file,
-          as: 'files'
-        }
-      ]
-    });
-
-    return rootFolder;
-  };
-
-  const GetFolders = async (user) => {
-    const userObject = user;
-
-    const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id } },
-      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at']
-    });
-    const foldersId = folders.map((result) => result.id);
-    const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId } }
-    });
-    return {
-      folders,
-      files
-    };
-  };
-
   const GetFoldersPagination = async (user, index) => {
     const userObject = user;
     const root = await Model.folder.findOne({
-      where: { id: { [Op.eq]: userObject.root_folder_id } }
+      where: {
+        id: { [Op.eq]: userObject.root_folder_id },
+        userId: user.id
+      }
     });
     if (!root) {
       throw new Error('root folder does not exists');
@@ -256,7 +219,7 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId } }
+      where: { folder_id: { [Op.in]: foldersId }, userId: user.id }
     });
     return {
       folders,
@@ -288,7 +251,7 @@ module.exports = (Model, App) => {
 
   const GetContent = async (folderId, user, teamId = null) => {
     if (user.email !== user.bridgeUser) {
-      user = await Model.users.findOne({ where: { email: user.bridgeUser } });
+      user = await Model.users.findOne({ where: { username: user.bridgeUser } });
     }
 
     let teamMember = null;
@@ -313,11 +276,15 @@ module.exports = (Model, App) => {
       include: [
         {
           model: Model.folder,
-          as: 'children'
+          as: 'children',
+          where: { userId: user.id },
+          separate: true
         },
         {
           model: Model.file,
-          as: 'files'
+          as: 'files',
+          where: { userId: user.id },
+          separate: true
         }
       ]
     });
@@ -565,11 +532,9 @@ module.exports = (Model, App) => {
     UpdateMetadata,
     MoveFolder,
     GetBucket,
-    GetFolders,
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
-    GetTreeHierarchy,
     changeDuplicateName
   };
 };

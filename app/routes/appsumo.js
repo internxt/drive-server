@@ -1,4 +1,7 @@
 const { passportAuth, Sign } = require('../middleware/passport');
+const { getInstance } = require('../../lib/logger');
+
+const logger = getInstance();
 
 module.exports = (Router, Service, App) => {
   Router.post('/appsumo/register', (req, res) => {
@@ -36,6 +39,7 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send({ token, user });
     }).catch((err) => {
+      logger.error('Error during AppSumo update for user %s: %s', req.user.email, err.message);
       res.status(500).send({ error: err.message });
     });
   });

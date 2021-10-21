@@ -1,10 +1,11 @@
 module.exports = {
   development: {
     dialect: 'mariadb',
-    database: 'drive',
-    username: 'root',
-    password: '',
-    host: 'localhost'
+    host: process.env.RDS_HOSTNAME,
+    database: process.env.RDS_DBNAME,
+    username: process.env.RDS_USERNAME,
+    password: process.env.RDS_PASSWORD,
+    logging: true
   },
   test: {
     username: 'root',

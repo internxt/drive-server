@@ -28,7 +28,8 @@ module.exports = (Model, App) => {
         where: {
           name: { [Op.eq]: file.name },
           folder_id: { [Op.eq]: folder.id },
-          type: { [Op.eq]: file.type }
+          type: { [Op.eq]: file.type },
+          userId: { [Op.eq]: user.id }
         }
       });
 
@@ -44,7 +45,8 @@ module.exports = (Model, App) => {
         fileId: file.file_id,
         bucket: file.bucket,
         encrypt_version: file.encrypt_version,
-        userId: user.id
+        userId: user.id,
+        modificationTime: file.modificationTime || new Date()
       };
 
       try {
@@ -64,7 +66,7 @@ module.exports = (Model, App) => {
 
   const Delete = (user, bucket, fileId) => new Promise((resolve, reject) => {
     App.services.Inxt.DeleteFile(user, bucket, fileId).then(async () => {
-      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+      const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } });
 
       if (file) {
         const isDestroyed = await file.destroy();
@@ -77,7 +79,7 @@ module.exports = (Model, App) => {
     }).catch(async (err) => {
       if (err.message.includes('Resource not found')) {
         const file = await Model.file.findOne({
-          where: { fileId: { [Op.eq]: fileId } }
+          where: { fileId: { [Op.eq]: fileId }, userId: user.id }
         });
         if (file) {
           await file.destroy();
@@ -91,7 +93,7 @@ module.exports = (Model, App) => {
   });
 
   const DeleteFile = async (user, folderId, fileId) => {
-    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId } });
+    const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
 
     await Model.shares.destroy({ where: { file: file.fileId } }).catch(() => { });
 
@@ -111,14 +113,14 @@ module.exports = (Model, App) => {
     await file.destroy();
   };
 
-  const UpdateMetadata = (user, fileId, metadata) => {
+  const UpdateMetadata = (user, fileId, metadata, mnemonic, bucketId, relativePath) => {
     const newMeta = {};
 
     return async.waterfall([
       (next) => {
         // Find the file in database
         Model.file
-          .findOne({ where: { fileId: { [Op.eq]: fileId } } }).then((file) => {
+          .findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } }).then((file) => {
             if (!file) {
               next(Error('Update Metadata Error: File not exists'));
             } else {
@@ -174,7 +176,11 @@ module.exports = (Model, App) => {
       },
       (file, next) => {
         if (newMeta.name !== file.name) {
-          file.update(newMeta).then((update) => next(null, update)).catch(next);
+          file.update(newMeta).then(async (update) => {
+            await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
+
+            next(null, update);
+          }).catch(next);
         } else {
           next();
         }
@@ -183,7 +189,7 @@ module.exports = (Model, App) => {
   };
 
   const MoveFile = async (user, fileId, destination, bucketId, mnemonic, relativePath) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } } });
+    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
 
     if (!file) {
       throw Error('File not found');
@@ -291,15 +297,7 @@ module.exports = (Model, App) => {
       order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
-      include: [
-        {
-          model: Model.folder,
-          where: {
-            user_id: { [Op.eq]: userId }
-          },
-          attributes: []
-        }
-      ]
+      where: { userId }
     });
 
     return results;

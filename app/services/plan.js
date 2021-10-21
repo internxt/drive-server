@@ -1,3 +1,4 @@
+const { default: axios } = require('axios');
 const { FREE_PLAN_BYTES } = require('../constants');
 
 const StripeService = require('./stripe');
@@ -37,6 +38,43 @@ module.exports = (Model, App) => {
   const stripeService = StripeService(Model, App);
   const limitService = LimitService(Model, App);
 
+  const getByUserId = (userId) => Model.plan.findOne({ userId });
+  const getByName = (name) => Model.plan.findOne({ name });
+  const create = ({
+    userId, name, type, limit
+  }) => {
+    return Model.plan.create({
+      userId, name, type, limit
+    });
+  };
+
+  const createOrUpdate = (plan) => {
+    return Model.plan.findOne({ where: { userId: plan.userId } }).then((dbPlan) => {
+      if (!dbPlan) {
+        return create(plan);
+      }
+
+      dbPlan.name = plan.name;
+      dbPlan.type = plan.type;
+      dbPlan.limit = plan.limit;
+
+      return dbPlan.save();
+    });
+  };
+  const deleteByUserId = (userId) => Model.plan.destroy({ where: { userId } });
+  const createAndSetBucketLimit = (newPlan, bucketId, bucketLimit) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    return create(newPlan).then(() => {
+      return axios.patch(`${process.env.STORJ_BRIDGE}/gateway/bucket/${bucketId}`, {
+        limit: bucketLimit
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+      });
+    });
+  };
+
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
       .filter((plan) => !plan.isTeam);
@@ -51,6 +89,10 @@ module.exports = (Model, App) => {
     }
 
     return result;
+  };
+
+  const isValid = (plan) => {
+    return plan && plan.name && plan.limit > 0 && (plan.type === 'subscription' || plan.type === 'one_time');
   };
 
   const getTeamPlan = async (userEmail, userId) => {
@@ -72,6 +114,13 @@ module.exports = (Model, App) => {
   return {
     Name: 'Plan',
     getIndividualPlan,
-    getTeamPlan
+    getTeamPlan,
+    isValid,
+    create,
+    createOrUpdate,
+    getByName,
+    getByUserId,
+    deleteByUserId,
+    createAndSetBucketLimit
   };
 };
