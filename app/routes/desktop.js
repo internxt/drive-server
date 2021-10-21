@@ -7,10 +7,6 @@ const logger = require('../../lib/logger');
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
-  Router.get('/storage/tree', passportAuth, (req, res) => {
-    res.status(500).send({ error: 'Outdated desktop version' });
-  });
-
   Router.get('/desktop/tree', passportAuth, (req, res) => {
     res.status(500).send({ error: 'Outdated desktop version' });
   });
