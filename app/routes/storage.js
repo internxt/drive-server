@@ -260,4 +260,27 @@ module.exports = (Router, Service, App) => {
       res.status(500).send({ error: 'Can not get recent files' });
     });
   });
+
+  Router.get('/storage/tree', passportAuth, (req, res) => {
+    const { user } = req;
+
+    Service.Folder.GetTree(user).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
+  });
+
+  Router.get('/storage/tree/:folderId', passportAuth, (req, res) => {
+    const { user } = req;
+    const { folderId } = req.params;
+
+    Service.Folder.GetTree(user, folderId).then((result) => {
+      const treeSize = Service.Folder.GetTreeSize(result);
+
+      res.status(200).send({ tree: result, size: treeSize });
+    }).catch((err) => {
+      res.status(500).send({ error: err.message });
+    });
+  });
 };

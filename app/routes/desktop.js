@@ -7,16 +7,6 @@ const logger = require('../../lib/logger');
 const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
-  Router.get('/storage/tree', passportAuth, (req, res) => {
-    const { user } = req;
-
-    Service.Folder.GetTree(user).then((result) => {
-      res.status(200).send(result);
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
-  });
-
   Router.get('/desktop/tree', passportAuth, (req, res) => {
     const { user } = req;
 
