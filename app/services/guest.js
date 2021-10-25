@@ -24,39 +24,41 @@ module.exports = (Model, App) => {
   const inviteUsage = async (host) => {
     const invitations = await Model.Invitation.findAll({ where: { host: host.id } });
 
-    if (!invitations) {
-      return 0;
-    }
-
     return invitations.length;
   };
 
-  const inviteLimit = async (host) => {
-    const appsumo = await Model.AppSumo.findOne({ where: { user_id: host.id } });
+  const hasUnlimitedMembers = (userId) => {
+    return Model.plan.findOne({ where: { userId, name: 'unlimited_members' } })
+      .then((plan) => (!!plan));
+  };
 
-    if (!appsumo) {
-      // Not appsumo user
-      return 0;
+  const inviteMembersLimit = async (userId) => {
+    const appsumo = await Model.AppSumo.findOne({ where: { userId } });
+
+    // TODO: Remove this dissociation when appsumo finishes, Plans is the truth source
+    if (appsumo) {
+      if (!Object.keys(APPSUMO_TIER_LIMITS).indexOf(appsumo.planId) === -1) {
+        // Not valid appsumo  plan
+        return 0;
+      }
+
+      return APPSUMO_TIER_LIMITS[appsumo.planId];
     }
 
-    const unlimitedMembers = await Model.plan.findOne({ where: { userId: host.id, name: 'appsumo_unlimited_members' } });
+    // TODO: Remove this when readjusted database plans
+    const unlimitedMembers = await Model.plan.findOne({ where: { userId, name: 'appsumo_unlimited_members' } });
+    const hasUnlimited = await hasUnlimitedMembers(userId);
 
-    if (unlimitedMembers) {
-      // Infinite?
+    if (unlimitedMembers || hasUnlimited) {
       return Number.MAX_SAFE_INTEGER;
     }
 
-    if (!Object.keys(APPSUMO_TIER_LIMITS).indexOf(appsumo.planId) === -1) {
-      // Not valid appsumo  plan
-      return 0;
-    }
-
-    return APPSUMO_TIER_LIMITS[appsumo.planId];
+    return 0;
   };
 
   const invitationsLeft = async (host) => {
     const usage = await inviteUsage(host);
-    const limit = await inviteLimit(host);
+    const limit = await inviteMembersLimit(host.id);
 
     return Math.max(limit - usage, 0);
   };
