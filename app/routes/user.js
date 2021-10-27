@@ -113,7 +113,7 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
     } catch (err) {
-      Logger.error('Invite user error: %s', err ? err.message : err);
+      Logger.error('Error inviting user with email %s: %s', inviteEmail, err ? err.message : err);
       res.status((err && err.status) || 500).send({
         error: err ? err.message : err
       });
