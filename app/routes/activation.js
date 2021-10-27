@@ -1,7 +1,4 @@
 const { passportAuth } = require('../middleware/passport');
-const logger = require('../../lib/logger');
-
-const Logger = logger.getInstance();
 
 module.exports = (Router, Service) => {
   Router.get('/deactivate', passportAuth, (req, res) => {
@@ -31,20 +28,6 @@ module.exports = (Router, Service) => {
       res.status(200).send(req.data);
     }).catch((err) => {
       res.status(400).send({ error: err.message });
-    });
-  });
-
-  Router.get('/user/resend/:email', (req, res) => {
-    Service.User.ResendActivationEmail(req.params.email).then(() => {
-      res.status(200).send({ message: 'ok' });
-    }).catch((err) => {
-      Logger.error('Resend activation email error %s', err ? err.message : err);
-      res.status(500).send({
-        error:
-          err.response && err.response.data && err.response.data.error
-            ? err.response.data.error
-            : 'Internal server error'
-      });
     });
   });
 };

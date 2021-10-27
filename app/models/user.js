@@ -63,7 +63,12 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         defaultValue: false
       },
-      referral: {
+      referralCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+      },
+      referrer: {
         type: DataTypes.STRING,
         allowNull: true
       },

@@ -3,8 +3,12 @@ const sequelize = require('sequelize');
 const async = require('async');
 const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
+const createHttpError = require('http-errors');
+const uuid = require('uuid');
+
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
+const MailService = require('./mail');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 
@@ -14,6 +18,7 @@ module.exports = (Model, App) => {
   const Logger = App.logger;
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
+  const mailService = MailService(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -34,7 +39,8 @@ module.exports = (Model, App) => {
         password: userPass,
         mnemonic: user.mnemonic,
         hKey: userSalt,
-        referral: user.referral,
+        referrer: user.referrer,
+        referralCode: uuid.v4(),
         uuid: null,
         credit: user.credit,
         welcomePack: true,
@@ -345,29 +351,30 @@ module.exports = (Model, App) => {
     return user.save();
   };
 
-  const RegisterUser = async (newUser) => {
-    const {
-      email, password
-    } = newUser;
+  const RegisterUser = async (newUserData) => {
+    Logger.warn('Register request for %s', newUserData.email);
 
-    // Data validation for process only request with all data
-    if (!(email && password)) {
-      throw Error('You must provide registration data');
+    if (!(newUserData.email && newUserData.password)) {
+      throw createHttpError(400, 'You must provide registration data');
     }
 
-    newUser.email = newUser.email.toLowerCase().trim();
-    newUser.username = newUser.email;
-    newUser.bridgeUser = newUser.email;
-    newUser.credit = 0;
-    newUser.referral = newUser.referrer;
+    const hasReferrer = !!newUserData.referrer;
+    const referrer = hasReferrer
+      ? await Model.users.findOne({ where: { referralCode: { [Op.eq]: newUserData.referrer } } })
+      : null;
 
-    Logger.warn('Register request for %s', email);
+    if (hasReferrer && !referrer) {
+      throw createHttpError(400, 'The referral code used is not correct');
+    }
 
-    const hasReferral = false;
-    const referrer = null;
-
-    // Call user service to find or create user
-    const userData = await FindOrCreate(newUser);
+    const email = newUserData.email.toLowerCase().trim();
+    const userData = await FindOrCreate({
+      ...newUserData,
+      email,
+      username: email,
+      bridgeUser: email,
+      credit: 0
+    });
 
     if (!userData) {
       throw Error('User can not be created');
@@ -377,10 +384,15 @@ module.exports = (Model, App) => {
       throw Error('This account already exists');
     }
 
-    if (hasReferral) {
+    if (hasReferrer) {
       analytics.identify({
         userId: userData.uuid,
         traits: { referred_by: referrer.uuid }
+      });
+      analytics.track({
+        userId: userData.uuid,
+        event: 'Invitation Accepted',
+        properties: { sent_by: referrer.email }
       });
     }
 
@@ -399,7 +411,8 @@ module.exports = (Model, App) => {
       registerCompleted: userData.registerCompleted,
       email: userData.email,
       username: userData.username,
-      bridgeUser: userData.bridgeUser
+      bridgeUser: userData.bridgeUser,
+      referralCode: userData.referralCode
     };
 
     try {
@@ -467,6 +480,20 @@ module.exports = (Model, App) => {
     };
   };
 
+  const invite = async ({
+    inviteEmail, hostEmail, hostFullName, hostReferralCode
+  }) => {
+    const userToInvite = await Model.users.findOne({ where: { email: inviteEmail } });
+
+    if (userToInvite) {
+      throw createHttpError(409, `Email ${inviteEmail} is already registered`);
+    }
+
+    await mailService.sendInviteFriendMail(inviteEmail, {
+      inviteEmail, hostEmail, hostFullName, registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`
+    });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -489,6 +516,7 @@ module.exports = (Model, App) => {
     GetUserBucket,
     getUsage,
     updateKeys,
-    recoverPassword
+    recoverPassword,
+    invite
   };
 };

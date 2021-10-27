@@ -1,5 +1,5 @@
 const speakeasy = require('speakeasy');
-const openpgp = require('openpgp');
+
 const ActivationRoutes = require('./activation');
 const StorageRoutes = require('./storage');
 const BridgeRoutes = require('./bridge');
@@ -14,6 +14,7 @@ const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
 const GatewayRoutes = require('./gateway');
+const UserRoutes = require('./user');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -55,6 +56,7 @@ module.exports = (Router, Service, App) => {
   GuestRoutes(Router, Service, App);
   // Gateway comunication
   GatewayRoutes(Router, Service);
+  UserRoutes(Router, Service, App);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
@@ -218,13 +220,6 @@ module.exports = (Router, Service, App) => {
 
     return Service.User.RegisterUser(req.body)
       .then((result) => {
-        if (req.body.referrer) {
-          Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);
-          return Service.AppSumo.ApplyLicense(result.user, req.body.referrer).then(() => result);
-        }
-        return result;
-      })
-      .then((result) => {
         res.status(200).send(result);
       })
       .catch((err) => {
@@ -266,69 +261,6 @@ module.exports = (Router, Service, App) => {
       Logger.error(`${err.message}\n${err.stack}`);
       res.send(err.message);
     });
-  });
-
-  Router.patch('/user/password', passportAuth, (req, res) => {
-    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
-    const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
-    const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
-    const { mnemonic, privateKey } = req.body;
-
-    Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
-  });
-
-  Router.patch('/user/recover', passportAuth, (req, res) => {
-    const newPassword = App.services.Crypt.decryptText(req.body.password);
-    const newSalt = App.services.Crypt.decryptText(req.body.salt);
-
-    // Old data, but re-encrypted
-    const { mnemonic: oldMnemonic, privateKey: oldPrivateKey } = req.body;
-
-    Service.User.recoverPassword(req.user, newPassword, newSalt, oldMnemonic, oldPrivateKey).then(() => {
-      res.status(200).send({});
-    }).catch(() => {
-      res.status(500).send({ error: 'Could not restore password' });
-    });
-  });
-
-  Router.patch('/user/keys', passportAuth, (req, res) => {
-    Service.User.updateKeys(req.user, req.body).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
-  });
-
-  Router.get('/user/credit', passportAuth, (req, res) => {
-    const { user } = req;
-    return res.status(200).send({ userCredit: user.credit });
-  });
-
-  Router.get('/user/keys/:email', passportAuth, async (req, res) => {
-    const { email } = req.params;
-
-    const user = await Service.User.FindUserByEmail(email).catch(() => null);
-
-    if (user) {
-      const existsKeys = await Service.KeyServer.keysExists(user);
-      if (existsKeys) {
-        const keys = await Service.KeyServer.getKeys(user);
-        res.status(200).send({ publicKey: keys.public_key });
-      } else {
-        res.status(400).send({ error: 'This user cannot be invited' });
-      }
-    } else {
-      const { publicKeyArmored } = await openpgp.generateKey({
-        userIDs: [{ email: 'inxt@inxt.com' }],
-        curve: 'ed25519'
-      });
-      const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-      res.status(200).send({ publicKey: codpublicKey });
-    }
   });
 
   return Router;
