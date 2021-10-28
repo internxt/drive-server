@@ -14,6 +14,7 @@ const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
 const GatewayRoutes = require('./gateway');
+const ReferralRoutes = require('./referral');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
@@ -54,7 +55,8 @@ module.exports = (Router, Service, App) => {
   // Invite guest routes
   GuestRoutes(Router, Service, App);
   // Gateway comunication
-  GatewayRoutes(Router, Service);
+  GatewayRoutes(Router, Service, App);
+  ReferralRoutes(Router, Service, App);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {

@@ -39,9 +39,9 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   UserReferral.associate = (models) => {
-    UserReferral.belongsTo(models.users, { targetKey: 'user_id' });
+    UserReferral.belongsTo(models.users, { foreignKey: 'user_id', targetKey: 'id' });
     UserReferral.hasOne(models.referrals, { foreignKey: 'referral_id' });
-    UserReferral.hasOne(models.users, { foreignKey: 'referred_id' });
+    UserReferral.belongsTo(models.users, { foreignKey: 'referred_id' });
   };
 
   return UserReferral;
