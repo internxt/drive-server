@@ -20,18 +20,23 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    referred_id: {
-      type: DataTypes.INTEGER,
-      reference: {
-        model: 'users',
-        key: 'id'
-      },
+    referred: {
+      type: DataTypes.STRING,
       allowNull: true
     },
-    current_value: {
-      type: DataTypes.INTEGER,
+    start_date: {
+      type: DataTypes.DATE,
       allowNull: false,
-      defaultValue: 0
+      defaultValue: DataTypes.NOW
+    },
+    expiration_date: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    applied: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
     }
   }, {
     timestamps: true,
@@ -41,7 +46,6 @@ module.exports = (sequelize, DataTypes) => {
   UserReferral.associate = (models) => {
     UserReferral.belongsTo(models.users, { foreignKey: 'user_id', targetKey: 'id' });
     UserReferral.hasOne(models.referrals, { foreignKey: 'referral_id' });
-    UserReferral.belongsTo(models.users, { foreignKey: 'referred_id' });
   };
 
   return UserReferral;

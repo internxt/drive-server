@@ -20,18 +20,13 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false
       },
-      target_value: {
+      steps: {
         type: Sequelize.INTEGER,
         allowNull: false
       },
-      start_date: {
-        type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
-      },
-      expiration_date: {
-        type: Sequelize.DATE,
-        allowNull: true
+      enabled: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false
       },
       created_at: {
         allowNull: false,
@@ -70,18 +65,23 @@ module.exports = {
         onDelete: 'CASCADE',
         allowNull: false
       },
-      referred_id: {
-        type: Sequelize.INTEGER,
-        references: {
-          model: 'users',
-          key: 'id'
-        },
+      referred: {
+        type: Sequelize.STRING,
         allowNull: true
       },
-      current_value: {
+      start_date: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW
+      },
+      expiration_date: {
+        type: Sequelize.DATE,
+        allowNull: true
+      },
+      applied: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        defaultValue: 0
+        defaultValue: false
       },
       created_at: {
         allowNull: false,

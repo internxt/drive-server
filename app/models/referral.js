@@ -19,18 +19,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    target_value: {
+    steps: {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    start_date: {
-      type: DataTypes.DATE,
+    enabled: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: DataTypes.NOW
-    },
-    expiration_date: {
-      type: DataTypes.DATE,
-      allowNull: true
+      defaultValue: true
     }
   }, {
     timestamps: true,

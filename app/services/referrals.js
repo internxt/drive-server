@@ -9,19 +9,28 @@ module.exports = (Model) => {
         key: data.key,
         type: data.type,
         credit: data.credit,
-        target_value: data.target_value,
+        steps: data.steps,
         start_date: data.start_date,
         expiration_date: data.expiration_date
       });
   };
 
-  const createUserReferral = async (data) => {
-    return Model.users_referrals
-      .create({
-        user_id: data.user_id,
-        referral_id: data.referral_id,
-        referred_id: data.referred_id
+  const createUserReferrals = async (userId) => {
+    const referrals = await Model.referrals.findAll({ where: { enabled: { [Op.eq]: true } } });
+    const userReferralsToCreate = [];
+
+    referrals.forEach((referral) => {
+      Array(referral.steps).forEach(() => {
+        userReferralsToCreate.push({
+          user_id: userId,
+          referral_id: referral.id
+        });
       });
+    });
+
+    const result = await Model.users_referrals.bulkCreate(userReferralsToCreate, { returning: true, individualHooks: true });
+
+    console.log(result);
   };
 
   const getByUserId = async (userId) => {
@@ -31,14 +40,15 @@ module.exports = (Model) => {
   const updateUserReferral = async (data, userReferralId) => {
     return Model.users_referrals
       .update({
-        current_value: data.current_value
+        referred: data.referred,
+        applied: data.applied
       }, { where: { id: { [Op.eq]: userReferralId } } });
   };
 
   return {
     Name: 'Referrals',
     create,
-    createUserReferral,
+    createUserReferrals,
     getByUserId,
     updateUserReferral
   };
