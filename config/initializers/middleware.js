@@ -32,9 +32,9 @@ module.exports = (App, Config) => {
   };
 
   // Rate limiter
-  App.express.use('/api/user/claim', rateLimit({
+  App.express.use('/api/newsletter/subscribe', rateLimit({
     windowMs: 60 * 1000,
-    max: 1,
+    max: 10,
     keyGenerator: limiterKeyGenerator
   }));
 
