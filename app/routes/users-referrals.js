@@ -8,7 +8,7 @@ module.exports = (Router, Service) => {
     const { user } = req;
 
     try {
-      const referrals = await Service.Referrals.getByUserId(user.id);
+      const referrals = await Service.UsersReferrals.getByUserId(user.id);
       res.status(200).send(referrals);
     } catch (err) {
       const errMessage = `Error getting user referrals: ${err}`;
