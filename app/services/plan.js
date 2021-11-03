@@ -1,5 +1,5 @@
 const { default: axios } = require('axios');
-const { FREE_PLAN_BYTES } = require('../constants');
+const { MAX_FREE_PLAN_BYTES, FREE_PLAN_BYTES } = require('../constants');
 
 const StripeService = require('./stripe');
 const LimitService = require('./limit');
@@ -84,7 +84,7 @@ module.exports = (Model, App) => {
     if (!result) {
       const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
 
-      result = maxSpaceBytes > FREE_PLAN_BYTES
+      result = maxSpaceBytes > MAX_FREE_PLAN_BYTES
         ? lifetimePlanFactory(maxSpaceBytes, false)
         : FREE_PLAN;
     }
@@ -96,7 +96,7 @@ module.exports = (Model, App) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
       .filter((plan) => !plan.isTeam);
     const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
-    const isLifetime = maxSpaceBytes > FREE_PLAN_BYTES;
+    const isLifetime = maxSpaceBytes > MAX_FREE_PLAN_BYTES;
 
     return subscriptionPlans.length > 0 || isLifetime;
   };

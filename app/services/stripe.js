@@ -283,6 +283,7 @@ module.exports = () => {
     const plans = [];
 
     if (customers) {
+      // ! To fix duplicated stripe customers
       await async.eachSeries(customers, async (customer) => {
         const expandedCustomer = await stripe.customers.retrieve(customer.id, {
           expand: ['subscriptions.data.plan.product']
