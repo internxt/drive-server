@@ -46,4 +46,25 @@ module.exports = (Router, Service) => {
         return res.status(500).json({ error: err.message });
       });
   });
+
+  Router.post('gateway/user/update/storage', basicAuth, (req, res) => {
+    const { email, maxSpaceBytes } = req.body;
+    Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
+      res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+    })
+      .catch(() => {
+        Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes} `);
+        res.status(304).send();
+      });
+  });
+
+  Router.post('gateway/register/stage', basicAuth, (req, res) => {
+    const { email, maxSpaceBytes } = req.body;
+    Service.Register.StaggingRegister(email, maxSpaceBytes).then(() => {
+      res.status(201).send();
+    }).catch((err) => {
+      Logger.error(`Not possible to create a stagging register for user: ${email}`);
+      res.status(500).send({ error: err.message });
+    });
+  });
 };

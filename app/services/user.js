@@ -467,6 +467,17 @@ module.exports = (Model, App) => {
     };
   };
 
+  const UpdateUserStorage = async (email, maxSpaceBytes) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
+      email, bytes: parseInt(maxSpaceBytes, 10)
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+    });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -487,6 +498,7 @@ module.exports = (Model, App) => {
     UpdateUserSync,
     UnlockSync,
     GetUserBucket,
+    UpdateUserStorage,
     getUsage,
     updateKeys,
     recoverPassword

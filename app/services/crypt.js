@@ -149,6 +149,14 @@ module.exports = (Model, App) => {
       .digest('hex');
   }
 
+  const RandomPassword = (email) => {
+    const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
+    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5)
+      .toString('hex');
+
+    return randomPassword;
+  };
+
   return {
     Name: 'Crypt',
     decryptName,
@@ -161,6 +169,7 @@ module.exports = (Model, App) => {
     probabilisticDecryption,
     passToHash,
     hashSha256,
-    encryptTextWithKey
+    encryptTextWithKey,
+    RandomPassword
   };
 };
