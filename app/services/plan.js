@@ -77,6 +77,7 @@ module.exports = (Model, App) => {
 
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((subscription) => subscription.status === 'active')
       .filter((plan) => !plan.isTeam);
     let result = subscriptionPlans[0];
 
@@ -91,12 +92,22 @@ module.exports = (Model, App) => {
     return result;
   };
 
+  const hasBeenIndividualSubscribedAnyTime = async (userEmail, userId) => {
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((plan) => !plan.isTeam);
+    const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
+    const isLifetime = maxSpaceBytes > FREE_PLAN_BYTES;
+
+    return subscriptionPlans.length > 0 || isLifetime;
+  };
+
   const isValid = (plan) => {
     return plan && plan.name && plan.limit > 0 && (plan.type === 'subscription' || plan.type === 'one_time');
   };
 
   const getTeamPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((subscription) => subscription.status === 'active')
       .filter((plan) => plan.isTeam);
     let result = subscriptionPlans[0];
 
@@ -121,6 +132,7 @@ module.exports = (Model, App) => {
     getByName,
     getByUserId,
     deleteByUserId,
-    createAndSetBucketLimit
+    createAndSetBucketLimit,
+    hasBeenIndividualSubscribedAnyTime
   };
 };

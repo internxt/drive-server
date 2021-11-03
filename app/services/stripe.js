@@ -258,6 +258,15 @@ module.exports = () => {
     return result.data && result.data[0];
   };
 
+  /**
+   * ! To fix duplicated stripe customers
+   */
+  const findCustomersByEmail = async (email, isTest = false) => {
+    const stripe = getStripe(isTest);
+    const result = await stripe.customers.list({ email });
+    return result.data;
+  };
+
   const getBilling = async (customerID, url, isTest = false) => {
     const stripe = getStripe(isTest);
     const result = await stripe.billingPortal.sessions.create({
@@ -267,63 +276,37 @@ module.exports = () => {
     return result.url;
   };
 
-  const getProductFromUser = async (email) => {
-    const isTest = process.env.NODE_ENV !== 'production';
-    const stripe = await getStripe(isTest);
-    const customer = await findCustomerByEmail(email, isTest);
-
-    if (!customer) {
-      return customer;
-    }
-
-    const expandedCustomer = await stripe.customers.retrieve(customer.id, {
-      expand: ['subscriptions']
-    });
-
-    expandedCustomer.subscriptions.data.sort((a, b) => b.created - a.created);
-
-    const { plan } = expandedCustomer.subscriptions.data[0];
-
-    const product = await stripe.products.retrieve(plan.product);
-
-    return {
-      productId: product.id,
-      name: product.name,
-      price: product.metadata.price_eur,
-      paymentInterval: plan.nickname,
-      planId: plan.id
-    };
-  };
-
   const getUserSubscriptionPlans = async (email) => {
     const isTest = process.env.NODE_ENV !== 'production';
     const stripe = await getStripe(isTest);
-    const customer = await findCustomerByEmail(email, isTest);
-    let plans = [];
+    const customers = await findCustomersByEmail(email, isTest);
+    const plans = [];
 
-    if (customer) {
-      const expandedCustomer = await stripe.customers.retrieve(customer.id, {
-        expand: ['subscriptions.data.plan.product']
+    if (customers) {
+      await async.eachSeries(customers, async (customer) => {
+        const expandedCustomer = await stripe.customers.retrieve(customer.id, {
+          expand: ['subscriptions.data.plan.product']
+        });
+
+        expandedCustomer.subscriptions.data
+          .sort((a, b) => b.created - a.created);
+
+        plans.push(...expandedCustomer.subscriptions.data.map((subscription) => ({
+          status: subscription.status,
+          planId: subscription.plan.id,
+          productId: subscription.plan.product.id,
+          name: subscription.plan.product.name,
+          simpleName: subscription.plan.product.metadata.simple_name,
+          price: subscription.plan.amount * 0.01,
+          monthlyPrice: getMonthlyAmount(subscription.plan.amount * 0.01, subscription.plan.interval_count, subscription.plan.interval),
+          currency: subscription.plan.currency,
+          isTeam: !!subscription.plan.product.metadata.is_teams,
+          storageLimit: subscription.plan.product.metadata.size_bytes,
+          paymentInterval: subscription.plan.nickname,
+          isLifetime: false,
+          renewalPeriod: getRenewalPeriod(subscription.plan.intervalCount, subscription.plan.interval)
+        })));
       });
-
-      expandedCustomer.subscriptions.data
-        // .filter((subscription) => subscription.status === 'active')
-        .sort((a, b) => b.created - a.created);
-
-      plans = expandedCustomer.subscriptions.data.map((subscription) => ({
-        planId: subscription.plan.id,
-        productId: subscription.plan.product.id,
-        name: subscription.plan.product.name,
-        simpleName: subscription.plan.product.metadata.simple_name,
-        price: subscription.plan.amount * 0.01,
-        monthlyPrice: getMonthlyAmount(subscription.plan.amount * 0.01, subscription.plan.interval_count, subscription.plan.interval),
-        currency: subscription.plan.currency,
-        isTeam: !!subscription.plan.product.metadata.is_teams,
-        storageLimit: subscription.plan.product.metadata.size_bytes,
-        paymentInterval: subscription.plan.nickname,
-        isLifetime: false,
-        renewalPeriod: getRenewalPeriod(subscription.plan.intervalCount, subscription.plan.interval)
-      }));
     }
 
     return plans;
@@ -340,7 +323,6 @@ module.exports = () => {
     getTeamPlans,
     findCustomerByEmail,
     getBilling,
-    getProductFromUser,
     getUserSubscriptionPlans
   };
 };
