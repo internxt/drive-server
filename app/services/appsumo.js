@@ -47,6 +47,21 @@ module.exports = (Model, App) => {
     });
   };
 
+  /*
+  * TEMPORARY SOLUTION TO HANDLE REGISTERS
+  */
+  const ApplySpaceBytesStripe = async (user, maxSpaceBytes) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+
+    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
+      email: user.email, bytes: maxSpaceBytes
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+    });
+  };
+
   const RandomPassword = (email) => {
     const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
     const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5)
@@ -66,7 +81,7 @@ module.exports = (Model, App) => {
 
   // EXAMPLE: updateOrCreate(Model.AppSumo, { where: { userId: 244 } }, { uuid: 'lol3', planId: 'plan3', invoiceItemUuid: 'invoice3' });
 
-  const RegisterIncompleteLifetime = async (email, plan) => {
+  const RegisterIncompleteLifetime = async (email, maxSpaceBytes) => {
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
 
@@ -93,12 +108,12 @@ module.exports = (Model, App) => {
     };
 
     const user = await UserServiceInstance.FindOrCreate(userObject);
-    return ApplyLicense(user, plan);
+    return ApplySpaceBytesStripe(user, maxSpaceBytes);
   };
 
-  const RegisterIncomplete = async (email, plan, uuid, invoice) => {
+  const RegisterIncomplete = async (email, plan, uuid, invoice, maxSpaceBytes = 10737418240) => {
     if (plan.includes('lifetime')) {
-      return RegisterIncompleteLifetime(email, plan);
+      return RegisterIncompleteLifetime(email, maxSpaceBytes);
     }
 
     App.logger.warn('Register activation from APPSUMO for %s', email);
@@ -194,6 +209,7 @@ module.exports = (Model, App) => {
     CompleteInfo,
     GetDetails,
     UpdateLicense,
-    ApplyLicense
+    ApplyLicense,
+    ApplySpaceBytesStripe
   };
 };
