@@ -5,6 +5,8 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const Logger = require('../../lib/logger').default;
 
+const logger = Logger.getInstance();
+
 const invalidName = /[\\/]|[. ]$/;
 
 const { Op } = sequelize;
@@ -94,7 +96,7 @@ module.exports = (Model, App) => {
 
   // Requires stored procedure
   const DeleteOrphanFolders = async (userId) => {
-    const clear = await App.database.instance
+    const clear = await App.database
       .query('CALL clear_orphan_folders_by_user (:userId)',
         { replacements: { userId } });
 
@@ -128,7 +130,7 @@ module.exports = (Model, App) => {
     const removed = await folder.destroy();
 
     DeleteOrphanFolders(user.id).catch((err) => {
-      Logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+      logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
     });
 
     return removed;
@@ -177,27 +179,19 @@ module.exports = (Model, App) => {
           include: [
             {
               model: Model.file,
-              as: 'files',
-              where: { userId: user.id }
+              as: 'files'
             }
           ]
         },
         {
           model: Model.file,
-          as: 'files',
-          where: { userId: user.id }
+          as: 'files'
         }
       ]
     })).toJSON();
 
     const res = await async.mapSeries(folderContents.children, async (folder) => {
-      const subfolder = await GetTree(user, folder.id);
-      /*
-      // Server decrypted tree
-      const name = App.services.Crypt.decryptName(subfolder.name, subfolder.parentId);
-      subfolder.name = name;
-      */
-      return subfolder;
+      return GetTree(user, folder.id);
     });
 
     folderContents.children = res;

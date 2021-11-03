@@ -1,8 +1,11 @@
 const bip39 = require('bip39');
 const AesUtil = require('../../lib/AesUtil');
+const Logger = require('../../lib/logger').default;
 const { passportAuth } = require('../middleware/passport');
 
 module.exports = (Router, Service) => {
+  const logger = Logger.getInstance();
+
   Router.post('/guest/invite', passportAuth, async (req, res) => {
     const sharedKey = req.headers['internxt-mnemonic'];
 
@@ -24,6 +27,8 @@ module.exports = (Router, Service) => {
 
       return res.status(200).send({});
     } catch (err) {
+      logger.error('Error inviting user. %s is inviting %s: %s', req.user.email, req.body.guest, err.message);
+
       return res.status(500).send({ error: err.message || 'Internal server error' });
     }
   });
@@ -35,6 +40,8 @@ module.exports = (Router, Service) => {
       await Service.Guest.acceptInvitation(req.user, payload);
       return res.status(200).send({});
     } catch (err) {
+      logger.error('Error accepting invitation for user %s: %s', req.user.email, err.message);
+
       return res.status(500).send({ error: err.message });
     }
   });
