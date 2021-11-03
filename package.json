@@ -41,7 +41,7 @@
   },
   "scripts": {
     "start": "node ./build/app.js",
-    "dev": "cross-env NODE_ENV=development nodemon src/app.ts",
+    "dev": "cross-env NODE_ENV=staging nodemon src/app.ts",
     "docker": "cross-env NODE_ENV=docker nodemon app.ts",
     "testsuite": "cross-env NODE_ENV=test ts-mocha test/**/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",

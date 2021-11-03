@@ -38,12 +38,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var path = require('path');
 var async = require('async');
 var passportAuth = require('../middleware/passport').passportAuth;
-var logger = require('../../lib/logger').default;
+var logger = require('../../lib/logger');
 var Logger = logger.getInstance();
 module.exports = function (Router, Service) {
-    Router.get('/storage/tree', passportAuth, function (req, res) {
-        res.status(500).send({ error: 'Outdated desktop version' });
-    });
     Router.get('/desktop/tree', passportAuth, function (req, res) {
         res.status(500).send({ error: 'Outdated desktop version' });
     });

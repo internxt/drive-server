@@ -2,7 +2,7 @@ const openpgp = require('openpgp');
 
 const createHttpError = require('http-errors');
 const { passportAuth } = require('../middleware/passport');
-const logger = require('../../lib/logger');
+const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../services/analytics');
 
 const Logger = logger.getInstance();
