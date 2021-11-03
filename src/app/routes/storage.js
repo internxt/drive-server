@@ -287,4 +287,27 @@ module.exports = (Router, Service, App) => {
       res.status(500).send({ error: err.message });
     });
   });
+
+  Router.post('/storage/folder/:folderId/lock/:lockId', passportAuth, (req, res) => {
+    const userId = req.user.id;
+    const {folderId, lockId} = req.params;
+
+
+    Service.Folder.adquireLock(userId, folderId, lockId).then(() => {
+      res.status(201).end();
+    }).catch(() => {
+      res.status(409).end();
+    });
+  });
+
+  Router.put('/storage/folder/:folderId/lock/:lockId',  passportAuth, (req, res) => {
+    const userId = req.user.id;
+    const {folderId, lockId} = req.params;
+
+    Service.Folder.refreshLock(userId, folderId, lockId).then(() => {
+      res.status(200).end();
+    }).catch(() => {
+      res.status(409).end();
+    });
+  });
 };
