@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Referral.associate = (models) => {
-    Referral.hasMany(models.users_referrals);
+    Referral.belongsToMany(models.users, { through: models.users_referrals });
   };
 
   return Referral;

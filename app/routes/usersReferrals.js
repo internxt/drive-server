@@ -4,7 +4,7 @@ const { getInstance } = require('../../lib/logger');
 const logger = getInstance();
 
 module.exports = (Router, Service) => {
-  Router.get('/user-referrals', passportAuth, async (req, res) => {
+  Router.get('/users-referrals', passportAuth, async (req, res) => {
     const { user } = req;
 
     try {

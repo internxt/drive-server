@@ -26,14 +26,13 @@ module.exports = {
       },
       enabled: {
         type: Sequelize.BOOLEAN,
-        allowNull: false
+        allowNull: false,
+        defaultValue: true
       },
       created_at: {
-        allowNull: false,
         type: Sequelize.DATE
       },
       updated_at: {
-        allowNull: false,
         type: Sequelize.DATE
       }
     });
@@ -71,8 +70,7 @@ module.exports = {
       },
       start_date: {
         type: Sequelize.DATE,
-        allowNull: false,
-        defaultValue: Sequelize.NOW
+        allowNull: false
       },
       expiration_date: {
         type: Sequelize.DATE,
@@ -84,11 +82,9 @@ module.exports = {
         defaultValue: false
       },
       created_at: {
-        allowNull: false,
         type: Sequelize.DATE
       },
       updated_at: {
-        allowNull: false,
         type: Sequelize.DATE
       }
     });

@@ -14,7 +14,7 @@ const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
 const GatewayRoutes = require('./gateway');
-const UsersReferralsRoutes = require('./users-referrals');
+const UsersReferralsRoutes = require('./usersReferrals');
 const NewsletterRoutes = require('./newsletter');
 
 const passport = require('../middleware/passport');

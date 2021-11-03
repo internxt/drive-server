@@ -37,7 +37,26 @@ module.exports = (Model, App) => {
   };
 
   const getByUserId = async (userId) => {
-    return Model.users_referrals.findAll({ where: { user_id: { [Op.eq]: userId } } });
+    const userReferrals = await Model.users_referrals.findAll({ where: { user_id: userId }, include: Model.referrals });
+    const userReferralGroups = []; // { key: string; type: string; credit: number; steps: number; completedSteps: number; }
+
+    userReferrals.forEach((userReferral) => {
+      const userReferralGroup = userReferralGroups.find((group) => group.key === userReferral.referral.key);
+
+      if (userReferralGroup) {
+        userReferralGroup.completedSteps += userReferral.applied ? 1 : 0;
+      } else {
+        userReferralGroups.push({
+          key: userReferral.referral.key,
+          type: userReferral.referral.type,
+          credit: userReferral.referral.credit,
+          steps: userReferral.referral.steps,
+          completedSteps: userReferral.applied ? 1 : 0
+        });
+      }
+    });
+
+    return userReferralGroups;
   };
 
   const applyReferral = async (userId, referralKey, referred) => {

@@ -122,7 +122,7 @@ module.exports = (sequelize, DataTypes) => {
     User.hasOne(models.plan);
     User.hasMany(models.device);
     User.hasMany(models.Invitation, { foreignKey: 'host' });
-    User.hasMany(models.users_referrals, { foreignKey: 'user_id' });
+    User.belongsToMany(models.referrals, { through: models.users_referrals });
   };
 
   return User;
