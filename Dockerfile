@@ -9,10 +9,10 @@ RUN apk add git curl && git clone https://github.com/internxt/drive-server.git
 WORKDIR /app/drive-server
 
 # Install deps
-RUN yarn && yarn cache clean
+RUN yarn && yarn build && yarn --production && yarn cache clean
 
 # Create prometheus directories
 RUN mkdir -p /mnt/prometheusvol{1,2}
 
-# Start farmer
-CMD node app.js
+# Start server
+CMD node /app/drive-server/build/app.js
