@@ -1,0 +1,7 @@
+"use strict";
+module.exports = {
+    FREE_PLAN_BYTES: 2147483648,
+    SYNC_KEEPALIVE_INTERVAL_MS: 60 * 1000,
+    SHARE_TOKEN_LENGTH: 64,
+    RECENTS_LIMIT: 15
+};
