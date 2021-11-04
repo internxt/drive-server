@@ -56,7 +56,10 @@ module.exports = (Model, App) => {
       }
     });
 
-    return userReferralGroups;
+    return userReferralGroups.map((group) => ({
+      ...group,
+      isCompleted: group.steps === group.completedSteps
+    }));
   };
 
   const applyReferral = async (userId, referralKey, referred) => {
