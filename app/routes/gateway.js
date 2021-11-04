@@ -48,19 +48,38 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/gateway/user/update/storage', basicAuth, (req, res) => {
-    const { email, maxSpaceBytes } = req.body;
+    const { email } = req.body.email;
+    const maxSpaceBytes = parseInt(req.body.maxSpaceBytes, 10);
+
     Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
-      res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+      return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
     })
       .catch(() => {
         Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes} `);
-        res.status(304).send();
+        return res.status(304).send();
       });
+  });
+
+  Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
+    const { email, maxSpaceBytes } = req.body;
+    const userExists = await Service.User.FindUserByEmail(email).catch(() => null);
+    if (!userExists) {
+      await Service.User.CreateStaggingUser(email).catch((err) => {
+        Logger.error(`Not possible to create a stagging register for user: ${email}`);
+        return res.status(500).send({ error: err.message });
+      });
+    }
+    Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
+      return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+    }).catch((err) => {
+      Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes}. Error: ${err} `);
+      return res.status(304).send();
+    });
   });
 
   Router.post('/gateway/register/stage', basicAuth, (req, res) => {
     const { email } = req.body;
-    Service.Register.StaggingRegister(email).then(() => {
+    Service.User.CreateStaggingUser(email).then(() => {
       res.status(201).send();
     }).catch((err) => {
       Logger.error(`Not possible to create a stagging register for user: ${email}`);
