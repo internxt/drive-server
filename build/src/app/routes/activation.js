@@ -28,16 +28,4 @@ module.exports = function (Router, Service) {
             res.status(400).send({ error: err.message });
         });
     });
-    Router.get('/user/resend/:email', function (req, res) {
-        Service.User.ResendActivationEmail(req.params.email).then(function () {
-            res.status(200).send({ message: 'ok' });
-        }).catch(function (err) {
-            Logger.error('Resend activation email error %s', err ? err.message : err);
-            res.status(500).send({
-                error: err.response && err.response.data && err.response.data.error
-                    ? err.response.data.error
-                    : 'Internal server error'
-            });
-        });
-    });
 };

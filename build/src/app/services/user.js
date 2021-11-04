@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -9,8 +20,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -40,16 +51,19 @@ var sequelize = require('sequelize');
 var async = require('async');
 var CryptoJS = require('crypto-js');
 var crypto = require('crypto');
+var createHttpError = require('http-errors');
+var uuid = require('uuid');
 var AnalyticsService = require('./analytics');
 var KeyServerService = require('./keyserver');
+var MailService = require('./mail');
 var passport = require('../middleware/passport');
 var SYNC_KEEPALIVE_INTERVAL_MS = require('../constants').SYNC_KEEPALIVE_INTERVAL_MS;
-var Logger = require('../../lib/logger').default;
 var Op = sequelize.Op, col = sequelize.col, fn = sequelize.fn;
 module.exports = function (Model, App) {
-    var logger = Logger.getInstance();
+    var Logger = App.logger;
     var KeyServer = KeyServerService(Model, App);
     var analytics = AnalyticsService(Model, App);
+    var mailService = MailService(Model, App);
     var FindOrCreate = function (user) {
         // Create password hashed pass only when a pass is given
         var userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
@@ -58,9 +72,10 @@ module.exports = function (Model, App) {
         if (!user.email || !userPass || !userSalt || !user.mnemonic) {
             throw Error('Wrong user registration data');
         }
-        return Model.users.sequelize.transaction(function (t) { return __awaiter(void 0, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                return [2 /*return*/, Model.users.findOrCreate({
+        return Model.users.sequelize.transaction(function (t) {
+            return __awaiter(void 0, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    return [2 /*return*/, Model.users.findOrCreate({
                         where: { username: user.email },
                         defaults: {
                             email: user.email,
@@ -69,7 +84,8 @@ module.exports = function (Model, App) {
                             password: userPass,
                             mnemonic: user.mnemonic,
                             hKey: userSalt,
-                            referral: user.referral,
+                            referrer: user.referrer,
+                            referralCode: uuid.v4(),
                             uuid: null,
                             credit: user.credit,
                             welcomePack: true,
@@ -111,92 +127,99 @@ module.exports = function (Model, App) {
                                         if (!bridgeUser.data) {
                                             throw Error('Error creating bridge user');
                                         }
-                                        logger.info('User Service | created brigde user: %s', userResult.email);
+                                        Logger.info('User Service | created brigde user: %s', userResult.email);
                                         // Store bcryptid on user register
                                         return [4 /*yield*/, userResult.update({
-                                                userId: bcryptId,
-                                                uuid: bridgeUser.data.uuid
-                                            }, { transaction: t })];
+                                            userId: bcryptId,
+                                            uuid: bridgeUser.data.uuid
+                                        }, { transaction: t })];
                                     case 3:
                                         // Store bcryptid on user register
                                         _b.sent();
                                         // Set created flag for Frontend management
                                         Object.assign(userResult, { isNewRecord: isNewRecord });
                                         _b.label = 4;
-                                    case 4: 
-                                    // TODO: proveriti userId kao pass
-                                    return [2 /*return*/, userResult];
+                                    case 4:
+                                        // TODO: proveriti userId kao pass
+                                        return [2 /*return*/, userResult];
                                 }
                             });
                         });
                     }).catch(function (err) {
                         if (err.response) {
                             // This happens when email is registered in bridge
-                            logger.error(err.response.data);
+                            Logger.error(err.response.data);
                         }
                         else {
-                            logger.error(err.stack);
+                            Logger.error(err.stack);
                         }
                         throw Error(err);
                     })];
+                });
             });
-        }); }); // end transaction
+        }); // end transaction
     };
-    var InitializeUser = function (user) { return Model.users.sequelize.transaction(function (t) {
-        var _a;
-        return Model.users
-            .findOne({ where: { username: (_a = {}, _a[Op.eq] = user.email, _a) } }).then(function (userData) { return __awaiter(void 0, void 0, void 0, function () {
-            var _a, Inxt, Crypt, rootBucket, rootFolderName, rootFolder, updatedUser;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
-                    case 0:
-                        if (userData.root_folder_id) {
-                            userData.mnemonic = user.mnemonic;
-                            return [2 /*return*/, userData];
-                        }
-                        _a = App.services, Inxt = _a.Inxt, Crypt = _a.Crypt;
-                        return [4 /*yield*/, Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic)];
-                    case 1:
-                        rootBucket = _b.sent();
-                        logger.info('User init | root bucket created %s', rootBucket.name);
-                        return [4 /*yield*/, Crypt.encryptName("" + rootBucket.name)];
-                    case 2:
-                        rootFolderName = _b.sent();
-                        return [4 /*yield*/, userData.createFolder({
-                                name: rootFolderName,
-                                bucket: rootBucket.id
-                            })];
-                    case 3:
-                        rootFolder = _b.sent();
-                        logger.info('User init | root folder created, id: %s', rootFolder.id);
-                        // Update user register with root folder Id
-                        return [4 /*yield*/, userData.update({ root_folder_id: rootFolder.id }, { transaction: t })];
-                    case 4:
-                        // Update user register with root folder Id
-                        _b.sent();
-                        updatedUser = userData;
-                        updatedUser.mnemonic = user.mnemonic;
-                        updatedUser.bucket = rootBucket.id;
-                        return [2 /*return*/, updatedUser];
-                }
-            });
-        }); });
-    }); };
-    var FindUserByEmail = function (email) { return new Promise(function (resolve, reject) {
-        var _a;
-        Model.users
-            .findOne({ where: { username: (_a = {}, _a[Op.eq] = email, _a) } }).then(function (userData) {
-            if (!userData) {
-                logger.error('ERROR user %s not found on database', email);
-                return reject(Error('Wrong email/password'));
-            }
-            var user = userData.dataValues;
-            if (user.mnemonic) {
-                user.mnemonic = user.mnemonic.toString();
-            }
-            return resolve(user);
-        }).catch(function (err) { return reject(err); });
-    }); };
+    var InitializeUser = function (user) {
+        return Model.users.sequelize.transaction(function (t) {
+            var _a;
+            return Model.users
+                .findOne({ where: { username: (_a = {}, _a[Op.eq] = user.email, _a) } }).then(function (userData) {
+                    return __awaiter(void 0, void 0, void 0, function () {
+                        var _a, Inxt, Crypt, rootBucket, rootFolderName, rootFolder, updatedUser;
+                        return __generator(this, function (_b) {
+                            switch (_b.label) {
+                                case 0:
+                                    if (userData.root_folder_id) {
+                                        userData.mnemonic = user.mnemonic;
+                                        return [2 /*return*/, userData];
+                                    }
+                                    _a = App.services, Inxt = _a.Inxt, Crypt = _a.Crypt;
+                                    return [4 /*yield*/, Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic)];
+                                case 1:
+                                    rootBucket = _b.sent();
+                                    Logger.info('User init | root bucket created %s', rootBucket.name);
+                                    return [4 /*yield*/, Crypt.encryptName("" + rootBucket.name)];
+                                case 2:
+                                    rootFolderName = _b.sent();
+                                    return [4 /*yield*/, userData.createFolder({
+                                        name: rootFolderName,
+                                        bucket: rootBucket.id
+                                    })];
+                                case 3:
+                                    rootFolder = _b.sent();
+                                    Logger.info('User init | root folder created, id: %s', rootFolder.id);
+                                    // Update user register with root folder Id
+                                    return [4 /*yield*/, userData.update({ root_folder_id: rootFolder.id }, { transaction: t })];
+                                case 4:
+                                    // Update user register with root folder Id
+                                    _b.sent();
+                                    updatedUser = userData;
+                                    updatedUser.mnemonic = user.mnemonic;
+                                    updatedUser.bucket = rootBucket.id;
+                                    return [2 /*return*/, updatedUser];
+                            }
+                        });
+                    });
+                });
+        });
+    };
+    var FindUserByEmail = function (email) {
+        return new Promise(function (resolve, reject) {
+            var _a;
+            Model.users
+                .findOne({ where: { username: (_a = {}, _a[Op.eq] = email, _a) } }).then(function (userData) {
+                    if (!userData) {
+                        Logger.error('ERROR user %s not found on database', email);
+                        return reject(Error('Wrong email/password'));
+                    }
+                    var user = userData.dataValues;
+                    if (user.mnemonic) {
+                        user.mnemonic = user.mnemonic.toString();
+                    }
+                    return resolve(user);
+                }).catch(function (err) { return reject(err); });
+        });
+    };
     var FindUserByUuid = function (userUuid) {
         var _a;
         return Model.users.findOne({ where: { uuid: (_a = {}, _a[Op.eq] = userUuid, _a) } });
@@ -205,130 +228,134 @@ module.exports = function (Model, App) {
         var _a;
         return Model.users.findOne({ where: { username: (_a = {}, _a[Op.eq] = email, _a) } });
     };
-    var DeactivateUser = function (email) { return new Promise(function (resolve, reject) {
-        var _a;
-        return Model.users
-            .findOne({ where: { username: (_a = {}, _a[Op.eq] = email, _a) } }).then(function (user) {
-            var password = CryptoJS.SHA256(user.userId).toString();
-            var auth = Buffer.from(user.email + ":" + password).toString('base64');
-            axios
-                .delete(App.config.get('STORJ_BRIDGE') + "/users/" + email, {
-                headers: {
-                    Authorization: "Basic " + auth,
-                    'Content-Type': 'application/json'
-                }
-            }).then(function (data) {
-                resolve(data);
-            }).catch(function (err) {
-                logger.warn(err.response.data);
-                reject(err);
-            });
-        }).catch(reject);
-    }); };
+    var DeactivateUser = function (email) {
+        return new Promise(function (resolve, reject) {
+            var _a;
+            return Model.users
+                .findOne({ where: { username: (_a = {}, _a[Op.eq] = email, _a) } }).then(function (user) {
+                    var password = CryptoJS.SHA256(user.userId).toString();
+                    var auth = Buffer.from(user.email + ":" + password).toString('base64');
+                    axios
+                        .delete(App.config.get('STORJ_BRIDGE') + "/users/" + email, {
+                            headers: {
+                                Authorization: "Basic " + auth,
+                                'Content-Type': 'application/json'
+                            }
+                        }).then(function (data) {
+                            resolve(data);
+                        }).catch(function (err) {
+                            Logger.warn(err.response.data);
+                            reject(err);
+                        });
+                }).catch(reject);
+        });
+    };
     var ConfirmDeactivateUser = function (token) {
         var userEmail = null;
         return async.waterfall([
             function (next) {
                 axios
                     .get(App.config.get('STORJ_BRIDGE') + "/deactivationStripe/" + token, {
-                    headers: { 'Content-Type': 'application/json' }
-                }).then(function (res) {
-                    logger.warn('User deleted from bridge');
-                    next(null, res);
-                }).catch(function (err) {
-                    logger.error('Error user deleted from bridge: %s', err.message);
-                    next(err.response.data.error || err.message);
-                });
+                        headers: { 'Content-Type': 'application/json' }
+                    }).then(function (res) {
+                        Logger.warn('User deleted from bridge');
+                        next(null, res);
+                    }).catch(function (err) {
+                        Logger.error('Error user deleted from bridge: %s', err.message);
+                        next(err.response.data.error || err.message);
+                    });
             },
             function (data, next) {
                 var _a;
                 userEmail = data.data.email;
-                Model.users.findOne({ where: { username: (_a = {}, _a[Op.eq] = userEmail, _a) } }).then(function (user) { return __awaiter(void 0, void 0, void 0, function () {
-                    var keys, appSumo, usersPhoto, photos, photoIds, err_1, tempUsername;
-                    var _a, _b;
-                    return __generator(this, function (_c) {
-                        switch (_c.label) {
-                            case 0:
-                                if (!user) {
+                Model.users.findOne({ where: { username: (_a = {}, _a[Op.eq] = userEmail, _a) } }).then(function (user) {
+                    return __awaiter(void 0, void 0, void 0, function () {
+                        var keys, appSumo, usersPhoto, photos, photoIds, err_1, tempUsername;
+                        var _a, _b;
+                        return __generator(this, function (_c) {
+                            switch (_c.label) {
+                                case 0:
+                                    if (!user) {
+                                        return [2 /*return*/];
+                                    }
+                                    _c.label = 1;
+                                case 1:
+                                    _c.trys.push([1, 19, , 21]);
+                                    // DELETE FOREIGN KEYS (not cascade)
+                                    user.root_folder_id = null;
+                                    return [4 /*yield*/, user.save()];
+                                case 2:
+                                    _c.sent();
+                                    return [4 /*yield*/, user.getKeyserver()];
+                                case 3:
+                                    keys = _c.sent();
+                                    if (!keys) return [3 /*break*/, 5];
+                                    return [4 /*yield*/, keys.destroy()];
+                                case 4:
+                                    _c.sent();
+                                    _c.label = 5;
+                                case 5: return [4 /*yield*/, user.getAppSumo()];
+                                case 6:
+                                    appSumo = _c.sent();
+                                    if (!appSumo) return [3 /*break*/, 8];
+                                    return [4 /*yield*/, appSumo.destroy()];
+                                case 7:
+                                    _c.sent();
+                                    _c.label = 8;
+                                case 8: return [4 /*yield*/, user.getUsersphoto()];
+                                case 9:
+                                    usersPhoto = _c.sent();
+                                    if (!usersPhoto) return [3 /*break*/, 15];
+                                    return [4 /*yield*/, usersPhoto.getPhotos()];
+                                case 10:
+                                    photos = _c.sent();
+                                    photoIds = photos.map(function (x) { return x.id; });
+                                    if (!(photoIds.length > 0)) return [3 /*break*/, 13];
+                                    return [4 /*yield*/, Model.previews.destroy({ where: { photoId: (_a = {}, _a[Op.in] = photoIds, _a) } })];
+                                case 11:
+                                    _c.sent();
+                                    return [4 /*yield*/, Model.photos.destroy({ where: { id: (_b = {}, _b[Op.in] = photoIds, _b) } })];
+                                case 12:
+                                    _c.sent();
+                                    _c.label = 13;
+                                case 13: return [4 /*yield*/, usersPhoto.destroy()];
+                                case 14:
+                                    _c.sent();
+                                    _c.label = 15;
+                                case 15: return [4 /*yield*/, Model.backup.destroy({ where: { userId: user.id } })];
+                                case 16:
+                                    _c.sent();
+                                    return [4 /*yield*/, Model.device.destroy({ where: { userId: user.id } })];
+                                case 17:
+                                    _c.sent();
+                                    return [4 /*yield*/, user.destroy()];
+                                case 18:
+                                    _c.sent();
+                                    Logger.info('User deactivation, remove on sql: %s', userEmail);
+                                    return [3 /*break*/, 21];
+                                case 19:
+                                    err_1 = _c.sent();
+                                    tempUsername = user.email + "-" + crypto.randomBytes(5).toString('hex') + "-DELETED";
+                                    Logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err_1.message);
+                                    user.email = tempUsername;
+                                    user.username = tempUsername;
+                                    user.bridgeUser = tempUsername;
+                                    return [4 /*yield*/, user.save()];
+                                case 20:
+                                    _c.sent();
+                                    return [3 /*break*/, 21];
+                                case 21:
+                                    analytics.track({
+                                        userId: user.uuid,
+                                        event: 'user-deactivation-confirm',
+                                        properties: { email: userEmail }
+                                    });
+                                    next();
                                     return [2 /*return*/];
-                                }
-                                _c.label = 1;
-                            case 1:
-                                _c.trys.push([1, 19, , 21]);
-                                // DELETE FOREIGN KEYS (not cascade)
-                                user.root_folder_id = null;
-                                return [4 /*yield*/, user.save()];
-                            case 2:
-                                _c.sent();
-                                return [4 /*yield*/, user.getKeyserver()];
-                            case 3:
-                                keys = _c.sent();
-                                if (!keys) return [3 /*break*/, 5];
-                                return [4 /*yield*/, keys.destroy()];
-                            case 4:
-                                _c.sent();
-                                _c.label = 5;
-                            case 5: return [4 /*yield*/, user.getAppSumo()];
-                            case 6:
-                                appSumo = _c.sent();
-                                if (!appSumo) return [3 /*break*/, 8];
-                                return [4 /*yield*/, appSumo.destroy()];
-                            case 7:
-                                _c.sent();
-                                _c.label = 8;
-                            case 8: return [4 /*yield*/, user.getUsersphoto()];
-                            case 9:
-                                usersPhoto = _c.sent();
-                                if (!usersPhoto) return [3 /*break*/, 15];
-                                return [4 /*yield*/, usersPhoto.getPhotos()];
-                            case 10:
-                                photos = _c.sent();
-                                photoIds = photos.map(function (x) { return x.id; });
-                                if (!(photoIds.length > 0)) return [3 /*break*/, 13];
-                                return [4 /*yield*/, Model.previews.destroy({ where: { photoId: (_a = {}, _a[Op.in] = photoIds, _a) } })];
-                            case 11:
-                                _c.sent();
-                                return [4 /*yield*/, Model.photos.destroy({ where: { id: (_b = {}, _b[Op.in] = photoIds, _b) } })];
-                            case 12:
-                                _c.sent();
-                                _c.label = 13;
-                            case 13: return [4 /*yield*/, usersPhoto.destroy()];
-                            case 14:
-                                _c.sent();
-                                _c.label = 15;
-                            case 15: return [4 /*yield*/, Model.backup.destroy({ where: { userId: user.id } })];
-                            case 16:
-                                _c.sent();
-                                return [4 /*yield*/, Model.device.destroy({ where: { userId: user.id } })];
-                            case 17:
-                                _c.sent();
-                                return [4 /*yield*/, user.destroy()];
-                            case 18:
-                                _c.sent();
-                                logger.info('User deactivation, remove on sql: %s', userEmail);
-                                return [3 /*break*/, 21];
-                            case 19:
-                                err_1 = _c.sent();
-                                tempUsername = user.email + "-" + crypto.randomBytes(5).toString('hex') + "-DELETED";
-                                logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err_1.message);
-                                user.email = tempUsername;
-                                user.username = tempUsername;
-                                user.bridgeUser = tempUsername;
-                                return [4 /*yield*/, user.save()];
-                            case 20:
-                                _c.sent();
-                                return [3 /*break*/, 21];
-                            case 21:
-                                analytics.track({
-                                    userId: user.uuid,
-                                    event: 'user-deactivation-confirm',
-                                    properties: { email: userEmail }
-                                });
-                                next();
-                                return [2 /*return*/];
-                        }
+                            }
+                        });
                     });
-                }); }).catch(next);
+                }).catch(next);
             }
         ]);
     };
@@ -348,65 +375,71 @@ module.exports = function (Model, App) {
             where: { user_id: (_a = {}, _a[Op.eq] = user.id, _a) }
         });
     };
-    var UpdatePasswordMnemonic = function (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) { return __awaiter(void 0, void 0, void 0, function () {
-        var storedPassword;
-        var _a;
-        return __generator(this, function (_b) {
-            switch (_b.label) {
-                case 0:
-                    storedPassword = user.password.toString();
-                    if (storedPassword !== currentPassword) {
-                        throw Error('Invalid password');
-                    }
-                    return [4 /*yield*/, Model.users.update({
+    var UpdatePasswordMnemonic = function (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var storedPassword;
+            var _a;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0:
+                        storedPassword = user.password.toString();
+                        if (storedPassword !== currentPassword) {
+                            throw Error('Invalid password');
+                        }
+                        return [4 /*yield*/, Model.users.update({
                             password: newPassword,
                             mnemonic: mnemonic,
                             hKey: newSalt
                         }, {
                             where: { username: (_a = {}, _a[Op.eq] = user.email, _a) }
                         })];
-                case 1:
-                    _b.sent();
-                    return [4 /*yield*/, updatePrivateKey(user, privateKey)];
-                case 2:
-                    _b.sent();
-                    return [2 /*return*/];
-            }
+                    case 1:
+                        _b.sent();
+                        return [4 /*yield*/, updatePrivateKey(user, privateKey)];
+                    case 2:
+                        _b.sent();
+                        return [2 /*return*/];
+                }
+            });
         });
-    }); };
-    var recoverPassword = function (user, newPassword, newSalt, oldMnemonic, oldPrivateKey) { return __awaiter(void 0, void 0, void 0, function () {
-        var keys;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    // Update password, salt & mnemonic
-                    user.hKey = newSalt;
-                    user.mnemonic = oldMnemonic;
-                    user.password = newPassword;
-                    return [4 /*yield*/, user.save()];
-                case 1:
-                    _a.sent();
-                    return [4 /*yield*/, user.getKeyserver()];
-                case 2:
-                    keys = _a.sent();
-                    if (!!oldPrivateKey) return [3 /*break*/, 3];
-                    keys.destroy();
-                    return [3 /*break*/, 5];
-                case 3:
-                    keys.private_key = oldPrivateKey;
-                    return [4 /*yield*/, keys.save().catch(function () {
+    };
+    var recoverPassword = function (user, newPassword, newSalt, oldMnemonic, oldPrivateKey) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var keys;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        // Update password, salt & mnemonic
+                        user.hKey = newSalt;
+                        user.mnemonic = oldMnemonic;
+                        user.password = newPassword;
+                        return [4 /*yield*/, user.save()];
+                    case 1:
+                        _a.sent();
+                        return [4 /*yield*/, user.getKeyserver()];
+                    case 2:
+                        keys = _a.sent();
+                        if (!!oldPrivateKey) return [3 /*break*/, 3];
+                        keys.destroy();
+                        return [3 /*break*/, 5];
+                    case 3:
+                        keys.private_key = oldPrivateKey;
+                        return [4 /*yield*/, keys.save().catch(function () {
                             // eslint-disable-next-line no-empty
                         })];
-                case 4:
-                    _a.sent();
-                    _a.label = 5;
-                case 5: return [2 /*return*/];
-            }
+                    case 4:
+                        _a.sent();
+                        _a.label = 5;
+                    case 5: return [2 /*return*/];
+                }
+            });
         });
-    }); };
-    var LoginFailed = function (user, loginFailed) { return Model.users.update({
-        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-    }, { where: { username: user } }); };
+    };
+    var LoginFailed = function (user, loginFailed) {
+        return Model.users.update({
+            errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
+        }, { where: { username: user } });
+    };
     var ResendActivationEmail = function (user) { return axios.post(process.env.STORJ_BRIDGE + "/activations", { email: user }); };
     var UpdateAccountActivity = function (user) { return Model.users.update({ updated_at: new Date() }, { where: { username: user } }); };
     var getSyncDate = function () {
@@ -429,186 +462,236 @@ module.exports = function (Model, App) {
             attributes: ['bucket']
         }).then(function (folder) { return folder.bucket; }).catch(function () { return null; });
     };
-    var UpdateUserSync = function (user, toNull) { return __awaiter(void 0, void 0, void 0, function () {
-        var sync, err_2;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    sync = null;
-                    if (!toNull) {
-                        sync = getSyncDate();
-                    }
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 3, , 4]);
-                    return [4 /*yield*/, Model.users.update({ syncDate: sync }, { where: { username: user.email } })];
-                case 2:
-                    _a.sent();
-                    return [3 /*break*/, 4];
-                case 3:
-                    err_2 = _a.sent();
-                    logger.error(err_2);
-                    throw Error('Internal server error');
-                case 4: return [2 /*return*/, sync];
-            }
+    var UpdateUserSync = function (user, toNull) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var sync, err_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        sync = null;
+                        if (!toNull) {
+                            sync = getSyncDate();
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, Model.users.update({ syncDate: sync }, { where: { username: user.email } })];
+                    case 2:
+                        _a.sent();
+                        return [3 /*break*/, 4];
+                    case 3:
+                        err_2 = _a.sent();
+                        Logger.error(err_2);
+                        throw Error('Internal server error');
+                    case 4: return [2 /*return*/, sync];
+                }
+            });
         });
-    }); };
-    var GetOrSetUserSync = function (user) { return __awaiter(void 0, void 0, void 0, function () {
-        var currentSync, userSyncEnded;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    currentSync = user.syncDate;
-                    userSyncEnded = hasUserSyncEnded(currentSync);
-                    if (!(!currentSync || userSyncEnded)) return [3 /*break*/, 2];
-                    return [4 /*yield*/, UpdateUserSync(user, false)];
-                case 1:
-                    _a.sent();
-                    _a.label = 2;
-                case 2: return [2 /*return*/, !userSyncEnded];
-            }
+    };
+    var GetOrSetUserSync = function (user) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var currentSync, userSyncEnded;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        currentSync = user.syncDate;
+                        userSyncEnded = hasUserSyncEnded(currentSync);
+                        if (!(!currentSync || userSyncEnded)) return [3 /*break*/, 2];
+                        return [4 /*yield*/, UpdateUserSync(user, false)];
+                    case 1:
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [2 /*return*/, !userSyncEnded];
+                }
+            });
         });
-    }); };
+    };
     var UnlockSync = function (user) {
         user.syncDate = null;
         return user.save();
     };
-    var RegisterUser = function (newUser) { return __awaiter(void 0, void 0, void 0, function () {
-        var email, password, hasReferral, referrer, userData, token, user, keys, e_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    email = newUser.email, password = newUser.password;
-                    // Data validation for process only request with all data
-                    if (!(email && password)) {
-                        throw Error('You must provide registration data');
-                    }
-                    newUser.email = newUser.email.toLowerCase().trim();
-                    newUser.username = newUser.email;
-                    newUser.bridgeUser = newUser.email;
-                    newUser.credit = 0;
-                    newUser.referral = newUser.referrer;
-                    logger.warn('Register request for %s', email);
-                    hasReferral = false;
-                    referrer = null;
-                    return [4 /*yield*/, FindOrCreate(newUser)];
-                case 1:
-                    userData = _a.sent();
-                    if (!userData) {
-                        throw Error('User can not be created');
-                    }
-                    if (!userData.isNewRecord) {
-                        throw Error('This account already exists');
-                    }
-                    if (hasReferral) {
-                        analytics.identify({
-                            userId: userData.uuid,
-                            traits: { referred_by: referrer.uuid }
-                        });
-                    }
-                    token = passport.Sign(userData.email, App.config.get('secrets').JWT);
-                    user = {
-                        userId: userData.userId,
-                        mnemonic: userData.mnemonic,
-                        root_folder_id: userData.root_folder_id,
-                        name: userData.name,
-                        lastname: userData.lastname,
-                        uuid: userData.uuid,
-                        credit: userData.credit,
-                        createdAt: userData.createdAt,
-                        registerCompleted: userData.registerCompleted,
-                        email: userData.email,
-                        username: userData.username,
-                        bridgeUser: userData.bridgeUser
-                    };
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 4, , 5]);
-                    return [4 /*yield*/, KeyServer.getKeys(userData)];
-                case 3:
-                    keys = _a.sent();
-                    user.privateKey = keys.private_key;
-                    user.publicKey = keys.public_key;
-                    user.revocationKey = keys.revocation_key;
-                    return [3 /*break*/, 5];
-                case 4:
-                    e_1 = _a.sent();
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/, { token: token, user: user, uuid: userData.uuid }];
-            }
+    var RegisterUser = function (newUserData) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var hasReferrer, referrer, _a, email, userData, token, user, keys, e_1;
+            var _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        Logger.warn('Register request for %s', newUserData.email);
+                        if (!(newUserData.email && newUserData.password)) {
+                            throw createHttpError(400, 'You must provide registration data');
+                        }
+                        hasReferrer = !!newUserData.referrer;
+                        if (!hasReferrer) return [3 /*break*/, 2];
+                        return [4 /*yield*/, Model.users.findOne({ where: { referralCode: (_b = {}, _b[Op.eq] = newUserData.referrer, _b) } })];
+                    case 1:
+                        _a = _c.sent();
+                        return [3 /*break*/, 3];
+                    case 2:
+                        _a = null;
+                        _c.label = 3;
+                    case 3:
+                        referrer = _a;
+                        if (hasReferrer && !referrer) {
+                            throw createHttpError(400, 'The referral code used is not correct');
+                        }
+                        email = newUserData.email.toLowerCase().trim();
+                        return [4 /*yield*/, FindOrCreate(__assign(__assign({}, newUserData), { email: email, username: email, bridgeUser: email, credit: 0 }))];
+                    case 4:
+                        userData = _c.sent();
+                        if (!userData) {
+                            throw Error('User can not be created');
+                        }
+                        if (!userData.isNewRecord) {
+                            throw Error('This account already exists');
+                        }
+                        if (hasReferrer) {
+                            analytics.identify({
+                                userId: userData.uuid,
+                                traits: { referred_by: referrer.uuid }
+                            });
+                            analytics.track({
+                                userId: userData.uuid,
+                                event: 'Invitation Accepted',
+                                properties: { sent_by: referrer.email }
+                            });
+                        }
+                        token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+                        user = {
+                            userId: userData.userId,
+                            mnemonic: userData.mnemonic,
+                            root_folder_id: userData.root_folder_id,
+                            name: userData.name,
+                            lastname: userData.lastname,
+                            uuid: userData.uuid,
+                            credit: userData.credit,
+                            createdAt: userData.createdAt,
+                            registerCompleted: userData.registerCompleted,
+                            email: userData.email,
+                            username: userData.username,
+                            bridgeUser: userData.bridgeUser,
+                            referralCode: userData.referralCode
+                        };
+                        _c.label = 5;
+                    case 5:
+                        _c.trys.push([5, 7, , 8]);
+                        return [4 /*yield*/, KeyServer.getKeys(userData)];
+                    case 6:
+                        keys = _c.sent();
+                        user.privateKey = keys.private_key;
+                        user.publicKey = keys.public_key;
+                        user.revocationKey = keys.revocation_key;
+                        return [3 /*break*/, 8];
+                    case 7:
+                        e_1 = _c.sent();
+                        return [3 /*break*/, 8];
+                    case 8: return [2 /*return*/, { token: token, user: user, uuid: userData.uuid }];
+                }
+            });
         });
-    }); };
-    var updateKeys = function (user, data) { return __awaiter(void 0, void 0, void 0, function () {
-        var userKeys;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    if (!data.privateKey) {
-                        throw new Error('No Private key provided');
-                    }
-                    if (!data.publicKey) {
-                        throw new Error('No Public key provided');
-                    }
-                    if (!data.revocationKey) {
-                        throw new Error('No Revocation key provided');
-                    }
-                    return [4 /*yield*/, user.getKeyserver()];
-                case 1:
-                    userKeys = _a.sent();
-                    userKeys.private_key = data.privateKey;
-                    userKeys.public_key = data.publicKey;
-                    userKeys.revocation_key = data.revocationKey;
-                    return [2 /*return*/, userKeys.save()];
-            }
+    };
+    var updateKeys = function (user, data) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userKeys;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!data.privateKey) {
+                            throw new Error('No Private key provided');
+                        }
+                        if (!data.publicKey) {
+                            throw new Error('No Public key provided');
+                        }
+                        if (!data.revocationKey) {
+                            throw new Error('No Revocation key provided');
+                        }
+                        return [4 /*yield*/, user.getKeyserver()];
+                    case 1:
+                        userKeys = _a.sent();
+                        userKeys.private_key = data.privateKey;
+                        userKeys.public_key = data.publicKey;
+                        userKeys.revocation_key = data.revocationKey;
+                        return [2 /*return*/, userKeys.save()];
+                }
+            });
         });
-    }); };
-    var getUsage = function (user) { return __awaiter(void 0, void 0, void 0, function () {
-        var targetUser, usage, driveUsage, photosUsage, backupsQuery, backupsUsage;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Model.users.findOne({ where: { username: user.bridgeUser } })];
-                case 1:
-                    targetUser = _a.sent();
-                    return [4 /*yield*/, Model.folder.findAll({
+    };
+    var getUsage = function (user) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var targetUser, usage, driveUsage, photosUsage, backupsQuery, backupsUsage;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Model.users.findOne({ where: { username: user.bridgeUser } })];
+                    case 1:
+                        targetUser = _a.sent();
+                        return [4 /*yield*/, Model.folder.findAll({
                             where: { user_id: targetUser.id },
                             include: [{ model: Model.file, attributes: [] }],
                             attributes: [[fn('sum', col('size')), 'total']],
                             raw: true
                         })];
-                case 2:
-                    usage = _a.sent();
-                    driveUsage = usage[0].total;
-                    return [4 /*yield*/, (function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var photosUser, photosList, photosSizeList;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0: return [4 /*yield*/, Model.usersphotos.findOne({ where: { userId: targetUser.id } })];
-                                    case 1:
-                                        photosUser = _a.sent();
-                                        return [4 /*yield*/, photosUser.getPhotos()];
-                                    case 2:
-                                        photosList = _a.sent();
-                                        photosSizeList = photosList.map(function (p) { return p.size; });
-                                        return [2 /*return*/, photosSizeList.reduce(function (a, b) { return a + b; })];
-                                }
+                    case 2:
+                        usage = _a.sent();
+                        driveUsage = usage[0].total;
+                        return [4 /*yield*/, (function () {
+                            return __awaiter(void 0, void 0, void 0, function () {
+                                var photosUser, photosList, photosSizeList;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0: return [4 /*yield*/, Model.usersphotos.findOne({ where: { userId: targetUser.id } })];
+                                        case 1:
+                                            photosUser = _a.sent();
+                                            return [4 /*yield*/, photosUser.getPhotos()];
+                                        case 2:
+                                            photosList = _a.sent();
+                                            photosSizeList = photosList.map(function (p) { return p.size; });
+                                            return [2 /*return*/, photosSizeList.reduce(function (a, b) { return a + b; })];
+                                    }
+                                });
                             });
-                        }); })().catch(function () { return 0; })];
-                case 3:
-                    photosUsage = _a.sent();
-                    return [4 /*yield*/, Model.backup.findAll({
+                        })().catch(function () { return 0; })];
+                    case 3:
+                        photosUsage = _a.sent();
+                        return [4 /*yield*/, Model.backup.findAll({
                             where: { userId: targetUser.id },
                             attributes: [[fn('sum', col('size')), 'total']],
                             raw: true
                         })];
-                case 4:
-                    backupsQuery = _a.sent();
-                    backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
-                    return [2 /*return*/, {
+                    case 4:
+                        backupsQuery = _a.sent();
+                        backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
+                        return [2 /*return*/, {
                             total: driveUsage + photosUsage + backupsUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0, backups: backupsUsage
                         }];
-            }
+                }
+            });
         });
-    }); };
+    };
+    var invite = function (_a) {
+        var inviteEmail = _a.inviteEmail, hostEmail = _a.hostEmail, hostFullName = _a.hostFullName, hostReferralCode = _a.hostReferralCode;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userToInvite;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, Model.users.findOne({ where: { email: inviteEmail } })];
+                    case 1:
+                        userToInvite = _b.sent();
+                        if (userToInvite) {
+                            throw createHttpError(409, "Email " + inviteEmail + " is already registered");
+                        }
+                        return [4 /*yield*/, mailService.sendInviteFriendMail(inviteEmail, {
+                            inviteEmail: inviteEmail,
+                            hostEmail: hostEmail,
+                            hostFullName: hostFullName,
+                            registerUrl: process.env.HOST_DRIVE_WEB + "/new?ref=" + hostReferralCode
+                        })];
+                    case 2:
+                        _b.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     return {
         Name: 'User',
         FindOrCreate: FindOrCreate,
@@ -631,6 +714,7 @@ module.exports = function (Model, App) {
         GetUserBucket: GetUserBucket,
         getUsage: getUsage,
         updateKeys: updateKeys,
-        recoverPassword: recoverPassword
+        recoverPassword: recoverPassword,
+        invite: invite
     };
 };

@@ -1,4 +1,6 @@
 "use strict";
+var path = require('path');
+var async = require('async');
 var passportAuth = require('../middleware/passport').passportAuth;
 var logger = require('../../lib/logger').default;
 var Logger = logger.getInstance();

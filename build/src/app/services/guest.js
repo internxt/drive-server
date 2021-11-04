@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -53,153 +53,162 @@ module.exports = function (Model, App) {
     var getHost = function (email) {
         return Model.users.findOne({ where: { username: email } });
     };
-    var inviteUsage = function (host) { return __awaiter(void 0, void 0, void 0, function () {
-        var invitations;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Model.Invitation.findAll({ where: { host: host.id } })];
-                case 1:
-                    invitations = _a.sent();
-                    return [2 /*return*/, invitations.length];
-            }
+    var inviteUsage = function (host) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var invitations;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Model.Invitation.findAll({ where: { host: host.id } })];
+                    case 1:
+                        invitations = _a.sent();
+                        if (!invitations) {
+                            return [2 /*return*/, 0];
+                        }
+                        return [2 /*return*/, invitations.length];
+                }
+            });
         });
-    }); };
-    var hasUnlimitedMembers = function (userId) {
-        return Model.plan.findOne({ where: { userId: userId, name: 'unlimited_members' } })
-            .then(function (plan) { return (!!plan); });
     };
-    var inviteMembersLimit = function (userId) { return __awaiter(void 0, void 0, void 0, function () {
-        var appsumo, unlimitedMembers, hasUnlimited;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Model.AppSumo.findOne({ where: { userId: userId } })];
-                case 1:
-                    appsumo = _a.sent();
-                    // TODO: Remove this dissociation when appsumo finishes, Plans is the truth source
-                    if (appsumo) {
+    var inviteLimit = function (host) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var appsumo, unlimitedMembers;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Model.AppSumo.findOne({ where: { user_id: host.id } })];
+                    case 1:
+                        appsumo = _a.sent();
+                        if (!appsumo) {
+                            // Not appsumo user
+                            return [2 /*return*/, 0];
+                        }
+                        return [4 /*yield*/, Model.plan.findOne({ where: { userId: host.id, name: 'appsumo_unlimited_members' } })];
+                    case 2:
+                        unlimitedMembers = _a.sent();
+                        if (unlimitedMembers) {
+                            // Infinite?
+                            return [2 /*return*/, Number.MAX_SAFE_INTEGER];
+                        }
                         if (!Object.keys(APPSUMO_TIER_LIMITS).indexOf(appsumo.planId) === -1) {
                             // Not valid appsumo  plan
                             return [2 /*return*/, 0];
                         }
                         return [2 /*return*/, APPSUMO_TIER_LIMITS[appsumo.planId]];
-                    }
-                    return [4 /*yield*/, Model.plan.findOne({ where: { userId: userId, name: 'appsumo_unlimited_members' } })];
-                case 2:
-                    unlimitedMembers = _a.sent();
-                    return [4 /*yield*/, hasUnlimitedMembers(userId)];
-                case 3:
-                    hasUnlimited = _a.sent();
-                    if (unlimitedMembers || hasUnlimited) {
-                        return [2 /*return*/, Number.MAX_SAFE_INTEGER];
-                    }
-                    return [2 /*return*/, 0];
-            }
+                }
+            });
         });
-    }); };
-    var invitationsLeft = function (host) { return __awaiter(void 0, void 0, void 0, function () {
-        var usage, limit;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, inviteUsage(host)];
-                case 1:
-                    usage = _a.sent();
-                    return [4 /*yield*/, inviteMembersLimit(host.id)];
-                case 2:
-                    limit = _a.sent();
-                    return [2 /*return*/, Math.max(limit - usage, 0)];
-            }
+    };
+    var invitationsLeft = function (host) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var usage, limit;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, inviteUsage(host)];
+                    case 1:
+                        usage = _a.sent();
+                        return [4 /*yield*/, inviteLimit(host)];
+                    case 2:
+                        limit = _a.sent();
+                        return [2 /*return*/, Math.max(limit - usage, 0)];
+                }
+            });
         });
-    }); };
-    var canInvite = function (host, guest) { return __awaiter(void 0, void 0, void 0, function () {
-        var invitation, left;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    if (!guest) {
-                        throw Error('Guest does not exists');
-                    }
-                    if (guest.email !== guest.bridgeUser) {
-                        throw Error('Guest is already in other workspace');
-                    }
-                    if (guest.sharedWorkspace) {
-                        throw Error('Guest is a host');
-                    }
-                    return [4 /*yield*/, Model.Invitation.findOne({
+    };
+    var canInvite = function (host, guest) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var invitation, left;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!guest) {
+                            throw Error('Guest does not exists');
+                        }
+                        if (guest.email !== guest.bridgeUser) {
+                            throw Error('Guest is already in other workspace');
+                        }
+                        if (guest.sharedWorkspace) {
+                            throw Error('Guest is a host');
+                        }
+                        return [4 /*yield*/, Model.Invitation.findOne({
                             where: {
                                 host: host.id,
                                 guest: guest.id
                             }
                         })];
-                case 1:
-                    invitation = _a.sent();
-                    if (invitation) {
-                        throw Error('Guest already invited');
-                    }
-                    return [4 /*yield*/, invitationsLeft(host)];
-                case 2:
-                    left = _a.sent();
-                    if (left === 0) {
-                        throw Error('No invitations left');
-                    }
-                    return [2 /*return*/, true];
-            }
+                    case 1:
+                        invitation = _a.sent();
+                        if (invitation) {
+                            throw Error('Guest already invited');
+                        }
+                        return [4 /*yield*/, invitationsLeft(host)];
+                    case 2:
+                        left = _a.sent();
+                        if (left === 0) {
+                            throw Error('No invitations left');
+                        }
+                        return [2 /*return*/, true];
+                }
+            });
         });
-    }); };
-    var invite = function (host, guestEmail, key) { return __awaiter(void 0, void 0, void 0, function () {
-        var guest;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, Model.users.findOne({ where: { username: guestEmail } })];
-                case 1:
-                    guest = _a.sent();
-                    return [4 /*yield*/, canInvite(host, guest)];
-                case 2:
-                    _a.sent();
-                    return [2 /*return*/, Model.Invitation.create({
+    };
+    var invite = function (host, guestEmail, key) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var guest;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, Model.users.findOne({ where: { username: guestEmail } })];
+                    case 1:
+                        guest = _a.sent();
+                        return [4 /*yield*/, canInvite(host, guest)];
+                    case 2:
+                        _a.sent();
+                        return [2 /*return*/, Model.Invitation.create({
                             host: host.id,
                             guest: guest.id,
                             inviteId: key
                         })];
-            }
+                }
+            });
         });
-    }); };
-    var acceptInvitation = function (guestUser, payload) { return __awaiter(void 0, void 0, void 0, function () {
-        var invitation, hostUser, hostKey, masterKey, guestKey, newKey;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    if (!payload) {
-                        throw Error('Missing user key');
-                    }
-                    return [4 /*yield*/, Model.Invitation.findOne({ where: { guest: guestUser.id } })];
-                case 1:
-                    invitation = _a.sent();
-                    if (!invitation) {
-                        throw Error('User not invited');
-                    }
-                    return [4 /*yield*/, Model.users.findOne({ where: { id: invitation.host } })];
-                case 2:
-                    hostUser = _a.sent();
-                    hostKey = AesUtil.decrypt(invitation.inviteId);
-                    masterKey = bip39.entropyToMnemonic(hostKey);
-                    guestKey = Buffer.from(payload, 'hex').toString();
-                    newKey = cryptService.encryptTextWithKey(masterKey, guestKey);
-                    guestUser.mnemonic = newKey;
-                    guestUser.bridgeUser = hostUser.bridgeUser;
-                    guestUser.root_folder_id = hostUser.root_folder_id;
-                    guestUser.userId = hostUser.userId;
-                    invitation.accepted = true;
-                    return [4 /*yield*/, invitation.save()];
-                case 3:
-                    _a.sent();
-                    return [4 /*yield*/, guestUser.save()];
-                case 4:
-                    _a.sent();
-                    Logger.info('User %s accepted shared workspace. Host: %s', guestUser.email, hostUser.email);
-                    return [2 /*return*/];
-            }
+    };
+    var acceptInvitation = function (guestUser, payload) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var invitation, hostUser, hostKey, masterKey, guestKey, newKey;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!payload) {
+                            throw Error('Missing user key');
+                        }
+                        return [4 /*yield*/, Model.Invitation.findOne({ where: { guest: guestUser.id } })];
+                    case 1:
+                        invitation = _a.sent();
+                        if (!invitation) {
+                            throw Error('User not invited');
+                        }
+                        return [4 /*yield*/, Model.users.findOne({ where: { id: invitation.host } })];
+                    case 2:
+                        hostUser = _a.sent();
+                        hostKey = AesUtil.decrypt(invitation.inviteId);
+                        masterKey = bip39.entropyToMnemonic(hostKey);
+                        guestKey = Buffer.from(payload, 'hex').toString();
+                        newKey = cryptService.encryptTextWithKey(masterKey, guestKey);
+                        guestUser.mnemonic = newKey;
+                        guestUser.bridgeUser = hostUser.bridgeUser;
+                        guestUser.root_folder_id = hostUser.root_folder_id;
+                        guestUser.userId = hostUser.userId;
+                        invitation.accepted = true;
+                        return [4 /*yield*/, invitation.save()];
+                    case 3:
+                        _a.sent();
+                        return [4 /*yield*/, guestUser.save()];
+                    case 4:
+                        _a.sent();
+                        Logger.info('User %s accepted shared workspace. Host: %s', guestUser.email, hostUser.email);
+                        return [2 /*return*/];
+                }
+            });
         });
-    }); };
+    };
     return {
         Name: 'Guest',
         getHost: getHost,

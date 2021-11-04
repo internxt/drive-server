@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -40,7 +40,7 @@ var async = require('async');
 var _a = require('sequelize'), fn = _a.fn, col = _a.col;
 var createHttpError = require('http-errors');
 var AesUtil = require('../../lib/AesUtil');
-var logger = require('../../lib/logger').default.getInstance();
+var Logger = require('../../lib/logger').default;
 var invalidName = /[\\/]|[. ]$/;
 var Op = sequelize.Op;
 module.exports = function (Model, App) {
@@ -67,8 +67,8 @@ module.exports = function (Model, App) {
                         if (!isGuest) return [3 /*break*/, 2];
                         bridgeUser = user.bridgeUser;
                         return [4 /*yield*/, Model.users.findOne({
-                                where: { username: bridgeUser }
-                            })];
+                            where: { username: bridgeUser }
+                        })];
                     case 1:
                         user = _g.sent();
                         _g.label = 2;
@@ -99,11 +99,11 @@ module.exports = function (Model, App) {
                         }
                         cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
                         return [4 /*yield*/, Model.folder.findOne({
-                                where: {
-                                    parentId: (_e = {}, _e[Op.eq] = parentFolderId, _e),
-                                    name: (_f = {}, _f[Op.eq] = cryptoFolderName, _f)
-                                }
-                            })];
+                            where: {
+                                parentId: (_e = {}, _e[Op.eq] = parentFolderId, _e),
+                                name: (_f = {}, _f[Op.eq] = cryptoFolderName, _f)
+                            }
+                        })];
                     case 4:
                         exists = _g.sent();
                         if (exists) {
@@ -113,11 +113,11 @@ module.exports = function (Model, App) {
                             throw Error('Folder with the same name already exists');
                         }
                         return [4 /*yield*/, user.createFolder({
-                                name: cryptoFolderName,
-                                bucket: null,
-                                parentId: parentFolderId || null,
-                                id_team: teamId
-                            })];
+                            name: cryptoFolderName,
+                            bucket: null,
+                            parentId: parentFolderId || null,
+                            id_team: teamId
+                        })];
                     case 5:
                         folder = _g.sent();
                         return [2 /*return*/, folder];
@@ -126,52 +126,56 @@ module.exports = function (Model, App) {
         });
     };
     // Requires stored procedure
-    var DeleteOrphanFolders = function (userId) { return __awaiter(void 0, void 0, void 0, function () {
-        var clear, totalLeft;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0: return [4 /*yield*/, App.database
+    var DeleteOrphanFolders = function (userId) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var clear, totalLeft;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, App.database.instance
                         .query('CALL clear_orphan_folders_by_user (:userId)', { replacements: { userId: userId } })];
-                case 1:
-                    clear = _a.sent();
-                    totalLeft = clear[0].total_left;
-                    if (totalLeft > 0) {
-                        return [2 /*return*/, DeleteOrphanFolders(userId)];
-                    }
-                    return [2 /*return*/, true];
-            }
+                    case 1:
+                        clear = _a.sent();
+                        totalLeft = clear[0].total_left;
+                        if (totalLeft > 0) {
+                            return [2 /*return*/, DeleteOrphanFolders(userId)];
+                        }
+                        return [2 /*return*/, true];
+                }
+            });
         });
-    }); };
-    var Delete = function (user, folderId) { return __awaiter(void 0, void 0, void 0, function () {
-        var folder, removed;
-        var _a, _b;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
-                case 0:
-                    if (user.mnemonic === 'null') {
-                        throw new Error('Your mnemonic is invalid');
-                    }
-                    return [4 /*yield*/, Model.folder.findOne({
+    };
+    var Delete = function (user, folderId) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var folder, removed;
+            var _a, _b;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        if (user.mnemonic === 'null') {
+                            throw new Error('Your mnemonic is invalid');
+                        }
+                        return [4 /*yield*/, Model.folder.findOne({
                             where: { id: (_a = {}, _a[Op.eq] = folderId, _a), userId: (_b = {}, _b[Op.eq] = user.id, _b) }
                         })];
-                case 1:
-                    folder = _c.sent();
-                    if (!folder) {
-                        throw new Error('Folder does not exists');
-                    }
-                    if (folder.id === user.root_folder_id) {
-                        throw new Error('Cannot delete root folder');
-                    }
-                    return [4 /*yield*/, folder.destroy()];
-                case 2:
-                    removed = _c.sent();
-                    DeleteOrphanFolders(user.id).catch(function (err) {
-                        logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
-                    });
-                    return [2 /*return*/, removed];
-            }
+                    case 1:
+                        folder = _c.sent();
+                        if (!folder) {
+                            throw new Error('Folder does not exists');
+                        }
+                        if (folder.id === user.root_folder_id) {
+                            throw new Error('Cannot delete root folder');
+                        }
+                        return [4 /*yield*/, folder.destroy()];
+                    case 2:
+                        removed = _c.sent();
+                        DeleteOrphanFolders(user.id).catch(function (err) {
+                            Logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+                        });
+                        return [2 /*return*/, removed];
+                }
+            });
         });
-    }); };
+    };
     var GetTreeSize = function (tree) {
         var treeSize = 0;
         function getFileSize(files) {
@@ -206,31 +210,33 @@ module.exports = function (Model, App) {
             return __generator(this, function (_b) {
                 switch (_b.label) {
                     case 0: return [4 /*yield*/, Model.folder.findOne({
-                            where: { id: (_a = {}, _a[Op.eq] = rootFolderId || user.root_folder_id, _a) },
-                            include: [
-                                {
-                                    model: Model.folder,
-                                    as: 'children',
-                                    include: [
-                                        {
-                                            model: Model.file,
-                                            as: 'files'
-                                        }
-                                    ]
-                                },
-                                {
-                                    model: Model.file,
-                                    as: 'files'
-                                }
-                            ]
-                        })];
+                        where: { id: (_a = {}, _a[Op.eq] = rootFolderId || user.root_folder_id, _a) },
+                        include: [
+                            {
+                                model: Model.folder,
+                                as: 'children',
+                                include: [
+                                    {
+                                        model: Model.file,
+                                        as: 'files'
+                                    }
+                                ]
+                            },
+                            {
+                                model: Model.file,
+                                as: 'files'
+                            }
+                        ]
+                    })];
                     case 1:
                         folderContents = (_b.sent()).toJSON();
-                        return [4 /*yield*/, async.mapSeries(folderContents.children, function (folder) { return __awaiter(void 0, void 0, void 0, function () {
+                        return [4 /*yield*/, async.mapSeries(folderContents.children, function (folder) {
+                            return __awaiter(void 0, void 0, void 0, function () {
                                 return __generator(this, function (_a) {
                                     return [2 /*return*/, GetTree(user, folder.id)];
                                 });
-                            }); })];
+                            });
+                        })];
                     case 2:
                         res = _b.sent();
                         folderContents.children = res;
@@ -239,46 +245,48 @@ module.exports = function (Model, App) {
             });
         });
     };
-    var GetFoldersPagination = function (user, index) { return __awaiter(void 0, void 0, void 0, function () {
-        var userObject, root, folders, foldersId, files;
-        var _a, _b, _c;
-        return __generator(this, function (_d) {
-            switch (_d.label) {
-                case 0:
-                    userObject = user;
-                    return [4 /*yield*/, Model.folder.findOne({
+    var GetFoldersPagination = function (user, index) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userObject, root, folders, foldersId, files;
+            var _a, _b, _c;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
+                    case 0:
+                        userObject = user;
+                        return [4 /*yield*/, Model.folder.findOne({
                             where: {
                                 id: (_a = {}, _a[Op.eq] = userObject.root_folder_id, _a),
                                 userId: user.id
                             }
                         })];
-                case 1:
-                    root = _d.sent();
-                    if (!root) {
-                        throw new Error('root folder does not exists');
-                    }
-                    return [4 /*yield*/, Model.folder.findAll({
+                    case 1:
+                        root = _d.sent();
+                        if (!root) {
+                            throw new Error('root folder does not exists');
+                        }
+                        return [4 /*yield*/, Model.folder.findAll({
                             where: { user_id: (_b = {}, _b[Op.eq] = userObject.id, _b) },
                             attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
                             order: [['id', 'DESC']],
                             limit: 5000,
                             offset: index
                         })];
-                case 2:
-                    folders = _d.sent();
-                    foldersId = folders.map(function (result) { return result.id; });
-                    return [4 /*yield*/, Model.file.findAll({
+                    case 2:
+                        folders = _d.sent();
+                        foldersId = folders.map(function (result) { return result.id; });
+                        return [4 /*yield*/, Model.file.findAll({
                             where: { folder_id: (_c = {}, _c[Op.in] = foldersId, _c), userId: user.id }
                         })];
-                case 3:
-                    files = _d.sent();
-                    return [2 /*return*/, {
+                    case 3:
+                        files = _d.sent();
+                        return [2 /*return*/, {
                             folders: folders,
                             files: files
                         }];
-            }
+                }
+            });
         });
-    }); };
+    };
     var mapChildrenNames = function (folder) {
         if (folder === void 0) { folder = []; }
         return folder.map(function (child) {
@@ -317,11 +325,11 @@ module.exports = function (Model, App) {
                         teamMember = null;
                         if (!teamId) return [3 /*break*/, 4];
                         return [4 /*yield*/, Model.teamsmembers.findOne({
-                                where: {
-                                    user: (_a = {}, _a[Op.eq] = user.email, _a),
-                                    id_team: (_b = {}, _b[Op.eq] = teamId, _b)
-                                }
-                            })];
+                            where: {
+                                user: (_a = {}, _a[Op.eq] = user.email, _a),
+                                id_team: (_b = {}, _b[Op.eq] = teamId, _b)
+                            }
+                        })];
                     case 3:
                         teamMember = _d.sent();
                         _d.label = 4;
@@ -330,25 +338,25 @@ module.exports = function (Model, App) {
                             return [2 /*return*/, null]; // User isn't member of this team
                         }
                         return [4 /*yield*/, Model.folder.findOne({
-                                where: {
-                                    id: (_c = {}, _c[Op.eq] = folderId, _c),
-                                    user_id: user.id
+                            where: {
+                                id: (_c = {}, _c[Op.eq] = folderId, _c),
+                                user_id: user.id
+                            },
+                            include: [
+                                {
+                                    model: Model.folder,
+                                    as: 'children',
+                                    where: { userId: user.id },
+                                    separate: true
                                 },
-                                include: [
-                                    {
-                                        model: Model.folder,
-                                        as: 'children',
-                                        where: { userId: user.id },
-                                        separate: true
-                                    },
-                                    {
-                                        model: Model.file,
-                                        as: 'files',
-                                        where: { userId: user.id },
-                                        separate: true
-                                    }
-                                ]
-                            })];
+                                {
+                                    model: Model.file,
+                                    as: 'files',
+                                    where: { userId: user.id },
+                                    separate: true
+                                }
+                            ]
+                        })];
                     case 5:
                         result = _d.sent();
                         // Null result implies empty folder.
@@ -402,16 +410,16 @@ module.exports = function (Model, App) {
                 // Get the target folder from database
                 Model.folder
                     .findOne({
-                    where: {
-                        id: (_a = {}, _a[Op.eq] = folderId, _a),
-                        user_id: (_b = {}, _b[Op.eq] = user.id, _b)
-                    }
-                }).then(function (result) {
-                    if (!result) {
-                        throw Error('Folder does not exists');
-                    }
-                    next(null, result);
-                }).catch(next);
+                        where: {
+                            id: (_a = {}, _a[Op.eq] = folderId, _a),
+                            user_id: (_b = {}, _b[Op.eq] = user.id, _b)
+                        }
+                    }).then(function (result) {
+                        if (!result) {
+                            throw Error('Folder does not exists');
+                        }
+                        next(null, result);
+                    }).catch(next);
             },
             function (folder, next) {
                 var _a, _b;
@@ -469,64 +477,66 @@ module.exports = function (Model, App) {
             });
         });
     };
-    var MoveFolder = function (user, folderId, destination) { return __awaiter(void 0, void 0, void 0, function () {
-        var folder, destinationFolder, originalName, destinationName, exists, result, response;
-        var _a, _b, _c, _d, _e, _f;
-        return __generator(this, function (_g) {
-            switch (_g.label) {
-                case 0: return [4 /*yield*/, Model.folder.findOne({
+    var MoveFolder = function (user, folderId, destination) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var folder, destinationFolder, originalName, destinationName, exists, result, response;
+            var _a, _b, _c, _d, _e, _f;
+            return __generator(this, function (_g) {
+                switch (_g.label) {
+                    case 0: return [4 /*yield*/, Model.folder.findOne({
                         where: {
                             id: (_a = {}, _a[Op.eq] = folderId, _a),
                             user_id: (_b = {}, _b[Op.eq] = user.id, _b)
                         }
                     })];
-                case 1:
-                    folder = _g.sent();
-                    return [4 /*yield*/, Model.folder.findOne({
+                    case 1:
+                        folder = _g.sent();
+                        return [4 /*yield*/, Model.folder.findOne({
                             where: {
                                 id: (_c = {}, _c[Op.eq] = destination, _c),
                                 user_id: (_d = {}, _d[Op.eq] = user.id, _d)
                             }
                         })];
-                case 2:
-                    destinationFolder = _g.sent();
-                    if (!folder || !destinationFolder) {
-                        throw Error('Folder does not exists');
-                    }
-                    originalName = App.services.Crypt.decryptName(folder.name, folder.parentId);
-                    destinationName = App.services.Crypt.encryptName(originalName, destination);
-                    return [4 /*yield*/, Model.folder.findOne({
+                    case 2:
+                        destinationFolder = _g.sent();
+                        if (!folder || !destinationFolder) {
+                            throw Error('Folder does not exists');
+                        }
+                        originalName = App.services.Crypt.decryptName(folder.name, folder.parentId);
+                        destinationName = App.services.Crypt.encryptName(originalName, destination);
+                        return [4 /*yield*/, Model.folder.findOne({
                             where: {
                                 name: (_e = {}, _e[Op.eq] = destinationName, _e),
                                 parent_id: (_f = {}, _f[Op.eq] = destination, _f)
                             }
                         })];
-                case 3:
-                    exists = _g.sent();
-                    if (exists) {
-                        throw createHttpError(409, 'A folder with same name exists in destination');
-                    }
-                    if (user.mnemonic === 'null')
-                        throw Error('Your mnemonic is invalid');
-                    return [4 /*yield*/, folder.update({
+                    case 3:
+                        exists = _g.sent();
+                        if (exists) {
+                            throw createHttpError(409, 'A folder with same name exists in destination');
+                        }
+                        if (user.mnemonic === 'null')
+                            throw Error('Your mnemonic is invalid');
+                        return [4 /*yield*/, folder.update({
                             parentId: parseInt(destination, 10),
                             name: destinationName
                         })];
-                case 4:
-                    result = _g.sent();
-                    // we don't want ecrypted name on front
-                    folder.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
-                    folder.setDataValue('parentId', parseInt(destination, 10));
-                    response = {
-                        result: result,
-                        item: folder,
-                        destination: destination,
-                        moved: true
-                    };
-                    return [2 /*return*/, response];
-            }
+                    case 4:
+                        result = _g.sent();
+                        // we don't want ecrypted name on front
+                        folder.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
+                        folder.setDataValue('parentId', parseInt(destination, 10));
+                        response = {
+                            result: result,
+                            item: folder,
+                            destination: destination,
+                            moved: true
+                        };
+                        return [2 /*return*/, response];
+                }
+            });
         });
-    }); };
+    };
     var GetBucket = function (user, folderId) {
         var _a, _b;
         return Model.folder.findOne({
@@ -536,20 +546,21 @@ module.exports = function (Model, App) {
             }
         });
     };
-    var changeDuplicateName = function (user) { return __awaiter(void 0, void 0, void 0, function () {
-        var userObject, index, duplicateName, dict, folders;
-        var _a, _b, _c, _d;
-        return __generator(this, function (_e) {
-            switch (_e.label) {
-                case 0:
-                    userObject = user;
-                    index = 0;
-                    duplicateName = ['inicial'];
-                    dict = new Map();
-                    _e.label = 1;
-                case 1:
-                    if (!(duplicateName.length !== 0)) return [3 /*break*/, 4];
-                    return [4 /*yield*/, Model.folder.findAll({
+    var changeDuplicateName = function (user) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userObject, index, duplicateName, dict, folders;
+            var _a, _b, _c, _d;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
+                    case 0:
+                        userObject = user;
+                        index = 0;
+                        duplicateName = ['inicial'];
+                        dict = new Map();
+                        _e.label = 1;
+                    case 1:
+                        if (!(duplicateName.length !== 0)) return [3 /*break*/, 4];
+                        return [4 /*yield*/, Model.folder.findAll({
                             where: { user_id: (_a = {}, _a[Op.eq] = userObject.id, _a) },
                             attributes: ['name', [fn('COUNT', col('*')), 'count_name']],
                             group: ['name'],
@@ -561,14 +572,14 @@ module.exports = function (Model, App) {
                             limit: 5000,
                             offset: index
                         })];
-                case 2:
-                    // eslint-disable-next-line no-await-in-loop
-                    duplicateName = _e.sent();
-                    if (duplicateName.length === 0) {
-                        return [3 /*break*/, 4];
-                    }
-                    duplicateName = duplicateName.map(function (obj) { return obj.name; });
-                    return [4 /*yield*/, Model.folder.findAll({
+                    case 2:
+                        // eslint-disable-next-line no-await-in-loop
+                        duplicateName = _e.sent();
+                        if (duplicateName.length === 0) {
+                            return [3 /*break*/, 4];
+                        }
+                        duplicateName = duplicateName.map(function (obj) { return obj.name; });
+                        return [4 /*yield*/, Model.folder.findAll({
                             where: {
                                 user_id: (_c = {},
                                     _c[Op.eq] = userObject.id,
@@ -577,50 +588,53 @@ module.exports = function (Model, App) {
                             },
                             attributes: ['id', 'name', 'parent_id']
                         })];
-                case 3:
-                    folders = _e.sent();
-                    dict.clear();
-                    folders.forEach(function (folder) { return __awaiter(void 0, void 0, void 0, function () {
-                        var resolved, i, originalName, e_1;
-                        return __generator(this, function (_a) {
-                            switch (_a.label) {
-                                case 0:
-                                    if (!dict.get(folder.name)) return [3 /*break*/, 7];
-                                    resolved = false;
-                                    i = 1;
-                                    _a.label = 1;
-                                case 1:
-                                    if (!!resolved) return [3 /*break*/, 6];
-                                    originalName = App.services.Crypt.decryptName(folder.name, folder.parent_id);
-                                    _a.label = 2;
-                                case 2:
-                                    _a.trys.push([2, 4, , 5]);
-                                    // eslint-disable-next-line no-await-in-loop
-                                    return [4 /*yield*/, UpdateMetadata(user, folder.id, { itemName: originalName + "(" + i + ")" })];
-                                case 3:
-                                    // eslint-disable-next-line no-await-in-loop
-                                    _a.sent();
-                                    resolved = true;
-                                    return [3 /*break*/, 5];
-                                case 4:
-                                    e_1 = _a.sent();
-                                    i += 1;
-                                    return [3 /*break*/, 5];
-                                case 5: return [3 /*break*/, 1];
-                                case 6: return [3 /*break*/, 8];
-                                case 7:
-                                    dict.set(folder.name, true);
-                                    _a.label = 8;
-                                case 8: return [2 /*return*/];
-                            }
+                    case 3:
+                        folders = _e.sent();
+                        dict.clear();
+                        folders.forEach(function (folder) {
+                            return __awaiter(void 0, void 0, void 0, function () {
+                                var resolved, i, originalName, e_1;
+                                return __generator(this, function (_a) {
+                                    switch (_a.label) {
+                                        case 0:
+                                            if (!dict.get(folder.name)) return [3 /*break*/, 7];
+                                            resolved = false;
+                                            i = 1;
+                                            _a.label = 1;
+                                        case 1:
+                                            if (!!resolved) return [3 /*break*/, 6];
+                                            originalName = App.services.Crypt.decryptName(folder.name, folder.parent_id);
+                                            _a.label = 2;
+                                        case 2:
+                                            _a.trys.push([2, 4, , 5]);
+                                            // eslint-disable-next-line no-await-in-loop
+                                            return [4 /*yield*/, UpdateMetadata(user, folder.id, { itemName: originalName + "(" + i + ")" })];
+                                        case 3:
+                                            // eslint-disable-next-line no-await-in-loop
+                                            _a.sent();
+                                            resolved = true;
+                                            return [3 /*break*/, 5];
+                                        case 4:
+                                            e_1 = _a.sent();
+                                            i += 1;
+                                            return [3 /*break*/, 5];
+                                        case 5: return [3 /*break*/, 1];
+                                        case 6: return [3 /*break*/, 8];
+                                        case 7:
+                                            dict.set(folder.name, true);
+                                            _a.label = 8;
+                                        case 8: return [2 /*return*/];
+                                    }
+                                });
+                            });
                         });
-                    }); });
-                    index += 5000;
-                    return [3 /*break*/, 1];
-                case 4: return [2 /*return*/];
-            }
+                        index += 5000;
+                        return [3 /*break*/, 1];
+                    case 4: return [2 /*return*/];
+                }
+            });
         });
-    }); };
+    };
     return {
         Name: 'Folder',
         getById: getById,
