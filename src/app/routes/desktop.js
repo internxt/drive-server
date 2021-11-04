@@ -1,6 +1,3 @@
-const path = require('path');
-const async = require('async');
-
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger').default;
 
