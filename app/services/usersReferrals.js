@@ -76,22 +76,22 @@ module.exports = (Model, App) => {
 
   const applyReferral = async (userEmail, userId, referralKey, referred) => {
     const referral = await App.services.Referrals.getByKey(referralKey);
-    const userHasReferralsProgram = await hasReferralsProgram(userEmail, userId);
-
-    if (!userHasReferralsProgram) {
-      throw createHttpError(403, '(usersReferralsService.applyReferral) referrals program not enabled for this user');
-    }
-
     if (!referral) {
       throw createHttpError(500, `(usersReferralsService.applyReferral) referral with key '${referralKey}' not found`);
     }
 
     const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: false } });
-
-    if (userReferral) {
-      await update({ referred, applied: true }, userReferral.id);
-      await redeemUserReferral(userEmail, userId, referral.type, referral.credit);
+    if (!userReferral) {
+      return;
     }
+
+    const userHasReferralsProgram = await hasReferralsProgram(userEmail, userId);
+    if (!userHasReferralsProgram) {
+      throw createHttpError(403, '(usersReferralsService.applyReferral) referrals program not enabled for this user');
+    }
+
+    await update({ referred, applied: true }, userReferral.id);
+    await redeemUserReferral(userEmail, userId, referral.type, referral.credit);
   };
 
   return {
