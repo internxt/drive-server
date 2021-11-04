@@ -7,11 +7,12 @@ const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
+const Logger = require('../../lib/logger').default;
 
 const { Op, col, fn } = sequelize;
 
 module.exports = (Model, App) => {
-  const Logger = App.logger;
+  const logger = Logger.getInstance();
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
 
@@ -71,7 +72,7 @@ module.exports = (Model, App) => {
           throw Error('Error creating bridge user');
         }
 
-        Logger.info('User Service | created brigde user: %s', userResult.email);
+        logger.info('User Service | created brigde user: %s', userResult.email);
 
         // Store bcryptid on user register
         await userResult.update({
@@ -88,9 +89,9 @@ module.exports = (Model, App) => {
     }).catch((err) => {
       if (err.response) {
         // This happens when email is registered in bridge
-        Logger.error(err.response.data);
+        logger.error(err.response.data);
       } else {
-        Logger.error(err.stack);
+        logger.error(err.stack);
       }
 
       throw Error(err);
@@ -107,7 +108,7 @@ module.exports = (Model, App) => {
 
       const { Inxt, Crypt } = App.services;
       const rootBucket = await Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic);
-      Logger.info('User init | root bucket created %s', rootBucket.name);
+      logger.info('User init | root bucket created %s', rootBucket.name);
 
       const rootFolderName = await Crypt.encryptName(`${rootBucket.name}`);
       const rootFolder = await userData.createFolder({
@@ -115,7 +116,7 @@ module.exports = (Model, App) => {
         bucket: rootBucket.id
       });
 
-      Logger.info('User init | root folder created, id: %s', rootFolder.id);
+      logger.info('User init | root folder created, id: %s', rootFolder.id);
 
       // Update user register with root folder Id
       await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
@@ -132,7 +133,7 @@ module.exports = (Model, App) => {
     Model.users
       .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
         if (!userData) {
-          Logger.error('ERROR user %s not found on database', email);
+          logger.error('ERROR user %s not found on database', email);
           return reject(Error('Wrong email/password'));
         }
 
@@ -164,7 +165,7 @@ module.exports = (Model, App) => {
         }).then((data) => {
           resolve(data);
         }).catch((err) => {
-          Logger.warn(err.response.data);
+          logger.warn(err.response.data);
           reject(err);
         });
     }).catch(reject));
@@ -177,10 +178,10 @@ module.exports = (Model, App) => {
           .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
             headers: { 'Content-Type': 'application/json' }
           }).then((res) => {
-            Logger.warn('User deleted from bridge');
+            logger.warn('User deleted from bridge');
             next(null, res);
           }).catch((err) => {
-            Logger.error('Error user deleted from bridge: %s', err.message);
+            logger.error('Error user deleted from bridge: %s', err.message);
             next(err.response.data.error || err.message);
           });
       },
@@ -217,10 +218,10 @@ module.exports = (Model, App) => {
             await Model.device.destroy({ where: { userId: user.id } });
 
             await user.destroy();
-            Logger.info('User deactivation, remove on sql: %s', userEmail);
+            logger.info('User deactivation, remove on sql: %s', userEmail);
           } catch (err) {
             const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
-            Logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err.message);
+            logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err.message);
             user.email = tempUsername;
             user.username = tempUsername;
             user.bridgeUser = tempUsername;
@@ -325,7 +326,7 @@ module.exports = (Model, App) => {
     try {
       await Model.users.update({ syncDate: sync }, { where: { username: user.email } });
     } catch (err) {
-      Logger.error(err);
+      logger.error(err);
       throw Error('Internal server error');
     }
 
@@ -363,7 +364,7 @@ module.exports = (Model, App) => {
     newUser.credit = 0;
     newUser.referral = newUser.referrer;
 
-    Logger.warn('Register request for %s', email);
+    logger.warn('Register request for %s', email);
 
     const hasReferral = false;
     const referrer = null;
