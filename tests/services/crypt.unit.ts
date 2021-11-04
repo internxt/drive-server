@@ -2,14 +2,14 @@ require('dotenv').config();
 
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-const cryptService = require('../../src/app/services/crypt');
+import Server from '../../src/config/initializers/server';
 
-const Server = require('../../config/initializers/server');
+const cryptService = require('../../src/app/services/crypt');
 
 const App = new Server();
 
 const crypt = cryptService(null, App);
-const AesUtil = require('../../lib/AesUtil');
+const AesUtil = require('../../src/lib/AesUtil');
 
 describe('# Crypto tools', () => {
   describe('random encription', () => {

@@ -1,9 +1,9 @@
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import Server from '../../config/initializers/server';
+import Server from '../../src/config/initializers/server';
 
-const utilsService = require('../../app/services/utils');
+const utilsService = require('../../src/app/services/utils');
 
 const App = new Server();
 const utils = utilsService(null, App);

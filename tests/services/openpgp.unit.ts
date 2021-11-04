@@ -1,7 +1,7 @@
 import * as openpgp from 'openpgp';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
-const { encrypt } = require('../../lib/AesUtil');
+const { encrypt } = require('../../src/lib/AesUtil');
 
 describe('# openpgp', () => {
   it('should have correct length', async () => {
