@@ -3,9 +3,7 @@ const async = require('async');
 const { fn, col } = require('sequelize');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
-const Logger = require('../../lib/logger').default;
-
-const logger = Logger.getInstance();
+const logger = require('../../lib/logger').default.getInstance();
 
 const invalidName = /[\\/]|[. ]$/;
 
