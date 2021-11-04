@@ -3,8 +3,10 @@ const sequelize = require('sequelize');
 const async = require('async');
 const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
+const bip39 = require('bip39');
 const AnalyticsService = require('./analytics');
 const KeyServerService = require('./keyserver');
+const CryptService = require('./crypt');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 
@@ -14,6 +16,7 @@ module.exports = (Model, App) => {
   const Logger = App.logger;
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
+  const CryptServiceInstance = CryptService(Model, App);
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -478,6 +481,37 @@ module.exports = (Model, App) => {
     });
   };
 
+  const CreateStaggingUser = async (email) => {
+    const randomPassword = CryptServiceInstance.RandomPassword(email);
+    const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
+
+    const encryptedHash = CryptServiceInstance.encryptText(encryptedPassword.hash);
+    const encryptedSalt = CryptServiceInstance.encryptText(encryptedPassword.salt);
+
+    const newMnemonic = bip39.generateMnemonic(256);
+    const encryptedMnemonic = CryptServiceInstance.encryptTextWithKey(newMnemonic, randomPassword);
+
+    const userObject = {
+      email,
+      name: null,
+      lastname: null,
+      password: encryptedHash,
+      mnemonic: encryptedMnemonic,
+      salt: encryptedSalt,
+      referral: null,
+      uuid: null,
+      credit: 0,
+      welcomePack: true,
+      registerCompleted: false,
+      username: email,
+      sharedWorkspace: false,
+      bridgeUser: email
+    };
+
+    const user = await FindOrCreate(userObject);
+    return user;
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -499,6 +533,7 @@ module.exports = (Model, App) => {
     UnlockSync,
     GetUserBucket,
     UpdateUserStorage,
+    CreateStaggingUser,
     getUsage,
     updateKeys,
     recoverPassword

@@ -90,6 +90,7 @@ module.exports = (Model, App) => {
       welcomePack: true,
       registerCompleted: false,
       username: email,
+      sharedWorkspace: true,
       bridgeUser: email
     };
 
@@ -125,7 +126,7 @@ module.exports = (Model, App) => {
 
     // Finish
     user.registerCompleted = true;
-    user.sharedWorkspace = true;
+    // user.sharedWorkspace = true;
     return user.save();
   };
 

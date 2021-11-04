@@ -49,7 +49,6 @@ module.exports = (Router, Service) => {
 
   Router.post('/gateway/user/update/storage', basicAuth, (req, res) => {
     const { email, maxSpaceBytes } = req.body;
-    Logger.error('FFF');
     Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
       res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
     })
