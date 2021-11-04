@@ -9,23 +9,21 @@ module.exports = (Model, App) => {
     const userReferralsToCreate = [];
 
     referrals.forEach((referral) => {
-      Array(referral.steps).forEach(() => {
+      const applied = referral.key === 'create-account';
+
+      Array(referral.steps).fill().forEach(() => {
         userReferralsToCreate.push({
           user_id: userId,
-          referral_id: referral.id
+          referral_id: referral.id,
+          start_date: new Date(),
+          applied
         });
       });
     });
 
-    await Model.users_referrals.bulkCreate(userReferralsToCreate, { returning: true, individualHooks: true });
-  };
-
-  const redeemUserReferral = async (userId, type, credit) => {
-    if (type === 'storage') {
-      // TODO: call bridge increase storage endpoint
-    }
-
-    App.logger.info(`(usersReferralsService.redeemUserReferral) The user '${userId}' has redeemed a referral: ${type} - ${credit}`);
+    await Model.users_referrals.bulkCreate(
+      userReferralsToCreate, { individualHooks: true, fields: ['user_id', 'referral_id', 'start_date', 'applied'] }
+    );
   };
 
   const update = async (data, userReferralId) => {
@@ -62,8 +60,27 @@ module.exports = (Model, App) => {
     }));
   };
 
-  const applyReferral = async (userId, referralKey, referred) => {
+  const hasReferralsProgram = async (userEmail, userId) => {
+    return !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, userId));
+  };
+
+  const redeemUserReferral = async (userEmail, userId, type, credit) => {
+    if (type === 'storage') {
+      // TODO: call bridge increase storage endpoint
+    }
+
+    App.logger.info(
+      `(usersReferralsService.redeemUserReferral) The user '${userEmail}' (id: ${userId}) has redeemed a referral: ${type} - ${credit}`
+    );
+  };
+
+  const applyReferral = async (userEmail, userId, referralKey, referred) => {
     const referral = await App.services.Referrals.getByKey(referralKey);
+    const userHasReferralsProgram = await hasReferralsProgram(userEmail, userId);
+
+    if (!userHasReferralsProgram) {
+      throw createHttpError(403, '(usersReferralsService.applyReferral) referrals program not enabled for this user');
+    }
 
     if (!referral) {
       throw createHttpError(500, `(usersReferralsService.applyReferral) referral with key '${referralKey}' not found`);
@@ -72,8 +89,8 @@ module.exports = (Model, App) => {
     const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: false } });
 
     if (userReferral) {
-      await update({ referred, applied: true });
-      await redeemUserReferral(userId, referral.type, referral.credit);
+      await update({ referred, applied: true }, userReferral.id);
+      await redeemUserReferral(userEmail, userId, referral.type, referral.credit);
     }
   };
 
@@ -81,6 +98,7 @@ module.exports = (Model, App) => {
     Name: 'UsersReferrals',
     createUserReferrals,
     getByUserId,
-    applyReferral
+    applyReferral,
+    hasReferralsProgram
   };
 };

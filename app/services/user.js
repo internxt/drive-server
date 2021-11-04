@@ -387,6 +387,9 @@ module.exports = (Model, App) => {
     // Successfull register
     const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
 
+    // Creates user referrals
+    await App.services.UsersReferrals.createUserReferrals(userData.id);
+
     const user = {
       userId: userData.userId,
       mnemonic: userData.mnemonic,
@@ -399,7 +402,11 @@ module.exports = (Model, App) => {
       registerCompleted: userData.registerCompleted,
       email: userData.email,
       username: userData.username,
-      bridgeUser: userData.bridgeUser
+      bridgeUser: userData.bridgeUser,
+      sharedWorkspace: userData.sharedWorkspace,
+      appSumoDetails: null,
+      hasReferralsProgram: true,
+      backupsBucket: userData.backupsBucket
     };
 
     try {

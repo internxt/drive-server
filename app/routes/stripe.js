@@ -72,8 +72,8 @@ module.exports = (Router, Service) => {
 
         const sessionParams = {
           payment_method_types: ['card'],
-          success_url: req.body.successUrl || process.env.HOST_DRIVE_WEB,
-          cancel_url: req.body.canceledUrl || process.env.HOST_DRIVE_WEB,
+          success_url: req.body.successUrl || `${process.env.HOST_DRIVE_WEB}/checkout/success`,
+          cancel_url: req.body.canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
           subscription_data: {
             items: [{ plan: req.body.plan }]
           },
@@ -226,7 +226,7 @@ module.exports = (Router, Service) => {
         if (req.body.mode === 'subscription') {
           sessionParams = {
             payment_method_types: ['card'],
-            success_url: req.body.successUrl || process.env.HOST_DRIVE_WEB,
+            success_url: req.body.successUrl || `${process.env.HOST_DRIVE_WEB}/checkout/success`,
             cancel_url: req.body.canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
             subscription_data: {
               items: [{ plan: req.body.priceId }]
@@ -239,7 +239,7 @@ module.exports = (Router, Service) => {
         } else if (req.body.mode === 'payment') {
           sessionParams = {
             payment_method_types: ['card'],
-            success_url: req.body.successUrl || process.env.HOST_DRIVE_WEB,
+            success_url: req.body.successUrl || `${process.env.HOST_DRIVE_WEB}/checkout/success`,
             cancel_url: req.body.canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
             mode: req.body.mode,
             line_items: [

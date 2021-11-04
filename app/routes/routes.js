@@ -150,6 +150,7 @@ module.exports = (Router, Service, App) => {
           bridgeUser: userData.bridgeUser,
           sharedWorkspace: userData.sharedWorkspace,
           appSumoDetails: appSumoDetails || null,
+          hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(req.body.email, userData.userId),
           backupsBucket: userData.backupsBucket
         };
 
@@ -175,12 +176,13 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/user/refresh', passportAuth, async (req, res) => {
+    const { publicKey, privateKey, revocateKey } = req.body;
     const userData = req.user;
 
     const keyExists = await Service.KeyServer.keysExists(userData);
 
-    if (!keyExists && req.body.publicKey) {
-      await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+    if (!keyExists && publicKey) {
+      await Service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
     }
 
     const keys = await Service.KeyServer.getKeys(userData);
@@ -191,7 +193,13 @@ module.exports = (Router, Service, App) => {
       App.config.get('secrets').JWT,
       internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
 
+    const hasTeams = !!(await Service.Team.getTeamByMember(userData.email));
+    let appSumoDetails = null;
+
+    appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
+
     const user = {
+      email: userData.email,
       userId: userData.userId,
       mnemonic: userData.mnemonic,
       root_folder_id: userData.root_folder_id,
@@ -203,8 +211,17 @@ module.exports = (Router, Service, App) => {
       privateKey: keys ? keys.private_key : null,
       publicKey: keys ? keys.public_key : null,
       revocateKey: keys ? keys.revocation_key : null,
-      bucket: userBucket
+      bucket: userBucket,
+      registerCompleted: userData.registerCompleted,
+      teams: hasTeams,
+      username: userData.username,
+      bridgeUser: userData.bridgeUser,
+      sharedWorkspace: userData.sharedWorkspace,
+      appSumoDetails: appSumoDetails || null,
+      hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.email, userData.userId),
+      backupsBucket: userData.backupsBucket
     };
+
     res.status(200).json({
       user, token
     });

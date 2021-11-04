@@ -285,14 +285,12 @@ module.exports = () => {
     if (customers) {
       // ! To fix duplicated stripe customers
       await async.eachSeries(customers, async (customer) => {
-        const expandedCustomer = await stripe.customers.retrieve(customer.id, {
-          expand: ['subscriptions.data.plan.product']
-        });
+        const allCustomerSubscriptions = await stripe.subscriptions.list({ customer: customer.id, status: 'all', expand: ['data.plan.product'] });
 
-        expandedCustomer.subscriptions.data
+        allCustomerSubscriptions.data
           .sort((a, b) => b.created - a.created);
 
-        plans.push(...expandedCustomer.subscriptions.data.map((subscription) => ({
+        plans.push(...allCustomerSubscriptions.data.map((subscription) => ({
           status: subscription.status,
           planId: subscription.plan.id,
           productId: subscription.plan.product.id,
