@@ -1,9 +1,16 @@
 {
+    "parser": "@typescript-eslint/parser",
+    "plugins": [
+        "@typescript-eslint"
+    ],
     "env": {
         "es6": true,
         "browser": true
     },
-    "extends": "airbnb-base",
+    "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
+    ],
     "rules": {
         "indent": [
             "error",
@@ -32,6 +39,8 @@
                 "ignoreComments": true
             }
         ],
+        "no-undef": "off",
+        "@typescript-eslint/no-var-requires": "off",
         "no-param-reassign": "off",
         "arrow-body-style": "off",
         "no-unused-expressions": "off",
