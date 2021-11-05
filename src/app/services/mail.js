@@ -64,9 +64,31 @@ module.exports = (Model) => {
     });
   };
 
+  const sendInviteFriendMail = async (email, {
+    inviteEmail, hostEmail, hostFullName, registerUrl
+  }) => {
+    const mailer = mailInstance();
+
+    return new Promise((resolve, reject) => {
+      mailer.dispatchSendGrid(email, 'invite-friend', {
+        inviteEmail,
+        hostEmail,
+        hostFullName,
+        registerUrl
+      }, (err) => {
+        if (err) {
+          return reject(Error(`Cannot send invite friend mail: ${err}`));
+        }
+
+        return resolve();
+      });
+    });
+  };
+
   return {
     Name: 'Mail',
     sendEmailTeamsMember,
-    sendGuestInvitation
+    sendGuestInvitation,
+    sendInviteFriendMail
   };
 };

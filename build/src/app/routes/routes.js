@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -36,7 +36,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 var speakeasy = require('speakeasy');
-var openpgp = require('openpgp');
 var ActivationRoutes = require('./activation');
 var StorageRoutes = require('./storage');
 var BridgeRoutes = require('./bridge');
@@ -51,6 +50,7 @@ var ShareRoutes = require('./share');
 var BackupsRoutes = require('./backup');
 var GuestRoutes = require('./guest');
 var GatewayRoutes = require('./gateway');
+var UserRoutes = require('./user');
 var passport = require('../middleware/passport');
 var TeamsRoutes = require('./teams');
 var logger = require('../../lib/logger').default;
@@ -88,6 +88,7 @@ module.exports = function (Router, Service, App) {
     GuestRoutes(Router, Service, App);
     // Gateway comunication
     GatewayRoutes(Router, Service);
+    UserRoutes(Router, Service, App);
     Router.post('/login', function (req, res) {
         if (!req.body.email) {
             return res.status(400).send({ error: 'No email address specified' });
@@ -112,56 +113,126 @@ module.exports = function (Router, Service, App) {
     Router.post('/access', function (req, res) {
         var MAX_LOGIN_FAIL_ATTEMPTS = 10;
         // Call user service to find or create user
-        Service.User.FindUserByEmail(req.body.email).then(function (userData) { return __awaiter(void 0, void 0, void 0, function () {
-            var pass, needsTfa, tfaResult, internxtClient, token, userBucket, keyExists, keys, hasTeams, appSumoDetails, user, userTeam, tokenTeam;
+        Service.User.FindUserByEmail(req.body.email).then(function (userData) {
+            return __awaiter(void 0, void 0, void 0, function () {
+                var pass, needsTfa, tfaResult, internxtClient, token, userBucket, keyExists, keys, hasTeams, appSumoDetails, user, userTeam, tokenTeam;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
+                                return [2 /*return*/, res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' })];
+                            }
+                            pass = App.services.Crypt.decryptText(req.body.password);
+                            needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
+                            tfaResult = true;
+                            if (needsTfa) {
+                                tfaResult = speakeasy.totp.verifyDelta({
+                                    secret: userData.secret_2FA,
+                                    token: req.body.tfa,
+                                    encoding: 'base32',
+                                    window: 2
+                                });
+                            }
+                            if (!tfaResult) {
+                                return [2 /*return*/, res.status(400).send({ error: 'Wrong 2-factor auth code' })];
+                            }
+                            if (!(pass === userData.password.toString() && tfaResult)) return [3 /*break*/, 8];
+                            internxtClient = req.headers['internxt-client'];
+                            token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+                            Service.User.LoginFailed(req.body.email, false);
+                            Service.User.UpdateAccountActivity(req.body.email);
+                            return [4 /*yield*/, Service.User.GetUserBucket(userData)];
+                        case 1:
+                            userBucket = _a.sent();
+                            return [4 /*yield*/, Service.KeyServer.keysExists(userData)];
+                        case 2:
+                            keyExists = _a.sent();
+                            if (!(!keyExists && req.body.publicKey)) return [3 /*break*/, 4];
+                            return [4 /*yield*/, Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey)];
+                        case 3:
+                            _a.sent();
+                            _a.label = 4;
+                        case 4: return [4 /*yield*/, Service.KeyServer.getKeys(userData)];
+                        case 5:
+                            keys = _a.sent();
+                            return [4 /*yield*/, Service.Team.getTeamByMember(req.body.email)];
+                        case 6:
+                            hasTeams = !!(_a.sent());
+                            appSumoDetails = null;
+                            return [4 /*yield*/, Service.AppSumo.GetDetails(userData).catch(function () { return null; })];
+                        case 7:
+                            appSumoDetails = _a.sent();
+                            user = {
+                                email: req.body.email,
+                                userId: userData.userId,
+                                mnemonic: userData.mnemonic,
+                                root_folder_id: userData.root_folder_id,
+                                name: userData.name,
+                                lastname: userData.lastname,
+                                uuid: userData.uuid,
+                                credit: userData.credit,
+                                createdAt: userData.createdAt,
+                                privateKey: keys ? keys.private_key : null,
+                                publicKey: keys ? keys.public_key : null,
+                                revocateKey: keys ? keys.revocation_key : null,
+                                bucket: userBucket,
+                                registerCompleted: userData.registerCompleted,
+                                teams: hasTeams,
+                                username: userData.username,
+                                bridgeUser: userData.bridgeUser,
+                                sharedWorkspace: userData.sharedWorkspace,
+                                appSumoDetails: appSumoDetails || null,
+                                backupsBucket: userData.backupsBucket
+                            };
+                            userTeam = null;
+                            if (userTeam) {
+                                tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+                                return [2 /*return*/, res.status(200).json({
+                                    user: user,
+                                    token: token,
+                                    userTeam: userTeam,
+                                    tokenTeam: tokenTeam
+                                })];
+                            }
+                            return [2 /*return*/, res.status(200).json({ user: user, token: token, userTeam: userTeam })];
+                        case 8:
+                            // Wrong password
+                            if (pass !== userData.password.toString()) {
+                                Service.User.LoginFailed(req.body.email, true);
+                            }
+                            return [2 /*return*/, res.status(401).json({ error: 'Wrong email/password' })];
+                    }
+                });
+            });
+        }).catch(function (err) {
+            Logger.error('ERROR access %s, reason: %s', req.body.email, err.message);
+            return res.status(401).send({ error: 'Wrong email/password' });
+        });
+    });
+    Router.get('/user/refresh', passportAuth, function (req, res) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userData, keyExists, keys, userBucket, internxtClient, token, user;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS) {
-                            return [2 /*return*/, res.status(500).send({ error: 'Your account has been blocked for security reasons. Please reach out to us' })];
-                        }
-                        pass = App.services.Crypt.decryptText(req.body.password);
-                        needsTfa = userData.secret_2FA && userData.secret_2FA.length > 0;
-                        tfaResult = true;
-                        if (needsTfa) {
-                            tfaResult = speakeasy.totp.verifyDelta({
-                                secret: userData.secret_2FA,
-                                token: req.body.tfa,
-                                encoding: 'base32',
-                                window: 2
-                            });
-                        }
-                        if (!tfaResult) {
-                            return [2 /*return*/, res.status(400).send({ error: 'Wrong 2-factor auth code' })];
-                        }
-                        if (!(pass === userData.password.toString() && tfaResult)) return [3 /*break*/, 8];
-                        internxtClient = req.headers['internxt-client'];
-                        token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
-                        Service.User.LoginFailed(req.body.email, false);
-                        Service.User.UpdateAccountActivity(req.body.email);
-                        return [4 /*yield*/, Service.User.GetUserBucket(userData)];
-                    case 1:
-                        userBucket = _a.sent();
+                        userData = req.user;
                         return [4 /*yield*/, Service.KeyServer.keysExists(userData)];
-                    case 2:
+                    case 1:
                         keyExists = _a.sent();
-                        if (!(!keyExists && req.body.publicKey)) return [3 /*break*/, 4];
+                        if (!(!keyExists && req.body.publicKey)) return [3 /*break*/, 3];
                         return [4 /*yield*/, Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey)];
-                    case 3:
+                    case 2:
                         _a.sent();
-                        _a.label = 4;
-                    case 4: return [4 /*yield*/, Service.KeyServer.getKeys(userData)];
-                    case 5:
+                        _a.label = 3;
+                    case 3: return [4 /*yield*/, Service.KeyServer.getKeys(userData)];
+                    case 4:
                         keys = _a.sent();
-                        return [4 /*yield*/, Service.Team.getTeamByMember(req.body.email)];
-                    case 6:
-                        hasTeams = !!(_a.sent());
-                        appSumoDetails = null;
-                        return [4 /*yield*/, Service.AppSumo.GetDetails(userData).catch(function () { return null; })];
-                    case 7:
-                        appSumoDetails = _a.sent();
+                        return [4 /*yield*/, Service.User.GetUserBucket(userData)];
+                    case 5:
+                        userBucket = _a.sent();
+                        internxtClient = req.headers['internxt-client'];
+                        token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
                         user = {
-                            email: req.body.email,
                             userId: userData.userId,
                             mnemonic: userData.mnemonic,
                             root_folder_id: userData.root_folder_id,
@@ -173,233 +244,95 @@ module.exports = function (Router, Service, App) {
                             privateKey: keys ? keys.private_key : null,
                             publicKey: keys ? keys.public_key : null,
                             revocateKey: keys ? keys.revocation_key : null,
-                            bucket: userBucket,
-                            registerCompleted: userData.registerCompleted,
-                            teams: hasTeams,
-                            username: userData.username,
-                            bridgeUser: userData.bridgeUser,
-                            sharedWorkspace: userData.sharedWorkspace,
-                            appSumoDetails: appSumoDetails || null,
-                            backupsBucket: userData.backupsBucket
+                            bucket: userBucket
                         };
-                        userTeam = null;
-                        if (userTeam) {
-                            tokenTeam = passport.Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
-                            return [2 /*return*/, res.status(200).json({
-                                    user: user,
-                                    token: token,
-                                    userTeam: userTeam,
-                                    tokenTeam: tokenTeam
-                                })];
-                        }
-                        return [2 /*return*/, res.status(200).json({ user: user, token: token, userTeam: userTeam })];
-                    case 8:
-                        // Wrong password
-                        if (pass !== userData.password.toString()) {
-                            Service.User.LoginFailed(req.body.email, true);
-                        }
-                        return [2 /*return*/, res.status(401).json({ error: 'Wrong email/password' })];
+                        res.status(200).json({
+                            user: user,
+                            token: token
+                        });
+                        return [2 /*return*/];
                 }
             });
-        }); }).catch(function (err) {
-            Logger.error('ERROR access %s, reason: %s', req.body.email, err.message);
-            return res.status(401).send({ error: 'Wrong email/password' });
         });
     });
-    Router.get('/user/refresh', passportAuth, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var userData, keyExists, keys, userBucket, internxtClient, token, user;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    userData = req.user;
-                    return [4 /*yield*/, Service.KeyServer.keysExists(userData)];
-                case 1:
-                    keyExists = _a.sent();
-                    if (!(!keyExists && req.body.publicKey)) return [3 /*break*/, 3];
-                    return [4 /*yield*/, Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey)];
-                case 2:
-                    _a.sent();
-                    _a.label = 3;
-                case 3: return [4 /*yield*/, Service.KeyServer.getKeys(userData)];
-                case 4:
-                    keys = _a.sent();
-                    return [4 /*yield*/, Service.User.GetUserBucket(userData)];
-                case 5:
-                    userBucket = _a.sent();
-                    internxtClient = req.headers['internxt-client'];
-                    token = passport.Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
-                    user = {
-                        userId: userData.userId,
-                        mnemonic: userData.mnemonic,
-                        root_folder_id: userData.root_folder_id,
-                        name: userData.name,
-                        lastname: userData.lastname,
-                        uuid: userData.uuid,
-                        credit: userData.credit,
-                        createdAt: userData.createdAt,
-                        privateKey: keys ? keys.private_key : null,
-                        publicKey: keys ? keys.public_key : null,
-                        revocateKey: keys ? keys.revocation_key : null,
-                        bucket: userBucket
-                    };
-                    res.status(200).json({
-                        user: user,
-                        token: token
-                    });
-                    return [2 /*return*/];
-            }
-        });
-    }); });
-    Router.post('/register', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var ipaddress, err_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 3, , 4]);
-                    if (!(req.headers['internxt-client'] !== 'drive-mobile')) return [3 /*break*/, 2];
-                    ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-                    return [4 /*yield*/, ReCaptchaV3.verify(req.body.captcha, ipaddress)];
-                case 1:
-                    _a.sent();
-                    _a.label = 2;
-                case 2: return [3 /*break*/, 4];
-                case 3:
-                    err_1 = _a.sent();
-                    return [2 /*return*/, res.status(400).send({ error: 'Only humans allowed' })];
-                case 4: return [2 /*return*/, Service.User.RegisterUser(req.body)
-                        .then(function (result) {
-                        if (req.body.referrer) {
-                            Logger.warn('Register for %s by referrer %s', result.user.email, req.body.referrer);
-                            return Service.AppSumo.ApplyLicense(result.user, req.body.referrer).then(function () { return result; });
-                        }
-                        return result;
-                    })
-                        .then(function (result) {
-                        res.status(200).send(result);
-                    })
-                        .catch(function (err) {
-                        res.status(400).send({
-                            error: err.message,
-                            message: err.message
-                        });
-                        Logger.error('Error in register %s', req.body.email);
-                        Logger.error(err);
-                    })];
-            }
-        });
-    }); });
-    Router.post('/initialize', function (req, res) {
-        // Call user service to find or create user
-        Service.User.InitializeUser(req.body).then(function (userData) { return __awaiter(void 0, void 0, void 0, function () {
-            var user, e_1;
+    Router.post('/register', function (req, res) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var ipaddress, err_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (!userData.root_folder_id) return [3 /*break*/, 7];
-                        user = {
-                            email: userData.email,
-                            bucket: userData.bucket,
-                            mnemonic: userData.mnemonic,
-                            root_folder_id: userData.root_folder_id
-                        };
-                        _a.label = 1;
+                        _a.trys.push([0, 3, , 4]);
+                        if (!(req.headers['internxt-client'] !== 'drive-mobile')) return [3 /*break*/, 2];
+                        ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+                        return [4 /*yield*/, ReCaptchaV3.verify(req.body.captcha, ipaddress)];
                     case 1:
-                        _a.trys.push([1, 4, 5, 6]);
-                        return [4 /*yield*/, Service.Folder.Create(userData, 'Family', user.root_folder_id)];
-                    case 2:
-                        (_a.sent()).save();
-                        return [4 /*yield*/, Service.Folder.Create(userData, 'Personal', user.root_folder_id)];
+                        _a.sent();
+                        _a.label = 2;
+                    case 2: return [3 /*break*/, 4];
                     case 3:
-                        (_a.sent()).save();
-                        return [3 /*break*/, 6];
-                    case 4:
-                        e_1 = _a.sent();
-                        Logger.error('Cannot initialize welcome folders: %s', e_1.message);
-                        return [3 /*break*/, 6];
-                    case 5:
-                        res.status(200).send({ user: user });
-                        return [7 /*endfinally*/];
-                    case 6: return [3 /*break*/, 8];
-                    case 7:
-                        // User initialization unsuccessful
-                        res.status(400).send({ message: 'Your account can\'t be initialized' });
-                        _a.label = 8;
-                    case 8: return [2 /*return*/];
+                        err_1 = _a.sent();
+                        return [2 /*return*/, res.status(400).send({ error: 'Only humans allowed' })];
+                    case 4: return [2 /*return*/, Service.User.RegisterUser(req.body)
+                        .then(function (result) {
+                            res.status(200).send(result);
+                        })
+                        .catch(function (err) {
+                            res.status(400).send({
+                                error: err.message,
+                                message: err.message
+                            });
+                            Logger.error('Error in register %s', req.body.email);
+                            Logger.error(err);
+                        })];
                 }
             });
-        }); }).catch(function (err) {
+        });
+    });
+    Router.post('/initialize', function (req, res) {
+        // Call user service to find or create user
+        Service.User.InitializeUser(req.body).then(function (userData) {
+            return __awaiter(void 0, void 0, void 0, function () {
+                var user, e_1;
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            if (!userData.root_folder_id) return [3 /*break*/, 7];
+                            user = {
+                                email: userData.email,
+                                bucket: userData.bucket,
+                                mnemonic: userData.mnemonic,
+                                root_folder_id: userData.root_folder_id
+                            };
+                            _a.label = 1;
+                        case 1:
+                            _a.trys.push([1, 4, 5, 6]);
+                            return [4 /*yield*/, Service.Folder.Create(userData, 'Family', user.root_folder_id)];
+                        case 2:
+                            (_a.sent()).save();
+                            return [4 /*yield*/, Service.Folder.Create(userData, 'Personal', user.root_folder_id)];
+                        case 3:
+                            (_a.sent()).save();
+                            return [3 /*break*/, 6];
+                        case 4:
+                            e_1 = _a.sent();
+                            Logger.error('Cannot initialize welcome folders: %s', e_1.message);
+                            return [3 /*break*/, 6];
+                        case 5:
+                            res.status(200).send({ user: user });
+                            return [7 /*endfinally*/];
+                        case 6: return [3 /*break*/, 8];
+                        case 7:
+                            // User initialization unsuccessful
+                            res.status(400).send({ message: 'Your account can\'t be initialized' });
+                            _a.label = 8;
+                        case 8: return [2 /*return*/];
+                    }
+                });
+            });
+        }).catch(function (err) {
             Logger.error(err.message + "\n" + err.stack);
             res.send(err.message);
         });
     });
-    Router.patch('/user/password', passportAuth, function (req, res) {
-        var currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
-        var newPassword = App.services.Crypt.decryptText(req.body.newPassword);
-        var newSalt = App.services.Crypt.decryptText(req.body.newSalt);
-        var _a = req.body, mnemonic = _a.mnemonic, privateKey = _a.privateKey;
-        Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(function () {
-            res.status(200).send({});
-        }).catch(function (err) {
-            res.status(500).send({ error: err.message });
-        });
-    });
-    Router.patch('/user/recover', passportAuth, function (req, res) {
-        var newPassword = App.services.Crypt.decryptText(req.body.password);
-        var newSalt = App.services.Crypt.decryptText(req.body.salt);
-        // Old data, but re-encrypted
-        var _a = req.body, oldMnemonic = _a.mnemonic, oldPrivateKey = _a.privateKey;
-        Service.User.recoverPassword(req.user, newPassword, newSalt, oldMnemonic, oldPrivateKey).then(function () {
-            res.status(200).send({});
-        }).catch(function () {
-            res.status(500).send({ error: 'Could not restore password' });
-        });
-    });
-    Router.patch('/user/keys', passportAuth, function (req, res) {
-        Service.User.updateKeys(req.user, req.body).then(function () {
-            res.status(200).send({});
-        }).catch(function (err) {
-            res.status(500).send({ error: err.message });
-        });
-    });
-    Router.get('/user/credit', passportAuth, function (req, res) {
-        var user = req.user;
-        return res.status(200).send({ userCredit: user.credit });
-    });
-    Router.get('/user/keys/:email', passportAuth, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var email, user, existsKeys, keys, publicKeyArmored, codpublicKey;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    email = req.params.email;
-                    return [4 /*yield*/, Service.User.FindUserByEmail(email).catch(function () { return null; })];
-                case 1:
-                    user = _a.sent();
-                    if (!user) return [3 /*break*/, 6];
-                    return [4 /*yield*/, Service.KeyServer.keysExists(user)];
-                case 2:
-                    existsKeys = _a.sent();
-                    if (!existsKeys) return [3 /*break*/, 4];
-                    return [4 /*yield*/, Service.KeyServer.getKeys(user)];
-                case 3:
-                    keys = _a.sent();
-                    res.status(200).send({ publicKey: keys.public_key });
-                    return [3 /*break*/, 5];
-                case 4:
-                    res.status(400).send({ error: 'This user cannot be invited' });
-                    _a.label = 5;
-                case 5: return [3 /*break*/, 8];
-                case 6: return [4 /*yield*/, openpgp.generateKey({
-                        userIDs: [{ email: 'inxt@inxt.com' }],
-                        curve: 'ed25519'
-                    })];
-                case 7:
-                    publicKeyArmored = (_a.sent()).publicKeyArmored;
-                    codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
-                    res.status(200).send({ publicKey: codpublicKey });
-                    _a.label = 8;
-                case 8: return [2 /*return*/];
-            }
-        });
-    }); });
     return Router;
 };

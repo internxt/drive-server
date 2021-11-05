@@ -1,4 +1,15 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -40,8 +51,11 @@ var sequelize = require('sequelize');
 var async = require('async');
 var CryptoJS = require('crypto-js');
 var crypto = require('crypto');
+var createHttpError = require('http-errors');
+var uuid = require('uuid');
 var AnalyticsService = require('./analytics');
 var KeyServerService = require('./keyserver');
+var MailService = require('./mail');
 var passport = require('../middleware/passport');
 var SYNC_KEEPALIVE_INTERVAL_MS = require('../constants').SYNC_KEEPALIVE_INTERVAL_MS;
 var Logger = require('../../lib/logger').default;
@@ -50,6 +64,7 @@ module.exports = function (Model, App) {
     var logger = Logger.getInstance();
     var KeyServer = KeyServerService(Model, App);
     var analytics = AnalyticsService(Model, App);
+    var mailService = MailService(Model, App);
     var FindOrCreate = function (user) {
         // Create password hashed pass only when a pass is given
         var userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
@@ -69,7 +84,8 @@ module.exports = function (Model, App) {
                             password: userPass,
                             mnemonic: user.mnemonic,
                             hKey: userSalt,
-                            referral: user.referral,
+                            referrer: user.referrer,
+                            referralCode: uuid.v4(),
                             uuid: null,
                             credit: user.credit,
                             welcomePack: true,
@@ -473,37 +489,49 @@ module.exports = function (Model, App) {
         user.syncDate = null;
         return user.save();
     };
-    var RegisterUser = function (newUser) { return __awaiter(void 0, void 0, void 0, function () {
-        var email, password, hasReferral, referrer, userData, token, user, keys, e_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+    var RegisterUser = function (newUserData) { return __awaiter(void 0, void 0, void 0, function () {
+        var hasReferrer, referrer, _a, email, userData, token, user, keys, e_1;
+        var _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
-                    email = newUser.email, password = newUser.password;
-                    // Data validation for process only request with all data
-                    if (!(email && password)) {
-                        throw Error('You must provide registration data');
+                    logger.warn('Register request for %s', newUserData.email);
+                    if (!(newUserData.email && newUserData.password)) {
+                        throw createHttpError(400, 'You must provide registration data');
                     }
-                    newUser.email = newUser.email.toLowerCase().trim();
-                    newUser.username = newUser.email;
-                    newUser.bridgeUser = newUser.email;
-                    newUser.credit = 0;
-                    newUser.referral = newUser.referrer;
-                    logger.warn('Register request for %s', email);
-                    hasReferral = false;
-                    referrer = null;
-                    return [4 /*yield*/, FindOrCreate(newUser)];
+                    hasReferrer = !!newUserData.referrer;
+                    if (!hasReferrer) return [3 /*break*/, 2];
+                    return [4 /*yield*/, Model.users.findOne({ where: { referralCode: (_b = {}, _b[Op.eq] = newUserData.referrer, _b) } })];
                 case 1:
-                    userData = _a.sent();
+                    _a = _c.sent();
+                    return [3 /*break*/, 3];
+                case 2:
+                    _a = null;
+                    _c.label = 3;
+                case 3:
+                    referrer = _a;
+                    if (hasReferrer && !referrer) {
+                        throw createHttpError(400, 'The referral code used is not correct');
+                    }
+                    email = newUserData.email.toLowerCase().trim();
+                    return [4 /*yield*/, FindOrCreate(__assign(__assign({}, newUserData), { email: email, username: email, bridgeUser: email, credit: 0 }))];
+                case 4:
+                    userData = _c.sent();
                     if (!userData) {
                         throw Error('User can not be created');
                     }
                     if (!userData.isNewRecord) {
                         throw Error('This account already exists');
                     }
-                    if (hasReferral) {
+                    if (hasReferrer) {
                         analytics.identify({
                             userId: userData.uuid,
                             traits: { referred_by: referrer.uuid }
+                        });
+                        analytics.track({
+                            userId: userData.uuid,
+                            event: 'Invitation Accepted',
+                            properties: { sent_by: referrer.email }
                         });
                     }
                     token = passport.Sign(userData.email, App.config.get('secrets').JWT);
@@ -519,22 +547,23 @@ module.exports = function (Model, App) {
                         registerCompleted: userData.registerCompleted,
                         email: userData.email,
                         username: userData.username,
-                        bridgeUser: userData.bridgeUser
+                        bridgeUser: userData.bridgeUser,
+                        referralCode: userData.referralCode
                     };
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 4, , 5]);
+                    _c.label = 5;
+                case 5:
+                    _c.trys.push([5, 7, , 8]);
                     return [4 /*yield*/, KeyServer.getKeys(userData)];
-                case 3:
-                    keys = _a.sent();
+                case 6:
+                    keys = _c.sent();
                     user.privateKey = keys.private_key;
                     user.publicKey = keys.public_key;
                     user.revocationKey = keys.revocation_key;
-                    return [3 /*break*/, 5];
-                case 4:
-                    e_1 = _a.sent();
-                    return [3 /*break*/, 5];
-                case 5: return [2 /*return*/, { token: token, user: user, uuid: userData.uuid }];
+                    return [3 /*break*/, 8];
+                case 7:
+                    e_1 = _c.sent();
+                    return [3 /*break*/, 8];
+                case 8: return [2 /*return*/, { token: token, user: user, uuid: userData.uuid }];
             }
         });
     }); };
@@ -609,6 +638,31 @@ module.exports = function (Model, App) {
             }
         });
     }); };
+    var invite = function (_a) {
+        var inviteEmail = _a.inviteEmail, hostEmail = _a.hostEmail, hostFullName = _a.hostFullName, hostReferralCode = _a.hostReferralCode;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var userToInvite;
+            return __generator(this, function (_b) {
+                switch (_b.label) {
+                    case 0: return [4 /*yield*/, Model.users.findOne({ where: { email: inviteEmail } })];
+                    case 1:
+                        userToInvite = _b.sent();
+                        if (userToInvite) {
+                            throw createHttpError(409, "Email " + inviteEmail + " is already registered");
+                        }
+                        return [4 /*yield*/, mailService.sendInviteFriendMail(inviteEmail, {
+                                inviteEmail: inviteEmail,
+                                hostEmail: hostEmail,
+                                hostFullName: hostFullName,
+                                registerUrl: process.env.HOST_DRIVE_WEB + "/new?ref=" + hostReferralCode
+                            })];
+                    case 2:
+                        _b.sent();
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     return {
         Name: 'User',
         FindOrCreate: FindOrCreate,
@@ -631,6 +685,7 @@ module.exports = function (Model, App) {
         GetUserBucket: GetUserBucket,
         getUsage: getUsage,
         updateKeys: updateKeys,
-        recoverPassword: recoverPassword
+        recoverPassword: recoverPassword,
+        invite: invite
     };
 };

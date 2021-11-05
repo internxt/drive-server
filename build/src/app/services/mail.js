@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -74,16 +74,17 @@ module.exports = function (Model) {
             });
         });
     };
-    var sendGuestInvitation = function (user, guestEmail) { return __awaiter(void 0, void 0, void 0, function () {
-        var mailer, guest;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    mailer = mailInstance();
-                    return [4 /*yield*/, Model.users.findOne({ where: { username: guestEmail } })];
-                case 1:
-                    guest = _a.sent();
-                    return [2 /*return*/, new Promise(function (resolve, reject) {
+    var sendGuestInvitation = function (user, guestEmail) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var mailer, guest;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        mailer = mailInstance();
+                        return [4 /*yield*/, Model.users.findOne({ where: { username: guestEmail } })];
+                    case 1:
+                        guest = _a.sent();
+                        return [2 /*return*/, new Promise(function (resolve, reject) {
                             mailer.dispatchSendGrid(guestEmail, 'join-workspace', {
                                 host: user.name + " " + user.lastname,
                                 guest: guest.name + " " + guest.lastname,
@@ -95,12 +96,36 @@ module.exports = function (Model) {
                                 return resolve();
                             });
                         })];
-            }
+                }
+            });
         });
-    }); };
+    };
+    var sendInviteFriendMail = function (email, _a) {
+        var inviteEmail = _a.inviteEmail, hostEmail = _a.hostEmail, hostFullName = _a.hostFullName, registerUrl = _a.registerUrl;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var mailer;
+            return __generator(this, function (_b) {
+                mailer = mailInstance();
+                return [2 /*return*/, new Promise(function (resolve, reject) {
+                    mailer.dispatchSendGrid(email, 'invite-friend', {
+                        inviteEmail: inviteEmail,
+                        hostEmail: hostEmail,
+                        hostFullName: hostFullName,
+                        registerUrl: registerUrl
+                    }, function (err) {
+                        if (err) {
+                            return reject(Error("Cannot send invite friend mail: " + err));
+                        }
+                        return resolve();
+                    });
+                })];
+            });
+        });
+    };
     return {
         Name: 'Mail',
         sendEmailTeamsMember: sendEmailTeamsMember,
-        sendGuestInvitation: sendGuestInvitation
+        sendGuestInvitation: sendGuestInvitation,
+        sendInviteFriendMail: sendInviteFriendMail
     };
 };

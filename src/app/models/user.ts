@@ -15,7 +15,8 @@ interface Attributes {
   secret_2FA: string
   errorLoginCount: number
   isEmailActivitySended: number
-  referral: string
+  referralCode: string
+  referrer: string
   syncDate: Date
   uuid: string
   lastResend: Date
@@ -87,7 +88,14 @@ export default (database: Sequelize): UserModel => {
         allowNull: true,
         defaultValue: false
       },
-      referral: {
+      referralCode: {
+        type: DataTypes.STRING,
+        allowNull: true
+        // Replace after migration
+        // allowNull: false,
+        // unique: true
+      },
+      referrer: {
         type: DataTypes.STRING,
         allowNull: true
       },

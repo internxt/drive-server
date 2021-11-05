@@ -98,9 +98,32 @@ module.exports = function (Model) {
             }
         });
     }); };
+    var sendInviteFriendMail = function (email, _a) {
+        var inviteEmail = _a.inviteEmail, hostEmail = _a.hostEmail, hostFullName = _a.hostFullName, registerUrl = _a.registerUrl;
+        return __awaiter(void 0, void 0, void 0, function () {
+            var mailer;
+            return __generator(this, function (_b) {
+                mailer = mailInstance();
+                return [2 /*return*/, new Promise(function (resolve, reject) {
+                        mailer.dispatchSendGrid(email, 'invite-friend', {
+                            inviteEmail: inviteEmail,
+                            hostEmail: hostEmail,
+                            hostFullName: hostFullName,
+                            registerUrl: registerUrl
+                        }, function (err) {
+                            if (err) {
+                                return reject(Error("Cannot send invite friend mail: " + err));
+                            }
+                            return resolve();
+                        });
+                    })];
+            });
+        });
+    };
     return {
         Name: 'Mail',
         sendEmailTeamsMember: sendEmailTeamsMember,
-        sendGuestInvitation: sendGuestInvitation
+        sendGuestInvitation: sendGuestInvitation,
+        sendInviteFriendMail: sendInviteFriendMail
     };
 };

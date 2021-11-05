@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -37,59 +37,59 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var bip39 = require('bip39');
 var AesUtil = require('../../lib/AesUtil');
-var Logger = require('../../lib/logger').default;
 var passportAuth = require('../middleware/passport').passportAuth;
 module.exports = function (Router, Service) {
-    var logger = Logger.getInstance();
-    Router.post('/guest/invite', passportAuth, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var sharedKey, sharedKeyEncrypted, guestUser, err_1;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    sharedKey = req.headers['internxt-mnemonic'];
-                    if (!sharedKey) {
-                        return [2 /*return*/, res.status(400).send({ error: 'Missing key' })];
-                    }
-                    sharedKeyEncrypted = AesUtil.encrypt(bip39.mnemonicToEntropy(sharedKey));
-                    guestUser = req.body.guest && req.body.guest.toLowerCase();
-                    if (!guestUser) {
-                        return [2 /*return*/, res.status(400).send({ error: 'Missing guest user' })];
-                    }
-                    _a.label = 1;
-                case 1:
-                    _a.trys.push([1, 4, , 5]);
-                    return [4 /*yield*/, Service.Guest.invite(req.user, guestUser, sharedKeyEncrypted)];
-                case 2:
-                    _a.sent();
-                    return [4 /*yield*/, Service.Mail.sendGuestInvitation(req.user, guestUser)];
-                case 3:
-                    _a.sent();
-                    return [2 /*return*/, res.status(200).send({})];
-                case 4:
-                    err_1 = _a.sent();
-                    logger.error('Error inviting user. %s is inviting %s: %s', req.user.email, req.body.guest, err_1.message);
-                    return [2 /*return*/, res.status(500).send({ error: err_1.message || 'Internal server error' })];
-                case 5: return [2 /*return*/];
-            }
+    Router.post('/guest/invite', passportAuth, function (req, res) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var sharedKey, sharedKeyEncrypted, guestUser, err_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        sharedKey = req.headers['internxt-mnemonic'];
+                        if (!sharedKey) {
+                            return [2 /*return*/, res.status(400).send({ error: 'Missing key' })];
+                        }
+                        sharedKeyEncrypted = AesUtil.encrypt(bip39.mnemonicToEntropy(sharedKey));
+                        guestUser = req.body.guest && req.body.guest.toLowerCase();
+                        if (!guestUser) {
+                            return [2 /*return*/, res.status(400).send({ error: 'Missing guest user' })];
+                        }
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 4, , 5]);
+                        return [4 /*yield*/, Service.Guest.invite(req.user, guestUser, sharedKeyEncrypted)];
+                    case 2:
+                        _a.sent();
+                        return [4 /*yield*/, Service.Mail.sendGuestInvitation(req.user, guestUser)];
+                    case 3:
+                        _a.sent();
+                        return [2 /*return*/, res.status(200).send({})];
+                    case 4:
+                        err_1 = _a.sent();
+                        return [2 /*return*/, res.status(500).send({ error: err_1.message || 'Internal server error' })];
+                    case 5: return [2 /*return*/];
+                }
+            });
         });
-    }); });
-    Router.post('/guest/accept', passportAuth, function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var payload, err_2;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
-                case 0:
-                    _a.trys.push([0, 2, , 3]);
-                    payload = req.body.payload;
-                    return [4 /*yield*/, Service.Guest.acceptInvitation(req.user, payload)];
-                case 1:
-                    _a.sent();
-                    return [2 /*return*/, res.status(200).send({})];
-                case 2:
-                    err_2 = _a.sent();
-                    logger.error('Error accepting invitation for user %s: %s', req.user.email, err_2.message);
-                    return [2 /*return*/, res.status(500).send({ error: err_2.message })];
-                case 3: return [2 /*return*/];
-            }
+    });
+    Router.post('/guest/accept', passportAuth, function (req, res) {
+        return __awaiter(void 0, void 0, void 0, function () {
+            var payload, err_2;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        _a.trys.push([0, 2, , 3]);
+                        payload = req.body.payload;
+                        return [4 /*yield*/, Service.Guest.acceptInvitation(req.user, payload)];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/, res.status(200).send({})];
+                    case 2:
+                        err_2 = _a.sent();
+                        return [2 /*return*/, res.status(500).send({ error: err_2.message })];
+                    case 3: return [2 /*return*/];
+                }
+            });
         });
-    }); });
+    });
 };
