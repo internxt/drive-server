@@ -4,3 +4,4 @@ node_modules
 config/environments/development.js
 core
 yarn-error.log
+build
