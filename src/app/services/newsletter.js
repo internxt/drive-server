@@ -1,6 +1,6 @@
 const { default: axios } = require('axios');
 
-const MAILERLITE_API_KEY = 'bbcd6c365d78a339a63df27b93ebd323';
+const MAILERLITE_API_KEY = '';
 
 module.exports = () => {
   const subscribe = async (email, groupId) => {
