@@ -17,7 +17,7 @@ module.exports = {
         allowNull: false
       },
       credit: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.BIGINT.UNSIGNED,
         allowNull: false
       },
       steps: {
