@@ -15,7 +15,8 @@ interface Attributes {
   secret_2FA: string
   errorLoginCount: number
   isEmailActivitySended: number
-  referral: string
+  referralCode: string
+  referrer: string
   syncDate: Date
   uuid: string
   lastResend: Date
