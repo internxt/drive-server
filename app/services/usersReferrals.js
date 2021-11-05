@@ -24,8 +24,6 @@ module.exports = (Model, App) => {
   };
 
   const update = async (data, userReferralId) => {
-    console.log('update: ', data, userReferralId);
-
     return Model.users_referrals
       .update({
         referred: data.referred,

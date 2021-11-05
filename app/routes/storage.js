@@ -206,18 +206,22 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, (req, res) => {
+  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const itemId = req.params.id;
     const {
       isFolder, views, encryptionKey, fileToken, bucket
     } = req.body;
 
-    Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views).then((result) => {
+    try {
+      const result = await Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views);
+
+      await Service.UsersReferrals.applyUserReferral(user.id, 'share-file');
+
       res.status(200).send({ token: result });
-    }).catch((err) => {
+    } catch (err) {
       res.status(500).send({ error: err.message });
-    });
+    }
   });
 
   Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {

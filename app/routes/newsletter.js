@@ -1,13 +1,19 @@
+const passport = require('../middleware/passport');
 const Logger = require('../../lib/logger');
 
-module.exports = (Router, Service, App) => {
+const { passportAuth } = passport;
+
+module.exports = (Router, Service) => {
   const logger = Logger.getInstance();
 
-  Router.post('/newsletter/subscribe', async (req, res) => {
+  Router.post('/newsletter/subscribe', passportAuth, async (req, res) => {
     const { email, groupId } = req.body;
+    const { user } = req;
 
     try {
-      await App.services.Newsletter.subscribe(email, groupId);
+      await Service.Newsletter.subscribe(email, groupId);
+
+      await Service.UsersReferrals.applyUserReferral(user.id, 'subscribe-to-newsletter');
 
       res.status(200).send({ message: 'Subscribed to newsletter!' });
     } catch (err) {
