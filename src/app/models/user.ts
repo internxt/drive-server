@@ -90,8 +90,10 @@ export default (database: Sequelize): UserModel => {
       },
       referralCode: {
         type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
+        allowNull: true
+        // Replace after migration
+        // allowNull: false,
+        // unique: true
       },
       referrer: {
         type: DataTypes.STRING,
