@@ -7,17 +7,6 @@ const Logger = logger.getInstance();
 const { passportAuth } = passport;
 
 module.exports = (Router, Service) => {
-  Router.get('/plan/subscribed/anytime', passportAuth, async (req, res) => {
-    try {
-      const { user } = req;
-      const hasBeenSubscribedAnytime = await Service.Plan.hasBeenIndividualSubscribedAnyTime(user.bridgeUser, user.userId);
-
-      return res.status(200).json({ hasBeenSubscribedAnytime });
-    } catch (err) {
-      return res.status(500).send({ error: err });
-    }
-  });
-
   Router.get('/plan/individual', passportAuth, async (req, res) => {
     try {
       const { user } = req;

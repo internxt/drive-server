@@ -128,7 +128,7 @@ module.exports = (Router, Service, App) => {
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
         let appSumoDetails = null;
 
-        appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
+        appSumoDetails = await Service.AppSumo.GetDetails(userData.id).catch(() => null);
 
         const user = {
           email: req.body.email,
@@ -196,7 +196,7 @@ module.exports = (Router, Service, App) => {
     const hasTeams = !!(await Service.Team.getTeamByMember(userData.email));
     let appSumoDetails = null;
 
-    appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
+    appSumoDetails = await Service.AppSumo.GetDetails(userData.id).catch(() => null);
 
     const user = {
       email: userData.email,

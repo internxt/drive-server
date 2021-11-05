@@ -1,7 +1,4 @@
-const sequelize = require('sequelize');
 const createHttpError = require('http-errors');
-
-const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const createUserReferrals = async (userId) => {
@@ -27,11 +24,13 @@ module.exports = (Model, App) => {
   };
 
   const update = async (data, userReferralId) => {
+    console.log('update: ', data, userReferralId);
+
     return Model.users_referrals
       .update({
         referred: data.referred,
         applied: data.applied
-      }, { where: { id: { [Op.eq]: userReferralId } } });
+      }, { where: { id: userReferralId } });
   };
 
   const getByUserId = async (userId) => {
@@ -60,8 +59,10 @@ module.exports = (Model, App) => {
     }));
   };
 
-  const hasReferralsProgram = async (userEmail, userId) => {
-    return !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, userId));
+  const hasReferralsProgram = async (id, userEmail, userId) => {
+    const appSumoDetails = await App.services.AppSumo.GetDetails(id).catch(() => null);
+
+    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, userId));
   };
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
@@ -74,31 +75,37 @@ module.exports = (Model, App) => {
     );
   };
 
-  const applyReferral = async (userEmail, userId, referralKey, referred) => {
+  const applyUserReferral = async (userId, referralKey, referred) => {
     const referral = await App.services.Referrals.getByKey(referralKey);
-    if (!referral) {
-      throw createHttpError(500, `(usersReferralsService.applyReferral) referral with key '${referralKey}' not found`);
+    const user = await App.services.User.findById(userId);
+
+    if (!user) {
+      throw createHttpError(500, `(usersReferralsService.applyUserReferral) user with id ${userId} not found`);
     }
 
-    const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: false } });
+    if (!referral) {
+      throw createHttpError(500, `(usersReferralsService.applyUserReferral) referral with key '${referralKey}' not found`);
+    }
+
+    const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: 0 } });
     if (!userReferral) {
       return;
     }
 
-    const userHasReferralsProgram = await hasReferralsProgram(userEmail, userId);
+    const userHasReferralsProgram = await hasReferralsProgram(userId, user.bridgeUser, user.userId);
     if (!userHasReferralsProgram) {
-      throw createHttpError(403, '(usersReferralsService.applyReferral) referrals program not enabled for this user');
+      throw createHttpError(403, '(usersReferralsService.applyUserReferral) referrals program not enabled for this user');
     }
 
-    await update({ referred, applied: true }, userReferral.id);
-    await redeemUserReferral(userEmail, userId, referral.type, referral.credit);
+    await update({ referred, applied: 1 }, userReferral.id);
+    await redeemUserReferral(user.bridgeUser, userId, referral.type, referral.credit);
   };
 
   return {
     Name: 'UsersReferrals',
     createUserReferrals,
     getByUserId,
-    applyReferral,
+    applyUserReferral,
     hasReferralsProgram
   };
 };

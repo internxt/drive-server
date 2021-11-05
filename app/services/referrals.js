@@ -1,7 +1,3 @@
-const sequelize = require('sequelize');
-
-const { Op } = sequelize;
-
 module.exports = (Model) => {
   const create = async (data) => {
     return Model.referrals
@@ -16,11 +12,11 @@ module.exports = (Model) => {
   };
 
   const getAllEnabled = () => {
-    return Model.referrals.findAll({ where: { enabled: { [Op.eq]: true } } });
+    return Model.referrals.findAll({ where: { enabled: true } });
   };
 
   const getByKey = (key) => {
-    return Model.referrals.findOne({ where: { key: { [Op.eq]: key } } });
+    return Model.referrals.findOne({ where: { key } });
   };
 
   return {

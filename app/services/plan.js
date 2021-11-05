@@ -93,7 +93,7 @@ module.exports = (Model, App) => {
   };
 
   const hasBeenIndividualSubscribedAnyTime = async (userEmail, userId) => {
-    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail))
       .filter((plan) => !plan.isTeam);
     const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
     const isLifetime = maxSpaceBytes > MAX_FREE_PLAN_BYTES;

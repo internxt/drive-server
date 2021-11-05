@@ -146,6 +146,8 @@ module.exports = (Model, App) => {
       }).catch((err) => reject(err));
   });
 
+  const findById = (id) => Model.users.findOne({ where: { id } });
+
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
@@ -478,6 +480,7 @@ module.exports = (Model, App) => {
     Name: 'User',
     FindOrCreate,
     RegisterUser,
+    findById,
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,

@@ -116,16 +116,27 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file', passportAuth, sharedAdapter, (req, res) => {
+  Router.post('/storage/file', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser } = req;
     const { file } = req.body;
+    const internxtClient = req.headers['internxt-client'];
 
-    Service.Files.CreateFile(behalfUser, file).then((result) => {
+    try {
+      const result = await Service.Files.CreateFile(behalfUser, file);
+
+      if (internxtClient === 'drive-mobile') {
+        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app');
+      }
+
+      if (internxtClient === 'drive-desktop') {
+        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app');
+      }
+
       res.status(200).json(result);
-    }).catch((error) => {
-      Logger.error(error);
-      res.status(400).json({ message: error.message });
-    });
+    } catch (err) {
+      Logger.error(err);
+      res.status(err.status || 500).json({ message: err.message });
+    }
   });
 
   Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {
