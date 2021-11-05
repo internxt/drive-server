@@ -59,8 +59,10 @@ exports.default = (function (database) {
         },
         referralCode: {
             type: sequelize_1.DataTypes.STRING,
-            allowNull: false,
-            unique: true
+            allowNull: true
+            // Replace after migration
+            // allowNull: false,
+            // unique: true
         },
         referrer: {
             type: sequelize_1.DataTypes.STRING,

@@ -38,9 +38,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var openpgp = require('openpgp');
 var createHttpError = require('http-errors');
 var passportAuth = require('../middleware/passport').passportAuth;
-var logger = require('../../lib/logger').default;
+var Logger = require('../../lib/logger').default;
 var AnalyticsService = require('../services/analytics');
-var Logger = logger.getInstance();
+var logger = Logger.getInstance();
 module.exports = function (Router, Service, App) {
     var analytics = AnalyticsService();
     Router.patch('/user/password', passportAuth, function (req, res) {
@@ -116,7 +116,7 @@ module.exports = function (Router, Service, App) {
         Service.User.ResendActivationEmail(req.params.email).then(function () {
             res.status(200).send({ message: 'ok' });
         }).catch(function (err) {
-            Logger.error('Resend activation email error %s', err ? err.message : err);
+            logger.error('Resend activation email error %s', err ? err.message : err);
             res.status(500).send({
                 error: err.response && err.response.data && err.response.data.error
                     ? err.response.data.error
@@ -158,7 +158,7 @@ module.exports = function (Router, Service, App) {
                     return [3 /*break*/, 4];
                 case 3:
                     err_1 = _a.sent();
-                    Logger.error('Error inviting user with email %s: %s', inviteEmail, err_1 ? err_1.message : err_1);
+                    logger.error('Error inviting user with email %s: %s', inviteEmail, err_1 ? err_1.message : err_1);
                     res.status((err_1 && err_1.status) || 500).send({
                         error: err_1 ? err_1.message : err_1
                     });

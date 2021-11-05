@@ -495,7 +495,7 @@ module.exports = function (Model, App) {
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0:
-                    Logger.warn('Register request for %s', newUserData.email);
+                    logger.warn('Register request for %s', newUserData.email);
                     if (!(newUserData.email && newUserData.password)) {
                         throw createHttpError(400, 'You must provide registration data');
                     }

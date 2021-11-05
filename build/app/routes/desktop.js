@@ -1,8 +1,11 @@
 "use strict";
 var passportAuth = require('../middleware/passport').passportAuth;
-var logger = require('../../lib/logger');
+var logger = require('../../lib/logger').default;
 var Logger = logger.getInstance();
 module.exports = function (Router, Service) {
+    Router.get('/storage/tree', passportAuth, function (req, res) {
+        res.status(500).send({ error: 'Outdated desktop version' });
+    });
     Router.get('/desktop/tree', passportAuth, function (req, res) {
         res.status(500).send({ error: 'Outdated desktop version' });
     });
