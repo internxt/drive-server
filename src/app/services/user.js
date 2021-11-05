@@ -408,6 +408,7 @@ module.exports = (Model, App) => {
 
     // Creates user referrals
     await App.services.UsersReferrals.createUserReferrals(userData.id);
+    await App.services.UsersReferrals.applyUserReferral(userData.id, 'create-account');
 
     const user = {
       userId: userData.userId,

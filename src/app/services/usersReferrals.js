@@ -6,14 +6,12 @@ module.exports = (Model, App) => {
     const userReferralsToCreate = [];
 
     referrals.forEach((referral) => {
-      const applied = referral.key === 'create-account';
-
       Array(referral.steps).fill().forEach(() => {
         userReferralsToCreate.push({
           user_id: userId,
           referral_id: referral.id,
           start_date: new Date(),
-          applied
+          applied: false
         });
       });
     });
@@ -65,7 +63,9 @@ module.exports = (Model, App) => {
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
     if (type === 'storage') {
-      // TODO: call bridge increase storage endpoint
+      const bytes = credit * Math.pow(1024, 3);
+
+      await App.services.Inxt.addStorage(userEmail, bytes);
     }
 
     App.logger.info(
