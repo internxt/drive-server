@@ -399,6 +399,8 @@ module.exports = (Model, App) => {
         event: 'Invitation Accepted',
         properties: { sent_by: referrer.email }
       });
+
+      await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }
 
     // Successfull register
