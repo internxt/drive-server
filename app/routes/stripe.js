@@ -229,8 +229,7 @@ module.exports = (Router, Service) => {
             success_url: req.body.successUrl || process.env.HOST_DRIVE_WEB,
             cancel_url: req.body.canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
             subscription_data: {
-              items: [{ plan: req.body.priceId }],
-              price_id: req.body.price_id
+              items: [{ plan: req.body.priceId }]
             },
             customer_email: user,
             customer: customerId,
@@ -257,8 +256,6 @@ module.exports = (Router, Service) => {
               member_tier: 'lifetime'
             },
             payment_intent_data: {
-              planType: 'one_time',
-              price_id: req.body.price_id
             }
           };
         }
