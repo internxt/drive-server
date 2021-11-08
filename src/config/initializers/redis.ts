@@ -9,7 +9,12 @@ export default class Redis {
       return Redis.instance;
     }
 
-    Redis.instance = new IORedis();
+    const config = process.env.NODE_ENV === 'production' ? {
+      host: process.env.REDIS_HOST,
+      password: process.env.REDIS_PASSWORD
+    } : undefined;
+
+    Redis.instance = new IORedis(config);
 
     const logger = Logger.getInstance();
 
