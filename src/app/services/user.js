@@ -526,7 +526,8 @@ module.exports = (Model, App) => {
 
     const user = await FindOrCreate(userObject);
     return user;
-  }
+  };
+
   const invite = async ({
     inviteEmail, hostEmail, hostFullName, hostReferralCode
   }) => {
@@ -542,8 +543,8 @@ module.exports = (Model, App) => {
   };
 
   const CompleteInfo = async (user, info) => {
-    if(user.registerCompleted) {
-      throw Error('User info is up to date')
+    if (user.registerCompleted) {
+      throw Error('User info is up to date');
     }
     const cPassword = CryptServiceInstance.RandomPassword(user.email);
     const cSalt = user.hKey.toString();
@@ -563,7 +564,7 @@ module.exports = (Model, App) => {
     user.sharedWorkspace = false;
     return user.save();
 
-  }
+  };
 
   return {
     Name: 'User',
