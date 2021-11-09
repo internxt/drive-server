@@ -7,11 +7,13 @@ module.exports = (Model, App) => {
 
     referrals.forEach((referral) => {
       Array(referral.steps).fill().forEach(() => {
+        const applied = referral.key === 'create-account';
+
         userReferralsToCreate.push({
           user_id: userId,
           referral_id: referral.id,
           start_date: new Date(),
-          applied: false
+          applied
         });
       });
     });
