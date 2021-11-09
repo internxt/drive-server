@@ -9,7 +9,7 @@ export default class Redis {
       return Redis.instance;
     }
 
-    const config = process.env.NODE_ENV === 'production' ? {
+    const config = process.env.NODE_ENV !== 'development' ? {
       host: process.env.REDIS_HOST,
       password: process.env.REDIS_PASSWORD
     } : undefined;
