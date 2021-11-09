@@ -3,11 +3,13 @@ const sequelize = require('sequelize');
 const async = require('async');
 const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
+const bip39 = require('bip39');
+const AnalyticsService = require('./analytics');
+const KeyServerService = require('./keyserver');
+const CryptService = require('./crypt');
 const createHttpError = require('http-errors');
 const uuid = require('uuid');
 
-const AnalyticsService = require('./analytics');
-const KeyServerService = require('./keyserver');
 const MailService = require('./mail');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
@@ -19,6 +21,7 @@ module.exports = (Model, App) => {
   const logger = Logger.getInstance();
   const KeyServer = KeyServerService(Model, App);
   const analytics = AnalyticsService(Model, App);
+  const CryptServiceInstance = CryptService(Model, App);
   const mailService = MailService(Model, App);
 
   const FindOrCreate = (user) => {
@@ -494,6 +497,48 @@ module.exports = (Model, App) => {
     };
   };
 
+  const UpdateUserStorage = async (email, maxSpaceBytes) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
+      email, bytes: parseInt(maxSpaceBytes, 10)
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
+    });
+  };
+
+  const CreateStaggingUser = async (email) => {
+    const randomPassword = CryptServiceInstance.RandomPassword(email);
+    const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
+
+    const encryptedHash = CryptServiceInstance.encryptText(encryptedPassword.hash);
+    const encryptedSalt = CryptServiceInstance.encryptText(encryptedPassword.salt);
+
+    const newMnemonic = bip39.generateMnemonic(256);
+    const encryptedMnemonic = CryptServiceInstance.encryptTextWithKey(newMnemonic, randomPassword);
+
+    const userObject = {
+      email,
+      name: null,
+      lastname: null,
+      password: encryptedHash,
+      mnemonic: encryptedMnemonic,
+      salt: encryptedSalt,
+      referral: null,
+      uuid: null,
+      credit: 0,
+      welcomePack: true,
+      registerCompleted: false,
+      username: email,
+      sharedWorkspace: false,
+      bridgeUser: email
+    };
+
+    const user = await FindOrCreate(userObject);
+    return user;
+  };
+
   const invite = async ({
     inviteEmail, hostEmail, hostFullName, hostReferralCode
   }) => {
@@ -506,6 +551,30 @@ module.exports = (Model, App) => {
     await mailService.sendInviteFriendMail(inviteEmail, {
       inviteEmail, hostEmail, hostFullName, registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`
     });
+  };
+
+  const CompleteInfo = async (user, info) => {
+    if (user.registerCompleted) {
+      throw Error('User info is up to date');
+    }
+    const cPassword = CryptServiceInstance.RandomPassword(user.email);
+    const cSalt = user.hKey.toString();
+    const hashedCurrentPassword = CryptServiceInstance.passToHash({ password: cPassword, salt: cSalt }).hash;
+
+    const newPassword = CryptServiceInstance.decryptText(info.password);
+    const newSalt = CryptServiceInstance.decryptText(info.salt);
+
+    user.name = info.name;
+    user.lastname = info.lastname;
+    // user.registerCompleted = true;
+    await user.save();
+    await UpdatePasswordMnemonic(user, hashedCurrentPassword, newPassword, newSalt, info.mnemonic);
+
+    // Finish
+    user.registerCompleted = true;
+    user.sharedWorkspace = false;
+    return user.save();
+
   };
 
   return {
@@ -529,6 +598,9 @@ module.exports = (Model, App) => {
     UpdateUserSync,
     UnlockSync,
     GetUserBucket,
+    UpdateUserStorage,
+    CreateStaggingUser,
+    CompleteInfo,
     getUsage,
     updateKeys,
     recoverPassword,

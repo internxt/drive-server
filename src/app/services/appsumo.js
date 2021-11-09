@@ -66,41 +66,7 @@ module.exports = (Model, App) => {
 
   // EXAMPLE: updateOrCreate(Model.AppSumo, { where: { userId: 244 } }, { uuid: 'lol3', planId: 'plan3', invoiceItemUuid: 'invoice3' });
 
-  const RegisterIncompleteLifetime = async (email, plan) => {
-    const randomPassword = RandomPassword(email);
-    const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
-
-    const encryptedHash = CryptServiceInstance.encryptText(encryptedPassword.hash);
-    const encryptedSalt = CryptServiceInstance.encryptText(encryptedPassword.salt);
-
-    const newMnemonic = bip39.generateMnemonic(256);
-    const encryptedMnemonic = CryptServiceInstance.encryptTextWithKey(newMnemonic, randomPassword);
-
-    const userObject = {
-      email,
-      name: null,
-      lastname: null,
-      password: encryptedHash,
-      mnemonic: encryptedMnemonic,
-      salt: encryptedSalt,
-      referral: null,
-      uuid: null,
-      credit: 0,
-      welcomePack: true,
-      registerCompleted: false,
-      username: email,
-      bridgeUser: email
-    };
-
-    const user = await UserServiceInstance.FindOrCreate(userObject);
-    return ApplyLicense(user, plan);
-  };
-
   const RegisterIncomplete = async (email, plan, uuid, invoice) => {
-    if (plan.includes('lifetime')) {
-      return RegisterIncompleteLifetime(email, plan);
-    }
-
     App.logger.warn('Register activation from APPSUMO for %s', email);
     const randomPassword = RandomPassword(email);
     const encryptedPassword = CryptServiceInstance.passToHash({ password: randomPassword });
@@ -124,6 +90,7 @@ module.exports = (Model, App) => {
       welcomePack: true,
       registerCompleted: false,
       username: email,
+      sharedWorkspace: true,
       bridgeUser: email
     };
 
@@ -159,7 +126,7 @@ module.exports = (Model, App) => {
 
     // Finish
     user.registerCompleted = true;
-    user.sharedWorkspace = true;
+    // user.sharedWorkspace = true;
     return user.save();
   };
 
