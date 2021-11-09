@@ -4,6 +4,7 @@ const { fn, col } = require('sequelize');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
+const { default: Redis } = require('../../config/initializers/redis');
 
 const invalidName = /[\\/]|[. ]$/;
 
@@ -518,6 +519,24 @@ module.exports = (Model, App) => {
     }
   };
 
+  const adquireLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+
+    const res = await redis.set(`${userId}-${folderId}`, lockId, 'EX', 15, 'NX');
+
+    if (!res)
+      throw new Error();
+  };
+
+  const refreshLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+
+    const res = await redis.refreshLock(`${userId}-${folderId}`, lockId);
+
+    if (!res)
+      throw new Error();
+  };
+
   return {
     Name: 'Folder',
     getById,
@@ -533,6 +552,8 @@ module.exports = (Model, App) => {
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
-    changeDuplicateName
+    changeDuplicateName,
+    adquireLock,
+    refreshLock
   };
 };

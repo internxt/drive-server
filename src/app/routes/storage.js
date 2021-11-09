@@ -116,16 +116,27 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/file', passportAuth, sharedAdapter, (req, res) => {
+  Router.post('/storage/file', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser } = req;
     const { file } = req.body;
+    const internxtClient = req.headers['internxt-client'];
 
-    Service.Files.CreateFile(behalfUser, file).then((result) => {
+    try {
+      const result = await Service.Files.CreateFile(behalfUser, file);
+
+      if (internxtClient === 'drive-mobile') {
+        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app');
+      }
+
+      if (internxtClient === 'drive-desktop') {
+        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app');
+      }
+
       res.status(200).json(result);
-    }).catch((error) => {
-      Logger.error(error);
-      res.status(400).json({ message: error.message });
-    });
+    } catch (err) {
+      Logger.error(err);
+      res.status(err.status || 500).json({ message: err.message });
+    }
   });
 
   Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {
@@ -195,18 +206,22 @@ module.exports = (Router, Service, App) => {
     });
   });
 
-  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, (req, res) => {
+  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const itemId = req.params.id;
     const {
       isFolder, views, encryptionKey, fileToken, bucket
     } = req.body;
 
-    Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views).then((result) => {
+    try {
+      const result = await Service.Share.GenerateToken(user, itemId, '', bucket, encryptionKey, fileToken, isFolder, views);
+
+      await Service.UsersReferrals.applyUserReferral(user.id, 'share-file');
+
       res.status(200).send({ token: result });
-    }).catch((err) => {
+    } catch (err) {
       res.status(500).send({ error: err.message });
-    });
+    }
   });
 
   Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {
@@ -285,6 +300,29 @@ module.exports = (Router, Service, App) => {
       res.status(200).send({ tree: result, size: treeSize });
     }).catch((err) => {
       res.status(500).send({ error: err.message });
+    });
+  });
+
+  Router.post('/storage/folder/:folderId/lock/:lockId', passportAuth, (req, res) => {
+    const userId = req.user.id;
+    const {folderId, lockId} = req.params;
+
+
+    Service.Folder.adquireLock(userId, folderId, lockId).then(() => {
+      res.status(201).end();
+    }).catch(() => {
+      res.status(409).end();
+    });
+  });
+
+  Router.put('/storage/folder/:folderId/lock/:lockId',  passportAuth, (req, res) => {
+    const userId = req.user.id;
+    const {folderId, lockId} = req.params;
+
+    Service.Folder.refreshLock(userId, folderId, lockId).then(() => {
+      res.status(200).end();
+    }).catch(() => {
+      res.status(409).end();
     });
   });
 };

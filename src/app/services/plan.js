@@ -1,5 +1,5 @@
 const { default: axios } = require('axios');
-const { FREE_PLAN_BYTES } = require('../constants');
+const { MAX_FREE_PLAN_BYTES, FREE_PLAN_BYTES } = require('../constants');
 
 const StripeService = require('./stripe');
 const LimitService = require('./limit');
@@ -77,18 +77,28 @@ module.exports = (Model, App) => {
 
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((subscription) => subscription.status === 'active')
       .filter((plan) => !plan.isTeam);
     let result = subscriptionPlans[0];
 
     if (!result) {
       const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
 
-      result = maxSpaceBytes > FREE_PLAN_BYTES
+      result = maxSpaceBytes > MAX_FREE_PLAN_BYTES
         ? lifetimePlanFactory(maxSpaceBytes, false)
         : FREE_PLAN;
     }
 
     return result;
+  };
+
+  const hasBeenIndividualSubscribedAnyTime = async (userEmail, userId) => {
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail))
+      .filter((plan) => !plan.isTeam);
+    const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
+    const isLifetime = maxSpaceBytes > MAX_FREE_PLAN_BYTES;
+
+    return subscriptionPlans.length > 0 || isLifetime;
   };
 
   const isValid = (plan) => {
@@ -97,6 +107,7 @@ module.exports = (Model, App) => {
 
   const getTeamPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((subscription) => subscription.status === 'active')
       .filter((plan) => plan.isTeam);
     let result = subscriptionPlans[0];
 
@@ -121,6 +132,7 @@ module.exports = (Model, App) => {
     getByName,
     getByUserId,
     deleteByUserId,
-    createAndSetBucketLimit
+    createAndSetBucketLimit,
+    hasBeenIndividualSubscribedAnyTime
   };
 };

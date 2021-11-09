@@ -17,6 +17,8 @@ import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
 import initTeamMember, { TeamMemberModel } from './teammember';
 import initUser, { UserModel } from './user';
 import initUserPhotos, { UserPhotosModel } from './userphotos';
+import initReferral, { ReferralModel } from './referral';
+import initUserReferral, { UserReferralModel } from './userReferral';
 
 export type ModelType = AlbumModel
   | AppSumoModel
@@ -34,7 +36,9 @@ export type ModelType = AlbumModel
   | TeamInvitationModel
   | TeamMemberModel
   | UserModel
-  | UserPhotosModel;
+  | UserPhotosModel
+  | ReferralModel
+  | UserReferralModel
 
 
 export default (database: Sequelize) => {
@@ -55,6 +59,8 @@ export default (database: Sequelize) => {
   const TeamInvitation = initTeamInvitation(database);
   const User = initUser(database);
   const UserPhotos = initUserPhotos(database);
+  const Referral = initReferral(database);
+  const UserReferral = initUserReferral(database);
 
   Album.belongsToMany(Photo, { through: 'photosalbums' });
   Album.belongsTo(UserPhotos, { foreignKey: 'userId' });
@@ -96,9 +102,15 @@ export default (database: Sequelize) => {
   User.hasOne(Plan);
   User.hasMany(Device);
   User.hasMany(Invitation, { foreignKey: 'host' });
+  User.belongsToMany(Referral, { through: UserReferral });
 
   UserPhotos.belongsTo(User, { foreignKey: 'userId' });
   UserPhotos.hasMany(Photo, { foreignKey: 'userId' });
+
+  Referral.belongsToMany(User, { through: UserReferral });
+
+  UserReferral.belongsTo(User, { foreignKey: 'user_id', targetKey: 'id' });
+  UserReferral.belongsTo(Referral, { foreignKey: 'referral_id', targetKey: 'id' });
 
   return {
     [Album.name]: Album,
@@ -117,6 +129,8 @@ export default (database: Sequelize) => {
     [TeamMember.name]: TeamMember,
     [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
-    [UserPhotos.name]: UserPhotos
+    [UserPhotos.name]: UserPhotos,
+    [Referral.name]: Referral,
+    [UserReferral.name]: UserReferral
   };
 };

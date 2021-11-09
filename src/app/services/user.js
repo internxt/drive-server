@@ -156,6 +156,8 @@ module.exports = (Model, App) => {
       }).catch((err) => reject(err));
   });
 
+  const findById = (id) => Model.users.findOne({ where: { id } });
+
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
@@ -400,10 +402,15 @@ module.exports = (Model, App) => {
         event: 'Invitation Accepted',
         properties: { sent_by: referrer.email }
       });
+
+      await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }
 
     // Successfull register
     const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+
+    // Creates user referrals
+    await App.services.UsersReferrals.createUserReferrals(userData.id);
 
     const user = {
       userId: userData.userId,
@@ -418,6 +425,10 @@ module.exports = (Model, App) => {
       email: userData.email,
       username: userData.username,
       bridgeUser: userData.bridgeUser,
+      sharedWorkspace: userData.sharedWorkspace,
+      appSumoDetails: null,
+      hasReferralsProgram: true,
+      backupsBucket: userData.backupsBucket,
       referralCode: userData.referralCode
     };
 
@@ -570,6 +581,7 @@ module.exports = (Model, App) => {
     Name: 'User',
     FindOrCreate,
     RegisterUser,
+    findById,
     FindUserByEmail,
     FindUserObjByEmail,
     FindUserByUuid,
