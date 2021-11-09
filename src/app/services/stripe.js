@@ -276,7 +276,7 @@ module.exports = () => {
 
     if (customers) {
       // ! To fix duplicated stripe customers
-      await async.eachSeries(customers, async (customer) => {
+      for (const customer of customers) {
         const allCustomerSubscriptions = await stripe.subscriptions.list({ customer: customer.id, status: 'all', expand: ['data.plan.product'] });
 
         allCustomerSubscriptions.data
@@ -297,7 +297,7 @@ module.exports = () => {
           isLifetime: false,
           renewalPeriod: getRenewalPeriod(subscription.plan.intervalCount, subscription.plan.interval)
         })));
-      });
+      }
     }
 
     return plans;
