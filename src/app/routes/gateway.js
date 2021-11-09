@@ -56,7 +56,7 @@ module.exports = (Router, Service) => {
     })
       .catch(() => {
         Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes} `);
-        return res.status(304).send();
+        return res.status(500).send();
       });
   });
 
