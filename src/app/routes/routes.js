@@ -152,7 +152,7 @@ module.exports = (Router, Service, App) => {
           bridgeUser: userData.bridgeUser,
           sharedWorkspace: userData.sharedWorkspace,
           appSumoDetails: appSumoDetails || null,
-          hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.userId, req.body.email, userData.userId),
+          hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.id, req.body.email, userData.userId),
           backupsBucket: userData.backupsBucket
         };
 
@@ -220,7 +220,7 @@ module.exports = (Router, Service, App) => {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: appSumoDetails || null,
-      hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.email, userData.userId),
+      hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.id, userData.email, userData.userId),
       backupsBucket: userData.backupsBucket
     };
 
