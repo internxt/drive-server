@@ -1,7 +1,7 @@
 const openpgp = require('openpgp');
 
 const createHttpError = require('http-errors');
-const { passportAuth } = require('../middleware/passport');
+const { passportAuth, Sign } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
 const AnalyticsService = require('../services/analytics');
 
@@ -118,5 +118,33 @@ module.exports = (Router, Service, App) => {
         error: err ? err.message : err
       });
     }
+  });
+
+  Router.post('/activate/update', passportAuth, (req, res) => {
+    Service.User.CompleteInfo(req.user, req.body).then(async () => {
+      const userData = req.user;
+      const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+
+      const user = {
+        userId: userData.userId,
+        mnemonic: userData.mnemonic.toString(),
+        root_folder_id: userData.root_folder_id,
+        name: userData.name,
+        lastname: userData.lastname,
+        uuid: userData.uuid,
+        credit: userData.credit,
+        createdAt: userData.createdAt,
+        registerCompleted: userData.registerCompleted,
+        email: userData.email,
+        bridgeUser: userData.email,
+        username: userData.email,
+        appSumoDetails: null
+      };
+
+      res.status(200).send({ token, user });
+    }).catch((err) => {
+      logger.error('Error during Update for user %s: %s', req.user.email, err.message);
+      res.status(500).send({ error: err.message });
+    });
   });
 };
