@@ -62,10 +62,14 @@ module.exports = (Model, App) => {
   };
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
-    if (type === 'storage') {
-      const bytes = credit * Math.pow(1024, 3);
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
-      await App.services.Inxt.addStorage(userEmail, bytes);
+    if (type === 'storage') {
+      if (GATEWAY_USER && GATEWAY_PASS) {
+        await App.services.Inxt.addStorage(userEmail, credit);
+      } else {
+        App.logger.warn('(usersReferralsService.redeemUserReferral) GATEWAY_USER || GATEWAY_PASS not found. Skipping storage increasing');
+      }
     }
 
     App.logger.info(

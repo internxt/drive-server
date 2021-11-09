@@ -1,7 +1,5 @@
 const { default: axios } = require('axios');
 
-const MAILERLITE_API_KEY = 'bbcd6c365d78a339a63df27b93ebd323';
-
 module.exports = () => {
   const subscribe = async (email, groupId) => {
     await axios.post(
@@ -12,7 +10,7 @@ module.exports = () => {
           Accept: 'application/json',
           'X-MailerLite-ApiDocs': 'true',
           'Content-Type': 'application/json',
-          'X-MailerLite-ApiKey': MAILERLITE_API_KEY
+          'X-MailerLite-ApiKey': process.env.MAILERLITE_API_KEY
         }
       }
     );
