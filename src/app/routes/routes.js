@@ -14,6 +14,8 @@ const ShareRoutes = require('./share');
 const BackupsRoutes = require('./backup');
 const GuestRoutes = require('./guest');
 const GatewayRoutes = require('./gateway');
+const UsersReferralsRoutes = require('./usersReferrals');
+const NewsletterRoutes = require('./newsletter');
 const UserRoutes = require('./user');
 
 const passport = require('../middleware/passport');
@@ -55,7 +57,9 @@ module.exports = (Router, Service, App) => {
   // Invite guest routes
   GuestRoutes(Router, Service, App);
   // Gateway comunication
-  GatewayRoutes(Router, Service);
+  GatewayRoutes(Router, Service, App);
+  UsersReferralsRoutes(Router, Service, App);
+  NewsletterRoutes(Router, Service, App);
   UserRoutes(Router, Service, App);
 
   Router.post('/login', (req, res) => {
@@ -126,7 +130,7 @@ module.exports = (Router, Service, App) => {
         const hasTeams = !!(await Service.Team.getTeamByMember(req.body.email));
         let appSumoDetails = null;
 
-        appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
+        appSumoDetails = await Service.AppSumo.GetDetails(userData.id).catch(() => null);
 
         const user = {
           email: req.body.email,
@@ -148,6 +152,7 @@ module.exports = (Router, Service, App) => {
           bridgeUser: userData.bridgeUser,
           sharedWorkspace: userData.sharedWorkspace,
           appSumoDetails: appSumoDetails || null,
+          hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.id, req.body.email, userData.userId),
           backupsBucket: userData.backupsBucket
         };
 
@@ -173,12 +178,13 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/user/refresh', passportAuth, async (req, res) => {
+    const { publicKey, privateKey, revocateKey } = req.body;
     const userData = req.user;
 
     const keyExists = await Service.KeyServer.keysExists(userData);
 
-    if (!keyExists && req.body.publicKey) {
-      await Service.KeyServer.addKeysLogin(userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey);
+    if (!keyExists && publicKey) {
+      await Service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
     }
 
     const keys = await Service.KeyServer.getKeys(userData);
@@ -189,7 +195,13 @@ module.exports = (Router, Service, App) => {
       App.config.get('secrets').JWT,
       internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
 
+    const hasTeams = !!(await Service.Team.getTeamByMember(userData.email));
+    let appSumoDetails = null;
+
+    appSumoDetails = await Service.AppSumo.GetDetails(userData.id).catch(() => null);
+
     const user = {
+      email: userData.email,
       userId: userData.userId,
       mnemonic: userData.mnemonic,
       root_folder_id: userData.root_folder_id,
@@ -201,8 +213,17 @@ module.exports = (Router, Service, App) => {
       privateKey: keys ? keys.private_key : null,
       publicKey: keys ? keys.public_key : null,
       revocateKey: keys ? keys.revocation_key : null,
-      bucket: userBucket
+      bucket: userBucket,
+      registerCompleted: userData.registerCompleted,
+      teams: hasTeams,
+      username: userData.username,
+      bridgeUser: userData.bridgeUser,
+      sharedWorkspace: userData.sharedWorkspace,
+      appSumoDetails: appSumoDetails || null,
+      hasReferralsProgram: await Service.UsersReferrals.hasReferralsProgram(userData.id, userData.email, userData.userId),
+      backupsBucket: userData.backupsBucket
     };
+
     res.status(200).json({
       user, token
     });

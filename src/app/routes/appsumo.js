@@ -18,7 +18,7 @@ module.exports = (Router, Service, App) => {
       const token = Sign(userData.email, App.config.get('secrets').JWT, true);
       let appSumoDetails = null;
 
-      appSumoDetails = await Service.AppSumo.GetDetails(userData).catch(() => null);
+      appSumoDetails = await Service.AppSumo.GetDetails(userData.id).catch(() => null);
 
       const user = {
         userId: userData.userId,
@@ -59,7 +59,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/appsumo/details', passportAuth, (req, res) => {
-    Service.AppSumo.GetDetails(req.user).then((details) => {
+    Service.AppSumo.GetDetails(req.user.id).then((details) => {
       res.status(200).send(details);
     }).catch(() => {
       res.status(400).send({ error: 'No appsumo license found' });
