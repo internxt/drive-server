@@ -32,6 +32,16 @@ export default class Redis {
             end`
     });
 
+    Redis.instance.defineCommand('releaseLock', {
+      numberOfKeys: 1,
+      lua: `if redis.call("get", KEYS[1]) == ARGV[1]
+            then 
+              return redis.call("del", KEYS[1])
+            else
+              return 0
+            end`
+    });
+
     return Redis.instance;
       
   }

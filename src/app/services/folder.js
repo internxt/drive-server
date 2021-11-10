@@ -537,6 +537,14 @@ module.exports = (Model, App) => {
       throw new Error();
   };
 
+  const releaseLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+    const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
+
+    if (!res)
+      throw new Error();
+  };
+
   return {
     Name: 'Folder',
     getById,
@@ -554,6 +562,7 @@ module.exports = (Model, App) => {
     GetFoldersPagination,
     changeDuplicateName,
     adquireLock,
+    releaseLock,
     refreshLock
   };
 };
