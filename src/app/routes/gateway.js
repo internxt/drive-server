@@ -48,7 +48,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/gateway/user/update/storage', basicAuth, (req, res) => {
-    const { email } = req.body.email;
+    const { email } = req.body;
     const maxSpaceBytes = parseInt(req.body.maxSpaceBytes, 10);
 
     Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
