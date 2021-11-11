@@ -113,7 +113,7 @@ module.exports = (Model, App) => {
       properties: {
         name: referralKey
       }
-    }).catch((err) => App.logger.error(`[Analytics] Referral Redeemed ${referralKey}. Error: ${err.message}`));
+    });
   };
 
   return {
