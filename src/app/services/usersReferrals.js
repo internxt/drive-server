@@ -57,10 +57,10 @@ module.exports = (Model, App) => {
     }));
   };
 
-  const hasReferralsProgram = async (userId, userEmail, networkUser, networkPass) => {
+  const hasReferralsProgram = async (userId, userEmail, networkUser, networkPassword) => {
     const appSumoDetails = await App.services.AppSumo.GetDetails(userId).catch(() => null);
 
-    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPass));
+    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPassword));
   };
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
@@ -96,7 +96,7 @@ module.exports = (Model, App) => {
       return;
     }
 
-    const userHasReferralsProgram = await hasReferralsProgram(userId, user.bridgeUser, user.userId);
+    const userHasReferralsProgram = await hasReferralsProgram(userId, user.email, user.bridgeUser, user.userId);
     if (!userHasReferralsProgram) {
       throw createHttpError(403, '(usersReferralsService.applyUserReferral) referrals program not enabled for this user');
     }
