@@ -57,10 +57,10 @@ module.exports = (Model, App) => {
     }));
   };
 
-  const hasReferralsProgram = async (id, userEmail, userId) => {
-    const appSumoDetails = await App.services.AppSumo.GetDetails(id).catch(() => null);
+  const hasReferralsProgram = async (userId, userEmail, networkUser, networkPass) => {
+    const appSumoDetails = await App.services.AppSumo.GetDetails(userId).catch(() => null);
 
-    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, userId));
+    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPass));
   };
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
