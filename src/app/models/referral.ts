@@ -1,6 +1,6 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-interface Attributes {
+export interface ReferralAttributes {
   id: number
   key: string;
   type: 'storage';
@@ -9,7 +9,7 @@ interface Attributes {
   enabled: boolean;
 }
 
-export type ReferralModel = ModelDefined<Attributes, Attributes>;
+export type ReferralModel = ModelDefined<ReferralAttributes, ReferralAttributes>;
 
 export default (database: Sequelize): ReferralModel => {
   const Referral: ReferralModel = database.define(
