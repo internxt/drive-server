@@ -308,7 +308,7 @@ module.exports = (Router, Service, App) => {
     const {folderId, lockId} = req.params;
 
 
-    Service.Folder.adquireLock(userId, folderId, lockId).then(() => {
+    Service.Folder.acquireLock(userId, folderId, lockId).then(() => {
       res.status(201).end();
     }).catch(() => {
       res.status(409).end();
