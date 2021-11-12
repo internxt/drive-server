@@ -44,7 +44,7 @@
     "start": "node ./build/app.js",
     "dev": "cross-env NODE_ENV=development nodemon --ext 'ts,js' src/app.ts",
     "docker": "cross-env NODE_ENV=docker nodemon app.ts",
-    "testsuite": "cross-env NODE_ENV=test ts-mocha tests/**/*.ts",
+    "testsuite": "cross-env APP_SEGMENT_KEY=a NODE_ENV=test ts-mocha tests/**/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",
     "migrate": "yarn run build && sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
