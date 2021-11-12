@@ -87,11 +87,11 @@ module.exports = (Model, App) => {
     const user = await App.services.User.findById(userId);
 
     if (!user) {
-      throw createHttpError(500, `(usersReferralsService.applyUserReferral) user with id ${userId} not found`);
+      throw createHttpError(400, `(usersReferralsService.applyUserReferral) user with id ${userId} not found`);
     }
 
     if (!referral) {
-      throw createHttpError(500, `(usersReferralsService.applyUserReferral) referral with key '${referralKey}' not found`);
+      throw createHttpError(400, `(usersReferralsService.applyUserReferral) referral with key '${referralKey}' not found`);
     }
 
     const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: 0 } });
@@ -121,6 +121,7 @@ module.exports = (Model, App) => {
     createUserReferrals,
     getByUserId,
     applyUserReferral,
-    hasReferralsProgram
+    hasReferralsProgram,
+    redeemUserReferral
   };
 };
