@@ -519,7 +519,7 @@ module.exports = (Model, App) => {
     }
   };
 
-  const adquireLock = async (userId, folderId, lockId) => {
+  const acquireLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
     const res = await redis.set(`${userId}-${folderId}`, lockId, 'EX', 15, 'NX');
@@ -561,7 +561,7 @@ module.exports = (Model, App) => {
     isFolderOfTeam,
     GetFoldersPagination,
     changeDuplicateName,
-    adquireLock,
+    acquireLock,
     releaseLock,
     refreshLock
   };
