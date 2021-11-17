@@ -241,6 +241,7 @@ module.exports = (Router, Service, App) => {
 
     return Service.User.RegisterUser(req.body)
       .then((result) => {
+        Service.Analytics.signUp(req);
         res.status(200).send(result);
       })
       .catch((err) => {

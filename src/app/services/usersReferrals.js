@@ -1,8 +1,7 @@
 const createHttpError = require('http-errors');
-const AnalyticsService = require('./analytics');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 module.exports = (Model, App) => {
-  const analytics = AnalyticsService(Model, App);
 
   const createUserReferrals = async (userId) => {
     const referrals = await App.services.Referrals.getAllEnabled();
@@ -107,13 +106,7 @@ module.exports = (Model, App) => {
     await update({ referred, applied: 1 }, userReferral.id);
     await redeemUserReferral(user.bridgeUser, userId, referral.type, referral.credit);
 
-    analytics.track({
-      userId,
-      event: 'Referral Redeemed',
-      properties: {
-        name: referralKey
-      }
-    });
+    AnalyticsService.trackReferralRedeemed(userId, referralKey);
   };
 
   return {

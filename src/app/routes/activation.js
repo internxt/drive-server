@@ -1,11 +1,12 @@
 const { passportAuth } = require('../middleware/passport');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 module.exports = (Router, Service) => {
   Router.get('/deactivate', passportAuth, (req, res) => {
     const user = req.user.email;
 
     Service.User.DeactivateUser(user).then(() => {
-      Service.Analytics.track({ userId: req.user.uuid, event: 'user-deactivation-request', properties: { email: user } });
+      AnalyticsService.trackDeactivationRequest(req.user.uuid);
       res.status(200).send({ error: null, message: 'User deactivated' });
     }).catch((err) => {
       res.status(500).send({ error: err.message });

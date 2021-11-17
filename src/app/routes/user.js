@@ -3,12 +3,11 @@ const openpgp = require('openpgp');
 const createHttpError = require('http-errors');
 const { passportAuth, Sign } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
-const AnalyticsService = require('../services/analytics');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 const logger = Logger.getInstance();
 
 module.exports = (Router, Service, App) => {
-  const analytics = AnalyticsService();
 
   Router.patch('/user/password', passportAuth, (req, res) => {
     const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
@@ -105,11 +104,7 @@ module.exports = (Router, Service, App) => {
         inviteEmail, hostEmail: user.email, hostFullName, hostReferralCode: user.referralCode
       });
 
-      analytics.track({
-        userId: user.uuid,
-        event: 'Invitation Sent',
-        properties: { sent_to: inviteEmail }
-      });
+      AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
 
       res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
     } catch (err) {
