@@ -6,7 +6,7 @@ module.exports = (Router, Service) => {
     const user = req.user.email;
 
     Service.User.DeactivateUser(user).then(() => {
-      AnalyticsService.trackDeactivationRequest(req.user.uuid);
+      AnalyticsService.trackDeactivationRequest(req);
       res.status(200).send({ error: null, message: 'User deactivated' });
     }).catch((err) => {
       res.status(500).send({ error: err.message });
