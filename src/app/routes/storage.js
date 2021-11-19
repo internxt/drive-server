@@ -233,7 +233,7 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send({ token: result });
     } catch (err) {
-      Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message)
+      Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message);
       res.status(500).send({ error: err.message });
     }
   });
