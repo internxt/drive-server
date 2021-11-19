@@ -74,9 +74,9 @@
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
 "@internxt/lib@^1.1.4":
-  version "1.1.4"
-  resolved "https://npm.pkg.github.com/download/@internxt/lib/1.1.4/e648a5cc24a8840bb8ff076a0ef240561cc9d728b5ccfd8a0265e7a8af4ef755#907f4d3ae4bcd3c2f83c2a51ac931928cbcece3f"
-  integrity sha512-pAjtnuGREUAhHUj9otWsl3Lz+hyIxTEHVrKJuJZg3ixMYQnt+MMgwJA58PKQAZltx+60OoPaOjuKsAnBZnKH3A==
+  version "1.1.5"
+  resolved "https://npm.pkg.github.com/download/@internxt/lib/1.1.5/c7b762b2df7f66f0aefb7bdd912d74b01b6596c28414a5dbcc9eca8d4abf3be5#366903c079d32153bffa1a34e13ac9f0fda575b2"
+  integrity sha512-DU6Y7n1kFtMgA7lpR7SCuzDKmJQ0NanB0Xx7AyhpivslWgp/UIdhrE0wYVLVj/hMXUufdNbschqoh7trMvpSCA==
 
 "@nodelib/fs.scandir@2.1.5":
   version "2.1.5"
