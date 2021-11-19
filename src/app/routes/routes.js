@@ -244,12 +244,11 @@ module.exports = (Router, Service, App) => {
         res.status(200).send(result);
       })
       .catch((err) => {
-        res.status(400).send({
+        Logger.error('Error in register for user %s: %s', req.body.email, err.message);
+        res.status(err.status || 500).send({
           error: err.message,
           message: err.message
         });
-        Logger.error('Error in register %s', req.body.email);
-        Logger.error(err);
       });
   });
 
