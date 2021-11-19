@@ -39,12 +39,11 @@ module.exports = (Router, Service) => {
       }
     }).then(() => {
       return res.status(200).send();
-    })
-      .catch((err) => {
-        Logger.error('Error creating %s plan "%s" for user %s: %s', plan.type, plan.name, email, err.message);
+    }).catch((err) => {
+      Logger.error('Error creating %s plan "%s" for user %s: %s', plan.type, plan.name, email, err.message);
 
-        return res.status(500).json({ error: err.message });
-      });
+      return res.status(500).json({ error: err.message });
+    });
   });
 
   Router.post('/gateway/user/update/storage', basicAuth, (req, res) => {
@@ -65,14 +64,14 @@ module.exports = (Router, Service) => {
     const userExists = await Service.User.FindUserByEmail(email).catch(() => null);
     if (!userExists) {
       await Service.User.CreateStaggingUser(email).catch((err) => {
-        Logger.error(`Not possible to create a stagging register for user: ${email}`);
+        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
         return res.status(500).send({ error: err.message });
       });
     }
     Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
       return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
     }).catch((err) => {
-      Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes}. Error: ${err} `);
+      Logger.error('[GATEWAY]: Error updating storage to %s for user %s: %s', maxSpaceBytes, email, err.message);
       return res.status(304).send();
     });
   });
@@ -82,7 +81,7 @@ module.exports = (Router, Service) => {
     Service.User.CreateStaggingUser(email).then(() => {
       res.status(201).send();
     }).catch((err) => {
-      Logger.error(`Not possible to create a stagging register for user: ${email}`);
+      Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
       res.status(500).send({ error: err.message });
     });
   });
