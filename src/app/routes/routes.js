@@ -17,11 +17,13 @@ const GatewayRoutes = require('./gateway');
 const UsersReferralsRoutes = require('./usersReferrals');
 const NewsletterRoutes = require('./newsletter');
 const UserRoutes = require('./user');
+const AnalyticsRoutes = require('./analytics');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger').default;
 const ReCaptchaV3 = require('../../lib/recaptcha');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 const { passportAuth } = passport;
 
@@ -62,6 +64,9 @@ module.exports = (Router, Service, App) => {
   NewsletterRoutes(Router, Service, App);
   UserRoutes(Router, Service, App);
 
+  //Analytics Routes
+  AnalyticsRoutes(Router);
+
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
       return res.status(400).send({ error: 'No email address specified' });
@@ -78,6 +83,8 @@ module.exports = (Router, Service, App) => {
       const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
       const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
       return Service.KeyServer.keysExists(userData).then((keyExist) => {
+        AnalyticsService.trackSignIn(req);
+
         res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
       });
     }).catch(() => {
@@ -241,7 +248,7 @@ module.exports = (Router, Service, App) => {
 
     return Service.User.RegisterUser(req.body)
       .then((result) => {
-        Service.Analytics.signUp(req);
+        AnalyticsService.trackSignUp(req, result.user);
         res.status(200).send(result);
       })
       .catch((err) => {
