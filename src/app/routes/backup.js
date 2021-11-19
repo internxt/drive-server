@@ -1,14 +1,20 @@
 const { passportAuth } = require('../middleware/passport');
+const { getInstance } = require('../../lib/logger').default;
+
+const logger = getInstance();
 
 module.exports = (Router, Service) => {
   Router.get('/user/backupsBucket', passportAuth, (req, res) => {
     Service.User.FindUserByEmail(req.user.email)
       .then((results) => {
         const { backupsBucket } = results;
+
         res.status(200).send({ backupsBucket });
       })
       .catch((err) => {
         res.status(500).send({ error: err.message });
+
+        logger.error('[USER/BACKUPSBUCKET]: ERROR for user %s: %s', req.user.email, err.message);
       });
   });
 
@@ -19,7 +25,12 @@ module.exports = (Router, Service) => {
         res.status(200).send(results);
       })
       .catch((err) => {
-        if (err.name === 'NOT_FOUND') { res.status(404).send({ error: err.message }); } else res.status(500).send({ error: err.message });
+        if (err.name === 'NOT_FOUND') { 
+          return res.status(404).send({ error: err.message }); 
+        }
+        res.status(500).send({ error: err.message });
+
+        logger.error('[BACKUP/DEVICE/:MAC]: ERROR for user %s: %s', req.user.email, err.message);
       });
   });
 
@@ -30,6 +41,8 @@ module.exports = (Router, Service) => {
       })
       .catch((err) => {
         res.status(500).send({ error: err.message });
+
+        logger.error('[BACKUP/DEVICE]: ERROR for user %s: %s', req.user.email, err.message);
       });
   });
 
