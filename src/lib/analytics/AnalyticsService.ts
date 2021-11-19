@@ -1,67 +1,176 @@
 import Analytics from './Analytics';
+import { getAppsumoAffiliate, getContext, getAffiliate } from './utils';
+import { TrackName, User, ReqUser } from './types';
 const logger = require('../../lib/logger').default;
 const Logger = logger.getInstance();
+
 // PROVISIONAL until express server typescript
 import express from 'express';
 
 
 
-async function trackDeactivationRequest(userId: string) {
+
+export async function trackDeactivationRequest(req: express.Request & ReqUser) {
+  const context = await getContext(req);
+  const userId = req.user.uuid;
   Analytics.track({
     userId,
-    event: 'Deactivation Requested'
+    event: TrackName.DeactivationRequest,
+    context
   });
 }
 
-async function trackSignUp(req: express.Request) {
-  //TODO
-}
+export async function trackSignUp(req: express.Request, user: User) {
+  const userId = user.uuid;
+  const { sharedWorkspace, name, lastname } = user;
 
-async function trackInvitationSent(userId: string, inviteEmail: string) {
+  const affiliate = getAppsumoAffiliate(user) || getAffiliate(req.headers.referrer);
+  const context = await getContext(req);
+  const location = context.location;
+
+  Analytics.identify({
+    userId,
+    traits: {
+      shared_workspace: sharedWorkspace,
+      name,
+      last_name: lastname,
+      affiliate,
+      usage: 0,
+      ...affiliate,
+      ...location
+    },
+    context
+  });
+
   Analytics.track({
     userId,
-    event: 'Invitation Sent',
+    event: TrackName.SignUp,
+    properties: {
+      shared_workspace: sharedWorkspace,
+      ...affiliate
+    },
+    context
+  });
+}
+
+export async function trackInvitationSent(userId: string, inviteEmail: string) {
+  Analytics.track({
+    userId,
+    event: TrackName.InvitationSent,
     properties: { sent_to: inviteEmail }
   });
 }
 
-async function trackDeactivationconfirmed(userId: string) {
+export async function trackDeactivationconfirmed(userId: string) {
   Analytics.track({
     userId,
-    event: 'Deactivation Confirmed'
+    event: TrackName.DeactivationConfirmed
   });
 }
 
-async function trackReferralRedeemed(userId: string, referralKey: string) {
+export async function trackReferralRedeemed(userId: string, referralKey: string) {
   Analytics.track({
     userId,
-    event: 'Referral Redeemed',
+    event: TrackName.ReferralRedeemed,
     properties: {
       name: referralKey
     }
   });
 }
 
-async function trackInvitationAccepted(userId: string, referredBy: string, sentBy: string) {
+export async function trackInvitationAccepted(userId: string, referredBy: string, sentBy: string) {
   Analytics.identify({
     userId,
     traits: { referred_by: referredBy }
   });
   Analytics.track({
     userId,
-    event: 'Invitation Accepted',
+    event: TrackName.InvitationAccepted,
     properties: { sent_by: sentBy }
   });
 }
 
+export async function trackUploadCompleted(req: express.Request & ReqUser) {
+  const context = await getContext(req);
+  const { user } = req;
+  const { file } = req.body;
 
-const AnalyticsService = {
-  trackDeactivationconfirmed,
-  trackDeactivationRequest,
-  trackInvitationAccepted,
-  trackInvitationSent,
-  trackSignUp,
-  trackReferralRedeemed
+  Analytics.track({
+    userId: user.uuid,
+    event: TrackName.UploadCompleted,
+    properties: {
+      extension: file.type,
+      size: file.size
+    },
+    context
+  });
+}
+
+export async function trackShareLinkCopied(req: express.Request & ReqUser) {
+  const context = await getContext(req);
+  const { user } = req;
+  const { views } = req.body;
+
+  Analytics.track({
+    userId: user.uuid,
+    event: TrackName.ShareLinkCopied,
+    properties: {
+      times_valid: views
+    },
+    context
+  });
+}
+
+export async function trackFileDeleted(req: express.Request & ReqUser) {
+  Logger.info(`User: ${JSON.stringify(req.body.user)}`);
+  const context = await getContext(req);
+  const { user, params } = req;
+
+  Analytics.track({
+    userId: user.uuid,
+    event: TrackName.FileDeleted,
+    properties: {
+      file_id: params.fileid
+    },
+    context
+  });
+}
+
+export async function trackSharedLink(req: express.Request, share: any) {
+  const context = await getContext(req);
+  const { userId, size, type} = share.fileMeta;
+  const itemType = share.isFolder ? 'folder' : 'file';
+
+  Analytics.track({
+    userId,
+    event: TrackName.SharedLinkItemDownloaded,
+    properties: {
+      owner: share.user,
+      item_type: itemType,
+      size,
+      extension: type
+    },
+    context
+  });
+}
+
+export async function trackFileDownloaded(req: express.Request) {
+  const context = getContext(req);
+  const { properties, user } = req.body;
+  const userId = user.uuid;
+
+  Analytics.track({
+    userId,
+    event: TrackName.DownloadCompleted,
+    properties,
+    context
+  });
+}
+
+export async function trackSignIn(req: express.Request) {
+  Logger.info('Track Sign in');
+}
+
+export const actions = {
+  'file_downloaded': trackFileDownloaded
 };
-
-export default AnalyticsService;
