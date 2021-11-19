@@ -155,7 +155,7 @@ export async function trackSharedLink(req: express.Request, share: any) {
 }
 
 export async function trackFileDownloaded(req: express.Request) {
-  const context = getContext(req);
+  const context = await getContext(req);
   const { properties, user } = req.body;
   const userId = user.uuid;
 
@@ -168,7 +168,8 @@ export async function trackFileDownloaded(req: express.Request) {
 }
 
 export async function trackSignIn(req: express.Request) {
-  Logger.info('Track Sign in');
+  // TODO
+  // const context = await getContext(req);
 }
 
 export const actions = {

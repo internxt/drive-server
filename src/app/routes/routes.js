@@ -83,8 +83,6 @@ module.exports = (Router, Service, App) => {
       const encSalt = App.services.Crypt.encryptText(userData.hKey.toString());
       const required2FA = userData.secret_2FA && userData.secret_2FA.length > 0;
       return Service.KeyServer.keysExists(userData).then((keyExist) => {
-        AnalyticsService.trackSignIn(req);
-
         res.status(200).send({ hasKeys: keyExist, sKey: encSalt, tfa: required2FA });
       });
     }).catch(() => {
