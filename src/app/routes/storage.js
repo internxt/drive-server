@@ -124,17 +124,18 @@ module.exports = (Router, Service, App) => {
     try {
       const result = await Service.Files.CreateFile(behalfUser, file);
 
+      // TODO: If user has referrals, then apply. Do not catch everything
       if (internxtClient === 'drive-mobile') {
-        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app');
+        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch(() => null);
       }
 
       if (internxtClient === 'drive-desktop') {
-        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app');
+        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch(() => null);
       }
 
       res.status(200).json(result);
     } catch (err) {
-      Logger.error(err);
+      Logger.error('[STORAGE]: ERROR for user %s: %s', req.behalfUser.id, err.message);
       res.status(err.status || 500).json({ message: err.message });
     }
   });
