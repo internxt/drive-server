@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const axios = require('axios');
 const bip39 = require('bip39');
+const { request } = require('@internxt/lib');
 
 const BUCKET_META_MAGIC = Buffer.from([66, 150, 71, 16, 50, 114, 88, 160, 163, 35, 154, 65, 162,
   213, 226, 215, 70, 138, 57, 61, 52, 19, 210, 170, 38, 164, 162, 200, 86, 201, 2, 81]);
@@ -75,7 +76,10 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = { email, password: hashPwd };
 
-    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params);
+    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params)
+      .catch((err) => {
+        throw new Error(request.extractMessageFromError(err));
+      });
   };
 
   // TODO: Remove mnemonic param

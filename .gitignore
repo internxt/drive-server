@@ -5,3 +5,4 @@ config/environments/development.js
 core
 yarn-error.log
 build
+.npmrc
