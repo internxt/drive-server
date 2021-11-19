@@ -7,8 +7,12 @@ module.exports = (Router, Service, App) => {
   Router.post('/appsumo/register', (req, res) => {
     Service.AppSumo.RegisterIncomplete(req.body.email, req.body.plan, req.body.uuid, req.body.invoice).then(() => {
       res.status(200).send();
+
+      logger.info('[APPSUMO/REGISTER]: Register incomplete for user %s', req.body.email);
     }).catch((err) => {
       res.status(500).send({ error: err.message });
+
+      logger.error('[APPSUMO/REGISTER]: ERROR for user %s: %s', req.body.email, err.message);
     });
   });
 
@@ -38,9 +42,12 @@ module.exports = (Router, Service, App) => {
       };
 
       res.status(200).send({ token, user });
+
+      logger.info('[APPSUMO/UPDATE]: User %s updated', user.email);
     }).catch((err) => {
-      logger.error('Error during AppSumo update for user %s: %s', req.user.email, err.message);
       res.status(500).send({ error: err.message });
+
+      logger.error('[APPSUMO/UPDATE]: ERROR for user %s: %s', req.user.email, err.message);
     });
   });
 
@@ -53,16 +60,22 @@ module.exports = (Router, Service, App) => {
 
     Service.AppSumo.UpdateLicense(req.body.activation_email, parseParams).then(() => {
       res.status(200).send();
-    }).catch(() => {
-      res.status(400).send();
+
+      logger.info('[APPSUMO/LICENSE]: License updated to plan %s for user %s', parseParams.planId, req.body.activation_email);
+    }).catch((err) => {
+      res.status(500).send();
+
+      logger.error('[APPSUMO/LICENSE]: ERROR for user %s: %s', req.body.activation_email, err.message);
     });
   });
 
   Router.get('/appsumo/details', passportAuth, (req, res) => {
     Service.AppSumo.GetDetails(req.user.id).then((details) => {
       res.status(200).send(details);
-    }).catch(() => {
-      res.status(400).send({ error: 'No appsumo license found' });
+    }).catch((err) => {
+      res.status(500).send({ error: 'No appsumo license found' });
+
+      logger.error('[APPSUMO/DETAILS]: ERROR for user %s: %s', req.user.email, err.message);
     });
   });
 };
