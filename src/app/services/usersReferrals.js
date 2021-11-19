@@ -83,6 +83,11 @@ module.exports = (Model, App) => {
 
   const applyUserReferral = async (userId, referralKey, referred) => {
     const referral = await App.services.Referrals.getByKey(referralKey);
+    const user = await App.services.User.findById(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
 
     if (!referral) {
       throw new Error('Referral not found');
