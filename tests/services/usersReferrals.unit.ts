@@ -177,7 +177,7 @@ describe('# usersReferrals', () => {
   });
 
   describe('applyUserReferral()', () => {
-    it('Should throw a 400 if user not found', async () => {
+    it('Should throw an error if user not found', async () => {
       const randomUserId = 1;
       let error: Error & { status: number } | null;
 
@@ -190,11 +190,10 @@ describe('# usersReferrals', () => {
       }
       
       expect(error).to.be.not.null;
-      expect(error.status).to.equal(400);
-      expect(error.message).to.equal(`(usersReferralsService.applyUserReferral) user with id ${randomUserId} not found`)
+      expect(error.message).to.equal('User not found');
     });
 
-    it('Should throw a 400 if referral not found', async () => {
+    it('Should throw an error if referral not found', async () => {
       const fakeReferralKey = fakeReferral.key + 'something';
       let error: Error & { status: number } | null;
 
@@ -208,8 +207,7 @@ describe('# usersReferrals', () => {
       }
       
       expect(error).to.be.not.null;
-      expect(error.status).to.equal(400);
-      expect(error.message).to.equal(`(usersReferralsService.applyUserReferral) referral with key '${fakeReferralKey}' not found`)
+      expect(error.message).to.equal('Referral not found')
     });
 
     it('Should not continue if user referral not found', async () => {
