@@ -8,10 +8,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 
 module.exports = (App, Config) => {
-  // use helmet
   App.express.use(helmet());
-
-  // Disable X-Powered-By
   App.express.disable('x-powered-by');
 
   const limiterKeyGenerator = (req) => {
