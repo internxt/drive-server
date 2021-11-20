@@ -51,7 +51,10 @@ const loggerInstance = (config: LoggerConfig): winston.Logger => {
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.splat(),
       winston.format.printf((info) => {
-        return `${info.timestamp} ${hostName} ${colorize.colorize(info.level, `${info.level}: ${info.message}`)}`;
+        const message = process.env.NODE_ENV !== 'development' ? 
+          `${info.level}: ${info.message}` : 
+          colorize.colorize(info.level, `${info.level}: ${info.message}`);
+        return `${info.timestamp} ${hostName} ${message}`;
       })
     ),
     transports: [
