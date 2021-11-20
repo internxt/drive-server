@@ -1,6 +1,6 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-interface Attributes {
+export interface UserAttributes {
   id: number
   userId: string
   name: string
@@ -28,7 +28,7 @@ interface Attributes {
   tempKey: string
 }
 
-export type UserModel = ModelDefined<Attributes, Attributes>;
+export type UserModel = ModelDefined<UserAttributes, UserAttributes>;
 
 export default (database: Sequelize): UserModel => {
   const User: UserModel = database.define(
