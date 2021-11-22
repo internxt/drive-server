@@ -41,7 +41,7 @@ module.exports = (Router, Service, App) => {
       if (!existsMember) {
         const existsBridgeUser = await Service.Team.getTeamBridgeUser(req.user.email);
         if (!existsBridgeUser) {
-          return res.status(400).send({ error: 'You are not allow to invite' });
+          return res.status(400).send({ error: 'You are not allowed to invite' });
         }
         // If this user is allow to invite, save the invitation and send mail
         const saveInvitations = await Service.TeamInvitations.save({
@@ -52,7 +52,7 @@ module.exports = (Router, Service, App) => {
           mnemonic: Encryptmnemonic
         });
         if (!saveInvitations) {
-          return res.status(400).send({ error: 'The invitation can not saved' });
+          return res.status(400).send({ error: 'The invitation cannot saved' });
         }
 
         return Service.Mail.sendEmailTeamsMember(existsUser.name, email, token, req.team).then(() => {
@@ -67,7 +67,7 @@ module.exports = (Router, Service, App) => {
       if (existsMember.status === 200) {
         res.status(200).send({});
       } else {
-        res.status(400).send({ error: 'This user is alredy a member' });
+        res.status(400).send({ error: 'This user is already a member' });
       }
     }
     // Forward email
@@ -143,7 +143,7 @@ module.exports = (Router, Service, App) => {
     const removeUser = req.body.item.user;
     const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
     if (!teamInfo) {
-      res.status(500).send({ info: 'You not have permissions' });
+      res.status(500).send({ info: 'You do not have permissions' });
     }
     const deleteMember = await Service.TeamsMembers.removeMembers(removeUser);
     if (deleteMember === 1) {
@@ -157,7 +157,7 @@ module.exports = (Router, Service, App) => {
     const removeUser = req.body.item.user;
     const teamInfo = await Service.Team.getTeamByEmail(req.user.email);
     if (!teamInfo) {
-      res.status(500).send({ info: 'You not have permissions' });
+      res.status(500).send({ info: 'You do not have permissions' });
     }
     const deleteInvitation = await Service.TeamInvitations.removeInvitations(removeUser);
     if (deleteInvitation === 1) {
