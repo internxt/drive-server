@@ -42,7 +42,7 @@ export async function getContext(req: express.Request) {
     ip: ipaddress,
     location,
     userAgent: req.headers['user-agent'],
-    locale: req.headers['accept-language']
+    locale: { language: req.headers['accept-language'] }
   };
 
   return context;
