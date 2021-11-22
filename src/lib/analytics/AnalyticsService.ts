@@ -8,6 +8,9 @@ const Logger = logger.getInstance();
 import express from 'express';
 
 
+const NETWORK_ANALYTICS_THRESHOLD = 6144;
+
+
 
 
 export async function trackDeactivationRequest(req: express.Request & ReqUser) {
@@ -91,9 +94,12 @@ export async function trackInvitationAccepted(userId: string, referredBy: string
 }
 
 export async function trackUploadCompleted(req: express.Request & ReqUser) {
-  const context = await getContext(req);
-  const { user } = req;
   const { file } = req.body;
+  if (file.size && file.size <= NETWORK_ANALYTICS_THRESHOLD) {
+    return;
+  }
+  const { user } = req;
+  const context = await getContext(req);
 
   Analytics.track({
     userId: user.uuid,
@@ -155,8 +161,11 @@ export async function trackSharedLink(req: express.Request, share: any) {
 }
 
 export async function trackFileDownloaded(req: express.Request) {
-  const context = await getContext(req);
   const { properties, user } = req.body;
+  if (properties.size && properties.size <= NETWORK_ANALYTICS_THRESHOLD) {
+    return;
+  }
+  const context = await getContext(req);
   const userId = user.uuid;
 
   Analytics.track({
@@ -169,7 +178,6 @@ export async function trackFileDownloaded(req: express.Request) {
 
 export async function trackSignIn(req: express.Request) {
   // TODO
-  // const context = await getContext(req);
 }
 
 export const actions = {
