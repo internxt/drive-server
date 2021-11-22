@@ -1,10 +1,9 @@
-const createHttpError = require('http-errors');
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 class ReferralNotAvailableError extends Error {
   constructor() {
     super('Referrals program not available for this user');
-  } 
+  }
 }
 
 module.exports = (Model, App) => {

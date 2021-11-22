@@ -246,8 +246,8 @@ module.exports = (Router, Service, App) => {
 
     return Service.User.RegisterUser(req.body)
       .then((result) => {
-        AnalyticsService.trackSignUp(req, result.user);
         res.status(200).send(result);
+        AnalyticsService.trackSignUp(req, result.user);
       })
       .catch((err) => {
         Logger.error('Error in register for user %s: %s', req.body.email, err.message);

@@ -146,9 +146,10 @@ module.exports = (Router, Service, App) => {
         Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch(logReferralError);
       }
 
+      res.status(200).json(result);
+
       AnalyticsService.trackUploadCompleted(req, behalfUser);
 
-      res.status(200).json(result);
     } catch (err) {
       Logger.error('[STORAGE]: ERROR for user %s: %s', req.behalfUser.id, err.message);
       res.status(err.status || 500).json({ message: err.message });
@@ -216,9 +217,11 @@ module.exports = (Router, Service, App) => {
     const { folderid, fileid } = params;
 
     Service.Files.DeleteFile(user, folderid, fileid).then(() => {
-      AnalyticsService.trackFileDeleted(req);
 
       res.status(200).json({ deleted: true });
+
+      AnalyticsService.trackFileDeleted(req);
+
     }).catch((err) => {
       res.status(500).json({ error: err.message });
     });
@@ -236,9 +239,10 @@ module.exports = (Router, Service, App) => {
 
       await Service.UsersReferrals.applyUserReferral(user.id, 'share-file');
 
+      res.status(200).send({ token: result });
+
       AnalyticsService.trackShareLinkCopied(req);
 
-      res.status(200).send({ token: result });
     } catch (err) {
       Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message);
       res.status(500).send({ error: err.message });
@@ -257,9 +261,11 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/share/:token', (req, res) => {
     Service.Share.get(req.params.token).then((share) => {
-      AnalyticsService.trackSharedLink(req, share);
 
       res.status(200).json(share);
+
+      AnalyticsService.trackSharedLink(req, share);
+
     }).catch((err) => {
       res.status(500).send({ error: err.message });
     });

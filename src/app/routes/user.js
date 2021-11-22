@@ -104,9 +104,10 @@ module.exports = (Router, Service, App) => {
         inviteEmail, hostEmail: user.email, hostFullName, hostReferralCode: user.referralCode
       });
 
+      res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
+
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
 
-      res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
     } catch (err) {
       logger.error('Error inviting user with email %s: %s', inviteEmail, err ? err.message : err);
       res.status((err && err.status) || 500).send({
