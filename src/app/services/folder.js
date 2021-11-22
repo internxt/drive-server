@@ -199,11 +199,24 @@ module.exports = (Model, App) => {
   };
 
   const GetFoldersPagination = async (user, index) => {
-    const userObject = user;
+    let userObject = user.get({ plain: true });
+
+    const isSharedWorkspace = user.bridgeUser !== user.email;
+
+    if (isSharedWorkspace) {
+      const hostUser = await Model.users.findOne({
+        where: {
+          email: user.bridgeUser
+        }
+      });
+
+      userObject = { ...userObject, id: hostUser.id };
+    }
+  
     const root = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: userObject.root_folder_id },
-        userId: user.id
+        userId: userObject.id
       }
     });
     if (!root) {
@@ -218,7 +231,7 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: user.id }
+      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id }
     });
     return {
       folders,

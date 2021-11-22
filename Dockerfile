@@ -1,12 +1,12 @@
 FROM mhart/alpine-node:14
 LABEL author="internxt"
 
-WORKDIR /
+WORKDIR /drive-server
 
 # Add useful packages
-RUN apk add git curl && git clone https://github.com/internxt/drive-server.git
+RUN apk add git curl
 
-WORKDIR /drive-server
+COPY . .
 
 # Install deps
 RUN yarn && yarn build && yarn --production && yarn cache clean
