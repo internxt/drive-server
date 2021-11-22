@@ -1,6 +1,12 @@
 const createHttpError = require('http-errors');
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
+class ReferralNotAvailableError extends Error {
+  constructor() {
+    super('Referrals program not available for this user');
+  } 
+}
+
 module.exports = (Model, App) => {
 
   const createUserReferrals = async (userId) => {
@@ -86,11 +92,11 @@ module.exports = (Model, App) => {
     const user = await App.services.User.findById(userId);
 
     if (!user) {
-      throw createHttpError(400, `(usersReferralsService.applyUserReferral) user with id ${userId} not found`);
+      throw new Error('User not found');
     }
 
     if (!referral) {
-      throw createHttpError(400, `(usersReferralsService.applyUserReferral) referral with key '${referralKey}' not found`);
+      throw new Error('Referral not found');
     }
 
     const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: 0 } });
@@ -100,7 +106,7 @@ module.exports = (Model, App) => {
 
     const userHasReferralsProgram = await hasReferralsProgram(userId, user.email, user.bridgeUser, user.userId);
     if (!userHasReferralsProgram) {
-      throw createHttpError(403, '(usersReferralsService.applyUserReferral) referrals program not enabled for this user');
+      throw new ReferralNotAvailableError();
     }
 
     await update({ referred, applied: 1 }, userReferral.id);
@@ -115,6 +121,7 @@ module.exports = (Model, App) => {
     getByUserId,
     applyUserReferral,
     hasReferralsProgram,
-    redeemUserReferral
+    redeemUserReferral,
+    ReferralNotAvailableError
   };
 };

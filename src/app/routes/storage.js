@@ -122,22 +122,35 @@ module.exports = (Router, Service, App) => {
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
 
+    const logReferralError = (err) => {
+      if (!err.message) {
+        return Logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', req.behalfUser.id);
+      }
+
+      if (err instanceof Service.ReferralNotAvailableError) {
+        return;
+      }
+
+      return Logger.error('[STORAGE]: ERROR applying referral for user %s: %s', req.behalfUser.id, err.message);
+    };
+
     try {
       const result = await Service.Files.CreateFile(behalfUser, file);
 
+      // TODO: If user has referrals, then apply. Do not catch everything
       if (internxtClient === 'drive-mobile') {
-        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app');
+        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch(logReferralError);
       }
 
       if (internxtClient === 'drive-desktop') {
-        await Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app');
+        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch(logReferralError);
       }
 
       AnalyticsService.trackUploadCompleted(req, behalfUser);
 
       res.status(200).json(result);
     } catch (err) {
-      Logger.error(err);
+      Logger.error('[STORAGE]: ERROR for user %s: %s', req.behalfUser.id, err.message);
       res.status(err.status || 500).json({ message: err.message });
     }
   });
@@ -227,6 +240,7 @@ module.exports = (Router, Service, App) => {
 
       res.status(200).send({ token: result });
     } catch (err) {
+      Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message);
       res.status(500).send({ error: err.message });
     }
   });
