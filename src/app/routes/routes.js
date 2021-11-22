@@ -17,11 +17,13 @@ const GatewayRoutes = require('./gateway');
 const UsersReferralsRoutes = require('./usersReferrals');
 const NewsletterRoutes = require('./newsletter');
 const UserRoutes = require('./user');
+const AnalyticsRoutes = require('./analytics');
 
 const passport = require('../middleware/passport');
 const TeamsRoutes = require('./teams');
 const logger = require('../../lib/logger').default;
 const ReCaptchaV3 = require('../../lib/recaptcha');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 const { passportAuth } = passport;
 
@@ -61,6 +63,9 @@ module.exports = (Router, Service, App) => {
   UsersReferralsRoutes(Router, Service, App);
   NewsletterRoutes(Router, Service, App);
   UserRoutes(Router, Service, App);
+
+  //Analytics Routes
+  AnalyticsRoutes(Router);
 
   Router.post('/login', (req, res) => {
     if (!req.body.email) {
@@ -242,6 +247,7 @@ module.exports = (Router, Service, App) => {
     return Service.User.RegisterUser(req.body)
       .then((result) => {
         res.status(200).send(result);
+        AnalyticsService.trackSignUp(req, result.user);
       })
       .catch((err) => {
         Logger.error('Error in register for user %s: %s', req.body.email, err.message);
