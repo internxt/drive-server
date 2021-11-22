@@ -1,9 +1,12 @@
 import geoip from 'geoip-lite';
+import DeviceDetector from 'node-device-detector';
 const logger = require('../../lib/logger').default;
 const Logger = logger.getInstance();
 import { Location, User } from './types';
 // PROVISIONAL until express server typescript
 import express from 'express';
+
+const deviceDetector = new DeviceDetector;
 
 export function logError(err: unknown) {
   if (err instanceof Error) {
@@ -25,6 +28,40 @@ function getErrorMessage(err: unknown) {
   }
 }
 
+function getDeviceContext(req: express.Request) {
+  const userAgent = req.headers['user-agent'];
+  let deviceContext = {};
+  try {
+    if (userAgent) {
+      const deviceDetected = deviceDetector.detect(userAgent);
+      const os = {
+        version: deviceDetected.os.version,
+        name: deviceDetected.os.name,
+        short_name: deviceDetected.os.short_name,
+        family: deviceDetected.os.family
+      };
+      const device = {
+        type: deviceDetected.device.type,
+        manufacturer: deviceDetected.device.brand,
+        model: deviceDetected.device.model,
+        brand: deviceDetected.device.brand,
+        brand_id: deviceDetected.device.id
+      };
+      const client = deviceDetected.client;
+
+      deviceContext = {
+        os,
+        device,
+        client
+      };
+    }
+  } catch(err) {
+    logError(err);
+  }
+
+  return deviceContext;
+}
+
 export async function getContext(req: express.Request) {
   const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress || '';
   const location = await getLocation(ipaddress).catch((err) => logWarn(err));
@@ -36,13 +73,16 @@ export async function getContext(req: express.Request) {
     version: req.headers['internxt-version']
   };
 
+  const deviceContext = getDeviceContext(req);
+
   const context = {
     app,
     campaign,
     ip: ipaddress,
     location,
     userAgent: req.headers['user-agent'],
-    locale: req.headers['accept-language']
+    locale: { language: req.headers['accept-language'] },
+    ...deviceContext
   };
 
   return context;
