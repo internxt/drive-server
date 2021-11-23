@@ -4,7 +4,7 @@ const async = require('async');
 const CryptoJS = require('crypto-js');
 const crypto = require('crypto');
 const bip39 = require('bip39');
-const AnalyticsService = require('./analytics');
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const KeyServerService = require('./keyserver');
 const CryptService = require('./crypt');
 const createHttpError = require('http-errors');
@@ -20,7 +20,6 @@ const { Op, col, fn } = sequelize;
 module.exports = (Model, App) => {
   const logger = Logger.getInstance();
   const KeyServer = KeyServerService(Model, App);
-  const analytics = AnalyticsService(Model, App);
   const CryptServiceInstance = CryptService(Model, App);
   const mailService = MailService(Model, App);
 
@@ -239,11 +238,7 @@ module.exports = (Model, App) => {
             await user.save();
           }
 
-          analytics.track({
-            userId: user.uuid,
-            event: 'user-deactivation-confirm',
-            properties: { email: userEmail }
-          });
+          AnalyticsService.trackDeactivationConfirmed(user.uuid);
 
           next();
         }).catch(next);
@@ -393,15 +388,7 @@ module.exports = (Model, App) => {
     }
 
     if (hasReferrer) {
-      analytics.identify({
-        userId: userData.uuid,
-        traits: { referred_by: referrer.uuid }
-      });
-      analytics.track({
-        userId: userData.uuid,
-        event: 'Invitation Accepted',
-        properties: { sent_by: referrer.email }
-      });
+      AnalyticsService.trackInvitationAccepted(userData.uuid, referrer.uuid, referrer.email);
 
       await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }

@@ -8,7 +8,7 @@ const loggerOptions = {
   levels: {
     sql: 0,
     warn: 1,
-    debug: 2,
+    debug: 5,
     error: 3,
     info: 4
   }

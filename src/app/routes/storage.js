@@ -2,6 +2,7 @@ const passport = require('../middleware/passport');
 const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
 const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger').default;
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
 
 const Logger = logger.getInstance();
@@ -146,6 +147,9 @@ module.exports = (Router, Service, App) => {
       }
 
       res.status(200).json(result);
+
+      AnalyticsService.trackUploadCompleted(req, behalfUser);
+
     } catch (err) {
       Logger.error('[STORAGE]: ERROR for user %s: %s', req.behalfUser.id, err.message);
       res.status(err.status || 500).json({ message: err.message });
@@ -213,7 +217,11 @@ module.exports = (Router, Service, App) => {
     const { folderid, fileid } = params;
 
     Service.Files.DeleteFile(user, folderid, fileid).then(() => {
+
       res.status(200).json({ deleted: true });
+
+      AnalyticsService.trackFileDeleted(req);
+
     }).catch((err) => {
       res.status(500).json({ error: err.message });
     });
@@ -232,6 +240,9 @@ module.exports = (Router, Service, App) => {
       await Service.UsersReferrals.applyUserReferral(user.id, 'share-file');
 
       res.status(200).send({ token: result });
+
+      AnalyticsService.trackShareLinkCopied(req);
+
     } catch (err) {
       Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message);
       res.status(500).send({ error: err.message });
@@ -250,7 +261,11 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/share/:token', (req, res) => {
     Service.Share.get(req.params.token).then((share) => {
+
       res.status(200).json(share);
+
+      AnalyticsService.trackSharedLink(req, share);
+
     }).catch((err) => {
       res.status(500).send({ error: err.message });
     });
