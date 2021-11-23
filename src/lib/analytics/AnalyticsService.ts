@@ -105,7 +105,7 @@ export async function trackUploadCompleted(req: express.Request & ReqUser) {
     userId: user.uuid,
     event: TrackName.UploadCompleted,
     properties: {
-      extension: file.type,
+      extension: file.type.toLowerCase(),
       size: file.size
     },
     context
@@ -162,7 +162,8 @@ export async function trackSharedLink(req: express.Request, share: any) {
 
 export async function trackFileDownloaded(req: express.Request) {
   const { properties, user } = req.body;
-  if (properties.size && properties.size <= NETWORK_ANALYTICS_THRESHOLD) {
+  const { size, type } = properties;
+  if (!size || !type || size <= NETWORK_ANALYTICS_THRESHOLD) {
     return;
   }
   const context = await getContext(req);
@@ -171,7 +172,10 @@ export async function trackFileDownloaded(req: express.Request) {
   Analytics.track({
     userId,
     event: TrackName.DownloadCompleted,
-    properties,
+    properties: {
+      size,
+      type: type.toLowerCase()
+    },
     context
   });
 }
