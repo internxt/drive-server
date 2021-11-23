@@ -1,6 +1,6 @@
 const speakeasy = require('speakeasy');
 
-const ActivationRoutes = require('./activation');
+const ActivationRoutes = require('./activation').default;
 const StorageRoutes = require('./storage');
 const BridgeRoutes = require('./bridge');
 const StripeRoutes = require('./stripe');
