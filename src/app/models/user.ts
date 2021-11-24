@@ -11,7 +11,7 @@ export interface UserAttributes {
   password: string
   mnemonic: string
   rootFolderId: number
-  hKey: string
+  hKey: Buffer
   secret_2FA: string
   errorLoginCount: number
   isEmailActivitySended: number
