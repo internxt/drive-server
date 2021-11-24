@@ -1,14 +1,11 @@
 // Google ReCaptcha V3
-const { default: axios } = require('axios');
-const { encode } = require('querystring');
-const Logger = require('./logger').default;
-
-const log = Logger.getInstance();
+import axios from 'axios';
+import { encode } from 'querystring';
 
 const GOOGLE_RECAPTCHA_V3_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify';
 
-async function verify(captcha, remoteip = undefined) {
-  if (process.env.NODE_ENV !== 'production') {
+export async function verify(captcha: any, remoteip?: string) {
+  if (process.env.NODE_ENV === 'development') {
     return {};
   }
   const body = {
@@ -21,7 +18,7 @@ async function verify(captcha, remoteip = undefined) {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
     }
-  }).then((res) => {
+  }).then((res: any) => {
     if (!res.data.success) {
       throw Error(res.data['error-codes']);
     }
@@ -34,13 +31,5 @@ async function verify(captcha, remoteip = undefined) {
     }
 
     return res.data;
-  }).catch((err) => {
-    log.error(`RECAPTCHA ERROR ${err.isAxiosError ? JSON.stringify(err.response.data) : err.message}`);
-
-    throw err;
   });
 }
-
-module.exports = {
-  verify
-};
