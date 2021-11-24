@@ -1,34 +1,51 @@
-import { Router, Request } from 'express';
+import { Router, Request, Response } from 'express';
 
 import { UserAttributes } from '../models/user';
 import { passportAuth } from '../middleware/passport';
 import Logger from '../../lib/logger';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
 
-type AuthorizedRequest = Request & { user: UserAttributes };
-
 const logger = Logger.getInstance();
 
-export default (router: Router, service: any) => {
-  router.get('/deactivate', passportAuth, async (req: Request, res) => {
+type AuthorizedRequest = Request & { user: UserAttributes };
+
+class ActivationController {
+  private service: any;
+
+  constructor (service: any) {
+    this.service = service;
+  }
+
+  async deactivate(req: Request, res: Response) {
     const { email } = (req as AuthorizedRequest).user;
 
-    await service.User.DeactivateUser(email);
+    await this.service.User.DeactivateUser(email);
 
     res.status(200).send({ error: null, message: 'User deactivated' });
 
     logger.info('[/deactivate]: User %s deactivated', email);
 
     AnalyticsService.trackDeactivationRequest(req as AuthorizedRequest);
-  });
+  }
 
-  router.get('/confirmDeactivation/:token', async (req: Request, res) => {
+  async confirmDeactivation(req: Request, res: Response) {
+    if (!req.params.token) {
+      return res.status(400).send({ message: 'Missing token param' });
+    }
+
     const { token } = req.params;
 
-    await service.User.ConfirmDeactivateUser(token);
+    await this.service.User.ConfirmDeactivateUser(token);
 
     res.status(200).send((req as (Request & { data: any })).data);
 
     logger.info('[/confirmDeactivation]: Token %s used for deactivation', token);
-  });
+  }
+}
+
+export default (router: Router, service: any) => {
+  const controller = new ActivationController(service);
+
+  router.get('/deactivate', passportAuth, controller.deactivate.bind(controller));
+  router.get('/confirmDeactivation/:token', controller.confirmDeactivation.bind(controller));
 };
