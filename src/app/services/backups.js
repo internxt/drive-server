@@ -56,7 +56,7 @@ module.exports = (Model, App) => {
     }
 
     if (plan && plan.type === 'one_time') {
-      limit = 10 * 1024 * 1024 * 1024;
+      limit = 100 * 1024 * 1024 * 1024;
     }
 
     return Inxt.updateBucketLimit(backupsBucket, limit);
