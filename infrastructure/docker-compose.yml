@@ -1,0 +1,173 @@
+version: '3.9'
+
+services:
+  rabbit:
+    image: rabbitmq
+    container_name: rabbit
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password
+    networks:
+      - internxt
+
+  bridge-redis:
+    image: redis:latest
+    container_name: bridge-redis
+    restart: always
+    networks:
+      - internxt
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: __inxt-network
+    networks:
+      - internxt
+    volumes:
+      - ../../bridge/infrastructure/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - 27017:27017
+
+  bridge:
+    build:
+      context: ../../bridge
+      dockerfile: Dockerfile
+    container_name: bridge
+    networks:
+      - internxt
+    depends_on:
+      - mongo
+      - rabbit
+      - bridge-redis
+    ports:
+      - 6382:6382
+
+  mongo-viewer:
+    image: mongo-express
+    container_name: mongo-viewer
+    restart: always
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongo:27017/__inxt-network
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+    ports:
+      - 8081:8081
+    networks:
+      - internxt
+    depends_on:
+      - mongo
+
+  farmer:
+    build:
+      context: ../../farmer
+      dockerfile: infrastructure/Dockerfile
+    depends_on:
+      - renter
+      - s3
+    container_name: farmer
+    networks:
+      - internxt
+    ports:
+      - 43758:43758
+
+  s3:
+    image: quay.io/minio/minio
+    container_name: s3
+    restart: always
+    command: server --console-address ":9001" /data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    networks:
+      - internxt
+
+  initialize_s3:
+    image: minio/mc
+    depends_on:
+      - s3
+    container_name: s3_init
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
+      /usr/bin/mc mb --ignore-existing myminio/internxt;
+      /usr/bin/mc policy set public myminio/internxt;
+      /usr/bin/mc admin user add myminio internxt internxt;
+      /usr/bin/mc admin policy set myminio readwrite user=internxt;
+      exit 0;
+      "
+    networks:
+      - internxt
+
+  renter:
+    build:
+      context: ../../complex
+      dockerfile: infrastructure/renter.Dockerfile
+    container_name: renter
+    depends_on:
+      - landlord
+    networks:
+      - internxt
+
+  landlord:
+    build:
+      context: ../../complex
+      dockerfile: infrastructure/landlord.Dockerfile
+    container_name: landlord
+    depends_on:
+      - bridge
+    networks:
+      - internxt
+
+  drive-server:
+    build:
+      context: ../
+      dockerfile: infrastructure/development.Dockerfile
+    container_name: drive-server
+    ports:
+      - 3000:8000
+    depends_on:
+      - bridge
+      - maria
+      - redis
+    volumes:
+      - ../src:/usr/app/src
+    networks:
+      - internxt
+
+  maria:
+    image: mariadb
+    container_name: drive-server-maria
+    restart: always
+    volumes:
+      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    networks:
+      - internxt
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver
+    container_name: cloudbeaver
+    restart: always
+    depends_on:
+      - maria
+    networks:
+      - internxt
+    ports:
+      - 8080:8978
+
+  redis:
+    image: redis:latest
+    container_name: drive-server-redis
+    restart: always
+    networks:
+      - internxt
+
+networks:
+  internxt:
+    name: internxt
