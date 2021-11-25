@@ -1,0 +1,38 @@
+version: '3.9'
+
+services:
+  drive-server:
+    build:
+      context: ../
+      dockerfile: infrastructure/development.Dockerfile
+    container_name: drive-server
+    ports:
+      - 3000:8000
+    depends_on:
+      - maria
+      - redis
+    volumes:
+      - ../src:/usr/app/src
+
+  maria:
+    image: mariadb
+    container_name: drive-server-maria
+    restart: always
+    volumes:
+      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+
+  cloudbeaver:
+    image: dbeaver/cloudbeaver
+    container_name: cloudbeaver
+    restart: always
+    depends_on:
+      - maria
+    ports:
+      - 8080:8978
+
+  redis:
+    image: redis:latest
+    container_name: drive-server-redis
+    restart: always
