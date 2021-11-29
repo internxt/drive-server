@@ -8,18 +8,28 @@ const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const logger = Logger.getInstance();
 
 module.exports = (Router, Service, App) => {
-
   Router.patch('/user/password', passportAuth, (req, res) => {
-    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
+    const currentPassword = App.services.Crypt.decryptText(
+      req.body.currentPassword
+    );
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const { mnemonic, privateKey } = req.body;
 
-    Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
+    Service.User.UpdatePasswordMnemonic(
+      req.user,
+      currentPassword,
+      newPassword,
+      newSalt,
+      mnemonic,
+      privateKey
+    )
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
   });
 
   Router.patch('/user/recover', passportAuth, (req, res) => {
@@ -29,19 +39,29 @@ module.exports = (Router, Service, App) => {
     // Old data, but re-encrypted
     const { mnemonic: oldMnemonic, privateKey: oldPrivateKey } = req.body;
 
-    Service.User.recoverPassword(req.user, newPassword, newSalt, oldMnemonic, oldPrivateKey).then(() => {
-      res.status(200).send({});
-    }).catch(() => {
-      res.status(500).send({ error: 'Could not restore password' });
-    });
+    Service.User.recoverPassword(
+      req.user,
+      newPassword,
+      newSalt,
+      oldMnemonic,
+      oldPrivateKey
+    )
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch(() => {
+        res.status(500).send({ error: 'Could not restore password' });
+      });
   });
 
   Router.patch('/user/keys', passportAuth, (req, res) => {
-    Service.User.updateKeys(req.user, req.body).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      res.status(500).send({ error: err.message });
-    });
+    Service.User.updateKeys(req.user, req.body)
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch((err) => {
+        res.status(500).send({ error: err.message });
+      });
   });
 
   Router.get('/user/credit', passportAuth, (req, res) => {
@@ -65,7 +85,7 @@ module.exports = (Router, Service, App) => {
     } else {
       const { publicKeyArmored } = await openpgp.generateKey({
         userIDs: [{ email: 'inxt@inxt.com' }],
-        curve: 'ed25519'
+        curve: 'ed25519',
       });
       const codpublicKey = Buffer.from(publicKeyArmored).toString('base64');
       res.status(200).send({ publicKey: codpublicKey });
@@ -73,23 +93,29 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/user/resend/:email', (req, res) => {
-    Service.User.ResendActivationEmail(req.params.email).then(() => {
-      res.status(200).send({ message: 'ok' });
-    }).catch((err) => {
-      logger.error('Resend activation email error %s', err ? err.message : err);
-      res.status(500).send({
-        error:
-          err.response && err.response.data && err.response.data.error
-            ? err.response.data.error
-            : 'Internal server error'
+    Service.User.ResendActivationEmail(req.params.email)
+      .then(() => {
+        res.status(200).send({ message: 'ok' });
+      })
+      .catch((err) => {
+        logger.error(
+          'Resend activation email error %s',
+          err ? err.message : err
+        );
+        res.status(500).send({
+          error:
+            err.response && err.response.data && err.response.data.error
+              ? err.response.data.error
+              : 'Internal server error',
+        });
       });
-    });
   });
 
   Router.post('/user/invite', passportAuth, async (req, res) => {
     const inviteEmail = req.body.email;
     const { user } = req;
-    const hostFullName = user.name && (user.name + (user.lastname ? ` ${user.lastname}` : ''));
+    const hostFullName =
+      user.name && user.name + (user.lastname ? ` ${user.lastname}` : '');
 
     try {
       if (!inviteEmail) {
@@ -101,46 +127,60 @@ module.exports = (Router, Service, App) => {
       }
 
       await Service.User.invite({
-        inviteEmail, hostEmail: user.email, hostFullName, hostReferralCode: user.referralCode
+        inviteEmail,
+        hostEmail: user.email,
+        hostFullName,
+        hostReferralCode: user.referralCode,
       });
 
-      res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
+      res
+        .status(200)
+        .send({ message: `Internxt invitation sent to ${inviteEmail}` });
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
-
     } catch (err) {
-      logger.error('Error inviting user with email %s: %s', inviteEmail, err ? err.message : err);
+      logger.error(
+        'Error inviting user with email %s: %s',
+        inviteEmail,
+        err ? err.message : err
+      );
       res.status((err && err.status) || 500).send({
-        error: err ? err.message : err
+        error: err ? err.message : err,
       });
     }
   });
 
   Router.post('/activate/update', passportAuth, (req, res) => {
-    Service.User.CompleteInfo(req.user, req.body).then(async () => {
-      const userData = req.user;
-      const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+    Service.User.CompleteInfo(req.user, req.body)
+      .then(async () => {
+        const userData = req.user;
+        const token = Sign(userData.email, App.config.get('secrets').JWT, true);
 
-      const user = {
-        userId: userData.userId,
-        mnemonic: userData.mnemonic.toString(),
-        root_folder_id: userData.root_folder_id,
-        name: userData.name,
-        lastname: userData.lastname,
-        uuid: userData.uuid,
-        credit: userData.credit,
-        createdAt: userData.createdAt,
-        registerCompleted: userData.registerCompleted,
-        email: userData.email,
-        bridgeUser: userData.email,
-        username: userData.email,
-        appSumoDetails: null
-      };
+        const user = {
+          userId: userData.userId,
+          mnemonic: userData.mnemonic.toString(),
+          root_folder_id: userData.root_folder_id,
+          name: userData.name,
+          lastname: userData.lastname,
+          uuid: userData.uuid,
+          credit: userData.credit,
+          createdAt: userData.createdAt,
+          registerCompleted: userData.registerCompleted,
+          email: userData.email,
+          bridgeUser: userData.email,
+          username: userData.email,
+          appSumoDetails: null,
+        };
 
-      res.status(200).send({ token, user });
-    }).catch((err) => {
-      logger.error('Error during Update for user %s: %s', req.user.email, err.message);
-      res.status(500).send({ error: err.message });
-    });
+        res.status(200).send({ token, user });
+      })
+      .catch((err) => {
+        logger.error(
+          'Error during Update for user %s: %s',
+          req.user.email,
+          err.message
+        );
+        res.status(500).send({ error: err.message });
+      });
   });
 };
