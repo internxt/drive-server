@@ -38,6 +38,6 @@ module.exports = () => {
     IsBucketId,
     IsDatabaseId,
     FileNameParts,
-    getNewMoveName
+    getNewMoveName,
   };
 };

@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
       where: { userId },
       attributes: { include: [[fn('SUM', col('backups.size')), 'size']] },
       group: ['id'],
-      include: [{ model: Model.backup, attributes: ['size'] }]
+      include: [{ model: Model.backup, attributes: ['size'] }],
     });
   };
 
@@ -30,7 +30,10 @@ module.exports = (Model, App) => {
     } catch (err) {
       if (err.name === 'NOT_FOUND') {
         return Model.device.create({
-          mac, userId, name: deviceName, platform
+          mac,
+          userId,
+          name: deviceName,
+          platform,
         });
       }
 
@@ -62,9 +65,7 @@ module.exports = (Model, App) => {
     return Inxt.updateBucketLimit(backupsBucket, limit);
   };
 
-  const create = async ({
-    userId, path, deviceId, encryptVersion, interval, enabled
-  }) => {
+  const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userId } });
 
     if (!backupsBucket) throw new Error('Backups must be activated before creating one');
@@ -74,7 +75,13 @@ module.exports = (Model, App) => {
     if (!device) throw new Error('This user didnt register this device');
 
     return Model.backup.create({
-      path, encrypt_version: encryptVersion, deviceId, bucket: backupsBucket, interval, userId, enabled
+      path,
+      encrypt_version: encryptVersion,
+      deviceId,
+      bucket: backupsBucket,
+      interval,
+      userId,
+      enabled,
     });
   };
 
@@ -92,7 +99,9 @@ module.exports = (Model, App) => {
 
     const { fileId, bucket } = backup;
 
-    if (fileId) { await App.services.Inxt.DeleteFile(user, bucket, fileId); }
+    if (fileId) {
+      await App.services.Inxt.DeleteFile(user, bucket, fileId);
+    }
 
     return backup.destroy();
   };
@@ -121,6 +130,6 @@ module.exports = (Model, App) => {
     getAllDevices,
     createDevice,
     updateDevice,
-    updateManyOfDevice
+    updateManyOfDevice,
   };
 };

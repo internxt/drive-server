@@ -15,7 +15,7 @@ class ShareController {
 
   async listShares(req: Request, res: Response) {
     const list = await this.service.Share.list((req as AuthorizedRequest).behalfUser);
-    
+
     res.status(200).send(list);
   }
 }

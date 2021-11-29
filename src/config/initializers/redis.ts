@@ -9,10 +9,13 @@ export default class Redis {
       return Redis.instance;
     }
 
-    const config = process.env.NODE_ENV !== 'development' ? {
-      host: process.env.REDIS_HOST,
-      password: process.env.REDIS_PASSWORD
-    } : undefined;
+    const config =
+      process.env.NODE_ENV !== 'development'
+        ? {
+            host: process.env.REDIS_HOST,
+            password: process.env.REDIS_PASSWORD,
+          }
+        : undefined;
 
     Redis.instance = new IORedis(config);
 
@@ -20,7 +23,7 @@ export default class Redis {
 
     Redis.instance.on('connect', () => logger.info('Connected to Redis'));
     Redis.instance.on('ready', () => logger.info('Redis is ready'));
-    Redis.instance.on('error', err => logger.error('Redis error', err));
+    Redis.instance.on('error', (err) => logger.error('Redis error', err));
 
     Redis.instance.defineCommand('refreshLock', {
       numberOfKeys: 1,
@@ -29,7 +32,7 @@ export default class Redis {
               return redis.call("expire", KEYS[1], 15)
             else
               return 0
-            end`
+            end`,
     });
 
     Redis.instance.defineCommand('releaseLock', {
@@ -39,10 +42,9 @@ export default class Redis {
               return redis.call("del", KEYS[1])
             else
               return 0
-            end`
+            end`,
     });
 
     return Redis.instance;
-      
   }
 }

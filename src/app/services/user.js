@@ -33,127 +33,144 @@ module.exports = (Model, App) => {
       throw Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
-      where: { username: user.email },
-      defaults: {
-        email: user.email,
-        name: user.name,
-        lastname: user.lastname,
-        password: userPass,
-        mnemonic: user.mnemonic,
-        hKey: userSalt,
-        referrer: user.referrer,
-        referralCode: uuid.v4(),
-        uuid: null,
-        credit: user.credit,
-        welcomePack: true,
-        registerCompleted: user.registerCompleted,
-        username: user.username,
-        bridgeUser: user.bridgeUser
-      },
-      transaction: t
-    }).then(async ([userResult, isNewRecord]) => {
-      if (isNewRecord) {
-        if (user.publicKey && user.privateKey && user.revocationKey) {
-          Model.keyserver.findOrCreate({
-            where: { user_id: userResult.id },
-            defaults: {
-              user_id: user.id,
-              private_key: user.privateKey,
-              public_key: user.publicKey,
-              revocation_key: user.revocationKey,
-              encrypt_version: null
-            },
-            transaction: t
-          });
-        }
+    return Model.users.sequelize.transaction(async (t) =>
+      Model.users
+        .findOrCreate({
+          where: { username: user.email },
+          defaults: {
+            email: user.email,
+            name: user.name,
+            lastname: user.lastname,
+            password: userPass,
+            mnemonic: user.mnemonic,
+            hKey: userSalt,
+            referrer: user.referrer,
+            referralCode: uuid.v4(),
+            uuid: null,
+            credit: user.credit,
+            welcomePack: true,
+            registerCompleted: user.registerCompleted,
+            username: user.username,
+            bridgeUser: user.bridgeUser,
+          },
+          transaction: t,
+        })
+        .then(async ([userResult, isNewRecord]) => {
+          if (isNewRecord) {
+            if (user.publicKey && user.privateKey && user.revocationKey) {
+              Model.keyserver.findOrCreate({
+                where: { user_id: userResult.id },
+                defaults: {
+                  user_id: user.id,
+                  private_key: user.privateKey,
+                  public_key: user.publicKey,
+                  revocation_key: user.revocationKey,
+                  encrypt_version: null,
+                },
+                transaction: t,
+              });
+            }
 
-        // Create bridge pass using email (because id is unconsistent)
-        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+            // Create bridge pass using email (because id is unconsistent)
+            const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
 
-        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
-        if (bridgeUser && bridgeUser.response && (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)) {
-          throw Error(bridgeUser.response.data.error);
-        }
+            const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
+            if (
+              bridgeUser &&
+              bridgeUser.response &&
+              (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)
+            ) {
+              throw Error(bridgeUser.response.data.error);
+            }
 
-        if (!bridgeUser.data) {
-          throw Error('Error creating bridge user');
-        }
+            if (!bridgeUser.data) {
+              throw Error('Error creating bridge user');
+            }
 
-        logger.info('User Service | created brigde user: %s', userResult.email);
+            logger.info('User Service | created brigde user: %s', userResult.email);
 
-        // Store bcryptid on user register
-        await userResult.update({
-          userId: bcryptId,
-          uuid: bridgeUser.data.uuid
-        }, { transaction: t });
+            // Store bcryptid on user register
+            await userResult.update(
+              {
+                userId: bcryptId,
+                uuid: bridgeUser.data.uuid,
+              },
+              { transaction: t },
+            );
 
-        // Set created flag for Frontend management
-        Object.assign(userResult, { isNewRecord });
-      }
+            // Set created flag for Frontend management
+            Object.assign(userResult, { isNewRecord });
+          }
 
-      // TODO: proveriti userId kao pass
-      return userResult;
-    }).catch((err) => {
-      if (err.response) {
-        // This happens when email is registered in bridge
-        logger.error(err.response.data);
-      } else {
-        logger.error(err.stack);
-      }
+          // TODO: proveriti userId kao pass
+          return userResult;
+        })
+        .catch((err) => {
+          if (err.response) {
+            // This happens when email is registered in bridge
+            logger.error(err.response.data);
+          } else {
+            logger.error(err.stack);
+          }
 
-      throw Error(err);
-    })); // end transaction
+          throw Error(err);
+        }),
+    ); // end transaction
   };
 
-  const InitializeUser = (user) => Model.users.sequelize.transaction((t) => Model.users
-    .findOne({ where: { username: { [Op.eq]: user.email } } }).then(async (userData) => {
-      if (userData.root_folder_id) {
-        userData.mnemonic = user.mnemonic;
+  const InitializeUser = (user) =>
+    Model.users.sequelize.transaction((t) =>
+      Model.users.findOne({ where: { username: { [Op.eq]: user.email } } }).then(async (userData) => {
+        if (userData.root_folder_id) {
+          userData.mnemonic = user.mnemonic;
 
-        return userData;
-      }
-
-      const { Inxt, Crypt } = App.services;
-      const rootBucket = await Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic);
-      logger.info('User init | root bucket created %s', rootBucket.name);
-
-      const rootFolderName = await Crypt.encryptName(`${rootBucket.name}`);
-      const rootFolder = await userData.createFolder({
-        name: rootFolderName,
-        bucket: rootBucket.id
-      });
-
-      logger.info('User init | root folder created, id: %s', rootFolder.id);
-
-      // Update user register with root folder Id
-      await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
-
-      // Set decrypted mnemonic to returning object
-      const updatedUser = userData;
-      updatedUser.mnemonic = user.mnemonic;
-      updatedUser.bucket = rootBucket.id;
-
-      return updatedUser;
-    }));
-
-  const FindUserByEmail = (email) => new Promise((resolve, reject) => {
-    Model.users
-      .findOne({ where: { username: { [Op.eq]: email } } }).then((userData) => {
-        if (!userData) {
-          logger.error('ERROR user %s not found on database', email);
-          return reject(Error('Wrong email/password'));
+          return userData;
         }
 
-        const user = userData.dataValues;
+        const { Inxt, Crypt } = App.services;
+        const rootBucket = await Inxt.CreateBucket(userData.email, userData.userId, user.mnemonic);
+        logger.info('User init | root bucket created %s', rootBucket.name);
 
-        if (user.mnemonic) {
-          user.mnemonic = user.mnemonic.toString();
-        }
+        const rootFolderName = await Crypt.encryptName(`${rootBucket.name}`);
+        const rootFolder = await userData.createFolder({
+          name: rootFolderName,
+          bucket: rootBucket.id,
+        });
 
-        return resolve(user);
-      }).catch((err) => reject(err));
-  });
+        logger.info('User init | root folder created, id: %s', rootFolder.id);
+
+        // Update user register with root folder Id
+        await userData.update({ root_folder_id: rootFolder.id }, { transaction: t });
+
+        // Set decrypted mnemonic to returning object
+        const updatedUser = userData;
+        updatedUser.mnemonic = user.mnemonic;
+        updatedUser.bucket = rootBucket.id;
+
+        return updatedUser;
+      }),
+    );
+
+  const FindUserByEmail = (email) =>
+    new Promise((resolve, reject) => {
+      Model.users
+        .findOne({ where: { username: { [Op.eq]: email } } })
+        .then((userData) => {
+          if (!userData) {
+            logger.error('ERROR user %s not found on database', email);
+            return reject(Error('Wrong email/password'));
+          }
+
+          const user = userData.dataValues;
+
+          if (user.mnemonic) {
+            user.mnemonic = user.mnemonic.toString();
+          }
+
+          return resolve(user);
+        })
+        .catch((err) => reject(err));
+    });
 
   const findById = (id) => Model.users.findOne({ where: { id } });
 
@@ -161,24 +178,31 @@ module.exports = (Model, App) => {
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
 
-  const DeactivateUser = (email) => new Promise((resolve, reject) => Model.users
-    .findOne({ where: { username: { [Op.eq]: email } } }).then((user) => {
-      const password = CryptoJS.SHA256(user.userId).toString();
-      const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
+  const DeactivateUser = (email) =>
+    new Promise((resolve, reject) =>
+      Model.users
+        .findOne({ where: { username: { [Op.eq]: email } } })
+        .then((user) => {
+          const password = CryptoJS.SHA256(user.userId).toString();
+          const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
 
-      axios
-        .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/json'
-          }
-        }).then((data) => {
-          resolve(data);
-        }).catch((err) => {
-          logger.warn(err.response.data);
-          reject(err);
-        });
-    }).catch(reject));
+          axios
+            .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
+              headers: {
+                Authorization: `Basic ${auth}`,
+                'Content-Type': 'application/json',
+              },
+            })
+            .then((data) => {
+              resolve(data);
+            })
+            .catch((err) => {
+              logger.warn(err.response.data);
+              reject(err);
+            });
+        })
+        .catch(reject),
+    );
 
   const ConfirmDeactivateUser = (token) => {
     let userEmail = null;
@@ -186,63 +210,77 @@ module.exports = (Model, App) => {
       (next) => {
         axios
           .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
-            headers: { 'Content-Type': 'application/json' }
-          }).then((res) => {
+            headers: { 'Content-Type': 'application/json' },
+          })
+          .then((res) => {
             logger.warn('User deleted from bridge');
             next(null, res);
-          }).catch((err) => {
+          })
+          .catch((err) => {
             logger.error('Error user deleted from bridge: %s', err.message);
             next(err.response.data.error || err.message);
           });
       },
       (data, next) => {
         userEmail = data.data.email;
-        Model.users.findOne({ where: { username: { [Op.eq]: userEmail } } }).then(async (user) => {
-          if (!user) {
-            return;
-          }
-
-          try {
-            // DELETE FOREIGN KEYS (not cascade)
-            user.root_folder_id = null;
-            await user.save();
-            const keys = await user.getKeyserver();
-            if (keys) { await keys.destroy(); }
-
-            const appSumo = await user.getAppSumo();
-            if (appSumo) { await appSumo.destroy(); }
-            const usersPhoto = await user.getUsersphoto();
-
-            if (usersPhoto) {
-              const photos = await usersPhoto.getPhotos();
-              const photoIds = photos.map((x) => x.id);
-              if (photoIds.length > 0) {
-                await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
-                await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
-              }
-
-              await usersPhoto.destroy();
+        Model.users
+          .findOne({ where: { username: { [Op.eq]: userEmail } } })
+          .then(async (user) => {
+            if (!user) {
+              return;
             }
 
-            await Model.backup.destroy({ where: { userId: user.id } });
-            await Model.device.destroy({ where: { userId: user.id } });
+            try {
+              // DELETE FOREIGN KEYS (not cascade)
+              user.root_folder_id = null;
+              await user.save();
+              const keys = await user.getKeyserver();
+              if (keys) {
+                await keys.destroy();
+              }
 
-            await user.destroy();
-            logger.info('User deactivation, remove on sql: %s', userEmail);
-          } catch (err) {
-            const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
-            logger.error('ERROR deactivation, user %s renamed to: %s. Reason: %s', user.email, tempUsername, err.message);
-            user.email = tempUsername;
-            user.username = tempUsername;
-            user.bridgeUser = tempUsername;
-            await user.save();
-          }
+              const appSumo = await user.getAppSumo();
+              if (appSumo) {
+                await appSumo.destroy();
+              }
+              const usersPhoto = await user.getUsersphoto();
 
-          AnalyticsService.trackDeactivationConfirmed(user.uuid);
+              if (usersPhoto) {
+                const photos = await usersPhoto.getPhotos();
+                const photoIds = photos.map((x) => x.id);
+                if (photoIds.length > 0) {
+                  await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
+                  await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
+                }
 
-          next();
-        }).catch(next);
-      }
+                await usersPhoto.destroy();
+              }
+
+              await Model.backup.destroy({ where: { userId: user.id } });
+              await Model.device.destroy({ where: { userId: user.id } });
+
+              await user.destroy();
+              logger.info('User deactivation, remove on sql: %s', userEmail);
+            } catch (err) {
+              const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
+              logger.error(
+                'ERROR deactivation, user %s renamed to: %s. Reason: %s',
+                user.email,
+                tempUsername,
+                err.message,
+              );
+              user.email = tempUsername;
+              user.username = tempUsername;
+              user.bridgeUser = tempUsername;
+              await user.save();
+            }
+
+            AnalyticsService.trackDeactivationConfirmed(user.uuid);
+
+            next();
+          })
+          .catch(next);
+      },
     ]);
   };
 
@@ -251,11 +289,14 @@ module.exports = (Model, App) => {
   const Delete2FA = (user) => Model.users.update({ secret_2FA: null }, { where: { username: { [Op.eq]: user } } });
 
   const updatePrivateKey = (user, privateKey) => {
-    return Model.keyserver.update({
-      private_key: privateKey
-    }, {
-      where: { user_id: { [Op.eq]: user.id } }
-    });
+    return Model.keyserver.update(
+      {
+        private_key: privateKey,
+      },
+      {
+        where: { user_id: { [Op.eq]: user.id } },
+      },
+    );
   };
 
   const UpdatePasswordMnemonic = async (user, currentPassword, newPassword, newSalt, mnemonic, privateKey) => {
@@ -264,13 +305,16 @@ module.exports = (Model, App) => {
       throw Error('Invalid password');
     }
 
-    await Model.users.update({
-      password: newPassword,
-      mnemonic,
-      hKey: newSalt
-    }, {
-      where: { username: { [Op.eq]: user.email } }
-    });
+    await Model.users.update(
+      {
+        password: newPassword,
+        mnemonic,
+        hKey: newSalt,
+      },
+      {
+        where: { username: { [Op.eq]: user.email } },
+      },
+    );
 
     await updatePrivateKey(user, privateKey);
   };
@@ -293,9 +337,13 @@ module.exports = (Model, App) => {
     }
   };
 
-  const LoginFailed = (user, loginFailed) => Model.users.update({
-    errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0
-  }, { where: { username: user } });
+  const LoginFailed = (user, loginFailed) =>
+    Model.users.update(
+      {
+        errorLoginCount: loginFailed ? sequelize.literal('error_login_count + 1') : 0,
+      },
+      { where: { username: user } },
+    );
 
   const ResendActivationEmail = (user) => axios.post(`${process.env.STORJ_BRIDGE}/activations`, { email: user });
 
@@ -318,10 +366,14 @@ module.exports = (Model, App) => {
     return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
   };
 
-  const GetUserBucket = (userObject) => Model.folder.findOne({
-    where: { id: { [Op.eq]: userObject.root_folder_id } },
-    attributes: ['bucket']
-  }).then((folder) => folder.bucket).catch(() => null);
+  const GetUserBucket = (userObject) =>
+    Model.folder
+      .findOne({
+        where: { id: { [Op.eq]: userObject.root_folder_id } },
+        attributes: ['bucket'],
+      })
+      .then((folder) => folder.bucket)
+      .catch(() => null);
 
   const UpdateUserSync = async (user, toNull) => {
     let sync = null;
@@ -376,7 +428,7 @@ module.exports = (Model, App) => {
       email,
       username: email,
       bridgeUser: email,
-      credit: 0
+      credit: 0,
     });
 
     if (!userData) {
@@ -416,7 +468,7 @@ module.exports = (Model, App) => {
       appSumoDetails: null,
       hasReferralsProgram: true,
       backupsBucket: userData.backupsBucket,
-      referralCode: userData.referralCode
+      referralCode: userData.referralCode,
     };
 
     try {
@@ -459,7 +511,7 @@ module.exports = (Model, App) => {
       where: { user_id: targetUser.id },
       include: [{ model: Model.file, attributes: [] }],
       attributes: [[fn('sum', col('size')), 'total']],
-      raw: true
+      raw: true,
     });
 
     const driveUsage = usage[0].total;
@@ -474,25 +526,34 @@ module.exports = (Model, App) => {
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },
       attributes: [[fn('sum', col('size')), 'total']],
-      raw: true
+      raw: true,
     });
 
     const backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
 
     return {
-      total: driveUsage + photosUsage + backupsUsage, _id: user.email, photos: photosUsage, drive: driveUsage || 0, backups: backupsUsage
+      total: driveUsage + photosUsage + backupsUsage,
+      _id: user.email,
+      photos: photosUsage,
+      drive: driveUsage || 0,
+      backups: backupsUsage,
     };
   };
 
   const UpdateUserStorage = async (email, maxSpaceBytes) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
-    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
-      email, bytes: parseInt(maxSpaceBytes, 10)
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    });
+    return axios.post(
+      `${process.env.STORJ_BRIDGE}/gateway/upgrade`,
+      {
+        email,
+        bytes: parseInt(maxSpaceBytes, 10),
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+      },
+    );
   };
 
   const CreateStaggingUser = async (email) => {
@@ -519,16 +580,14 @@ module.exports = (Model, App) => {
       registerCompleted: false,
       username: email,
       sharedWorkspace: false,
-      bridgeUser: email
+      bridgeUser: email,
     };
 
     const user = await FindOrCreate(userObject);
     return user;
   };
 
-  const invite = async ({
-    inviteEmail, hostEmail, hostFullName, hostReferralCode
-  }) => {
+  const invite = async ({ inviteEmail, hostEmail, hostFullName, hostReferralCode }) => {
     const userToInvite = await Model.users.findOne({ where: { email: inviteEmail } });
 
     if (userToInvite) {
@@ -536,7 +595,10 @@ module.exports = (Model, App) => {
     }
 
     await mailService.sendInviteFriendMail(inviteEmail, {
-      inviteEmail, hostEmail, hostFullName, registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`
+      inviteEmail,
+      hostEmail,
+      hostFullName,
+      registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
     });
   };
 
@@ -561,7 +623,6 @@ module.exports = (Model, App) => {
     user.registerCompleted = true;
     user.sharedWorkspace = false;
     return user.save();
-
   };
 
   return {
@@ -591,6 +652,6 @@ module.exports = (Model, App) => {
     getUsage,
     updateKeys,
     recoverPassword,
-    invite
+    invite,
   };
 };

@@ -21,7 +21,7 @@ class BridgeController {
   async getLimit(req: Request, res: Response) {
     const { bridgeUser, userId: bridgePass } = (req as AuthorizedRequest).user;
 
-    const limit = await this.service.Limit.getLimit(bridgeUser, bridgePass); 
+    const limit = await this.service.Limit.getLimit(bridgeUser, bridgePass);
 
     res.status(200).send(limit);
   }

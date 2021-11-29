@@ -66,9 +66,7 @@ export default class Server {
   }
 
   handleSIGINT() {
-    this.logger.info(
-      'Server received shutdown request, waiting for pending requests'
-    );
+    this.logger.info('Server received shutdown request, waiting for pending requests');
     this.instance?.close(() => {
       this.logger.info('Finished all requests');
       process.exitCode = 0;

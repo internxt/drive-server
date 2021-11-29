@@ -6,7 +6,7 @@ import { Location, User } from './types';
 // PROVISIONAL until express server typescript
 import express from 'express';
 
-const deviceDetector = new DeviceDetector;
+const deviceDetector = new DeviceDetector();
 
 export function logError(err: unknown) {
   if (err instanceof Error) {
@@ -38,24 +38,24 @@ function getDeviceContext(req: express.Request) {
         version: deviceDetected.os.version,
         name: deviceDetected.os.name,
         short_name: deviceDetected.os.short_name,
-        family: deviceDetected.os.family
+        family: deviceDetected.os.family,
       };
       const device = {
         type: deviceDetected.device.type,
         manufacturer: deviceDetected.device.brand,
         model: deviceDetected.device.model,
         brand: deviceDetected.device.brand,
-        brand_id: deviceDetected.device.id
+        brand_id: deviceDetected.device.id,
       };
       const client = deviceDetected.client;
 
       deviceContext = {
         os,
         device,
-        client
+        client,
       };
     }
-  } catch(err) {
+  } catch (err) {
     logError(err);
   }
 
@@ -70,7 +70,7 @@ export async function getContext(req: express.Request) {
 
   const app = {
     name: req.headers['internxt-client'],
-    version: req.headers['internxt-version']
+    version: req.headers['internxt-version'],
   };
 
   const deviceContext = getDeviceContext(req);
@@ -82,7 +82,7 @@ export async function getContext(req: express.Request) {
     location,
     userAgent: req.headers['user-agent'],
     locale: { language: req.headers['accept-language'] },
-    ...deviceContext
+    ...deviceContext,
   };
 
   return context;
@@ -93,8 +93,8 @@ function getUTM(referrer: any) {
   if (typeof referrer === 'string') {
     const { searchParams } = new URL(referrer);
     const UTMS = ['utm_name', 'utm_source', 'utm_medium', 'utm_content'];
-    UTMS.map(utm => {
-      if(searchParams.has(utm)) {
+    UTMS.map((utm) => {
+      if (searchParams.has(utm)) {
         campaign[utm] = searchParams.get(utm);
       }
     });
@@ -106,7 +106,7 @@ export function getAppsumoAffiliate(user: User) {
   const { appsumoDetails } = user;
   if (appsumoDetails) {
     return {
-      affiliate_name: 'appsumo'
+      affiliate_name: 'appsumo',
     };
   }
   return false;
@@ -116,7 +116,7 @@ export function getAffiliate(referrer: any) {
   const affiliate = Object.create({});
   if (typeof referrer === 'string') {
     const { searchParams } = new URL(referrer);
-    if(searchParams.has('irclickid')) {
+    if (searchParams.has('irclickid')) {
       affiliate.affiliate_id = searchParams.get('irclickid');
       affiliate.affiliate_name = 'impact';
     }
@@ -137,13 +137,13 @@ export async function getLocation(ipaddress: string): Promise<Location> {
     if (!location) {
       throw Error('No location available');
     }
-  } catch(err) {
+  } catch (err) {
     throw new Error(getErrorMessage(err));
   }
   return {
     country: location.country,
     region: location.region,
     city: location.city,
-    timezone: location.timezone
+    timezone: location.timezone,
   };
 }

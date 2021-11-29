@@ -9,21 +9,12 @@ const logger = Logger.getInstance();
 
 module.exports = (Router, Service, App) => {
   Router.patch('/user/password', passportAuth, (req, res) => {
-    const currentPassword = App.services.Crypt.decryptText(
-      req.body.currentPassword
-    );
+    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
     const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
     const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
     const { mnemonic, privateKey } = req.body;
 
-    Service.User.UpdatePasswordMnemonic(
-      req.user,
-      currentPassword,
-      newPassword,
-      newSalt,
-      mnemonic,
-      privateKey
-    )
+    Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey)
       .then(() => {
         res.status(200).send({});
       })
@@ -39,13 +30,7 @@ module.exports = (Router, Service, App) => {
     // Old data, but re-encrypted
     const { mnemonic: oldMnemonic, privateKey: oldPrivateKey } = req.body;
 
-    Service.User.recoverPassword(
-      req.user,
-      newPassword,
-      newSalt,
-      oldMnemonic,
-      oldPrivateKey
-    )
+    Service.User.recoverPassword(req.user, newPassword, newSalt, oldMnemonic, oldPrivateKey)
       .then(() => {
         res.status(200).send({});
       })
@@ -98,10 +83,7 @@ module.exports = (Router, Service, App) => {
         res.status(200).send({ message: 'ok' });
       })
       .catch((err) => {
-        logger.error(
-          'Resend activation email error %s',
-          err ? err.message : err
-        );
+        logger.error('Resend activation email error %s', err ? err.message : err);
         res.status(500).send({
           error:
             err.response && err.response.data && err.response.data.error
@@ -114,8 +96,7 @@ module.exports = (Router, Service, App) => {
   Router.post('/user/invite', passportAuth, async (req, res) => {
     const inviteEmail = req.body.email;
     const { user } = req;
-    const hostFullName =
-      user.name && user.name + (user.lastname ? ` ${user.lastname}` : '');
+    const hostFullName = user.name && user.name + (user.lastname ? ` ${user.lastname}` : '');
 
     try {
       if (!inviteEmail) {
@@ -133,17 +114,11 @@ module.exports = (Router, Service, App) => {
         hostReferralCode: user.referralCode,
       });
 
-      res
-        .status(200)
-        .send({ message: `Internxt invitation sent to ${inviteEmail}` });
+      res.status(200).send({ message: `Internxt invitation sent to ${inviteEmail}` });
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
     } catch (err) {
-      logger.error(
-        'Error inviting user with email %s: %s',
-        inviteEmail,
-        err ? err.message : err
-      );
+      logger.error('Error inviting user with email %s: %s', inviteEmail, err ? err.message : err);
       res.status((err && err.status) || 500).send({
         error: err ? err.message : err,
       });
@@ -175,11 +150,7 @@ module.exports = (Router, Service, App) => {
         res.status(200).send({ token, user });
       })
       .catch((err) => {
-        logger.error(
-          'Error during Update for user %s: %s',
-          req.user.email,
-          err.message
-        );
+        logger.error('Error during Update for user %s: %s', req.user.email, err.message);
         res.status(500).send({ error: err.message });
       });
   });

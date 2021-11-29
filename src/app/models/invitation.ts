@@ -1,11 +1,11 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface InvitationAttributes {
-  id: number
-  host: number
-  guest: number
-  inviteId: string
-  accepted: boolean
+  id: number;
+  host: number;
+  guest: number;
+  inviteId: string;
+  accepted: boolean;
 }
 
 export type InvitationModel = ModelDefined<InvitationAttributes, InvitationAttributes>;
@@ -18,39 +18,39 @@ export default (database: Sequelize): InvitationModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       host: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
+          key: 'id',
         },
-        allowNull: false
+        allowNull: false,
       },
       guest: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
+          key: 'id',
         },
-        allowNull: false
+        allowNull: false,
       },
       inviteId: {
         type: DataTypes.STRING(216),
-        allowNull: false
+        allowNull: false,
       },
       accepted: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false
-      }
+        defaultValue: false,
+      },
     },
     {
       timestamps: true,
       underscored: true,
-      tableName: 'invitations'
-    }
+      tableName: 'invitations',
+    },
   );
 
   return Invitation;

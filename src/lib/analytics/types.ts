@@ -6,37 +6,37 @@ export interface Location {
 }
 
 interface App {
-    name?: string,
-    version?: string
+  name?: string;
+  version?: string;
 }
 
 interface Campaign {
-  name?: string,
-    source?: string,
-    medium?: string,
-    term?: string,
-    content?: string
+  name?: string;
+  source?: string;
+  medium?: string;
+  term?: string;
+  content?: string;
 }
 
 export interface Context {
-  app: App,
-  campaign?: Campaign,
-  ip: string,
-  location?: Location,
-  userAgent: string,
-  locale: string
+  app: App;
+  campaign?: Campaign;
+  ip: string;
+  location?: Location;
+  userAgent: string;
+  locale: string;
 }
 
 export interface User {
-  uuid: string,
-  appsumoDetails: boolean,
-  sharedWorkspace: boolean,
-  name: string,
-  lastname: string
+  uuid: string;
+  appsumoDetails: boolean;
+  sharedWorkspace: boolean;
+  name: string;
+  lastname: string;
 }
 
 export interface ReqUser {
-  user: { uuid: string }
+  user: { uuid: string };
 }
 
 export enum TrackName {
@@ -50,5 +50,5 @@ export enum TrackName {
   ShareLinkCopied = 'Share Link Copied',
   FileDeleted = 'File Deleted',
   SharedLinkItemDownloaded = 'Shared Link Downloaded',
-  DownloadCompleted = 'Download Completed'
+  DownloadCompleted = 'Download Completed',
 }

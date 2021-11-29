@@ -10,7 +10,7 @@ import DesktopRoutes from './desktop';
 import MobileRoutes from './mobile';
 import TwoFactorRoutes from './twofactor';
 import AppSumoRoutes from './appsumo';
-import PlanRoutes from'./plan';
+import PlanRoutes from './plan';
 import PhotosRoutes from './photos';
 import ShareRoutes from './share';
 import BackupsRoutes from './backup';
@@ -104,7 +104,7 @@ export default (router: Router, service: any, App: any): Router => {
         secret: userData.secret_2FA,
         token: req.body.tfa,
         encoding: 'base32',
-        window: 2
+        window: 2,
       });
 
       if (!tfaResult) {
@@ -149,8 +149,13 @@ export default (router: Router, service: any, App: any): Router => {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: appSumoDetails || null,
-      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(userData.id, userData.email, userData.bridgeUser, userData.userId),
-      backupsBucket: userData.backupsBucket
+      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
+        userData.id,
+        userData.email,
+        userData.bridgeUser,
+        userData.userId,
+      ),
+      backupsBucket: userData.backupsBucket,
     };
 
     const userTeam = null;
@@ -179,9 +184,11 @@ export default (router: Router, service: any, App: any): Router => {
     const userBucket = await service.User.GetUserBucket(userData);
 
     const internxtClient = req.headers['internxt-client'];
-    const token = Sign(userData.email,
+    const token = Sign(
+      userData.email,
       App.config.get('secrets').JWT,
-      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web');
+      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web',
+    );
 
     const hasTeams = !!(await service.Team.getTeamByMember(userData.email));
     const appSumoDetails = await service.AppSumo.GetDetails(userData.id).catch(() => null);
@@ -206,8 +213,13 @@ export default (router: Router, service: any, App: any): Router => {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: appSumoDetails || null,
-      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(userData.id, userData.email, userData.bridgeUser, userData.userId),
-      backupsBucket: userData.backupsBucket
+      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
+        userData.id,
+        userData.email,
+        userData.bridgeUser,
+        userData.userId,
+      ),
+      backupsBucket: userData.backupsBucket,
     };
 
     res.status(200).json({ user, token });
@@ -227,7 +239,7 @@ export default (router: Router, service: any, App: any): Router => {
 
   router.post('/initialize', async (req, res) => {
     const userData: any = await service.User.InitializeUser(req.body);
-    
+
     if (!userData.root_folder_id) {
       throw createHttpError(500, 'Account can not be initialized');
     }
@@ -236,14 +248,18 @@ export default (router: Router, service: any, App: any): Router => {
       email: userData.email,
       bucket: userData.bucket,
       mnemonic: userData.mnemonic,
-      root_folder_id: userData.root_folder_id
+      root_folder_id: userData.root_folder_id,
     };
 
     try {
       (await service.Folder.Create(userData, 'Family', user.root_folder_id)).save();
       (await service.Folder.Create(userData, 'Personal', user.root_folder_id)).save();
     } catch (err) {
-      Logger.error('[/initialize]: ERROR initializing welcome folders for user %s: %s', userData.email, (err as Error).message);
+      Logger.error(
+        '[/initialize]: ERROR initializing welcome folders for user %s: %s',
+        userData.email,
+        (err as Error).message,
+      );
     } finally {
       res.status(200).send({ user });
     }

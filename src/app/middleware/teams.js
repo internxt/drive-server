@@ -25,5 +25,5 @@ const build = (Service) => async (req, res, next) => {
 };
 
 module.exports = {
-  build
+  build,
 };

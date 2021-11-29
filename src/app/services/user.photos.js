@@ -15,116 +15,127 @@ module.exports = (Model, App) => {
       throw Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) => Model.users.findOrCreate({
-      where: { username: user.email },
-      defaults: {
-        name: user.name,
-        lastname: user.lastname,
-        password: userPass,
-        mnemonic: user.mnemonic,
-        hKey: userSalt,
-        referral: user.referral,
-        uuid: null,
-        referred: user.referred,
-        credit: user.credit,
-        welcomePack: false
-      },
-      transaction: t
-    }).then(async ([userResult, isNewRecord]) => {
-      if (isNewRecord) {
-        if (user.publicKey && user.privateKey && user.revocationKey) {
-          Model.keyserver.findOrCreate({
-            where: { user_id: userResult.id },
-            defaults: {
-              user_id: user.id,
-              private_key: user.privateKey,
-              public_key: user.publicKey,
-              revocation_key: user.revocationKey,
-              encrypt_version: null
-            },
-            transaction: t
-          });
-        }
+    return Model.users.sequelize.transaction(async (t) =>
+      Model.users
+        .findOrCreate({
+          where: { username: user.email },
+          defaults: {
+            name: user.name,
+            lastname: user.lastname,
+            password: userPass,
+            mnemonic: user.mnemonic,
+            hKey: userSalt,
+            referral: user.referral,
+            uuid: null,
+            referred: user.referred,
+            credit: user.credit,
+            welcomePack: false,
+          },
+          transaction: t,
+        })
+        .then(async ([userResult, isNewRecord]) => {
+          if (isNewRecord) {
+            if (user.publicKey && user.privateKey && user.revocationKey) {
+              Model.keyserver.findOrCreate({
+                where: { user_id: userResult.id },
+                defaults: {
+                  user_id: user.id,
+                  private_key: user.privateKey,
+                  public_key: user.publicKey,
+                  revocation_key: user.revocationKey,
+                  encrypt_version: null,
+                },
+                transaction: t,
+              });
+            }
 
-        // Create bridge pass using email (because id is unconsistent)
-        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+            // Create bridge pass using email (because id is unconsistent)
+            const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
 
-        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
+            const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
 
-        if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
-          throw Error(bridgeUser.response.data.error);
-        }
+            if (bridgeUser && bridgeUser.response && bridgeUser.response.status === 500) {
+              throw Error(bridgeUser.response.data.error);
+            }
 
-        if (!bridgeUser.data) {
-          throw Error('Error creating bridge user');
-        }
+            if (!bridgeUser.data) {
+              throw Error('Error creating bridge user');
+            }
 
-        Logger.info('User Service | created brigde user: %s', userResult.email);
+            Logger.info('User Service | created brigde user: %s', userResult.email);
 
-        // Store bcryptid on user register
-        await userResult.update({
-          userId: bcryptId,
-          uuid: bridgeUser.data.uuid
-        }, { transaction: t });
+            // Store bcryptid on user register
+            await userResult.update(
+              {
+                userId: bcryptId,
+                uuid: bridgeUser.data.uuid,
+              },
+              { transaction: t },
+            );
 
-        // Set created flag for Frontend management
-        Object.assign(userResult, { isNewRecord });
-      }
+            // Set created flag for Frontend management
+            Object.assign(userResult, { isNewRecord });
+          }
 
-      // TODO: proveriti userId kao pass
-      return userResult;
-    }).catch((err) => {
-      if (err.response) {
-        // This happens when email is registered in bridge
-        Logger.error(err.response.data);
-      } else {
-        Logger.error(err.stack);
-      }
+          // TODO: proveriti userId kao pass
+          return userResult;
+        })
+        .catch((err) => {
+          if (err.response) {
+            // This happens when email is registered in bridge
+            Logger.error(err.response.data);
+          } else {
+            Logger.error(err.stack);
+          }
 
-      throw Error(err);
-    })); // end transaction
+          throw Error(err);
+        }),
+    ); // end transaction
   };
 
   /**
    * If not exists user on Photos database, creates a new photos user entry.
    */
   const UserPhotosFindOrCreate = (newUser) => {
-    return Model.usersphotos.sequelize.transaction(async () => Model.usersphotos
-      .findOrCreate({
-        where: { user_id: newUser.id },
-        defaults: {
-          userId: newUser.id,
-          rootAlbumId: null,
-          rootPreviewId: null
-        }
-      })
-      .then(async (userResult, created) => {
-        if (created) {
-          // Set created flag for Frontend management
-          Object.assign(userResult, { isCreated: created });
-        }
-        return userResult;
-      })
-      .catch((err) => {
-        if (err.response) {
-          // This happens when email is registered in bridge
-          Logger.error(err.response.data);
-        } else {
-          Logger.error(err.stack);
-        }
+    return Model.usersphotos.sequelize.transaction(async () =>
+      Model.usersphotos
+        .findOrCreate({
+          where: { user_id: newUser.id },
+          defaults: {
+            userId: newUser.id,
+            rootAlbumId: null,
+            rootPreviewId: null,
+          },
+        })
+        .then(async (userResult, created) => {
+          if (created) {
+            // Set created flag for Frontend management
+            Object.assign(userResult, { isCreated: created });
+          }
+          return userResult;
+        })
+        .catch((err) => {
+          if (err.response) {
+            // This happens when email is registered in bridge
+            Logger.error(err.response.data);
+          } else {
+            Logger.error(err.stack);
+          }
 
-        throw Error(err);
-      })); // end transaction
+          throw Error(err);
+        }),
+    ); // end transaction
   };
 
   const GetUserById = (id) => Model.usersPhotos.findOne({ where: { id: { [Op.eq]: id } } });
 
   const FindUserById = (id) => Model.usersphotos.findOne({ where: { userId: { [Op.eq]: id } } });
 
-  const FindUserByEmail = (email) => Model.users.findOne({
-    where: { username: { [Op.eq]: email } },
-    include: [{ model: Model.usersphotos }]
-  });
+  const FindUserByEmail = (email) =>
+    Model.users.findOne({
+      where: { username: { [Op.eq]: email } },
+      include: [{ model: Model.usersphotos }],
+    });
 
   const FindUserByUuid = (userUuid) => Model.users.findOne({ where: { uuid: { [Op.eq]: userUuid } } });
 
@@ -138,6 +149,6 @@ module.exports = (Model, App) => {
     FindUserById,
     FindUserByEmail,
     FindUserByUuid,
-    GetUserRootAlbum
+    GetUserRootAlbum,
   };
 };

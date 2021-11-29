@@ -25,8 +25,8 @@ module.exports = (Router, Service) => {
         res.status(200).send(results);
       })
       .catch((err) => {
-        if (err.name === 'NOT_FOUND') { 
-          return res.status(404).send({ error: err.message }); 
+        if (err.name === 'NOT_FOUND') {
+          return res.status(404).send({ error: err.message });
         }
         res.status(500).send({ error: err.message });
 
@@ -49,13 +49,17 @@ module.exports = (Router, Service) => {
   Router.patch('/backup/device/:deviceId', passportAuth, (req, res) => {
     const { deviceId } = req.params;
     const { deviceName } = req.body;
-    if (!deviceName) { res.status(400).send({ error: 'Device name cant be empty' }); }
+    if (!deviceName) {
+      res.status(400).send({ error: 'Device name cant be empty' });
+    }
     Service.Backup.updateDevice(req.user.id, deviceId, deviceName)
       .then((results) => {
         res.status(200).send(results);
       })
       .catch((err) => {
-        if (err.name === 'NOT_FOUND') { res.status(404).send({ error: err.message }); } else res.status(500).send({ error: err.message });
+        if (err.name === 'NOT_FOUND') {
+          res.status(404).send({ error: err.message });
+        } else res.status(500).send({ error: err.message });
       });
   });
 
@@ -64,9 +68,7 @@ module.exports = (Router, Service) => {
     const { mac } = req.params;
 
     if (!deviceName) {
-      return res
-        .status(400)
-        .send({ message: 'deviceName must be present in the body' });
+      return res.status(400).send({ message: 'deviceName must be present in the body' });
     }
 
     return Service.Backup.createDevice(req.user.id, mac, deviceName, platform)
@@ -81,20 +83,11 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/backup', passportAuth, (req, res) => {
-    const {
-      deviceId, path, encryptVersion, interval, enabled
-    } = req.body;
+    const { deviceId, path, encryptVersion, interval, enabled } = req.body;
 
-    if (
-      !deviceId
-      || !path
-      || !encryptVersion
-      || !interval
-      || enabled === undefined
-    ) {
+    if (!deviceId || !path || !encryptVersion || !interval || enabled === undefined) {
       return res.status(400).send({
-        message:
-          'deviceId, path, interval, encryptVersion and enabled must be present in the body'
+        message: 'deviceId, path, interval, encryptVersion and enabled must be present in the body',
       });
     }
 
@@ -104,7 +97,7 @@ module.exports = (Router, Service) => {
       deviceId,
       encryptVersion,
       interval,
-      enabled
+      enabled,
     })
       .then((result) => res.status(200).send(result))
       .catch((err) => res.status(500).send({ error: err.message }));
@@ -133,15 +126,7 @@ module.exports = (Router, Service) => {
 
     const { id: userId } = req.user;
 
-    const expectedProperties = [
-      'fileId',
-      'hash',
-      'interval',
-      'lastBackupAt',
-      'enabled',
-      'path',
-      'size'
-    ];
+    const expectedProperties = ['fileId', 'hash', 'interval', 'lastBackupAt', 'enabled', 'path', 'size'];
 
     const bodyFiltered = Object.keys(req.body)
       .filter((key) => expectedProperties.includes(key))
@@ -152,8 +137,7 @@ module.exports = (Router, Service) => {
 
     if (Object.keys(bodyFiltered).length === 0) {
       return res.status(400).send({
-        message:
-          `At least one of these properties (${expectedProperties.join(', ')}) must be present in the body`
+        message: `At least one of these properties (${expectedProperties.join(', ')}) must be present in the body`,
       });
     }
 
@@ -170,13 +154,11 @@ module.exports = (Router, Service) => {
     const { interval } = req.body;
 
     if (!interval) {
-      return res
-        .status(400)
-        .send({ message: 'interval must be present in the body' });
+      return res.status(400).send({ message: 'interval must be present in the body' });
     }
 
     return Service.Backup.updateManyOfDevice(userId, deviceId, {
-      interval
+      interval,
     })
       .then(() => res.status(200).send())
       .catch((err) => res.status(500).send({ error: err.message }));

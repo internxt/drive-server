@@ -14,23 +14,18 @@ const logger = Logger.getInstance();
  * @param next Express NextFunction
  * @returns
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function errorHandler(
   err: Error & { status?: number; message?: string; expose?: boolean },
   req: Request & { user?: UserAttributes },
   res: Response,
-  next: NextFunction
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  next: NextFunction,
 ) {
   const { path, user } = req;
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
   if (user) {
-    logger.error(
-      '[%s]: ERROR for user %s: %s',
-      handlerPath,
-      user.email,
-      err.message
-    );
+    logger.error('[%s]: ERROR for user %s: %s', handlerPath, user.email, err.message);
   } else {
     logger.error('[%s]: ERROR: %s', handlerPath, err.message);
   }

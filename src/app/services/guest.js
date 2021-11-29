@@ -11,7 +11,7 @@ const APPSUMO_TIER_LIMITS = {
   internxt_tier2: 5,
   internxt_tier3: 10,
   internxt_tier4: 25,
-  internxt_tier5: 100
+  internxt_tier5: 100,
 };
 
 module.exports = (Model, App) => {
@@ -28,8 +28,7 @@ module.exports = (Model, App) => {
   };
 
   const hasUnlimitedMembers = (userId) => {
-    return Model.plan.findOne({ where: { userId, name: 'unlimited_members' } })
-      .then((plan) => (!!plan));
+    return Model.plan.findOne({ where: { userId, name: 'unlimited_members' } }).then((plan) => !!plan);
   };
 
   const inviteMembersLimit = async (userId) => {
@@ -79,8 +78,8 @@ module.exports = (Model, App) => {
     const invitation = await Model.Invitation.findOne({
       where: {
         host: host.id,
-        guest: guest.id
-      }
+        guest: guest.id,
+      },
     });
 
     if (invitation) {
@@ -103,7 +102,7 @@ module.exports = (Model, App) => {
     return Model.Invitation.create({
       host: host.id,
       guest: guest.id,
-      inviteId: key
+      inviteId: key,
     });
   };
 
@@ -143,6 +142,6 @@ module.exports = (Model, App) => {
     Name: 'Guest',
     getHost,
     invite,
-    acceptInvitation
+    acceptInvitation,
   };
 };

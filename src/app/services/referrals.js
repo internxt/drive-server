@@ -1,14 +1,13 @@
 module.exports = (Model) => {
   const create = async (data) => {
-    return Model.referrals
-      .create({
-        key: data.key,
-        type: data.type,
-        credit: data.credit,
-        steps: data.steps,
-        start_date: data.start_date,
-        expiration_date: data.expiration_date
-      });
+    return Model.referrals.create({
+      key: data.key,
+      type: data.type,
+      credit: data.credit,
+      steps: data.steps,
+      start_date: data.start_date,
+      expiration_date: data.expiration_date,
+    });
   };
 
   const getAllEnabled = () => {
@@ -23,6 +22,6 @@ module.exports = (Model) => {
     Name: 'Referrals',
     create,
     getAllEnabled,
-    getByKey
+    getByKey,
   };
 };

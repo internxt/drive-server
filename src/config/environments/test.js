@@ -1,21 +1,23 @@
 exports.data = {
   server: {
-    port: 3007
+    port: 3007,
   },
   database: {
     name: 'drive_test',
     user: 'developer',
     password: 'asdf1234',
-    host: 'localhost'
+    host: 'localhost',
   },
   secrets: {
     JWT: 'asdf1234',
     CRYPTO_SECRET: 'asdf1234',
     MAGIC_IV: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-    MAGIC_SALT: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+    MAGIC_SALT:
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\
+      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   },
   logger: {
-    level: 0
+    level: 0,
   },
-  STORJ_BRIDGE: 'http://localhost:6382'
+  STORJ_BRIDGE: 'http://localhost:6382',
 };

@@ -9,16 +9,18 @@ module.exports = (Model, App) => {
     const pwdHash = cryptService.hashSha256(pwd);
     const credential = Buffer.from(`${userEmail}:${pwdHash}`).toString('base64');
 
-    return axios.get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
-    }).then((response) => response.data);
+    return axios
+      .get(`${App.config.get('STORJ_BRIDGE')}/limit`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Basic ${credential}`,
+        },
+      })
+      .then((response) => response.data);
   };
 
   return {
     Name: 'Limit',
-    getLimit
+    getLimit,
   };
 };

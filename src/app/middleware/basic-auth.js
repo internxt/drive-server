@@ -10,5 +10,5 @@ const build = (user, pass) => (req, res, next) => {
 };
 
 module.exports = {
-  build
+  build,
 };

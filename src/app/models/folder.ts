@@ -1,12 +1,12 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface FolderAttributes {
-  id: number
-  parentId: number
-  name: string
-  bucket: string
-  userId: number
-  encryptVersion: string
+  id: number;
+  parentId: number;
+  name: string;
+  bucket: string;
+  userId: number;
+  encryptVersion: string;
 }
 
 export type FolderModel = ModelDefined<FolderAttributes, FolderAttributes>;
@@ -19,37 +19,37 @@ export default (database: Sequelize): FolderModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       parentId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'folders',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       name: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       bucket: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING(24),
       },
       user_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       encrypt_version: {
-        type: DataTypes.STRING
-      }
+        type: DataTypes.STRING,
+      },
     },
     {
       timestamps: true,
       underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }]
-    }
+      indexes: [{ name: 'name', fields: ['name'] }],
+    },
   );
 
   return Folder;

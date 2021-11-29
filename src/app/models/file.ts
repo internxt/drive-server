@@ -1,22 +1,22 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface FileAttributes {
-  id: number
-  fileId: string
-  name: string
-  type: string
-  size: number
-  bucket: string
-  folderId: number
-  createdAt: Date,
-  encryptVersion: string
-  deleted: boolean
-  deletedAt: Date,
-  userId: number,
-  modificationTime: Date
+  id: number;
+  fileId: string;
+  name: string;
+  type: string;
+  size: number;
+  bucket: string;
+  folderId: number;
+  createdAt: Date;
+  encryptVersion: string;
+  deleted: boolean;
+  deletedAt: Date;
+  userId: number;
+  modificationTime: Date;
 }
 
-export type FileModel = ModelDefined<FileAttributes, FileAttributes>
+export type FileModel = ModelDefined<FileAttributes, FileAttributes>;
 
 export default (database: Sequelize): FileModel => {
   const File: FileModel = database.define(
@@ -26,54 +26,54 @@ export default (database: Sequelize): FileModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       fileId: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING(24),
       },
       name: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       type: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       size: {
-        type: DataTypes.BIGINT.UNSIGNED
+        type: DataTypes.BIGINT.UNSIGNED,
       },
       bucket: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING(24),
       },
       folder_id: {
-        type: DataTypes.INTEGER
+        type: DataTypes.INTEGER,
       },
       created_at: {
         type: DataTypes.VIRTUAL,
         get() {
           return this.getDataValue('createdAt');
-        }
+        },
       },
       encrypt_version: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       deleted: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
       },
       deletedAt: {
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
       },
       userId: {
-        type: DataTypes.INTEGER
+        type: DataTypes.INTEGER,
       },
       modificationTime: {
-        type: DataTypes.DATE
-      }
+        type: DataTypes.DATE,
+      },
     },
     {
       timestamps: true,
       underscored: true,
-      indexes: [{ name: 'name', fields: ['name'] }]
-    }
+      indexes: [{ name: 'name', fields: ['name'] }],
+    },
   );
 
   return File;

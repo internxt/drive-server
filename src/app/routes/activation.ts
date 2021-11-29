@@ -12,7 +12,7 @@ type AuthorizedRequest = Request & { user: UserAttributes };
 class ActivationController {
   private service: any;
 
-  constructor (service: any) {
+  constructor(service: any) {
     this.service = service;
   }
 
@@ -37,7 +37,7 @@ class ActivationController {
 
     await this.service.User.ConfirmDeactivateUser(token);
 
-    res.status(200).send((req as (Request & { data: any })).data);
+    res.status(200).send((req as Request & { data: any }).data);
 
     logger.info('[/confirmDeactivation]: Token %s used for deactivation', token);
   }

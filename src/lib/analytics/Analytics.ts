@@ -2,7 +2,6 @@ import AnalyticsSegment from 'analytics-node';
 import { logError } from './utils';
 
 class Analytics {
-
   analytics: AnalyticsSegment;
 
   constructor() {
@@ -12,8 +11,7 @@ class Analytics {
   track(params: any) {
     try {
       this.analytics.track(params);
-    }
-    catch (err: unknown) {
+    } catch (err: unknown) {
       logError(err);
     }
   }
@@ -21,8 +19,7 @@ class Analytics {
   identify(params: any) {
     try {
       this.analytics.identify(params);
-    }
-    catch (err: unknown) {
+    } catch (err: unknown) {
       logError(err);
     }
   }
