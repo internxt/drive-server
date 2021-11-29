@@ -16,7 +16,7 @@ const FREE_PLAN = {
   storageLimit: FREE_PLAN_BYTES,
   paymentInterval: null,
   isLifetime: false,
-  renewalPeriod: ''
+  renewalPeriod: '',
 };
 
 const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
@@ -31,7 +31,7 @@ const lifetimePlanFactory = (maxSpaceBytes, isTeam) => ({
   storageLimit: maxSpaceBytes,
   paymentInterval: null,
   isLifetime: true,
-  renewalPeriod: 'lifetime'
+  renewalPeriod: 'lifetime',
 });
 
 module.exports = (Model, App) => {
@@ -40,11 +40,12 @@ module.exports = (Model, App) => {
 
   const getByUserId = (userId) => Model.plan.findOne({ userId });
   const getByName = (name) => Model.plan.findOne({ name });
-  const create = ({
-    userId, name, type, limit
-  }) => {
+  const create = ({ userId, name, type, limit }) => {
     return Model.plan.create({
-      userId, name, type, limit
+      userId,
+      name,
+      type,
+      limit,
     });
   };
 
@@ -66,12 +67,16 @@ module.exports = (Model, App) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
     return create(newPlan).then(() => {
-      return axios.patch(`${process.env.STORJ_BRIDGE}/gateway/bucket/${bucketId}`, {
-        limit: bucketLimit
-      }, {
-        headers: { 'Content-Type': 'application/json' },
-        auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-      });
+      return axios.patch(
+        `${process.env.STORJ_BRIDGE}/gateway/bucket/${bucketId}`,
+        {
+          limit: bucketLimit,
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+        },
+      );
     });
   };
 
@@ -84,17 +89,14 @@ module.exports = (Model, App) => {
     if (!result) {
       const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
 
-      result = maxSpaceBytes > MAX_FREE_PLAN_BYTES
-        ? lifetimePlanFactory(maxSpaceBytes, false)
-        : FREE_PLAN;
+      result = maxSpaceBytes > MAX_FREE_PLAN_BYTES ? lifetimePlanFactory(maxSpaceBytes, false) : FREE_PLAN;
     }
 
     return result;
   };
 
   const hasBeenIndividualSubscribedAnyTime = async (userEmail, networkUser, networkPass) => {
-    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail))
-      .filter((plan) => !plan.isTeam);
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail)).filter((plan) => !plan.isTeam);
     const { maxSpaceBytes } = await limitService.getLimit(networkUser, networkPass);
     const isLifetime = maxSpaceBytes > MAX_FREE_PLAN_BYTES;
 
@@ -112,11 +114,9 @@ module.exports = (Model, App) => {
     let result = subscriptionPlans[0];
 
     if (!result) {
-      const { maxSpaceBytes } = (await limitService.getLimit(userEmail, userId));
+      const { maxSpaceBytes } = await limitService.getLimit(userEmail, userId);
 
-      result = maxSpaceBytes > FREE_PLAN_BYTES
-        ? lifetimePlanFactory(maxSpaceBytes, true)
-        : FREE_PLAN;
+      result = maxSpaceBytes > FREE_PLAN_BYTES ? lifetimePlanFactory(maxSpaceBytes, true) : FREE_PLAN;
     }
 
     return result;
@@ -133,6 +133,6 @@ module.exports = (Model, App) => {
     getByUserId,
     deleteByUserId,
     createAndSetBucketLimit,
-    hasBeenIndividualSubscribedAnyTime
+    hasBeenIndividualSubscribedAnyTime,
   };
 };

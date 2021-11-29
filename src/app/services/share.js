@@ -13,7 +13,7 @@ module.exports = (Model, App) => {
     const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
 
     const result = await Model.shares.findOne({
-      where: { token: { [Op.eq]: token } }
+      where: { token: { [Op.eq]: token } },
     });
 
     if (!result) {
@@ -27,7 +27,7 @@ module.exports = (Model, App) => {
     }
 
     const file = await Model.file.findOne({
-      where: { fileId: { [Op.eq]: result.file } }
+      where: { fileId: { [Op.eq]: result.file } },
     });
 
     if (!file) {
@@ -41,7 +41,16 @@ module.exports = (Model, App) => {
     return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
-  const GenerateToken = async (user, fileIdInBucket, mnemonic, bucket, encryptionKey, fileToken, isFolder = false, views = 1) => {
+  const GenerateToken = async (
+    user,
+    fileIdInBucket,
+    mnemonic,
+    bucket,
+    encryptionKey,
+    fileToken,
+    isFolder = false,
+    views = 1,
+  ) => {
     if (!encryptionKey) {
       throw Error('Encryption key cannot be empty');
     }
@@ -88,21 +97,36 @@ module.exports = (Model, App) => {
     // Always generate a new token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const tokenData = await Model.shares.findOne({ where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user.email } } });
+    const tokenData = await Model.shares.findOne({
+      where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user.email } },
+    });
 
     if (tokenData) {
       // Update token
       Model.shares.update(
         {
-          token: newToken, mnemonic, isFolder, views, fileToken, encryptionKey
+          token: newToken,
+          mnemonic,
+          isFolder,
+          views,
+          fileToken,
+          encryptionKey,
         },
-        { where: { id: { [Op.eq]: tokenData.id } } }
+        { where: { id: { [Op.eq]: tokenData.id } } },
       );
       return newToken;
     }
 
     const newShare = await Model.shares.create({
-      token: newToken, mnemonic, encryptionKey, file: fileIdInBucket, user: user.email, isFolder, views, bucket, fileToken
+      token: newToken,
+      mnemonic,
+      encryptionKey,
+      file: fileIdInBucket,
+      user: user.email,
+      isFolder,
+      views,
+      bucket,
+      fileToken,
     });
 
     return newShare.token;
@@ -113,17 +137,17 @@ module.exports = (Model, App) => {
       where: {
         user: user.email,
         mnemonic: {
-          [Op.eq]: ''
-        }
+          [Op.eq]: '',
+        },
       },
       include: [
         {
           model: Model.file,
           as: 'fileInfo',
-          where: { userId: user.id }
-        }
+          where: { userId: user.id },
+        },
       ],
-      attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views']
+      attributes: ['token', 'file', 'encryptionKey', 'bucket', 'fileToken', 'isFolder', 'views'],
     });
   };
 
@@ -131,6 +155,6 @@ module.exports = (Model, App) => {
     Name: 'Share',
     get,
     list,
-    GenerateToken
+    GenerateToken,
   };
 };

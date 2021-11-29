@@ -4,8 +4,10 @@ const axios = require('axios');
 const bip39 = require('bip39');
 const { request } = require('@internxt/lib');
 
-const BUCKET_META_MAGIC = Buffer.from([66, 150, 71, 16, 50, 114, 88, 160, 163, 35, 154, 65, 162,
-  213, 226, 215, 70, 138, 57, 61, 52, 19, 210, 170, 38, 164, 162, 200, 86, 201, 2, 81]);
+const BUCKET_META_MAGIC = Buffer.from([
+  66, 150, 71, 16, 50, 114, 88, 160, 163, 35, 154, 65, 162, 213, 226, 215, 70, 138, 57, 61, 52, 19, 210, 170, 38, 164,
+  162, 200, 86, 201, 2, 81,
+]);
 
 module.exports = (Model, App) => {
   const log = App.logger;
@@ -20,9 +22,17 @@ module.exports = (Model, App) => {
     }
 
     const key = crypto.createHmac('sha512', Buffer.from(bucketKey, 'hex')).update(BUCKET_META_MAGIC).digest('hex');
-    const iv = crypto.createHmac('sha512', Buffer.from(bucketKey, 'hex')).update(bucketId).update(decryptedName).digest('hex');
+    const iv = crypto
+      .createHmac('sha512', Buffer.from(bucketKey, 'hex'))
+      .update(bucketId)
+      .update(decryptedName)
+      .digest('hex');
 
-    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(key, 'hex').slice(0, 32), Buffer.from(iv, 'hex').slice(0, 32));
+    const cipher = crypto.createCipheriv(
+      'aes-256-gcm',
+      Buffer.from(key, 'hex').slice(0, 32),
+      Buffer.from(iv, 'hex').slice(0, 32),
+    );
     const encrypted = Buffer.concat([cipher.update(decryptedName, 'utf8'), cipher.final()]);
     const digest = cipher.getAuthTag();
 
@@ -61,13 +71,17 @@ module.exports = (Model, App) => {
     const params = {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
+        Authorization: `Basic ${credential}`,
+      },
     };
 
-    return axios.patch(`${App.config.get('STORJ_BRIDGE')}/buckets/${bucket}/files/${bucketEntry}`, {
-      name: newNameEncrypted
-    }, params);
+    return axios.patch(
+      `${App.config.get('STORJ_BRIDGE')}/buckets/${bucket}/files/${bucketEntry}`,
+      {
+        name: newNameEncrypted,
+      },
+      params,
+    );
   };
 
   const RegisterBridgeUser = (email, password) => {
@@ -76,10 +90,9 @@ module.exports = (Model, App) => {
     const params = { headers: { 'Content-Type': 'application/json' } };
     const data = { email, password: hashPwd };
 
-    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params)
-      .catch((err) => {
-        throw new Error(request.extractMessageFromError(err));
-      });
+    return axios.post(`${App.config.get('STORJ_BRIDGE')}/users`, data, params).catch((err) => {
+      throw new Error(request.extractMessageFromError(err));
+    });
   };
 
   // TODO: Remove mnemonic param
@@ -90,40 +103,52 @@ module.exports = (Model, App) => {
     const params = {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
+        Authorization: `Basic ${credential}`,
+      },
     };
 
     log.info('[INXT createBucket]: User: %s, Bucket: %s', email, name);
 
-    return axios.post(`${App.config.get('STORJ_BRIDGE')}/buckets`, {}, params).then((res) => res.data).catch((err) => {
-      if (err.isAxiosError) {
-        throw Error(err.response.data.error || 'Unknown error');
-      }
-      throw err;
-    });
+    return axios
+      .post(`${App.config.get('STORJ_BRIDGE')}/buckets`, {}, params)
+      .then((res) => res.data)
+      .catch((err) => {
+        if (err.isAxiosError) {
+          throw Error(err.response.data.error || 'Unknown error');
+        }
+        throw err;
+      });
   };
 
   const updateBucketLimit = (bucketId, limit) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
-    return axios.patch(`${App.config.get('STORJ_BRIDGE')}/gateway/bucket/${bucketId}`, {
-      maxFrameSize: limit
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    });
+    return axios.patch(
+      `${App.config.get('STORJ_BRIDGE')}/gateway/bucket/${bucketId}`,
+      {
+        maxFrameSize: limit,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+      },
+    );
   };
 
   const addStorage = (email, bytes) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
-    return axios.put(`${App.config.get('STORJ_BRIDGE')}/gateway/storage`, {
-      email, bytes
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    });
+    return axios.put(
+      `${App.config.get('STORJ_BRIDGE')}/gateway/storage`,
+      {
+        email,
+        bytes,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+      },
+    );
   };
 
   const DeleteFile = (user, bucket, bucketEntry) => {
@@ -134,8 +159,8 @@ module.exports = (Model, App) => {
     const params = {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Basic ${credential}`
-      }
+        Authorization: `Basic ${credential}`,
+      },
     };
 
     log.info('[INXT removeFile]: User: %s, Bucket: %s, File: %s', user.bridgeUser, bucket, bucketEntry);
@@ -151,6 +176,6 @@ module.exports = (Model, App) => {
     updateBucketLimit,
     DeleteFile,
     renameFile,
-    addStorage
+    addStorage,
   };
 };

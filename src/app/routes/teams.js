@@ -30,7 +30,9 @@ module.exports = (Router, Service, App) => {
     const existsKeys = await Service.KeyServer.keysExists(existsUser);
     // It is checked that the user exists and has passwords
     if (!existsUser && !existsKeys) {
-      return res.status(400).send({ error: 'You cannot invite this user. Please make sure that the user has an active Internxt account.' });
+      return res
+        .status(400)
+        .send({ error: 'You cannot invite this user. Please make sure that the user has an active Internxt account.' });
     }
     // Check if the invitation exists
     const existsInvitation = await Service.TeamInvitations.getTeamInvitationByUser(email);
@@ -49,19 +51,21 @@ module.exports = (Router, Service, App) => {
           user: email,
           token,
           bridge_password: bridgePassword,
-          mnemonic: Encryptmnemonic
+          mnemonic: Encryptmnemonic,
         });
         if (!saveInvitations) {
           return res.status(400).send({ error: 'The invitation can not saved' });
         }
 
-        return Service.Mail.sendEmailTeamsMember(existsUser.name, email, token, req.team).then(() => {
-          Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
-          res.status(200).send({});
-        }).catch(() => {
-          Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email);
-          res.status(500).send({});
-        });
+        return Service.Mail.sendEmailTeamsMember(existsUser.name, email, token, req.team)
+          .then(() => {
+            Logger.info('User %s sends invitations to %s to join a team', req.user.email, req.body.email);
+            res.status(200).send({});
+          })
+          .catch(() => {
+            Logger.error('Error: Send invitation mail from %s to %s', req.user.email, req.body.email);
+            res.status(500).send({});
+          });
       }
       // Check that the member's status is 200
       if (existsMember.status === 200) {
@@ -71,13 +75,15 @@ module.exports = (Router, Service, App) => {
       }
     }
     // Forward email
-    return Service.Mail.sendEmailTeamsMember(existsUser.name, email, existsInvitation.token, req.team).then(() => {
-      Logger.info('The email is forwarded to the user %s', email);
-      res.status(200).send({});
-    }).catch(() => {
-      Logger.error('Error: Send invitation mail from %s to %s', req.user.email, email);
-      res.status(500).send({ error: 'Error: Send invitation mail' });
-    });
+    return Service.Mail.sendEmailTeamsMember(existsUser.name, email, existsInvitation.token, req.team)
+      .then(() => {
+        Logger.info('The email is forwarded to the user %s', email);
+        res.status(200).send({});
+      })
+      .catch(() => {
+        Logger.error('Error: Send invitation mail from %s to %s', req.user.email, email);
+        res.status(500).send({ error: 'Error: Send invitation mail' });
+      });
   });
 
   Router.post('/teams/join/:token', async (req, res) => {
@@ -97,34 +103,41 @@ module.exports = (Router, Service, App) => {
       id_team: getToken.id_team,
       user: getToken.user,
       bridge_password: getToken.bridge_password,
-      bridge_mnemonic: getToken.mnemonic
+      bridge_mnemonic: getToken.mnemonic,
     });
     if (!saveMember) {
       Logger.error('Error: User %s could not be saved in teamMember ', getToken.user);
       return res.status(500).send({ error: 'Invalid Team invitation link' });
     }
     // Destroy the invitation
-    return getToken.destroy().then(() => {
-      res.status(200).send({});
-    }).catch(() => {
-      Logger.error('Error:The invitation could not be destroyed');
-      res.status(500).send({ error: 'The invitation could not be destroyed' });
-    });
+    return getToken
+      .destroy()
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch(() => {
+        Logger.error('Error:The invitation could not be destroyed');
+        res.status(500).send({ error: 'The invitation could not be destroyed' });
+      });
   });
 
   Router.get('/teams-members/:user', passportAuth, (req, res) => {
     const userEmail = req.params.user;
 
-    Service.Team.getIdTeamByUser(userEmail).then((team) => {
-      Service.Team.getTeamById(team.id_team).then((team2) => {
-        res.status(200).json(team2.dataValues);
-      }).catch(() => {
-        Logger.error('Error: Team not exists');
+    Service.Team.getIdTeamByUser(userEmail)
+      .then((team) => {
+        Service.Team.getTeamById(team.id_team)
+          .then((team2) => {
+            res.status(200).json(team2.dataValues);
+          })
+          .catch(() => {
+            Logger.error('Error: Team not exists');
+          });
+      })
+      .catch((err) => {
+        Logger.error('Error: This user %s not is a member', userEmail);
+        res.status(500).json(err);
       });
-    }).catch((err) => {
-      Logger.error('Error: This user %s not is a member', userEmail);
-      res.status(500).json(err);
-    });
   });
 
   Router.get('/teams/members', passportAuth, async (req, res) => {
@@ -173,49 +186,55 @@ module.exports = (Router, Service, App) => {
       to: 'hello@internxt.com',
       from: 'hello@internxt.com',
       subject: 'Delete Teams Account',
-      text: `Hello Internxt! I need to delete my team account ${req.user.email}`
+      text: `Hello Internxt! I need to delete my team account ${req.user.email}`,
     };
-    sgMail.send(msg).then(() => {
-      res.status(200).send({});
-    }).catch((err) => {
-      Logger.error('Error: Error send deactivation email teams account of user %s', req.user.email);
-      res.status(500).send(err);
-    });
+    sgMail
+      .send(msg)
+      .then(() => {
+        res.status(200).send({});
+      })
+      .catch((err) => {
+        Logger.error('Error: Error send deactivation email teams account of user %s', req.user.email);
+        res.status(500).send(err);
+      });
   });
 
   Router.get('/teams/info', passportAuth, (req, res) => {
-    Service.Team.getTeamByMember(req.user.email).then(async (team) => {
-      if (!team) {
-        throw Error('No teams');
-      }
-      const userTeam = team.toJSON();
-      delete userTeam.id;
-      const internxtClient = req.headers['internxt-client'];
-      const tokenTeams = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+    Service.Team.getTeamByMember(req.user.email)
+      .then(async (team) => {
+        if (!team) {
+          throw Error('No teams');
+        }
+        const userTeam = team.toJSON();
+        delete userTeam.id;
+        const internxtClient = req.headers['internxt-client'];
+        const tokenTeams = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
 
-      const user = await Service.User.FindUserByEmail(userTeam.bridge_user);
-      userTeam.root_folder_id = user.root_folder_id;
-      const userBucket = await Service.User.GetUserBucket(user);
+        const user = await Service.User.FindUserByEmail(userTeam.bridge_user);
+        userTeam.root_folder_id = user.root_folder_id;
+        const userBucket = await Service.User.GetUserBucket(user);
 
-      const member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.user.email);
+        const member = await Service.TeamsMembers.getMemberByIdTeam(team.id, req.user.email);
 
-      userTeam.bridge_mnemonic = member.bridge_mnemonic;
-      userTeam.isAdmin = userTeam.admin === req.user.email;
-      userTeam.bucket = userBucket;
+        userTeam.bridge_mnemonic = member.bridge_mnemonic;
+        userTeam.isAdmin = userTeam.admin === req.user.email;
+        userTeam.bucket = userBucket;
 
-      res.status(200).send({ userTeam, tokenTeams });
-    }).catch(() => {
-      res.status(400).json({ error: 'Team not found' });
-    });
+        res.status(200).send({ userTeam, tokenTeams });
+      })
+      .catch(() => {
+        res.status(400).json({ error: 'Team not found' });
+      });
   });
 
   Router.get('/teams/team/info', passportAuth, (req, res) => {
-    Service.Team.getTeamByEmail(req.user.email).then(async (team) => {
-      if (!team) {
-        throw Error('No teams');
-      }
-      return team;
-    })
+    Service.Team.getTeamByEmail(req.user.email)
+      .then(async (team) => {
+        if (!team) {
+          throw Error('No teams');
+        }
+        return team;
+      })
       .then((teamInfo) => {
         res.status(200).send(teamInfo);
       })
@@ -242,12 +261,12 @@ module.exports = (Router, Service, App) => {
           email: team.bridge_user,
           password: encryptedPassword,
           salt: encryptedSalt,
-          mnemonic
+          mnemonic,
         };
         const userRegister = await Service.User.FindOrCreate(user);
         await team.update({
           bridge_password: userRegister.userId,
-          total_members: session.metadata.total_members
+          total_members: session.metadata.total_members,
         });
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
         const product = await stripe.products.retrieve(subscription.plan.product);

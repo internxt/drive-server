@@ -1,7 +1,7 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface Attributes {
-  id: number
+  id: number;
   key: string;
   type: 'storage';
   credit: number;
@@ -19,46 +19,46 @@ export default (database: Sequelize): UserReferralModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       user_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       referral_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'referrals',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       referred: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
       },
       start_date: {
         type: DataTypes.DATE,
         allowNull: false,
-        defaultValue: DataTypes.NOW
+        defaultValue: DataTypes.NOW,
       },
       expiration_date: {
         type: DataTypes.DATE,
-        allowNull: true
+        allowNull: true,
       },
       applied: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: false
-      }
+        defaultValue: false,
+      },
     },
     {
       tableName: 'users_referrals',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return UserReferral;

@@ -1,16 +1,16 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface PhotoAttributes {
-  id: number,
-  fileId: string,
-  name: string,
-  type: string,
-  size: number,
-  hash: string,
-  bucketId: string,
-  userId: number,
-  creationTime: Date,
-  device: string
+  id: number;
+  fileId: string;
+  name: string;
+  type: string;
+  size: number;
+  hash: string;
+  bucketId: string;
+  userId: number;
+  creationTime: Date;
+  device: string;
 }
 
 export type PhotoModel = ModelDefined<PhotoAttributes, PhotoAttributes>;
@@ -23,42 +23,42 @@ export default (database: Sequelize): PhotoModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       fileId: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       name: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       type: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       size: {
-        type: DataTypes.BIGINT.UNSIGNED
+        type: DataTypes.BIGINT.UNSIGNED,
       },
       hash: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       bucketId: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       userId: {
-        type: DataTypes.INTEGER
+        type: DataTypes.INTEGER,
       },
       creationTime: {
         type: DataTypes.DATE,
-        allowNull: false
+        allowNull: false,
       },
       device: {
-        type: DataTypes.STRING
-      }
+        type: DataTypes.STRING,
+      },
     },
     {
       tableName: 'photos',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return Photo;

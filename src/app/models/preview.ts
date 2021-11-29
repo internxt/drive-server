@@ -1,14 +1,14 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface PreviewAttributes {
-  id: number
-  name: string
-  type: string
-  size: number
-  hash: string
-  fileId: string
-  photoId: number
-  bucketId: string
+  id: number;
+  name: string;
+  type: string;
+  size: number;
+  hash: string;
+  fileId: string;
+  photoId: number;
+  bucketId: string;
 }
 
 export type PreviewModel = ModelDefined<PreviewAttributes, PreviewAttributes>;
@@ -21,38 +21,38 @@ export default (database: Sequelize): PreviewModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       name: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       type: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       size: {
-        type: DataTypes.BIGINT.UNSIGNED
+        type: DataTypes.BIGINT.UNSIGNED,
       },
       hash: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       fileId: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       photoId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'photos',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       bucketId: {
-        type: DataTypes.STRING
-      }
+        type: DataTypes.STRING,
+      },
     },
     {
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return Preview;

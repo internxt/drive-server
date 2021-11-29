@@ -10,14 +10,14 @@ module.exports = () => {
           Accept: 'application/json',
           'X-MailerLite-ApiDocs': 'true',
           'Content-Type': 'application/json',
-          'X-MailerLite-ApiKey': process.env.MAILERLITE_API_KEY
-        }
-      }
+          'X-MailerLite-ApiKey': process.env.MAILERLITE_API_KEY,
+        },
+      },
     );
   };
 
   return {
     Name: 'Newsletter',
-    subscribe
+    subscribe,
   };
 };

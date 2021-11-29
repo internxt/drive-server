@@ -7,7 +7,7 @@ const staging = require('./environments/staging.js').data;
 const environments: any = { development, test, staging };
 
 export default class Config {
-  private static instance: Config; 
+  private static instance: Config;
 
   static getInstance(): Config {
     if (!Config.instance) {
@@ -16,7 +16,7 @@ export default class Config {
 
     return Config.instance;
   }
- 
+
   constructor() {
     // eslint-disable-next-line global-require
     nconf.argv();
@@ -25,7 +25,7 @@ export default class Config {
     nconf.use('conf', {
       type: 'literal',
       // eslint-disable-next-line global-require
-      store: environments[nconf.get('NODE_ENV')]
+      store: environments[nconf.get('NODE_ENV')],
     });
     nconf.required(['server:port']);
   }

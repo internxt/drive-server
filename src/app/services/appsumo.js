@@ -17,7 +17,7 @@ const AppSumoTiers = [
   { name: 'lifetime_10TB', size: '10TB' },
   { name: 'sharewareonsale', size: '20GB' },
   { name: 'giveawayoftheday', size: '20GB' },
-  { name: 'lifetime_infinite', size: '99TB' }
+  { name: 'lifetime_infinite', size: '99TB' },
 ];
 
 function GetLicenseByName(name) {
@@ -39,18 +39,22 @@ module.exports = (Model, App) => {
     const license = GetLicenseByName(plan);
     const size = bytes.parse(license ? license.size : '10GB');
 
-    return axios.post(`${process.env.STORJ_BRIDGE}/gateway/upgrade`, {
-      email: user.email, bytes: size
-    }, {
-      headers: { 'Content-Type': 'application/json' },
-      auth: { username: GATEWAY_USER, password: GATEWAY_PASS }
-    });
+    return axios.post(
+      `${process.env.STORJ_BRIDGE}/gateway/upgrade`,
+      {
+        email: user.email,
+        bytes: size,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+      },
+    );
   };
 
   const RandomPassword = (email) => {
     const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
-    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5)
-      .toString('hex');
+    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5).toString('hex');
 
     return randomPassword;
   };
@@ -91,7 +95,7 @@ module.exports = (Model, App) => {
       registerCompleted: false,
       username: email,
       sharedWorkspace: true,
-      bridgeUser: email
+      bridgeUser: email,
     };
 
     const user = await UserServiceInstance.FindOrCreate(userObject);
@@ -99,7 +103,7 @@ module.exports = (Model, App) => {
     const appSumoLicense = {
       planId: plan,
       uuid,
-      invoiceItemUuid: invoice
+      invoiceItemUuid: invoice,
     };
 
     await updateOrCreate(Model.AppSumo, { where: { userId: user.id } }, appSumoLicense);
@@ -161,6 +165,6 @@ module.exports = (Model, App) => {
     CompleteInfo,
     GetDetails,
     UpdateLicense,
-    ApplyLicense
+    ApplyLicense,
   };
 };

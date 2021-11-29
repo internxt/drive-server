@@ -36,33 +36,22 @@ module.exports = {
    */
   encrypt(text, folderId, randomIv = false) {
     // random initialization vector
-    const iv = randomIv
-      ? crypto.randomBytes(16)
-      : Buffer.from(MAGIC_IV, 'hex');
+    const iv = randomIv ? crypto.randomBytes(16) : Buffer.from(MAGIC_IV, 'hex');
 
     // random salt
-    const salt = randomIv
-      ? crypto.randomBytes(64)
-      : Buffer.from(MAGIC_SALT, 'hex');
+    const salt = randomIv ? crypto.randomBytes(64) : Buffer.from(MAGIC_SALT, 'hex');
 
     // derive encryption key: 32 byte key length
     // in assumption the masterkey is a cryptographic and NOT a password there is no need for
     // a large number of iterations. It may can replaced by HKDF
     // the value of 2145 is randomly chosen!
-    const key = crypto.pbkdf2Sync(`${CRYPTO_KEY}-${folderId}`,
-      salt,
-      2145,
-      32,
-      'sha512');
+    const key = crypto.pbkdf2Sync(`${CRYPTO_KEY}-${folderId}`, salt, 2145, 32, 'sha512');
 
     // AES 256 GCM Mode
     const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
     // encrypt the given text
-    const encrypted = Buffer.concat([
-      cipher.update(text, 'utf8'),
-      cipher.final()
-    ]);
+    const encrypted = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
 
     // extract the auth tag
     const tag = cipher.getAuthTag();
@@ -87,11 +76,7 @@ module.exports = {
     const tag = bData.slice(80, 96);
     const text = bData.slice(96);
 
-    if (salt.length === 0
-      || iv.length === 0
-      || tag.length === 0
-      || text.length === 0
-    ) {
+    if (salt.length === 0 || iv.length === 0 || tag.length === 0 || text.length === 0) {
       // One empty param makes Node crash
       throw Error('Length 0, cannot decrypt');
     }
@@ -107,5 +92,5 @@ module.exports = {
     const decrypted = decipher.update(text, 'binary', 'utf8') + decipher.final('utf8');
 
     return decrypted;
-  }
+  },
 };

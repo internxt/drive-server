@@ -23,23 +23,26 @@ module.exports = (Router, Service) => {
 
     let user;
 
-    return Service.User.FindUserObjByEmail(email).then((dbUser) => {
-      if (!dbUser) {
-        throw new Error('User not found');
-      }
+    return Service.User.FindUserObjByEmail(email)
+      .then((dbUser) => {
+        if (!dbUser) {
+          throw new Error('User not found');
+        }
 
-      user = dbUser;
+        user = dbUser;
 
-      return Service.Plan.createOrUpdate({ ...plan, userId: dbUser.id });
+        return Service.Plan.createOrUpdate({ ...plan, userId: dbUser.id });
 
-    // eslint-disable-next-line consistent-return
-    }).then(() => {
-      if (user.backupsBucket) {
-        return Service.Inxt.updateBucketLimit(user.backupsBucket, bucketLimit);
-      }
-    }).then(() => {
-      return res.status(200).send();
-    })
+        // eslint-disable-next-line consistent-return
+      })
+      .then(() => {
+        if (user.backupsBucket) {
+          return Service.Inxt.updateBucketLimit(user.backupsBucket, bucketLimit);
+        }
+      })
+      .then(() => {
+        return res.status(200).send();
+      })
       .catch((err) => {
         Logger.error('Error creating %s plan "%s" for user %s: %s', plan.type, plan.name, email, err.message);
 
@@ -51,9 +54,10 @@ module.exports = (Router, Service) => {
     const { email } = req.body;
     const maxSpaceBytes = parseInt(req.body.maxSpaceBytes, 10);
 
-    Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
-      return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
-    })
+    Service.User.UpdateUserStorage(email, maxSpaceBytes)
+      .then(() => {
+        return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+      })
       .catch(() => {
         Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes} `);
         return res.status(500).send();
@@ -65,25 +69,29 @@ module.exports = (Router, Service) => {
     const userExists = await Service.User.FindUserByEmail(email).catch(() => null);
     if (!userExists) {
       await Service.User.CreateStaggingUser(email).catch((err) => {
-        Logger.error(`Not possible to create a stagging register for user: ${email}`);
+        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
         return res.status(500).send({ error: err.message });
       });
     }
-    Service.User.UpdateUserStorage(email, maxSpaceBytes).then(() => {
-      return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
-    }).catch((err) => {
-      Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes}. Error: ${err} `);
-      return res.status(304).send();
-    });
+    Service.User.UpdateUserStorage(email, maxSpaceBytes)
+      .then(() => {
+        return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+      })
+      .catch((err) => {
+        Logger.error('[GATEWAY]: Error updating storage to %s for user %s: %s', maxSpaceBytes, email, err.message);
+        return res.status(304).send();
+      });
   });
 
   Router.post('/gateway/register/stage', basicAuth, (req, res) => {
     const { email } = req.body;
-    Service.User.CreateStaggingUser(email).then(() => {
-      res.status(201).send();
-    }).catch((err) => {
-      Logger.error(`Not possible to create a stagging register for user: ${email}`);
-      res.status(500).send({ error: err.message });
-    });
+    Service.User.CreateStaggingUser(email)
+      .then(() => {
+        res.status(201).send();
+      })
+      .catch((err) => {
+        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
+        res.status(500).send({ error: err.message });
+      });
   });
 };

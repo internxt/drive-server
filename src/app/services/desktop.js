@@ -8,18 +8,22 @@ module.exports = (Model) => {
     const existsParentFolder = await Model.folder.findAll({
       where: {
         id: { [Op.in]: Object.keys(folders) },
-        user_id: { [Op.eq]: user.id }
-      }
+        user_id: { [Op.eq]: user.id },
+      },
     });
     existsParentFolder.forEach((folder) => {
-      newFolders = newFolders.concat(folders[folder.dataValues.id].map((encryptedName) => { return [encryptedName, folder.dataValues.id]; }));
+      newFolders = newFolders.concat(
+        folders[folder.dataValues.id].map((encryptedName) => {
+          return [encryptedName, folder.dataValues.id];
+        }),
+      );
     });
     const exists = await Model.folder.findAll({
       attributes: ['id', 'name', 'parentId', 'createdAt', 'updatedAt'],
       where: {
         user_id: { [Op.eq]: user.id },
-        name: { [Op.in]: newFolders.map(([encryptedName]) => encryptedName) }
-      }
+        name: { [Op.in]: newFolders.map(([encryptedName]) => encryptedName) },
+      },
     });
 
     exists.forEach((folder) => {
@@ -32,9 +36,7 @@ module.exports = (Model) => {
       // incorporate new info to its database
       newFolders = newFolders.filter(([cryptoName]) => {
         if (exists[cryptoName]) {
-          result.push(
-            exists[cryptoName]
-          );
+          result.push(exists[cryptoName]);
           return false;
         }
         return true;
@@ -42,15 +44,18 @@ module.exports = (Model) => {
     }
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-    const foldersCreated = await Model.folder.bulkCreate(newFolders.map(([cryptoName, parentFolderId]) => {
-      return {
-        name: cryptoName,
-        bucket: null,
-        parentId: parentFolderId || null,
-        user_id: user.id,
-        encrypt_version: '03-aes'
-      };
-    }), { returning: true, individualHooks: true });
+    const foldersCreated = await Model.folder.bulkCreate(
+      newFolders.map(([cryptoName, parentFolderId]) => {
+        return {
+          name: cryptoName,
+          bucket: null,
+          parentId: parentFolderId || null,
+          user_id: user.id,
+          encrypt_version: '03-aes',
+        };
+      }),
+      { returning: true, individualHooks: true },
+    );
     foldersCreated.forEach((folder) => {
       result.push(folder);
     });
@@ -59,6 +64,6 @@ module.exports = (Model) => {
 
   return {
     Name: 'Desktop',
-    CreateChildren
+    CreateChildren,
   };
 };

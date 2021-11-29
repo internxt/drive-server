@@ -10,8 +10,8 @@ const loggerOptions = {
     warn: 1,
     debug: 5,
     error: 3,
-    info: 4
-  }
+    info: 4,
+  },
 };
 
 function parseLogLevel(level: number): string {
@@ -51,11 +51,13 @@ const loggerInstance = (config: LoggerConfig): winston.Logger => {
       winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
       winston.format.splat(),
       winston.format.printf((info) => {
-        return `${info.timestamp} ${hostName} ${colorize.colorize(info.level, `${info.level}: ${info.message}`)}`;
-      })
+        const message =
+          process.env.NODE_ENV !== 'development'
+            ? `${info.level}: ${info.message}`
+            : colorize.colorize(info.level, `${info.level}: ${info.message}`);
+        return `${info.timestamp} ${hostName} ${message}`;
+      }),
     ),
-    transports: [
-      new winston.transports.Console()
-    ]
+    transports: [new winston.transports.Console()],
   });
 };

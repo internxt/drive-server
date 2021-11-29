@@ -7,35 +7,39 @@ class ReferralNotAvailableError extends Error {
 }
 
 module.exports = (Model, App) => {
-
   const createUserReferrals = async (userId) => {
     const referrals = await App.services.Referrals.getAllEnabled();
     const userReferralsToCreate = [];
 
     referrals.forEach((referral) => {
-      Array(referral.steps).fill().forEach(() => {
-        const applied = referral.key === 'create-account';
+      Array(referral.steps)
+        .fill()
+        .forEach(() => {
+          const applied = referral.key === 'create-account';
 
-        userReferralsToCreate.push({
-          user_id: userId,
-          referral_id: referral.id,
-          start_date: new Date(),
-          applied
+          userReferralsToCreate.push({
+            user_id: userId,
+            referral_id: referral.id,
+            start_date: new Date(),
+            applied,
+          });
         });
-      });
     });
 
-    await Model.users_referrals.bulkCreate(
-      userReferralsToCreate, { individualHooks: true, fields: ['user_id', 'referral_id', 'start_date', 'applied'] }
-    );
+    await Model.users_referrals.bulkCreate(userReferralsToCreate, {
+      individualHooks: true,
+      fields: ['user_id', 'referral_id', 'start_date', 'applied'],
+    });
   };
 
   const update = async (data, userReferralId) => {
-    return Model.users_referrals
-      .update({
+    return Model.users_referrals.update(
+      {
         referred: data.referred,
-        applied: data.applied
-      }, { where: { id: userReferralId } });
+        applied: data.applied,
+      },
+      { where: { id: userReferralId } },
+    );
   };
 
   const getByUserId = async (userId) => {
@@ -53,21 +57,24 @@ module.exports = (Model, App) => {
           type: userReferral.referral.type,
           credit: userReferral.referral.credit,
           steps: userReferral.referral.steps,
-          completedSteps: userReferral.applied ? 1 : 0
+          completedSteps: userReferral.applied ? 1 : 0,
         });
       }
     });
 
     return userReferralGroups.map((group) => ({
       ...group,
-      isCompleted: group.steps === group.completedSteps
+      isCompleted: group.steps === group.completedSteps,
     }));
   };
 
   const hasReferralsProgram = async (userId, userEmail, networkUser, networkPassword) => {
     const appSumoDetails = await App.services.AppSumo.GetDetails(userId).catch(() => null);
 
-    return !appSumoDetails && !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPassword));
+    return (
+      !appSumoDetails &&
+      !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPassword))
+    );
   };
 
   const redeemUserReferral = async (userEmail, userId, type, credit) => {
@@ -77,12 +84,16 @@ module.exports = (Model, App) => {
       if (GATEWAY_USER && GATEWAY_PASS) {
         await App.services.Inxt.addStorage(userEmail, credit);
       } else {
-        App.logger.warn('(usersReferralsService.redeemUserReferral) GATEWAY_USER || GATEWAY_PASS not found. Skipping storage increasing');
+        App.logger.warn(
+          '(usersReferralsService.redeemUserReferral) GATEWAY_USER\
+           || GATEWAY_PASS not found. Skipping storage increasing',
+        );
       }
     }
 
     App.logger.info(
-      `(usersReferralsService.redeemUserReferral) The user '${userEmail}' (id: ${userId}) has redeemed a referral: ${type} - ${credit}`
+      `(usersReferralsService.redeemUserReferral)\
+       The user '${userEmail}' (id: ${userId}) has redeemed a referral: ${type} - ${credit}`,
     );
   };
 
@@ -98,7 +109,9 @@ module.exports = (Model, App) => {
       throw new Error('Referral not found');
     }
 
-    const userReferral = await Model.users_referrals.findOne({ where: { user_id: userId, referral_id: referral.id, applied: 0 } });
+    const userReferral = await Model.users_referrals.findOne({
+      where: { user_id: userId, referral_id: referral.id, applied: 0 },
+    });
     if (!userReferral) {
       return;
     }
@@ -121,6 +134,6 @@ module.exports = (Model, App) => {
     applyUserReferral,
     hasReferralsProgram,
     redeemUserReferral,
-    ReferralNotAvailableError
+    ReferralNotAvailableError,
   };
 };

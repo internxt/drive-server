@@ -17,7 +17,7 @@ module.exports = (Router, Service) => {
         const result = {
           isAppSumo: true,
           price: 0,
-          details: appSumoPlan
+          details: appSumoPlan,
         };
 
         return res.status(200).send(result);

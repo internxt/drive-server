@@ -8,8 +8,7 @@ module.exports = (Model, App) => {
 
   function probabilisticEncryption(content) {
     try {
-      const b64 = CryptoJS.AES.encrypt(content,
-        App.config.get('secrets').CRYPTO_SECRET).toString();
+      const b64 = CryptoJS.AES.encrypt(content, App.config.get('secrets').CRYPTO_SECRET).toString();
       const e64 = CryptoJS.enc.Base64.parse(b64);
       const eHex = e64.toString(CryptoJS.enc.Hex);
 
@@ -131,11 +130,11 @@ module.exports = (Model, App) => {
         : CryptoJS.lib.WordArray.random(128 / 8);
       const hash = CryptoJS.PBKDF2(passObject.password, salt, {
         keySize: 256 / 32,
-        iterations: 10000
+        iterations: 10000,
       });
       const hashedObjetc = {
         salt: salt.toString(),
-        hash: hash.toString()
+        hash: hash.toString(),
       };
 
       return hashedObjetc;
@@ -145,14 +144,12 @@ module.exports = (Model, App) => {
   }
 
   function hashSha256(text) {
-    return crypto.createHash('sha256').update(text)
-      .digest('hex');
+    return crypto.createHash('sha256').update(text).digest('hex');
   }
 
   const RandomPassword = (email) => {
     const randomSeed = crypto.pbkdf2Sync(email, process.env.CRYPTO_SECRET, 100000, 8, 'sha512');
-    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5)
-      .toString('hex');
+    const randomPassword = crypto.createHash('sha512').update(randomSeed).digest().slice(0, 5).toString('hex');
 
     return randomPassword;
   };
@@ -170,6 +167,6 @@ module.exports = (Model, App) => {
     passToHash,
     hashSha256,
     encryptTextWithKey,
-    RandomPassword
+    RandomPassword,
   };
 };

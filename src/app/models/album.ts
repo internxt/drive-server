@@ -1,9 +1,9 @@
 import { Sequelize, DataTypes, ModelDefined } from 'sequelize';
 
 interface AlbumAttributes {
-  id: number,
-  name: string,
-  userId: number
+  id: number;
+  name: string;
+  userId: number;
 }
 
 export type AlbumModel = ModelDefined<AlbumAttributes, AlbumAttributes>;
@@ -16,24 +16,24 @@ export default (database: Sequelize): AlbumModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       name: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       userId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'usersphotos',
-          key: 'id'
-        }
-      }
+          key: 'id',
+        },
+      },
     },
     {
       tableName: 'albums',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return Album;

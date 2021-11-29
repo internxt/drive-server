@@ -2,14 +2,14 @@ import { Sequelize, DataTypes, ModelDefined, Optional } from 'sequelize';
 
 // TODO: This ids are missing relations
 interface Attributes {
-  id: number,
-  userId: number,
-  rootAlbumId: string,
-  rootPreviewId: string,
-  deleteFolderId: string | null
+  id: number;
+  userId: number;
+  rootAlbumId: string;
+  rootPreviewId: string;
+  deleteFolderId: string | null;
 }
 
-type CreationAttributes = Optional<Attributes, 'id'>
+type CreationAttributes = Optional<Attributes, 'id'>;
 
 export type UserPhotosModel = ModelDefined<Attributes, CreationAttributes>;
 
@@ -21,31 +21,31 @@ export default (database: Sequelize): UserPhotosModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       userId: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       rootAlbumId: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       rootPreviewId: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
       },
       deleteFolderId: {
         type: DataTypes.INTEGER,
-        allowNull: true
-      }
+        allowNull: true,
+      },
     },
     {
       tableName: 'usersphotos',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return UserPhotos;

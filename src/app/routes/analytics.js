@@ -6,6 +6,5 @@ module.exports = (Router) => {
     res.status(200).send();
     const { actionName } = req.body;
     AnalyticsService.actions[actionName](req);
-
   });
 };

@@ -32,19 +32,19 @@ module.exports = (Model, App) => {
       const { bridgeUser } = user;
 
       user = await Model.users.findOne({
-        where: { username: bridgeUser }
+        where: { username: bridgeUser },
       });
     }
 
     if (teamId) {
       whereCondition.where = {
         id: { [Op.eq]: parentFolderId },
-        id_team: { [Op.eq]: teamId }
+        id_team: { [Op.eq]: teamId },
       };
     } else {
       whereCondition.where = {
         id: { [Op.eq]: parentFolderId },
-        user_id: { [Op.eq]: user.id }
+        user_id: { [Op.eq]: user.id },
       };
     }
 
@@ -63,14 +63,13 @@ module.exports = (Model, App) => {
     }
 
     // Encrypt folder name, TODO: use versioning for encryption
-    const cryptoFolderName = App.services.Crypt.encryptName(folderName,
-      parentFolderId);
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
 
     const exists = await Model.folder.findOne({
       where: {
         parentId: { [Op.eq]: parentFolderId },
-        name: { [Op.eq]: cryptoFolderName }
-      }
+        name: { [Op.eq]: cryptoFolderName },
+      },
     });
 
     if (exists) {
@@ -87,7 +86,7 @@ module.exports = (Model, App) => {
       name: cryptoFolderName,
       bucket: null,
       parentId: parentFolderId || null,
-      id_team: teamId
+      id_team: teamId,
     });
 
     return folder;
@@ -95,9 +94,7 @@ module.exports = (Model, App) => {
 
   // Requires stored procedure
   const DeleteOrphanFolders = async (userId) => {
-    const clear = await App.database
-      .query('CALL clear_orphan_folders_by_user (:userId)',
-        { replacements: { userId } });
+    const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId)', { replacements: { userId } });
 
     const totalLeft = clear[0].total_left;
 
@@ -114,7 +111,7 @@ module.exports = (Model, App) => {
     }
 
     const folder = await Model.folder.findOne({
-      where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } }
+      where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } },
     });
 
     if (!folder) {
@@ -169,25 +166,27 @@ module.exports = (Model, App) => {
 
   // A tree without using hierarchy library
   const GetTree = async (user, rootFolderId = null) => {
-    const folderContents = (await Model.folder.findOne({
-      where: { id: { [Op.eq]: rootFolderId || user.root_folder_id } },
-      include: [
-        {
-          model: Model.folder,
-          as: 'children',
-          include: [
-            {
-              model: Model.file,
-              as: 'files'
-            }
-          ]
-        },
-        {
-          model: Model.file,
-          as: 'files'
-        }
-      ]
-    })).toJSON();
+    const folderContents = (
+      await Model.folder.findOne({
+        where: { id: { [Op.eq]: rootFolderId || user.root_folder_id } },
+        include: [
+          {
+            model: Model.folder,
+            as: 'children',
+            include: [
+              {
+                model: Model.file,
+                as: 'files',
+              },
+            ],
+          },
+          {
+            model: Model.file,
+            as: 'files',
+          },
+        ],
+      })
+    ).toJSON();
 
     const res = await async.mapSeries(folderContents.children, async (folder) => {
       return GetTree(user, folder.id);
@@ -206,18 +205,18 @@ module.exports = (Model, App) => {
     if (isSharedWorkspace) {
       const hostUser = await Model.users.findOne({
         where: {
-          email: user.bridgeUser
-        }
+          email: user.bridgeUser,
+        },
       });
 
       userObject = { ...userObject, id: hostUser.id };
     }
-  
+
     const root = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: userObject.root_folder_id },
-        userId: userObject.id
-      }
+        userId: userObject.id,
+      },
     });
     if (!root) {
       throw new Error('root folder does not exists');
@@ -227,38 +226,41 @@ module.exports = (Model, App) => {
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
       order: [['id', 'DESC']],
       limit: 5000,
-      offset: index
+      offset: index,
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id }
+      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id },
     });
     return {
       folders,
-      files
+      files,
     };
   };
 
-  const mapChildrenNames = (folder = []) => folder.map((child) => {
-    child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-    child.children = mapChildrenNames(child.children);
+  const mapChildrenNames = (folder = []) =>
+    folder.map((child) => {
+      child.name = App.services.Crypt.decryptName(child.name, child.parentId);
+      child.children = mapChildrenNames(child.children);
 
-    return child;
-  });
+      return child;
+    });
 
   const getFolders = (parentFolderId, userId) => {
-    return Model.folder.findAll({
-      where: { parentId: parentFolderId, userId }
-    }).then((folders) => {
-      if (!folders) {
-        throw new Error('Not found');
-      }
-      return folders.map((folder) => {
-        folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+    return Model.folder
+      .findAll({
+        where: { parentId: parentFolderId, userId },
+      })
+      .then((folders) => {
+        if (!folders) {
+          throw new Error('Not found');
+        }
+        return folders.map((folder) => {
+          folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
-        return folder;
+          return folder;
+        });
       });
-    });
   };
 
   const GetContent = async (folderId, user, teamId = null) => {
@@ -271,8 +273,8 @@ module.exports = (Model, App) => {
       teamMember = await Model.teamsmembers.findOne({
         where: {
           user: { [Op.eq]: user.email },
-          id_team: { [Op.eq]: teamId }
-        }
+          id_team: { [Op.eq]: teamId },
+        },
       });
     }
 
@@ -283,22 +285,22 @@ module.exports = (Model, App) => {
     const result = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
-        user_id: user.id
+        user_id: user.id,
       },
       include: [
         {
           model: Model.folder,
           as: 'children',
           where: { userId: user.id },
-          separate: true
+          separate: true,
         },
         {
           model: Model.file,
           as: 'files',
           where: { userId: user.id },
-          separate: true
-        }
-      ]
+          separate: true,
+        },
+      ],
     });
 
     // Null result implies empty folder.
@@ -318,17 +320,19 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId }
-      }
-    }).then((folder) => {
-      if (!folder) {
-        throw Error('Folder not found on database, please refresh');
-      }
+    return Model.folder
+      .findOne({
+        where: {
+          id: { [Op.eq]: folderId },
+        },
+      })
+      .then((folder) => {
+        if (!folder) {
+          throw Error('Folder not found on database, please refresh');
+        }
 
-      return folder;
-    });
+        return folder;
+      });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -355,38 +359,43 @@ module.exports = (Model, App) => {
           .findOne({
             where: {
               id: { [Op.eq]: folderId },
-              user_id: { [Op.eq]: user.id }
-            }
-          }).then((result) => {
+              user_id: { [Op.eq]: user.id },
+            },
+          })
+          .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
             }
             next(null, result);
-          }).catch(next);
+          })
+          .catch(next);
       },
       (folder, next) => {
         // Check if the new folder name already exists
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder.findOne({
-            where: {
-              parentId: { [Op.eq]: folder.parentId },
-              name: { [Op.eq]: cryptoFolderName }
-            }
-          }).then((isDuplicated) => {
-            if (isDuplicated) {
-              return next(Error('Folder with this name exists'));
-            }
-            newMeta.name = cryptoFolderName;
-            try {
-              AesUtil.decrypt(cryptoFolderName, folder.parentId);
-              newMeta.encrypt_version = '03-aes';
-            } catch (e) {
-              // no op
-            }
-            return next(null, folder);
-          }).catch(next);
+          Model.folder
+            .findOne({
+              where: {
+                parentId: { [Op.eq]: folder.parentId },
+                name: { [Op.eq]: cryptoFolderName },
+              },
+            })
+            .then((isDuplicated) => {
+              if (isDuplicated) {
+                return next(Error('Folder with this name exists'));
+              }
+              newMeta.name = cryptoFolderName;
+              try {
+                AesUtil.decrypt(cryptoFolderName, folder.parentId);
+                newMeta.encrypt_version = '03-aes';
+              } catch (e) {
+                // no op
+              }
+              return next(null, folder);
+            })
+            .catch(next);
         } else {
           next(null, folder);
         }
@@ -394,8 +403,10 @@ module.exports = (Model, App) => {
       (folder, next) => {
         // Perform the update
         folder
-          .update(newMeta).then((result) => next(null, result)).catch(next);
-      }
+          .update(newMeta)
+          .then((result) => next(null, result))
+          .catch(next);
+      },
     ]);
   };
 
@@ -403,9 +414,9 @@ module.exports = (Model, App) => {
     const query = {
       where: {
         user_id: { [Op.eq]: user.id },
-        parent_id: { [Op.eq]: folderId }
+        parent_id: { [Op.eq]: folderId },
       },
-      raw: true
+      raw: true,
     };
 
     if (options.attributes) {
@@ -419,29 +430,27 @@ module.exports = (Model, App) => {
     const folder = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
-        user_id: { [Op.eq]: user.id }
-      }
+        user_id: { [Op.eq]: user.id },
+      },
     });
     const destinationFolder = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: destination },
-        user_id: { [Op.eq]: user.id }
-      }
+        user_id: { [Op.eq]: user.id },
+      },
     });
 
     if (!folder || !destinationFolder) {
       throw Error('Folder does not exists');
     }
 
-    const originalName = App.services.Crypt.decryptName(folder.name,
-      folder.parentId);
-    const destinationName = App.services.Crypt.encryptName(originalName,
-      destination);
+    const originalName = App.services.Crypt.decryptName(folder.name, folder.parentId);
+    const destinationName = App.services.Crypt.encryptName(originalName, destination);
     const exists = await Model.folder.findOne({
       where: {
         name: { [Op.eq]: destinationName },
-        parent_id: { [Op.eq]: destination }
-      }
+        parent_id: { [Op.eq]: destination },
+      },
     });
 
     if (exists) {
@@ -453,28 +462,28 @@ module.exports = (Model, App) => {
     // Move
     const result = await folder.update({
       parentId: parseInt(destination, 10),
-      name: destinationName
+      name: destinationName,
     });
     // we don't want ecrypted name on front
-    folder.setDataValue('name',
-      App.services.Crypt.decryptName(destinationName, destination));
+    folder.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
     folder.setDataValue('parentId', parseInt(destination, 10));
     const response = {
       result,
       item: folder,
       destination,
-      moved: true
+      moved: true,
     };
 
     return response;
   };
 
-  const GetBucket = (user, folderId) => Model.folder.findOne({
-    where: {
-      id: { [Op.eq]: folderId },
-      user_id: { [Op.eq]: user.id }
-    }
-  });
+  const GetBucket = (user, folderId) =>
+    Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id },
+      },
+    });
 
   const changeDuplicateName = async (user) => {
     const userObject = user;
@@ -489,25 +498,27 @@ module.exports = (Model, App) => {
         group: ['name'],
         having: {
           count_name: {
-            [Op.gt]: 1
-          }
+            [Op.gt]: 1,
+          },
         },
         limit: 5000,
-        offset: index
+        offset: index,
       });
       if (duplicateName.length === 0) {
         break;
       }
-      duplicateName = duplicateName.map((obj) => { return obj.name; });
+      duplicateName = duplicateName.map((obj) => {
+        return obj.name;
+      });
       // eslint-disable-next-line no-await-in-loop
       const folders = await Model.folder.findAll({
         where: {
           user_id: {
-            [Op.eq]: userObject.id
+            [Op.eq]: userObject.id,
           },
-          name: { [Op.in]: duplicateName }
+          name: { [Op.in]: duplicateName },
         },
-        attributes: ['id', 'name', 'parent_id']
+        attributes: ['id', 'name', 'parent_id'],
       });
       dict.clear();
       folders.forEach(async (folder) => {
@@ -537,8 +548,7 @@ module.exports = (Model, App) => {
 
     const res = await redis.set(`${userId}-${folderId}`, lockId, 'EX', 15, 'NX');
 
-    if (!res)
-      throw new Error();
+    if (!res) throw new Error();
   };
 
   const refreshLock = async (userId, folderId, lockId) => {
@@ -546,16 +556,14 @@ module.exports = (Model, App) => {
 
     const res = await redis.refreshLock(`${userId}-${folderId}`, lockId);
 
-    if (!res)
-      throw new Error();
+    if (!res) throw new Error();
   };
 
   const releaseLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
     const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
 
-    if (!res)
-      throw new Error();
+    if (!res) throw new Error();
   };
 
   return {
@@ -576,6 +584,6 @@ module.exports = (Model, App) => {
     changeDuplicateName,
     acquireLock,
     releaseLock,
-    refreshLock
+    refreshLock,
   };
 };

@@ -20,11 +20,12 @@ import initUserPhotos, { UserPhotosModel } from './userphotos';
 import initReferral, { ReferralModel } from './referral';
 import initUserReferral, { UserReferralModel } from './userReferral';
 
-export type ModelType = AlbumModel
+export type ModelType =
+  | AlbumModel
   | AppSumoModel
   | BackupModel
   | DeviceModel
-  | FileModel 
+  | FileModel
   | FolderModel
   | InvitationModel
   | KeyServerModel
@@ -38,8 +39,7 @@ export type ModelType = AlbumModel
   | UserModel
   | UserPhotosModel
   | ReferralModel
-  | UserReferralModel
-
+  | UserReferralModel;
 
 export default (database: Sequelize) => {
   const Album = initAlbum(database);
@@ -131,6 +131,6 @@ export default (database: Sequelize) => {
     [User.name]: User,
     [UserPhotos.name]: UserPhotos,
     [Referral.name]: Referral,
-    [UserReferral.name]: UserReferral
+    [UserReferral.name]: UserReferral,
   };
 };

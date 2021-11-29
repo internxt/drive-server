@@ -1,12 +1,12 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface KeyServerAttributes {
-  id: number
-  userId: number,
-  publicKey: string,
-  privateKey: string,
-  revocationKey: string,
-  encryptVersion: string
+  id: number;
+  userId: number;
+  publicKey: string;
+  privateKey: string;
+  revocationKey: string;
+  encryptVersion: string;
 }
 
 export type KeyServerModel = ModelDefined<KeyServerAttributes, KeyServerAttributes>;
@@ -19,37 +19,37 @@ export default (database: Sequelize): KeyServerModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       user_id: {
         type: DataTypes.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
+          key: 'id',
         },
-        allowNull: false
+        allowNull: false,
       },
       public_key: {
         type: DataTypes.STRING(920),
-        allowNull: false
+        allowNull: false,
       },
       private_key: {
         type: DataTypes.STRING(1356),
-        allowNull: false
+        allowNull: false,
       },
       revocation_key: {
         type: DataTypes.STRING(476),
-        allowNull: false
+        allowNull: false,
       },
       encrypt_version: {
-        type: DataTypes.STRING
-      }
+        type: DataTypes.STRING,
+      },
     },
     {
       timestamps: true,
       underscored: true,
-      freezeTableName: true
-    }
+      freezeTableName: true,
+    },
   );
 
   return KeyServer;

@@ -1,6 +1,6 @@
 exports.data = {
   server: {
-    port: 8000
+    port: 8000,
   },
   database: {
     name: process.env.RDS_DBNAME,
@@ -9,8 +9,8 @@ exports.data = {
     sequelizeConfig: {
       dialect: 'mariadb',
       port: 3306,
-      host: process.env.RDS_HOSTNAME || 'localhost'
-    }
+      host: process.env.RDS_HOSTNAME || 'localhost',
+    },
   },
   secrets: {
     JWT: process.env.JWT_SECRET || 'asdf1234',
@@ -21,10 +21,10 @@ exports.data = {
     CAPTCHA_SECRET: process.env.CAPTCHA_SECRET,
     MAGIC_SALT: process.env.MAGIC_SALT,
     MAGIC_IV: process.env.MAGIC_IV,
-    CRYPTO_SECRET2: process.env.CRYPTO_SECRET2
+    CRYPTO_SECRET2: process.env.CRYPTO_SECRET2,
   },
   logger: {
-    level: 2
+    level: 2,
   },
-  STORJ_BRIDGE: 'https://api.internxt.com'
+  STORJ_BRIDGE: 'https://api.internxt.com',
 };

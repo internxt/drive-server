@@ -1,7 +1,7 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 export interface ReferralAttributes {
-  id: number
+  id: number;
   key: string;
   type: 'storage';
   credit: number;
@@ -19,36 +19,36 @@ export default (database: Sequelize): ReferralModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         allowNull: false,
-        autoIncrement: true
+        autoIncrement: true,
       },
       key: {
         type: DataTypes.STRING,
         unique: true,
-        allowNull: false
+        allowNull: false,
       },
       type: {
         type: DataTypes.ENUM('storage'),
-        allowNull: false
+        allowNull: false,
       },
       credit: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       steps: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       enabled: {
         type: DataTypes.BOOLEAN,
         allowNull: false,
-        defaultValue: true
-      }
+        defaultValue: true,
+      },
     },
     {
       tableName: 'referrals',
       timestamps: true,
-      underscored: true
-    }
+      underscored: true,
+    },
   );
 
   return Referral;
