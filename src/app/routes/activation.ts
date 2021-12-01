@@ -28,6 +28,14 @@ class ActivationController {
     AnalyticsService.trackDeactivationRequest(req as AuthorizedRequest);
   }
 
+  async sendResetEmail(req: Request<{ email: string }>, res: Response) {
+    const email = req.params.email.toLowerCase();
+
+    await this.service.User.DeactivateUser(email);
+
+    res.status(200).send();
+  }
+
   async confirmDeactivation(req: Request, res: Response) {
     if (!req.params.token) {
       return res.status(400).send({ message: 'Missing token param' });
@@ -47,5 +55,6 @@ export default (router: Router, service: any) => {
   const controller = new ActivationController(service);
 
   router.get('/deactivate', passportAuth, controller.deactivate.bind(controller));
+  router.get('/reset/:email', controller.sendResetEmail.bind(controller));
   router.get('/confirmDeactivation/:token', controller.confirmDeactivation.bind(controller));
 };
