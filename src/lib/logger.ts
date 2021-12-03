@@ -1,6 +1,5 @@
 import winston from 'winston';
 import os from 'os';
-import Config from '../config/config';
 
 const { splat, combine, printf, timestamp } = winston.format;
 

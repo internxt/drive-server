@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import winston from 'winston';
 
-import Logger from '../../lib/logger';
 import { UserAttributes } from '../models/user';
-
-const logger = Logger.getInstance();
 
 type RequestId = string;
 
