@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import { Sequelize } from 'sequelize';
 import winston from 'winston';
+import addRequestId from 'express-request-id';
 
 import Config from '../config';
 import Logger from '../../lib/logger';
@@ -109,6 +110,7 @@ export default class Server {
     const routesPrefix = '/api';
     this.logger.info(`Initializing and mounting routes to ${routesPrefix}`);
     this.routes = Router(this.router, this.services, this);
+    this.express.use(addRequestId());
     this.express.use(routesPrefix, this.routes);
     this.express.use(errorHandler);
     this.logger.info('Routes OK');
