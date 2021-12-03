@@ -5,6 +5,8 @@ import { UserAttributes } from '../models/user';
 
 const logger = Logger.getInstance();
 
+type RequestId = string;
+
 /**
  * DO NOT REMOVE next function as this is required by Express to
  * treat this as a 'catch all' function
@@ -16,7 +18,7 @@ const logger = Logger.getInstance();
  */
 export default function errorHandler(
   err: Error & { status?: number; message?: string; expose?: boolean },
-  req: Request & { user?: UserAttributes },
+  req: Request & { user?: UserAttributes; id?: RequestId },
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
@@ -25,9 +27,15 @@ export default function errorHandler(
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
   if (user) {
-    logger.error('[%s]: ERROR for user %s: %s', handlerPath, user.email, err.message);
+    logger.error(
+      '[ID: %s | PATH: %s]: ERROR for user %s: %s',
+      req.id ?? 'unknown',
+      handlerPath,
+      user.email,
+      err.message,
+    );
   } else {
-    logger.error('[%s]: ERROR: %s', handlerPath, err.message);
+    logger.error('[ID: %s | PATH: %s]: ERROR: %s', req.id ?? 'unknown', handlerPath, err.message);
   }
 
   if (res.headersSent) {
