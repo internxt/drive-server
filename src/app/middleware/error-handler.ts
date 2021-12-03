@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import winston from 'winston';
 
 import Logger from '../../lib/logger';
 import { UserAttributes } from '../models/user';
@@ -18,7 +19,7 @@ type RequestId = string;
  */
 export default function errorHandler(
   err: Error & { status?: number; message?: string; expose?: boolean },
-  req: Request & { user?: UserAttributes; id?: RequestId },
+  req: Request & { user?: UserAttributes; id?: RequestId; logger?: any },
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
@@ -27,15 +28,9 @@ export default function errorHandler(
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
   if (user) {
-    logger.error(
-      '[ID: %s | PATH: %s]: ERROR for user %s: %s',
-      req.id ?? 'unknown',
-      handlerPath,
-      user.email,
-      err.message,
-    );
+    req.logger?.error('%s ERROR for user %s: %s', handlerPath, user.email, err.message);
   } else {
-    logger.error('[ID: %s | PATH: %s]: ERROR: %s', req.id ?? 'unknown', handlerPath, err.message);
+    req.logger?.error('%s ERROR %s', handlerPath, err.message);
   }
 
   if (res.headersSent) {

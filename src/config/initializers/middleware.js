@@ -6,9 +6,50 @@ const { ExtractJwt } = require('passport-jwt');
 const jwt = require('jsonwebtoken');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const addRequestId = require('express-request-id');
+const util = require('util');
+const Logger = require('../../lib/logger').default;
+const logger = Logger.getInstance();
 
 module.exports = (App, Config) => {
   App.express.use(helmet());
+  App.express.use(addRequestId());
+  App.express.use((req, res, next) => {
+    const meta = {
+      requestId: req.id
+    };
+    req.logger = {
+      info: (...content) => {
+        logger.log({
+          level: 'info',
+          message: util.format(...content),
+          meta
+        });
+      },
+      warn: (...content) => {
+        logger.log({
+          level: 'warn',
+          message: util.format(...content),
+          meta
+        });
+      },
+      error: (...content) => {
+        logger.log({
+          level: 'error',
+          message: util.format(...content),
+          meta
+        });
+      },
+      debug: (...content) => {
+        logger.log({
+          level: 'debug',
+          message: util.format(...content),
+          meta
+        });
+      }
+    };
+    next();
+  });
   App.express.disable('x-powered-by');
 
   const limiterKeyGenerator = (req) => {
