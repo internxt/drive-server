@@ -62,9 +62,10 @@ export default (router: Router, service: any, App: any): Router => {
       throw createHttpError(400, 'Invalid email');
     }
 
-    const user: UserAttributes = await service.User.FindUserByEmail(req.body.email);
-
-    if (!user) {
+    let user: UserAttributes;
+    try {
+      user = await service.User.FindUserByEmail(req.body.email);
+    } catch {
       throw createHttpError(401, 'Wrong email/password');
     }
 
