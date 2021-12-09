@@ -190,11 +190,13 @@ module.exports = (Model, App) => {
     const deactivationUrl = `${process.env.HOST_DRIVE_WEB}/deactivations/${deactivator}`;
 
     return sendDeactivateEmail(auth, email, deactivationUrl, deactivator);
-  }
+  };
 
   const sendDeactivateEmail = (auth, email, deactivationUrl, deactivator) => {
+    const host = App.config.get('STORJ_BRIDGE');
+
     return axios
-      .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}?redirect=${deactivationUrl}&deactivator=${deactivator}`, {
+      .delete(`${host}/users/${email}?redirect=${deactivationUrl}&deactivator=${deactivator}`, {
         headers: {
           Authorization: `Basic ${auth}`,
           'Content-Type': 'application/json',
@@ -202,7 +204,7 @@ module.exports = (Model, App) => {
       }).catch((err) => {
         throw new Error(request.extractMessageFromError(err));
       });
-  }
+  };
 
   const confirmDeactivate = async (token) => {
     let user;
