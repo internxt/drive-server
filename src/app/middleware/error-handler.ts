@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 
-import Logger from '../../lib/logger';
 import { UserAttributes } from '../models/user';
 
-const logger = Logger.getInstance();
+type RequestId = string;
 
 /**
  * DO NOT REMOVE next function as this is required by Express to
@@ -16,7 +15,7 @@ const logger = Logger.getInstance();
  */
 export default function errorHandler(
   err: Error & { status?: number; message?: string; expose?: boolean },
-  req: Request & { user?: UserAttributes },
+  req: Request & { user?: UserAttributes; id?: RequestId; logger?: any },
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction,
@@ -25,9 +24,9 @@ export default function errorHandler(
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
   if (user) {
-    logger.error('[%s]: ERROR for user %s: %s', handlerPath, user.email, err.message);
+    req.logger?.error('%s ERROR for user %s: %s', handlerPath, user.email, err.message);
   } else {
-    logger.error('[%s]: ERROR: %s', handlerPath, err.message);
+    req.logger?.error('%s ERROR %s', handlerPath, err.message);
   }
 
   if (res.headersSent) {
