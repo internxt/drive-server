@@ -19,11 +19,11 @@ class ActivationController {
   async deactivate(req: Request, res: Response) {
     const { email } = (req as AuthorizedRequest).user;
 
-    await this.service.User.DeactivateUser(email);
+    await this.service.User.deactivate(email);
 
     res.status(200).send({ error: null, message: 'User deactivated' });
 
-    logger.info('[/deactivate]: User %s deactivated', email);
+    logger.info('User %s requested deactivation', email);
 
     AnalyticsService.trackDeactivationRequest(req as AuthorizedRequest);
   }
@@ -31,7 +31,7 @@ class ActivationController {
   async sendResetEmail(req: Request<{ email: string }>, res: Response) {
     const email = req.params.email.toLowerCase();
 
-    await this.service.User.DeactivateUser(email);
+    await this.service.User.deactivate(email);
 
     res.status(200).send();
   }
@@ -43,11 +43,16 @@ class ActivationController {
 
     const { token } = req.params;
 
-    await this.service.User.ConfirmDeactivateUser(token);
+    await this.service.User.confirmDeactivate(token).catch((err: Error) => {
+      if (err.message === 'User not found') {
+        return;
+      }
+      throw err;
+    });
 
     res.status(200).send((req as Request & { data: any }).data);
 
-    logger.info('[/confirmDeactivation]: Token %s used for deactivation', token);
+    // AnalyticsService.trackDeactivationConfirmed(user.uuid);
   }
 }
 
