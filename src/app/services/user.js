@@ -1,9 +1,8 @@
-const axios = require('axios');
+import axios from 'axios';
+import crypto from 'crypto';
 const sequelize = require('sequelize');
-const async = require('async');
-const CryptoJS = require('crypto-js');
-const crypto = require('crypto');
 const bip39 = require('bip39');
+const { request } = require('@internxt/lib');
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const KeyServerService = require('./keyserver');
 const CryptService = require('./crypt');
@@ -178,110 +177,82 @@ module.exports = (Model, App) => {
 
   const FindUserObjByEmail = (email) => Model.users.findOne({ where: { username: { [Op.eq]: email } } });
 
-  const DeactivateUser = (email) =>
-    new Promise((resolve, reject) =>
-      Model.users
-        .findOne({ where: { username: { [Op.eq]: email } } })
-        .then((user) => {
-          const password = CryptoJS.SHA256(user.userId).toString();
-          const auth = Buffer.from(`${user.email}:${password}`).toString('base64');
+  const deactivate = async (email) => {
+    const user = await Model.users.findOne({ where: { username: { [Op.eq]: email } } });
 
-          axios
-            .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}`, {
-              headers: {
-                Authorization: `Basic ${auth}`,
-                'Content-Type': 'application/json',
-              },
-            })
-            .then((data) => {
-              resolve(data);
-            })
-            .catch((err) => {
-              logger.warn(err.response.data);
-              reject(err);
-            });
-        })
-        .catch(reject),
-    );
+    if (!user) {
+      throw new Error('User not found');
+    }
 
-  const ConfirmDeactivateUser = (token) => {
-    let userEmail = null;
-    return async.waterfall([
-      (next) => {
-        axios
-          .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
-            headers: { 'Content-Type': 'application/json' },
-          })
-          .then((res) => {
-            logger.warn('User deleted from bridge');
-            next(null, res);
-          })
-          .catch((err) => {
-            logger.error('Error user deleted from bridge: %s', err.message);
-            next(err.response.data.error || err.message);
-          });
-      },
-      (data, next) => {
-        userEmail = data.data.email;
-        Model.users
-          .findOne({ where: { username: { [Op.eq]: userEmail } } })
-          .then(async (user) => {
-            if (!user) {
-              return;
-            }
+    const pass = crypto.createHash('sha256').update(user.userId).digest('hex');
+    const auth = Buffer.from(`${user.email}:${pass}`).toString('base64');
+    const deactivator = crypto.randomBytes(256).toString('hex');
+    const deactivationUrl = `${process.env.HOST_DRIVE_WEB}/deactivations/${deactivator}`;
 
-            try {
-              // DELETE FOREIGN KEYS (not cascade)
-              user.root_folder_id = null;
-              await user.save();
-              const keys = await user.getKeyserver();
-              if (keys) {
-                await keys.destroy();
-              }
+    return sendDeactivateEmail(auth, email, deactivationUrl, deactivator);
+  }
 
-              const appSumo = await user.getAppSumo();
-              if (appSumo) {
-                await appSumo.destroy();
-              }
-              const usersPhoto = await user.getUsersphoto();
+  const sendDeactivateEmail = (auth, email, deactivationUrl, deactivator) => {
+    return axios
+      .delete(`${App.config.get('STORJ_BRIDGE')}/users/${email}?redirect=${deactivationUrl}&deactivator=${deactivator}`, {
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/json',
+        },
+      }).catch((err) => {
+        throw new Error(request.extractMessageFromError(err));
+      });
+  }
 
-              if (usersPhoto) {
-                const photos = await usersPhoto.getPhotos();
-                const photoIds = photos.map((x) => x.id);
-                if (photoIds.length > 0) {
-                  await Model.previews.destroy({ where: { photoId: { [Op.in]: photoIds } } });
-                  await Model.photos.destroy({ where: { id: { [Op.in]: photoIds } } });
-                }
+  const confirmDeactivate = async (token) => {
+    let user;
 
-                await usersPhoto.destroy();
-              }
+    try {
+      const userEmail = await axios.get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
+        headers: { 'Content-Type': 'application/json' },
+      }).then((res) => {
+        return res.data.email;
+      });
 
-              await Model.backup.destroy({ where: { userId: user.id } });
-              await Model.device.destroy({ where: { userId: user.id } });
+      user = await Model.users.findOne({ where: { username: userEmail } });
 
-              await user.destroy();
-              logger.info('User deactivation, remove on sql: %s', userEmail);
-            } catch (err) {
-              const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
-              logger.error(
-                'ERROR deactivation, user %s renamed to: %s. Reason: %s',
-                user.email,
-                tempUsername,
-                err.message,
-              );
-              user.email = tempUsername;
-              user.username = tempUsername;
-              user.bridgeUser = tempUsername;
-              await user.save();
-            }
+      if (!user) {
+        throw new Error('User not found');
+      }
 
-            AnalyticsService.trackDeactivationConfirmed(user.uuid);
+      // DELETE FOREIGN KEYS (not cascade)
+      user.root_folder_id = null;
+      await user.save();
+      const keys = await user.getKeyserver();
+      if (keys) {
+        await keys.destroy();
+      }
 
-            next();
-          })
-          .catch(next);
-      },
-    ]);
+      const appSumo = await user.getAppSumo();
+      if (appSumo) {
+        await appSumo.destroy();
+      }
+
+      await Model.backup.destroy({ where: { userId: user.id } });
+      await Model.device.destroy({ where: { userId: user.id } });
+
+      await user.destroy();
+
+      logger.info('User %s confirmed deactivation', userEmail);
+    } catch (err) {
+      if (user) {
+        const tempUsername = `${user.email}-${crypto.randomBytes(5).toString('hex')}-DELETED`;
+
+        user.email = tempUsername;
+        user.username = tempUsername;
+        user.bridgeUser = tempUsername;
+        await user.save();
+
+        throw new Error(`Deactivation error for user ${user.email} (renamed to ${tempUsername}): ${err.message}`);
+      } else {
+        throw new Error(err.message);
+      }
+    }
   };
 
   const Store2FA = (user, key) => Model.users.update({ secret_2FA: key }, { where: { username: { [Op.eq]: user } } });
@@ -634,8 +605,6 @@ module.exports = (Model, App) => {
     FindUserObjByEmail,
     FindUserByUuid,
     InitializeUser,
-    DeactivateUser,
-    ConfirmDeactivateUser,
     Store2FA,
     Delete2FA,
     UpdatePasswordMnemonic,
@@ -653,5 +622,7 @@ module.exports = (Model, App) => {
     updateKeys,
     recoverPassword,
     invite,
+    deactivate,
+    confirmDeactivate
   };
 };
