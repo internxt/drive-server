@@ -160,6 +160,9 @@ services:
       - internxt
     ports:
       - 8080:8978
+    volumes:
+      - ./volumes/dbeaver_logs:/opt/cloudbeaver/logs
+      - ./volumes/dbeaver_workspace:/opt/cloudbeaver/workspace
 
   redis:
     image: redis:latest
