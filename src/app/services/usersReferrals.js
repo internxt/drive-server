@@ -1,10 +1,6 @@
-const AnalyticsService = require('../../lib/analytics/AnalyticsService');
+import { ReferralsNotAvailableError } from './errors/referrals';
 
-class ReferralNotAvailableError extends Error {
-  constructor() {
-    super('Referrals program not available for this user');
-  }
-}
+const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 
 module.exports = (Model, App) => {
   const createUserReferrals = async (userId) => {
@@ -118,7 +114,7 @@ module.exports = (Model, App) => {
 
     const userHasReferralsProgram = await hasReferralsProgram(userId, user.email, user.bridgeUser, user.userId);
     if (!userHasReferralsProgram) {
-      throw new ReferralNotAvailableError();
+      throw new ReferralsNotAvailableError();
     }
 
     await update({ referred, applied: 1 }, userReferral.id);
@@ -133,7 +129,6 @@ module.exports = (Model, App) => {
     getByUserId,
     applyUserReferral,
     hasReferralsProgram,
-    redeemUserReferral,
-    ReferralNotAvailableError,
+    redeemUserReferral
   };
 };

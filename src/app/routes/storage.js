@@ -4,10 +4,23 @@ const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
+const { ReferralsNotAvailableError } = require('../services/errors/referrals');
 
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
+
+const logReferralError = (userId, err) => {
+  if (!err.message) {
+    return Logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
+  }
+
+  if (err instanceof ReferralsNotAvailableError) {
+    return;
+  }
+
+  return Logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
+};
 
 module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
@@ -136,37 +149,24 @@ module.exports = (Router, Service, App) => {
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
 
-    const logReferralError = (err) => {
-      if (!err.message) {
-        return Logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', req.behalfUser.id);
-      }
+    const result = await Service.Files.CreateFile(behalfUser, file);
 
-      if (err instanceof Service.ReferralNotAvailableError) {
-        return;
-      }
-
-      return Logger.error('[STORAGE]: ERROR applying referral for user %s: %s', req.behalfUser.id, err.message);
-    };
-
-    try {
-      const result = await Service.Files.CreateFile(behalfUser, file);
-
-      // TODO: If user has referrals, then apply. Do not catch everything
-      if (internxtClient === 'drive-mobile') {
-        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch(logReferralError);
-      }
-
-      if (internxtClient === 'drive-desktop') {
-        Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch(logReferralError);
-      }
-
-      res.status(200).json(result);
-
-      AnalyticsService.trackUploadCompleted(req, behalfUser);
-    } catch (err) {
-      Logger.error('[STORAGE]: ERROR for user %s: %s', req.behalfUser.id, err.message);
-      res.status(err.status || 500).json({ message: err.message });
+    // TODO: If user has referrals, then apply. Do not catch everything
+    if (internxtClient === 'drive-mobile') {
+      Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err) => {
+        logReferralError(behalfUser.id, err);
+      });
     }
+
+    if (internxtClient === 'drive-desktop') {
+      Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err) => {
+        logReferralError(behalfUser.id, err);
+      });
+    }
+
+    res.status(200).json(result);
+
+    AnalyticsService.trackUploadCompleted(req, behalfUser);
   });
 
   Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {
@@ -249,27 +249,24 @@ module.exports = (Router, Service, App) => {
     const itemId = req.params.id;
     const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
 
-    try {
-      const result = await Service.Share.GenerateToken(
-        user,
-        itemId,
-        '',
-        bucket,
-        encryptionKey,
-        fileToken,
-        isFolder,
-        views,
-      );
+    const result = await Service.Share.GenerateToken(
+      user,
+      itemId,
+      '',
+      bucket,
+      encryptionKey,
+      fileToken,
+      isFolder,
+      views,
+    );
 
-      await Service.UsersReferrals.applyUserReferral(user.id, 'share-file');
+    await Service.UsersReferrals.applyUserReferral(user.id, 'share-file').catch((err) => {
+      logReferralError(user.id, err);
+    });
 
-      res.status(200).send({ token: result });
+    res.status(200).send({ token: result });
 
-      AnalyticsService.trackShareLinkCopied(req);
-    } catch (err) {
-      Logger.error('[STORAGE/SHARE/FILE]: ERROR for user %s: %s', user.id, err.message);
-      res.status(500).send({ error: err.message });
-    }
+    AnalyticsService.trackShareLinkCopied(req);
   });
 
   Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {
