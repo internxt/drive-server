@@ -63,6 +63,20 @@ module.exports = (Router, Service) => {
       });
   });
 
+  Router.delete('/backup/device/:deviceId', passportAuth, (req, res) => {
+    const { deviceId } = req.params;
+
+    Service.Backup.deleteDevice(req.user, deviceId)
+      .then(() => {
+        res.status(200).send();
+      })
+      .catch((err) => {
+        if (err.name === 'NOT_FOUND') {
+          res.status(404).send({ error: err.message });
+        } else res.status(500).send({ error: err.message });
+      });
+  });
+
   Router.post('/backup/device/:mac', passportAuth, (req, res) => {
     const { deviceName, platform } = req.body;
     const { mac } = req.params;
