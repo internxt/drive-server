@@ -45,6 +45,29 @@ module.exports = (Model, App) => {
     return Model.device.update({ name: deviceName }, { where: { id: deviceId, userId } });
   };
 
+  const deleteDevice = async (user, deviceId) => {
+    const device = await Model.device.findOne({
+      where: { id: deviceId, userId: user.id },
+      include: [{ model: Model.backup }],
+    });
+
+    if (!device) {
+      const err = new Error('This user didnt register this device');
+      err.name = 'NOT_FOUND';
+      throw err;
+    }
+
+    for (const backup of device.backups) {
+      if (backup.fileId) {
+        await App.services.Inxt.DeleteFile(user, backup.bucket, backup.fileId);
+      }
+    }
+
+    await Model.backup.destroy({ where: { deviceId: device.id } });
+
+    return device.destroy();
+  };
+
   const activate = async (userData) => {
     const { Inxt, User, Plan } = App.services;
     let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
@@ -127,6 +150,7 @@ module.exports = (Model, App) => {
     deleteOne,
     updateOne,
     getDevice,
+    deleteDevice,
     getAllDevices,
     createDevice,
     updateDevice,
