@@ -60,7 +60,7 @@ export async function trackInvitationSent(userId: string, inviteEmail: string) {
   });
 }
 
-export async function trackDeactivationconfirmed(userId: string) {
+export async function trackDeactivationConfirmed(userId: string) {
   Analytics.track({
     userId,
     event: TrackName.DeactivationConfirmed,
