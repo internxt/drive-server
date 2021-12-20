@@ -106,10 +106,6 @@ module.exports = (Model, App) => {
   };
 
   const Delete = async (user, folderId) => {
-    if (user.mnemonic === 'null') {
-      throw new Error('Your mnemonic is invalid');
-    }
-
     const folder = await Model.folder.findOne({
       where: { id: { [Op.eq]: folderId }, userId: { [Op.eq]: user.id } },
     });
