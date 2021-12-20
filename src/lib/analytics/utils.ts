@@ -92,7 +92,7 @@ function getUTM(referrer: any) {
   const campaign = Object.create({});
   if (typeof referrer === 'string') {
     const { searchParams } = new URL(referrer);
-    const UTMS = ['utm_name', 'utm_source', 'utm_medium', 'utm_content'];
+    const UTMS = ['utm_name', 'utm_source', 'utm_medium', 'utm_content', 'utm_id'];
     UTMS.map((utm) => {
       if (searchParams.has(utm)) {
         campaign[utm] = searchParams.get(utm);
