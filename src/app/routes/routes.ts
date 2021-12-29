@@ -115,6 +115,18 @@ export default (router: Router, service: any, App: any): Router => {
 
     const internxtClient = req.headers['internxt-client'];
     const token = Sign(userData.email, App.config.get('secrets').JWT, internxtClient === 'drive-web');
+    const newToken = Sign({ payload: {
+      uuid: userData.uuid,
+      email: userData.email,
+      name: userData.name,
+      lastname: userData.lastname,
+      username: userData.username,
+      sharedWorkspace: true,
+      networkCredentials: {
+        user: userData.bridgeUser,
+        pass: userData.userId
+      }
+    } }, App.config.get('secrets').JWT);
 
     service.User.LoginFailed(req.body.email, false);
     service.User.UpdateAccountActivity(req.body.email);
@@ -168,7 +180,7 @@ export default (router: Router, service: any, App: any): Router => {
     //     user, token, userTeam, tokenTeam
     //   });
     // }
-    return res.status(200).json({ user, token, userTeam });
+    return res.status(200).json({ user, token, userTeam, newToken });
   });
 
   router.get('/user/refresh', passportAuth, async (req, res) => {
