@@ -2,6 +2,8 @@ const sequelize = require('sequelize');
 const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
+const { default: Logger } = require('../../lib/logger');
+const logger = Logger.getInstance();
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -10,7 +12,9 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const CreateFile = async (user, file) => {
+    // TODO: Move validation to endpoints
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
+      logger.error(`Invalid metadata trying to create a file for user ${user.email}: ${JSON.stringify(file, null, 2)}`);
       throw Error('Invalid metadata for new file');
     }
 
