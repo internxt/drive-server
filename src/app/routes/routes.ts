@@ -239,10 +239,10 @@ export default (router: Router, service: any, App: any): Router => {
   });
 
   router.post('/register', async (req, res) => {
-    if (req.headers['internxt-client'] !== 'drive-mobile') {
-      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-      await ReCaptchaV3.verify(req.body.captcha, ipaddress);
-    }
+    // if (req.headers['internxt-client'] !== 'drive-mobile') {
+    //   const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+    //   await ReCaptchaV3.verify(req.body.captcha, ipaddress);
+    // }
 
     const result = await service.User.RegisterUser(req.body);
     res.status(200).send(result);
