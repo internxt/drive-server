@@ -5,7 +5,6 @@ const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
 const { ReferralsNotAvailableError } = require('../services/errors/referrals');
-
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
@@ -148,6 +147,18 @@ module.exports = (Router, Service, App) => {
     const { behalfUser } = req;
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
+
+    if (!file.fileId && file.file_id) {
+      // TODO : Remove WHEN every project uses the SDK
+      file.fileId = file.file_id;
+    }
+
+    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
+      Logger.error(
+        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
+      );
+      throw Error('Invalid metadata for new file');
+    }
 
     const result = await Service.Files.CreateFile(behalfUser, file);
 
