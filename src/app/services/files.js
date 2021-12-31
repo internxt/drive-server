@@ -2,8 +2,6 @@ const sequelize = require('sequelize');
 const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
-const { default: Logger } = require('../../lib/logger');
-const logger = Logger.getInstance();
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -12,12 +10,6 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const CreateFile = async (user, file) => {
-    // TODO: Move validation to endpoints
-    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
-      logger.error(`Invalid metadata trying to create a file for user ${user.email}: ${JSON.stringify(file, null, 2)}`);
-      throw Error('Invalid metadata for new file');
-    }
-
     return Model.folder
       .findOne({
         where: {
@@ -48,7 +40,7 @@ module.exports = (Model, App) => {
           type: file.type,
           size: file.size,
           folder_id: folder.id,
-          fileId: file.file_id,
+          fileId: file.fileId,
           bucket: file.bucket,
           encrypt_version: file.encrypt_version,
           userId: user.id,
@@ -56,7 +48,7 @@ module.exports = (Model, App) => {
         };
 
         try {
-          AesUtil.decrypt(file.name, file.file_id);
+          AesUtil.decrypt(file.name, file.fileId);
           fileInfo.encrypt_version = '03-aes';
         } catch {
           // eslint-disable-next-line no-empty
