@@ -336,8 +336,7 @@ module.exports = () => {
   };
 
   const findPriceById = async (priceId) => {
-    const isTest = process.env.NODE_ENV !== 'production';
-    const stripe = await getStripe(isTest);
+    const stripe = await getStripe();
     const price = await stripe.prices.retrieve(priceId);
 
     return price;
