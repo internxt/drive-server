@@ -335,6 +335,13 @@ module.exports = () => {
     return plans;
   };
 
+  const findPriceById = async (priceId) => {
+    const stripe = await getStripe();
+    const price = await stripe.prices.retrieve(priceId);
+
+    return price;
+  };
+
   return {
     Name: 'Stripe',
     getStorageProducts,
@@ -347,5 +354,6 @@ module.exports = () => {
     findCustomerByEmail,
     getBilling,
     getUserSubscriptionPlans,
+    findPriceById
   };
 };
