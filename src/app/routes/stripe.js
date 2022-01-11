@@ -31,7 +31,7 @@ module.exports = (Router, Service) => {
       });
   });
 
-  Router.get('/session', passportAuth, (req, res) => {
+  Router.get('/stripe/session', passportAuth, (req, res) => {
     const sessionId = req.query.sessionId;
 
     Service.Stripe.findSessionById(sessionId)
