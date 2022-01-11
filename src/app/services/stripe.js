@@ -343,7 +343,7 @@ module.exports = () => {
   };
 
   const findSessionById = async (sessionId) => {
-    const stripe = await getStripe();
+    const stripe = await getStripe(sessionId.match(/^cs_test/));
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     return session;
