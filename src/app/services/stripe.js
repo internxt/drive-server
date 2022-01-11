@@ -342,6 +342,13 @@ module.exports = () => {
     return price;
   };
 
+  const findSessionById = async (sessionId) => {
+    const stripe = await getStripe();
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    return session;
+  };
+
   return {
     Name: 'Stripe',
     getStorageProducts,
@@ -354,6 +361,7 @@ module.exports = () => {
     findCustomerByEmail,
     getBilling,
     getUserSubscriptionPlans,
-    findPriceById
+    findPriceById,
+    findSessionById
   };
 };
