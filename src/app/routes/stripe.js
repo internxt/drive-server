@@ -31,6 +31,18 @@ module.exports = (Router, Service) => {
       });
   });
 
+  Router.get('/session', passportAuth, (req, res) => {
+    const sessionId = req.query.sessionId;
+
+    Service.Stripe.findSessionById(sessionId)
+      .then((data) => {
+        res.status(200).json(data);
+      })
+      .catch(() => {
+        res.status(400).json({ message: 'Error retrieving session data' });
+      });
+  });
+
   /**
    * Should create a new Stripe Session token.
    * Stripe Session is neccesary to perform a new payment
