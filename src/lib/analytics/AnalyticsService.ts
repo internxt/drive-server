@@ -9,11 +9,10 @@ import express from 'express';
 
 const NETWORK_ANALYTICS_THRESHOLD = 6144;
 
-export async function trackDeactivationRequest(req: express.Request & ReqUser) {
+export async function trackDeactivationRequest(uuid: string, req: express.Request) {
   const context = await getContext(req);
-  const userId = req.user.uuid;
   Analytics.track({
-    userId,
+    userId: uuid,
     event: TrackName.DeactivationRequest,
     context,
   });

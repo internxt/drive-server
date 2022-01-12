@@ -16,8 +16,20 @@ class ActivationController {
     this.service = service;
   }
 
+  async sendDeactivationEmail(req: Request<{ email: string }>, res: Response) {
+    const email = req.params.email.toLowerCase();
+    const user = await this.service.User.FindUserByEmail(email);
+    const uuid = user.uuid;
+
+    await this.service.User.deactivate(email);
+
+    res.status(200).send({ error: null, message: 'Email sent' });
+
+    AnalyticsService.trackDeactivationRequest(uuid, req);
+  }
+
   async deactivate(req: Request, res: Response) {
-    const { email } = (req as AuthorizedRequest).user;
+    const { email, uuid } = (req as AuthorizedRequest).user;
 
     await this.service.User.deactivate(email);
 
@@ -25,7 +37,7 @@ class ActivationController {
 
     logger.info('User %s requested deactivation', email);
 
-    AnalyticsService.trackDeactivationRequest(req as AuthorizedRequest);
+    AnalyticsService.trackDeactivationRequest(uuid, req);
   }
 
   async sendResetEmail(req: Request<{ email: string }>, res: Response) {
@@ -59,6 +71,7 @@ class ActivationController {
 export default (router: Router, service: any) => {
   const controller = new ActivationController(service);
 
+  router.get('/deactivate/:email', controller.sendDeactivationEmail.bind(controller));
   router.get('/deactivate', passportAuth, controller.deactivate.bind(controller));
   router.get('/reset/:email', controller.sendResetEmail.bind(controller));
   router.get('/confirmDeactivation/:token', controller.confirmDeactivation.bind(controller));
