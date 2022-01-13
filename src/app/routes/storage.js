@@ -197,11 +197,10 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.post('/storage/move/file', passportAuth, sharedAdapter, (req, res) => {
-    const { fileId, destination, bucketId, relativePath } = req.body;
+    const { fileId, destination } = req.body;
     const { behalfUser: user } = req;
-    const mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Files.MoveFile(user, fileId, destination, bucketId, mnemonic, relativePath)
+    Service.Files.MoveFile(user, fileId, destination)
       .then((result) => {
         res.status(200).json(result);
       })
