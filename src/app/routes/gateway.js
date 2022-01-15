@@ -94,4 +94,23 @@ module.exports = (Router, Service) => {
         res.status(500).send({ error: err.message });
       });
   });
+
+  Router.get('/gateway/registerCompleted', basicAuth, (req, res) => {
+    const email = req.query.email;
+
+    return Service.User.FindUserByEmail(email)
+      .then((user) => {
+        const { uuid, registerCompleted } = user;
+
+        res.status(200).send({
+          uuid,
+          registerCompleted
+        });
+      })
+      .catch((err) => {
+        Logger.error(`[Gateway]: Register completed check failed for user: ${email}: %s`, err.message);
+        res.status(500).send({ error: 'Failed to check if register process was completed' });
+      });
+  });
+
 };
