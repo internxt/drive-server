@@ -101,8 +101,7 @@ module.exports = (Router, Service, App) => {
 
   Router.delete('/storage/folder/:id', passportAuth, sharedAdapter, (req, res) => {
     const { behalfUser: user } = req;
-    // Set mnemonic to decrypted mnemonic
-    user.mnemonic = req.headers['internxt-mnemonic'];
+
     const folderId = req.params.id;
 
     Service.Folder.Delete(user, folderId)
