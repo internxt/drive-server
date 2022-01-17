@@ -18,14 +18,15 @@ class ActivationController {
 
   async sendDeactivationEmail(req: Request<{ email: string }>, res: Response) {
     const email = req.params.email.toLowerCase();
-    const user = await this.service.User.FindUserByEmail(email);
-    const uuid = user.uuid;
-
-    await this.service.User.deactivate(email);
-
-    res.status(200).send({ error: null, message: 'Email sent' });
-
-    AnalyticsService.trackDeactivationRequest(uuid, req);
+    try {
+      const user = await this.service.User.FindUserByEmail(email);
+      const uuid = user.uuid;
+      await this.service.User.deactivate(email);
+      res.status(200).send({ error: null, message: 'Email sent' });
+      AnalyticsService.trackDeactivationRequest(uuid, req);
+    } catch (error) {
+      res.status(404).send({ error: 'User not found' });
+    }
   }
 
   async deactivate(req: Request, res: Response) {
