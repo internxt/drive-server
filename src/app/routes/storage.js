@@ -157,7 +157,7 @@ module.exports = (Router, Service, App) => {
       Logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
       );
-      throw Error('Invalid metadata for new file');
+      res.status(400).json({error: 'Invalid metadata for new file'});
     }
 
     const result = await Service.Files.CreateFile(behalfUser, file);
