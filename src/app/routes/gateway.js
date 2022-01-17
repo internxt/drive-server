@@ -95,21 +95,19 @@ module.exports = (Router, Service) => {
       });
   });
 
-  Router.get('/gateway/registerCompleted', basicAuth, (req, res) => {
+  Router.get('/gateway/users', basicAuth, (req, res) => {
     const email = req.query.email;
 
     return Service.User.FindUserByEmail(email)
       .then((user) => {
-        const { uuid, registerCompleted } = user;
 
         res.status(200).send({
-          uuid,
-          registerCompleted
+          user
         });
       })
       .catch((err) => {
-        Logger.error(`[Gateway]: Register completed check failed for user: ${email}: %s`, err.message);
-        res.status(500).send({ error: 'Failed to check if register process was completed' });
+        Logger.error(`[Gateway]: Failed to get user: ${email}: %s`, err.message);
+        res.status(500).send({ error: 'Failed to get user' });
       });
   });
 
