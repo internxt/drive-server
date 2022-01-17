@@ -94,4 +94,19 @@ module.exports = (Router, Service) => {
         res.status(500).send({ error: err.message });
       });
   });
+
+  Router.get('/gateway/users', basicAuth, (req, res) => {
+    const email = req.query.email;
+
+    return Service.User.FindUserByEmail(email)
+      .then((user) => {
+
+        res.status(200).send(user);
+      })
+      .catch((err) => {
+        Logger.error(`[Gateway]: Failed to get user: ${email}: %s`, err.message);
+        res.status(500).send({ error: 'Failed to get user' });
+      });
+  });
+
 };
