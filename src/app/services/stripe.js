@@ -167,10 +167,10 @@ module.exports = () => {
 
   /**
    * @description Adds a product for every product.price found
-   * @param {*} isTest
    * @returns
    */
-  const getAllStorageProducts2 = async (isTest = false) => {
+  const getAllStorageProducts2 = async () => {
+    const isTest = process.env.NODE_ENV === 'development';
     const stripe = getStripe(isTest);
     const cacheName = `stripe_plans_v3_${isTest ? 'test' : 'production'}`;
     const cachedPlans = cache.get(cacheName);

@@ -365,9 +365,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.get('/v3/stripe/products', (req, res) => {
-    const test = req.query.test === 'true';
-
-    Service.Stripe.getAllStorageProducts2(test)
+    Service.Stripe.getAllStorageProducts2()
       .then((products) => {
         res.status(200).send(products);
       })
