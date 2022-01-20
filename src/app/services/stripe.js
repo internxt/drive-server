@@ -344,7 +344,9 @@ module.exports = () => {
 
   const findSessionById = async (sessionId) => {
     const stripe = await getStripe(sessionId.match(/^cs_test/));
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['total_details.breakdown.discounts.discount']
+    });
 
     return session;
   };
