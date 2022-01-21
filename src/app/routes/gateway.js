@@ -109,4 +109,16 @@ module.exports = (Router, Service) => {
       });
   });
 
+  Router.get('/gateway/checkout/session', basicAuth, async (req, res) => {
+    const sessionId = req.query.sessionId;
+
+    const session = await Service.Stripe.findSessionById(sessionId)
+      .catch((err) => {
+        Logger.error('[Gateway]: Failed to get stripe session %s', err.message);
+        res.status(500).send({ error: 'Failed to get stripe session'});
+      });
+
+    res.status(200).send(session);
+  });
+
 };
