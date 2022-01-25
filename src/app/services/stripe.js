@@ -44,28 +44,6 @@ module.exports = () => {
     return isTest ? StripeTest : StripeProduction;
   };
 
-  const getStorageProducts = (test = false) =>
-    new Promise((resolve, reject) => {
-      const stripe = getStripe(test);
-
-      stripe.products.list(
-        {
-          limit: 100,
-        },
-        (err, products) => {
-          if (err) {
-            reject(err);
-          } else {
-            const productsMin = products.data
-              .filter((p) => p.metadata.is_drive === '1' && p.metadata.show === '1')
-              .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
-              .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
-            resolve(productsMin);
-          }
-        },
-      );
-    });
-
   const getStoragePlans = (stripeProduct, test = false) =>
     new Promise((resolve, reject) => {
       const stripe = getStripe(test);
@@ -111,58 +89,6 @@ module.exports = () => {
           resolve(prices);
         }
       });
-    });
-
-  // TODO: Flag force reload
-  const getAllStorageProducts = (isTest = false) =>
-    new Promise((resolve, reject) => {
-      const stripe = getStripe(isTest);
-
-      const cacheName = `stripe_plans_v2_${isTest ? 'test' : 'production'}`;
-
-      const cachedPlans = cache.get(cacheName);
-
-      if (cachedPlans) {
-        return resolve(cachedPlans);
-      }
-
-      return stripe.products.list(
-        {
-          limit: 100,
-        },
-        (err, products) => {
-          if (err) {
-            reject(err);
-          } else {
-            const productsMin = products.data
-              .filter(
-                (p) =>
-                  (p.metadata.is_drive === '1' || p.metadata.is_teams === '1') &&
-                  p.metadata.show === '1' &&
-                  p.metadata.member_tier === 'subscriber',
-              )
-              .map((p) => ({ id: p.id, name: p.name, metadata: p.metadata }))
-              .sort((a, b) => a.metadata.size_bytes * 1 - b.metadata.size_bytes * 1);
-
-            async.eachSeries(
-              productsMin,
-              async (product) => {
-                const plans = await getStoragePlans(product.id, isTest);
-                product.plans = plans;
-              },
-              (err2) => {
-                // err2: Avoid shadowed variables
-                if (err2) {
-                  return reject(err2);
-                }
-
-                cache.put(cacheName, productsMin, 1000 * 60 * 30);
-                return resolve(productsMin);
-              },
-            );
-          }
-        },
-      );
     });
 
   /**
@@ -353,8 +279,6 @@ module.exports = () => {
 
   return {
     Name: 'Stripe',
-    getStorageProducts,
-    getAllStorageProducts,
     getAllStorageProducts2,
     getStoragePlans,
     getProductPrices,

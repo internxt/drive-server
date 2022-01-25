@@ -9,15 +9,6 @@ const passport = require('../middleware/passport');
 const { passportAuth } = passport;
 
 module.exports = (Router, Service) => {
-  Router.get('/plans', passportAuth, (req, res) => {
-    Service.Plan.ListAll()
-      .then((data) => {
-        res.status(200).json(data);
-      })
-      .catch(() => {
-        res.status(400).json({ message: 'Error retrieving list of plans' });
-      });
-  });
 
   Router.get('/price', passportAuth, (req, res) => {
     const priceId = req.query.priceId;
@@ -335,35 +326,6 @@ module.exports = (Router, Service) => {
     );
   });
 
-  /**
-   * Retrieve products listed in STRIPE.
-   * Products must be inserted on stripe using the dashboard with the required metadata.
-   * Required metadata:
-   */
-  Router.get('/stripe/products', passportAuth, (req, res) => {
-    const test = req.query.test || false;
-
-    Service.Stripe.getStorageProducts(test)
-      .then((products) => {
-        res.status(200).send(products);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err });
-      });
-  });
-
-  Router.get('/v2/stripe/products', (req, res) => {
-    const test = req.query.test === 'true' || false;
-
-    Service.Stripe.getAllStorageProducts(test)
-      .then((products) => {
-        res.status(200).send(products);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err });
-      });
-  });
-
   Router.get('/v3/stripe/products', (req, res) => {
     Service.Stripe.getAllStorageProducts2()
       .then((products) => {
@@ -386,38 +348,6 @@ module.exports = (Router, Service) => {
       });
   });
 
-  /**
-   * Get available plans from a given product.
-   * TODO: cache plans to avoid repetitive api calls
-   */
-  Router.post('/stripe/plans', passportAuth, (req, res) => {
-    const stripe = req.body.test ? StripeTest : StripeProduction;
-    const stripeProduct = req.body.product;
-
-    stripe.plans.list(
-      {
-        product: stripeProduct,
-        active: true,
-      },
-      (err, plans) => {
-        if (err) {
-          res.status(500).send({ error: err.message });
-        } else {
-          const plansMin = plans.data
-            .map((p) => ({
-              id: p.id,
-              price: p.amount,
-              name: p.nickname,
-              interval: p.interval,
-              interval_count: p.interval_count,
-            }))
-            .sort((a, b) => a.price * 1 - b.price * 1);
-          res.status(200).send(plansMin);
-        }
-      },
-    );
-  });
-
   Router.post('/stripe/teams/plans', passportAuth, (req, res) => {
     const stripeProduct = req.body.product;
     const test = req.body.test || false;
@@ -431,24 +361,4 @@ module.exports = (Router, Service) => {
       });
   });
 
-  Router.post('/stripe/billing', passportAuth, async (req, res) => {
-    const test = req.body.test || false;
-    const { email } = req.user;
-    const url = 'https://drive.internxt.com/';
-
-    Service.Stripe.findCustomerByEmail(email, test)
-      .then((customer) => {
-        const customerId = customer.id;
-        Service.Stripe.getBilling(customerId, url, test)
-          .then((session) => {
-            res.status(200).send({ url: session });
-          })
-          .catch((err) => {
-            res.status(500).send({ error: err.message });
-          });
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
-  });
 };
