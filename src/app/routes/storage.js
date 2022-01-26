@@ -25,24 +25,6 @@ module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
   const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
-  Router.get('/storage/folder/:id/:idTeam?', passportAuth, (req, res) => {
-    const folderId = req.params.id;
-    const teamId = req.params.idTeam || null;
-
-    Service.Folder.GetContent(folderId, req.user, teamId)
-      .then((result) => {
-        if (result == null) {
-          res.status(500).send([]);
-        } else {
-          res.status(200).json(result);
-        }
-      })
-      .catch((err) => {
-        // Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).json(err);
-      });
-  });
-
   Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
     const { params, behalfUser } = req;
     const { id } = params;
@@ -300,23 +282,6 @@ module.exports = (Router, Service, App) => {
       .catch((err) => {
         res.status(500).send({ error: err.message });
       });
-  });
-
-  Router.get('/storage/files/:folderId', passportAuth, (req, res) => {
-    const userId = req.user.id;
-    const { folderId } = req.params;
-
-    if (!folderId) {
-      res.status(400).send({ error: 'Missing folder id' });
-    } else {
-      Service.Files.getByFolderAndUserId(folderId, userId)
-        .then((files) => {
-          res.status(200).json(files);
-        })
-        .catch((err) => {
-          res.status(500).send({ error: err.message });
-        });
-    }
   });
 
   // Needs db index
