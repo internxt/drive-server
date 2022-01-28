@@ -25,6 +25,20 @@ module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
   const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
+  Router.get('/storage/folder/size/:id', passportAuth, sharedAdapter, (req, res) => {
+    const { params, behalfUser } = req;
+    const folderId = params.id;
+    Service.Folder.getSize(behalfUser, folderId)
+      .then((size) => {
+        res.status(200).json({
+          size: size
+        });
+      })
+      .catch((err) => {
+        res.status(500).json(err);
+      });
+  });
+
   Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
     const { params, behalfUser } = req;
     const { id } = params;
@@ -374,4 +388,5 @@ module.exports = (Router, Service, App) => {
         res.status(404).end();
       });
   });
+
 };
