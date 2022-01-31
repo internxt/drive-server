@@ -179,6 +179,21 @@ export async function trackSignIn() {
   // TODO
 }
 
+export async function page(req: express.Request) {
+  const appContext = getContext(req);
+  const { anonymousId, userId, name, properties, timestamp, sentAt } = req.body.page;
+  const context = { ...appContext, ...req.body.page.context };
+  Analytics.page({
+    anonymousId,
+    userId,
+    context,
+    name,
+    properties,
+    timestamp,
+    sentAt
+  });
+}
+
 export const actions = {
   file_downloaded: trackFileDownloaded,
 };
