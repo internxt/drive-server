@@ -1,8 +1,8 @@
 const crypto = require('crypto');
-
 const sequelize = require('sequelize');
 const { SHARE_TOKEN_LENGTH } = require('../constants');
 const FolderService = require('./folder');
+const CryptoJS = require('crypto-js');
 
 const { Op } = sequelize;
 
@@ -41,6 +41,19 @@ module.exports = (Model, App) => {
     return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
+  /**
+   * Generates a share file token
+   * @param user
+   * @param fileIdInBucket
+   * @param mnemonic
+   * @param bucket
+   * @param encryptionKey
+   * @param fileToken
+   * @param isFolder
+   * @param views
+   * @returns {Promise<string|*>}
+   * @constructor
+   */
   const GenerateFileToken = async (
     user,
     fileIdInBucket,
@@ -132,6 +145,112 @@ module.exports = (Model, App) => {
     return newShare.token;
   };
 
+  /**
+   * Generates a share folder token
+   * @param user
+   * @param folderId
+   * @param bucket
+   * @param mnemonic
+   * @param fileToken
+   * @param views
+   * @returns {Promise<string|*>}
+   * @constructor
+   */
+  const GenerateFolderToken = async (
+    user,
+    folderId,
+    bucket,
+    mnemonic,
+    fileToken,
+    views = 1,
+  ) => {
+    const itemExists = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id },
+      }
+    });
+
+    if (!itemExists) {
+      throw Error('Folder not found');
+    }
+
+    const maxAcceptableSize = 1024 * 1024 * 1000; // 1GB
+
+    const folderSize = await getFolderSize(folderId);
+
+    if (folderSize > maxAcceptableSize) {
+      throw Error('Folder too large');
+    }
+
+    // Generate password
+    const code = crypto.randomBytes(32).toString('hex');
+
+    // Encrypt mnemonic with password
+    const encryptedMnemonic = encrypt(mnemonic, code);
+
+    // Generate a new share token
+    const newToken = crypto.randomBytes(10).toString('hex');
+
+    const share = await Model.shares.findOne({
+      where: {
+        file: {
+          [Op.eq]: folderId
+        },
+        user: {
+          [Op.eq]: user.email
+        }
+      },
+    });
+
+    if (share) {
+      // Update share details
+      Model.shares.update(
+        {
+          token: newToken,
+          mnemonic: encryptedMnemonic,
+          isFolder: true,
+          views: views,
+          fileToken: fileToken,
+        },
+        {
+          where: {
+            id: {
+              [Op.eq]: share.id
+            }
+          }
+        },
+      );
+    } else {
+      // Create share details
+      await Model.shares.create({
+        token: newToken,
+        mnemonic: encryptedMnemonic,
+        encryptionKey: '',
+        file: folderId,
+        user: user.email,
+        isFolder: true,
+        views: views,
+        bucket: bucket,
+        fileToken: fileToken,
+      });
+    }
+
+    return newToken;
+  };
+
+  const encrypt = (text, key) => {
+    const bytes = CryptoJS.AES.encrypt(text, key).toString();
+    const text64 = CryptoJS.enc.Base64.parse(bytes);
+    return text64.toString(CryptoJS.enc.Hex);
+  };
+
+  const decrypt = (text, key) => {
+    const base64 = CryptoJS.enc.Hex.parse(text);
+    const bytes = base64.toString(CryptoJS.enc.Base64);
+    return CryptoJS.AES.decrypt(bytes, key).toString(CryptoJS.enc.Utf8);
+  };
+
   const list = (user) => {
     return Model.shares.findAll({
       where: {
@@ -198,6 +317,7 @@ module.exports = (Model, App) => {
     getFile,
     list,
     GenerateFileToken,
+    GenerateFolderToken,
     getFolderSize,
   };
 };

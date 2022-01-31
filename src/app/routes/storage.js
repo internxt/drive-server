@@ -244,6 +244,18 @@ module.exports = (Router, Service, App) => {
       });
   });
 
+  Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {
+    const { user } = req;
+
+    Service.Folder.changeDuplicateName(user)
+      .then((result) => {
+        res.status(204).json(result);
+      })
+      .catch((err) => {
+        res.status(500).json(err.message);
+      });
+  });
+
   Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const itemId = req.params.id;
@@ -266,19 +278,27 @@ module.exports = (Router, Service, App) => {
 
     res.status(200).send({ token: result });
 
-    AnalyticsService.trackShareLinkCopied(req);
+    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
   });
 
-  Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {
-    const { user } = req;
+  Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
+    const { behalfUser: user } = req;
+    const folderId = req.params.id;
+    const { views, fileToken, bucket } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
 
-    Service.Folder.changeDuplicateName(user)
-      .then((result) => {
-        res.status(204).json(result);
-      })
-      .catch((err) => {
-        res.status(500).json(err.message);
-      });
+    const result = await Service.Share.GenerateFolderToken(
+      user,
+      folderId,
+      bucket,
+      mnemonic,
+      fileToken,
+      views,
+    );
+
+    res.status(200).send({ token: result });
+
+    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
   });
 
   Router.get('/storage/share/:token', (req, res) => {
