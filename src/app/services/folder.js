@@ -234,14 +234,6 @@ module.exports = (Model, App) => {
     };
   };
 
-  const mapChildrenNames = (folder = []) =>
-    folder.map((child) => {
-      child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-      child.children = mapChildrenNames(child.children);
-
-      return child;
-    });
-
   const getFolders = (parentFolderId, userId) => {
     return Model.folder
       .findAll({
