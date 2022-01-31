@@ -249,7 +249,7 @@ module.exports = (Router, Service, App) => {
     const itemId = req.params.id;
     const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
 
-    const result = await Service.Share.GenerateToken(
+    const result = await Service.Share.GenerateFileToken(
       user,
       itemId,
       '',
@@ -282,7 +282,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.get(req.params.token)
+    Service.Share.getFile(req.params.token)
       .then((share) => {
         res.status(200).json(share);
 

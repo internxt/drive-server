@@ -9,7 +9,7 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const FolderServiceInstance = FolderService(Model, App);
 
-  const get = async (token) => {
+  const getFile = async (token) => {
     const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
 
     const result = await Model.shares.findOne({
@@ -41,7 +41,7 @@ module.exports = (Model, App) => {
     return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
-  const GenerateToken = async (
+  const GenerateFileToken = async (
     user,
     fileIdInBucket,
     mnemonic,
@@ -195,9 +195,9 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Share',
-    get,
+    getFile,
     list,
-    GenerateToken,
-    getFolderSize
+    GenerateFileToken,
+    getFolderSize,
   };
 };
