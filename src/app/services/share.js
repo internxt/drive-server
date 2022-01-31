@@ -151,10 +151,53 @@ module.exports = (Model, App) => {
     });
   };
 
+  const getFolderSize = async (user, folderId) => {
+    const foldersToCheck = [folderId];
+    let totalSize = 0;
+
+    while (foldersToCheck.length > 0) {
+      const currentFolderId = foldersToCheck.shift();
+
+      // Sum files size from this level
+      const filesSize = await getFilesTotalSizeFromFolder(user.id, currentFolderId);
+      totalSize += filesSize;
+
+      // Add folders from this level to the list
+      const folders = await Model.folder
+        .findAll({
+          attributes: ['id'],
+          raw: true,
+          where: {
+            parent_id: { [Op.eq]: currentFolderId },
+            user_id: { [Op.eq]: user.id },
+          },
+        });
+      folders.forEach(folder => foldersToCheck.push(folder.id));
+    }
+
+    return totalSize;
+  };
+
+  const getFilesTotalSizeFromFolder = async (userId, folderId) => {
+    const result = await Model.file.findAll({
+      attributes: [
+        [sequelize.fn('sum', sequelize.col('size')), 'total']
+      ],
+      raw: true,
+      where: {
+        folderId: { [Op.eq]: folderId },
+        userId: { [Op.eq]: userId },
+      },
+    });
+
+    return result[0].total;
+  };
+
   return {
     Name: 'Share',
     get,
     list,
     GenerateToken,
+    getFolderSize
   };
 };
