@@ -25,6 +25,15 @@ module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
   const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
+  Router.get('/storage/folder/size/:id', passportAuth, sharedAdapter, async (req, res) => {
+    const { params, behalfUser } = req;
+    const folderId = params.id;
+    const size = await Service.Share.getFolderSize(behalfUser, folderId);
+    res.status(200).json({
+      size: size
+    });
+  });
+
   Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
     const { params, behalfUser } = req;
     const { id } = params;
@@ -138,7 +147,7 @@ module.exports = (Router, Service, App) => {
       Logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
       );
-      res.status(400).json({error: 'Invalid metadata for new file'});
+      res.status(400).json({ error: 'Invalid metadata for new file' });
     }
 
     const result = await Service.Files.CreateFile(behalfUser, file);
@@ -374,4 +383,5 @@ module.exports = (Router, Service, App) => {
         res.status(404).end();
       });
   });
+
 };
