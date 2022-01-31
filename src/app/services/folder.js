@@ -234,14 +234,6 @@ module.exports = (Model, App) => {
     };
   };
 
-  const mapChildrenNames = (folder = []) =>
-    folder.map((child) => {
-      child.name = App.services.Crypt.decryptName(child.name, child.parentId);
-      child.children = mapChildrenNames(child.children);
-
-      return child;
-    });
-
   const getFolders = (parentFolderId, userId) => {
     return Model.folder
       .findAll({
@@ -257,62 +249,6 @@ module.exports = (Model, App) => {
           return folder;
         });
       });
-  };
-
-  const GetContent = async (folderId, user, teamId = null) => {
-    if (user.email !== user.bridgeUser) {
-      user = await Model.users.findOne({ where: { username: user.bridgeUser } });
-    }
-
-    let teamMember = null;
-    if (teamId) {
-      teamMember = await Model.teamsmembers.findOne({
-        where: {
-          user: { [Op.eq]: user.email },
-          id_team: { [Op.eq]: teamId },
-        },
-      });
-    }
-
-    if (teamId && !teamMember) {
-      return null; // User isn't member of this team
-    }
-
-    const result = await Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-        user_id: user.id,
-      },
-      include: [
-        {
-          model: Model.folder,
-          as: 'children',
-          where: { userId: user.id },
-          separate: true,
-        },
-        {
-          model: Model.file,
-          as: 'files',
-          where: { userId: user.id },
-          separate: true,
-        },
-      ],
-    });
-
-    // Null result implies empty folder.
-    // TODO: Should send an error to be handled and showed on website.
-
-    if (result !== null) {
-      result.name = App.services.Crypt.decryptName(result.name, result.parentId);
-      result.children = mapChildrenNames(result.children);
-      result.files = result.files.map((file) => {
-        file.name = `${App.services.Crypt.decryptName(file.name, file.folder_id)}`;
-
-        return file;
-      });
-    }
-
-    return result;
   };
 
   const isFolderOfTeam = (folderId) => {
@@ -570,7 +506,6 @@ module.exports = (Model, App) => {
     GetChildren,
     GetTree,
     GetTreeSize,
-    GetContent,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
