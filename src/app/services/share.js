@@ -1,15 +1,15 @@
 const crypto = require('crypto');
-
 const sequelize = require('sequelize');
 const { SHARE_TOKEN_LENGTH } = require('../constants');
 const FolderService = require('./folder');
+const lib = require('@internxt/lib');
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const FolderServiceInstance = FolderService(Model, App);
 
-  const get = async (token) => {
+  const getFile = async (token) => {
     const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
 
     const result = await Model.shares.findOne({
@@ -41,7 +41,20 @@ module.exports = (Model, App) => {
     return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
-  const GenerateToken = async (
+  /**
+   * Generates a share file token
+   * @param user
+   * @param fileIdInBucket
+   * @param mnemonic
+   * @param bucket
+   * @param encryptionKey
+   * @param fileToken
+   * @param isFolder
+   * @param views
+   * @returns {Promise<string|*>}
+   * @constructor
+   */
+  const GenerateFileToken = async (
     user,
     fileIdInBucket,
     mnemonic,
@@ -59,15 +72,7 @@ module.exports = (Model, App) => {
       throw Error('Invalid encryption key size');
     }
 
-    let itemExists = null;
-
-    if (isFolder === 'true') {
-      // Check if folder exists
-      itemExists = await Model.folder.findOne({ where: { id: { [Op.eq]: fileIdInBucket } } });
-    } else {
-      // Check if file exists
-      itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
-    }
+    const itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
 
     if (!itemExists) {
       throw Error('File not found');
@@ -77,21 +82,6 @@ module.exports = (Model, App) => {
 
     if (itemExists.size > maxAcceptableSize) {
       throw Error('File too large');
-    }
-
-    if (isFolder === 'true') {
-      // WARNING: Review GetTree before use it, it's a high cost function
-      const tree = await FolderServiceInstance.GetTree({ email: user.email }, fileIdInBucket);
-
-      if (!tree) {
-        throw Error('Tree not found');
-      }
-
-      const treeSize = await FolderServiceInstance.GetTreeSize(tree);
-
-      if (treeSize > maxAcceptableSize) {
-        throw Error('File too large');
-      }
     }
 
     // Always generate a new token
@@ -130,6 +120,94 @@ module.exports = (Model, App) => {
     });
 
     return newShare.token;
+  };
+
+  /**
+   * Generates a share folder token
+   * @param user
+   * @param folderId
+   * @param bucket
+   * @param encryptedMnemonic
+   * @param bucketToken
+   * @param views
+   * @returns {Promise<string|*>}
+   * @constructor
+   */
+  const GenerateFolderTokenAndCode = async (
+    user,
+    folderId,
+    bucket,
+    encryptedMnemonic,
+    bucketToken,
+    views = 1,
+  ) => {
+    const itemExists = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id },
+      }
+    });
+
+    if (!itemExists) {
+      throw Error('Folder not found');
+    }
+
+    const maxAcceptableSize = 1024 * 1024 * 1000; // 1GB
+
+    const folderSize = await getFolderSize(folderId);
+
+    if (folderSize > maxAcceptableSize) {
+      throw Error('Folder too large');
+    }
+
+    // Generate a new share token
+    const newToken = crypto.randomBytes(10).toString('hex');
+
+    const share = await Model.shares.findOne({
+      where: {
+        file: {
+          [Op.eq]: folderId
+        },
+        user: {
+          [Op.eq]: user.email
+        }
+      },
+    });
+
+    if (share) {
+      // Update share details
+      await Model.shares.update(
+        {
+          token: newToken,
+          mnemonic: encryptedMnemonic,
+          isFolder: true,
+          views: views,
+          fileToken: bucketToken,
+        },
+        {
+          where: {
+            id: {
+              [Op.eq]: share.id
+            }
+          }
+        },
+      );
+    } else {
+      // Create share details
+      await Model.shares.create({
+        token: newToken,
+        mnemonic: encryptedMnemonic,
+        encryptionKey: '',
+        file: folderId,
+        user: user.email,
+        isFolder: true,
+        views: views,
+        bucket: bucket,
+        fileToken: bucketToken,
+      });
+    }
+
+    return newToken;
   };
 
   const list = (user) => {
@@ -195,9 +273,10 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'Share',
-    get,
+    getFile,
     list,
-    GenerateToken,
-    getFolderSize
+    GenerateFileToken,
+    GenerateFolderTokenAndCode,
+    getFolderSize,
   };
 };

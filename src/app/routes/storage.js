@@ -244,31 +244,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { behalfUser: user } = req;
-    const itemId = req.params.id;
-    const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
-
-    const result = await Service.Share.GenerateToken(
-      user,
-      itemId,
-      '',
-      bucket,
-      encryptionKey,
-      fileToken,
-      isFolder,
-      views,
-    );
-
-    await Service.UsersReferrals.applyUserReferral(user.id, 'share-file').catch((err) => {
-      logReferralError(user.id, err);
-    });
-
-    res.status(200).send({ token: result });
-
-    AnalyticsService.trackShareLinkCopied(req);
-  });
-
   Router.post('/storage/folder/fixduplicate', passportAuth, (req, res) => {
     const { user } = req;
 
@@ -281,8 +256,54 @@ module.exports = (Router, Service, App) => {
       });
   });
 
+  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
+    const { behalfUser: user } = req;
+    const itemId = req.params.id;
+    const { views, encryptionKey, fileToken, bucket } = req.body;
+
+    const result = await Service.Share.GenerateFileToken(
+      user,
+      itemId,
+      '',
+      bucket,
+      encryptionKey,
+      fileToken,
+      false,
+      views,
+    );
+
+    await Service.UsersReferrals.applyUserReferral(user.id, 'share-file').catch((err) => {
+      logReferralError(user.id, err);
+    });
+
+    res.status(200).send({ token: result });
+
+    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
+  });
+
+  Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
+    const { behalfUser: user } = req;
+    const folderId = req.params.id;
+    const { views, bucketToken, bucket, mnemonic } = req.body;
+
+    const token = await Service.Share.GenerateFolderTokenAndCode(
+      user,
+      folderId,
+      bucket,
+      mnemonic,
+      bucketToken,
+      views,
+    );
+
+    res.status(200).send({
+      token: token
+    });
+
+    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
+  });
+
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.get(req.params.token)
+    Service.Share.getFile(req.params.token)
       .then((share) => {
         res.status(200).json(share);
 

@@ -1,6 +1,7 @@
 import Analytics from './Analytics';
 import { getAppsumoAffiliate, getContext, getAffiliate } from './utils';
 import { TrackName, User, ReqUser } from './types';
+
 const logger = require('../../lib/logger').default;
 const Logger = logger.getInstance();
 
@@ -107,13 +108,10 @@ export async function trackUploadCompleted(req: express.Request & ReqUser) {
   });
 }
 
-export async function trackShareLinkCopied(req: express.Request & ReqUser) {
+export async function trackShareLinkCopied(userUuid: string, views: number, req: express.Request) {
   const context = await getContext(req);
-  const { user } = req;
-  const { views } = req.body;
-
   Analytics.track({
-    userId: user.uuid,
+    userId: userUuid,
     event: TrackName.ShareLinkCopied,
     properties: {
       times_valid: views,
