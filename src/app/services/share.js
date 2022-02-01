@@ -72,15 +72,7 @@ module.exports = (Model, App) => {
       throw Error('Invalid encryption key size');
     }
 
-    let itemExists = null;
-
-    if (isFolder === 'true') {
-      // Check if folder exists
-      itemExists = await Model.folder.findOne({ where: { id: { [Op.eq]: fileIdInBucket } } });
-    } else {
-      // Check if file exists
-      itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
-    }
+    const itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
 
     if (!itemExists) {
       throw Error('File not found');
@@ -90,21 +82,6 @@ module.exports = (Model, App) => {
 
     if (itemExists.size > maxAcceptableSize) {
       throw Error('File too large');
-    }
-
-    if (isFolder === 'true') {
-      // WARNING: Review GetTree before use it, it's a high cost function
-      const tree = await FolderServiceInstance.GetTree({ email: user.email }, fileIdInBucket);
-
-      if (!tree) {
-        throw Error('Tree not found');
-      }
-
-      const treeSize = await FolderServiceInstance.GetTreeSize(tree);
-
-      if (treeSize > maxAcceptableSize) {
-        throw Error('File too large');
-      }
     }
 
     // Always generate a new token
