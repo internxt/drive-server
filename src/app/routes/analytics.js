@@ -13,7 +13,9 @@ module.exports = (Router) => {
     res.status(200).send();
   });
 
-  Router.post('/data/t', page, (req, res) => {
+  Router.post('/data/t', (req, res) => {
     res.status(200).send();
+    const { actionName } = req.body;
+    AnalyticsService.actions[actionName](req);
   });
 };

@@ -217,7 +217,7 @@ export async function trackSignIn() {
 
 export async function page(req: express.Request) {
   const appContext = getContext(req);
-  const { anonymousId, userId, name, properties, timestamp, sentAt } = req.body.page;
+  const { anonymousId, userId, name, properties } = req.body.page;
   const context = { ...appContext, ...req.body.page.context };
   Analytics.page({
     anonymousId,
@@ -228,7 +228,29 @@ export async function page(req: express.Request) {
   });
 }
 
+export function trackSignupServerSide(req: express.Request) {
+  const appContext = getContext(req);
+  const { anonymousId } = req.body.page;
+  const context = { ...appContext, ...req.body.page.context };
+  const { properties, traits, userId } = req.body.track;
+  Analytics.identify({
+    userId,
+    anonymousId,
+    context,
+    traits,
+  });
+  Analytics.track({
+    userId,
+    event: TrackName.SignUp,
+    anonymousId,
+    context,
+    properties
+  });
+
+}
+
 export const actions = {
   file_downloaded: trackFileDownloaded,
-  user_signup: trackSignUpAction
+  user_signup: trackSignUpAction,
+  server_signup: trackSignupServerSide
 };
