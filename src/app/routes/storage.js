@@ -287,7 +287,7 @@ module.exports = (Router, Service, App) => {
     const { views, fileToken, bucket } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
 
-    const result = await Service.Share.GenerateFolderToken(
+    const { token, code } = await Service.Share.GenerateFolderTokenAndCode(
       user,
       folderId,
       bucket,
@@ -296,7 +296,10 @@ module.exports = (Router, Service, App) => {
       views,
     );
 
-    res.status(200).send({ token: result });
+    res.status(200).send({
+      token: token,
+      code: code
+    });
 
     AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
   });

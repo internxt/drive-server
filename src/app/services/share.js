@@ -133,7 +133,7 @@ module.exports = (Model, App) => {
    * @returns {Promise<string|*>}
    * @constructor
    */
-  const GenerateFolderToken = async (
+  const GenerateFolderTokenAndCode = async (
     user,
     folderId,
     bucket,
@@ -213,7 +213,10 @@ module.exports = (Model, App) => {
       });
     }
 
-    return newToken;
+    return {
+      token: newToken,
+      code: code
+    };
   };
 
   const encrypt = (text, key) => {
@@ -294,7 +297,7 @@ module.exports = (Model, App) => {
     getFile,
     list,
     GenerateFileToken,
-    GenerateFolderToken,
+    GenerateFolderTokenAndCode,
     getFolderSize,
   };
 };
