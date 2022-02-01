@@ -284,10 +284,9 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const folderId = req.params.id;
-    const { views, bucketToken, bucket } = req.body;
-    const mnemonic = req.headers['internxt-mnemonic'];
+    const { views, bucketToken, bucket, mnemonic } = req.body;
 
-    const { token, code } = await Service.Share.GenerateFolderTokenAndCode(
+    const token = await Service.Share.GenerateFolderTokenAndCode(
       user,
       folderId,
       bucket,
@@ -297,8 +296,7 @@ module.exports = (Router, Service, App) => {
     );
 
     res.status(200).send({
-      token: token,
-      code: code
+      token: token
     });
 
     AnalyticsService.trackShareLinkCopied(user.uuid, views, req);

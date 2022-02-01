@@ -127,7 +127,7 @@ module.exports = (Model, App) => {
    * @param user
    * @param folderId
    * @param bucket
-   * @param mnemonic
+   * @param encryptedMnemonic
    * @param bucketToken
    * @param views
    * @returns {Promise<string|*>}
@@ -137,7 +137,7 @@ module.exports = (Model, App) => {
     user,
     folderId,
     bucket,
-    mnemonic,
+    encryptedMnemonic,
     bucketToken,
     views = 1,
   ) => {
@@ -159,12 +159,6 @@ module.exports = (Model, App) => {
     if (folderSize > maxAcceptableSize) {
       throw Error('Folder too large');
     }
-
-    // Generate password
-    const code = crypto.randomBytes(32).toString('hex');
-
-    // Encrypt mnemonic with password
-    const encryptedMnemonic = lib.aes.encrypt(mnemonic, code);
 
     // Generate a new share token
     const newToken = crypto.randomBytes(10).toString('hex');
@@ -213,10 +207,7 @@ module.exports = (Model, App) => {
       });
     }
 
-    return {
-      token: newToken,
-      code: code
-    };
+    return newToken;
   };
 
   const list = (user) => {
