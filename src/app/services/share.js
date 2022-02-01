@@ -146,7 +146,7 @@ module.exports = (Model, App) => {
         id: { [Op.eq]: folderId },
         user_id: { [Op.eq]: user.id },
       }
-    }); 
+    });
 
     if (!itemExists) {
       throw Error('Folder not found');
@@ -182,7 +182,7 @@ module.exports = (Model, App) => {
 
     if (share) {
       // Update share details
-      Model.shares.update(
+      await Model.shares.update(
         {
           token: newToken,
           mnemonic: encryptedMnemonic,
