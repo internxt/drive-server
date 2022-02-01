@@ -3,6 +3,7 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 interface ShareAttributes {
   id: number;
   token: string;
+  mnemonic: string;
   user: number;
   file: string;
   encryptionKey: string;
@@ -27,6 +28,9 @@ export default (database: Sequelize): ShareModel => {
       token: {
         type: DataTypes.STRING,
         unique: true,
+      },
+      mnemonic: {
+        type: DataTypes.BLOB,
       },
       user: {
         type: DataTypes.INTEGER,

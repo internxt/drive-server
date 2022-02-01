@@ -128,7 +128,7 @@ module.exports = (Model, App) => {
    * @param folderId
    * @param bucket
    * @param mnemonic
-   * @param fileToken
+   * @param bucketToken
    * @param views
    * @returns {Promise<string|*>}
    * @constructor
@@ -138,7 +138,7 @@ module.exports = (Model, App) => {
     folderId,
     bucket,
     mnemonic,
-    fileToken,
+    bucketToken,
     views = 1,
   ) => {
     const itemExists = await Model.folder.findOne({
@@ -146,7 +146,7 @@ module.exports = (Model, App) => {
         id: { [Op.eq]: folderId },
         user_id: { [Op.eq]: user.id },
       }
-    });
+    }); 
 
     if (!itemExists) {
       throw Error('Folder not found');
@@ -188,7 +188,7 @@ module.exports = (Model, App) => {
           mnemonic: encryptedMnemonic,
           isFolder: true,
           views: views,
-          fileToken: fileToken,
+          fileToken: bucketToken,
         },
         {
           where: {
@@ -209,7 +209,7 @@ module.exports = (Model, App) => {
         isFolder: true,
         views: views,
         bucket: bucket,
-        fileToken: fileToken,
+        fileToken: bucketToken,
       });
     }
 

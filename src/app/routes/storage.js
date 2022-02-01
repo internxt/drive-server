@@ -284,7 +284,7 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const folderId = req.params.id;
-    const { views, fileToken, bucket } = req.body;
+    const { views, bucketToken, bucket } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
 
     const { token, code } = await Service.Share.GenerateFolderTokenAndCode(
@@ -292,7 +292,7 @@ module.exports = (Router, Service, App) => {
       folderId,
       bucket,
       mnemonic,
-      fileToken,
+      bucketToken,
       views,
     );
 
