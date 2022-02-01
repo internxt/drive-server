@@ -259,7 +259,7 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
     const { behalfUser: user } = req;
     const itemId = req.params.id;
-    const { isFolder, views, encryptionKey, fileToken, bucket } = req.body;
+    const { views, encryptionKey, fileToken, bucket } = req.body;
 
     const result = await Service.Share.GenerateFileToken(
       user,
@@ -268,7 +268,7 @@ module.exports = (Router, Service, App) => {
       bucket,
       encryptionKey,
       fileToken,
-      isFolder,
+      false,
       views,
     );
 
