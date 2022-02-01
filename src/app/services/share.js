@@ -2,7 +2,7 @@ const crypto = require('crypto');
 const sequelize = require('sequelize');
 const { SHARE_TOKEN_LENGTH } = require('../constants');
 const FolderService = require('./folder');
-const CryptoJS = require('crypto-js');
+const lib = require('@internxt/lib');
 
 const { Op } = sequelize;
 
@@ -164,7 +164,7 @@ module.exports = (Model, App) => {
     const code = crypto.randomBytes(32).toString('hex');
 
     // Encrypt mnemonic with password
-    const encryptedMnemonic = encrypt(mnemonic, code);
+    const encryptedMnemonic = lib.aes.encrypt(mnemonic, code);
 
     // Generate a new share token
     const newToken = crypto.randomBytes(10).toString('hex');
@@ -217,18 +217,6 @@ module.exports = (Model, App) => {
       token: newToken,
       code: code
     };
-  };
-
-  const encrypt = (text, key) => {
-    const bytes = CryptoJS.AES.encrypt(text, key).toString();
-    const text64 = CryptoJS.enc.Base64.parse(bytes);
-    return text64.toString(CryptoJS.enc.Hex);
-  };
-
-  const decrypt = (text, key) => {
-    const base64 = CryptoJS.enc.Hex.parse(text);
-    const bytes = base64.toString(CryptoJS.enc.Base64);
-    return CryptoJS.AES.decrypt(bytes, key).toString(CryptoJS.enc.Utf8);
   };
 
   const list = (user) => {
