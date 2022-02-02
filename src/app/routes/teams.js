@@ -262,6 +262,7 @@ module.exports = (Router, Service, App) => {
           password: encryptedPassword,
           salt: encryptedSalt,
           mnemonic,
+          bridgeUser: team.bridge_user
         };
         const userRegister = await Service.User.FindOrCreate(user);
         await team.update({
