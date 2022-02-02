@@ -226,8 +226,8 @@ export async function page(req: express.Request) {
   });
 }
 
-export function trackSignupServerSide(req: express.Request) {
-  const appContext = getContext(req);
+export async function trackSignupServerSide(req: express.Request) {
+  const appContext = await getContext(req);
   const { anonymousId } = req.body.page;
   const context = { ...appContext, ...req.body.page.context };
   const { properties, traits, userId } = req.body.track;
