@@ -1,17 +1,14 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
 const { SHARE_TOKEN_LENGTH } = require('../constants');
-const FolderService = require('./folder');
 const lib = require('@internxt/lib');
 
 const { Op } = sequelize;
 
-module.exports = (Model, App) => {
-  const FolderServiceInstance = FolderService(Model, App);
+module.exports = (Model) => {
+  const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
 
   const getFile = async (token) => {
-    const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
-
     const result = await Model.shares.findOne({
       where: { token: { [Op.eq]: token } },
     });
@@ -77,8 +74,6 @@ module.exports = (Model, App) => {
     if (!itemExists) {
       throw Error('File not found');
     }
-
-    const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
 
     if (itemExists.size > maxAcceptableSize) {
       throw Error('File too large');
@@ -151,8 +146,6 @@ module.exports = (Model, App) => {
     if (!itemExists) {
       throw Error('Folder not found');
     }
-
-    const maxAcceptableSize = 1024 * 1024 * 1000; // 1GB
 
     const folderSize = await getFolderSize(folderId);
 
