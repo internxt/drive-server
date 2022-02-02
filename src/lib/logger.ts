@@ -1,5 +1,6 @@
 import winston from 'winston';
 import os from 'os';
+import { isProduction } from '../config/environments/env';
 
 const { splat, combine, printf, timestamp } = winston.format;
 
@@ -54,8 +55,5 @@ export default class Logger {
 }
 
 const loggerInstance = (): winston.Logger => {
-  if (process.env.NODE_ENV === 'development') {
-    return winston.createLogger(winstonDevOptions);
-  }
-  return winston.createLogger(winstonProdOptions);
+  return winston.createLogger(isProduction() ? winstonProdOptions : winstonDevOptions);
 };
