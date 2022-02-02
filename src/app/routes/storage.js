@@ -25,10 +25,10 @@ module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
   const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
-  Router.get('/storage/folder/size/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { params, behalfUser } = req;
+  Router.get('/storage/folder/size/:id', passportAuth, async (req, res) => {
+    const { params } = req;
     const folderId = params.id;
-    const size = await Service.Share.getFolderSize(behalfUser, folderId);
+    const size = await Service.Share.getFolderSize(folderId);
     res.status(200).json({
       size: size
     });

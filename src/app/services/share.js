@@ -249,7 +249,7 @@ module.exports = (Model) => {
     });
   };
 
-  const getFolderSize = async (user, folderId) => {
+  const getFolderSize = async (folderId) => {
     const foldersToCheck = [folderId];
     let totalSize = 0;
 
@@ -257,7 +257,7 @@ module.exports = (Model) => {
       const currentFolderId = foldersToCheck.shift();
 
       // Sum files size from this level
-      const filesSize = await getFilesTotalSizeFromFolder(user.id, currentFolderId);
+      const filesSize = await getFilesTotalSizeFromFolder(currentFolderId);
       totalSize += filesSize;
 
       // Add folders from this level to the list
@@ -267,7 +267,6 @@ module.exports = (Model) => {
           raw: true,
           where: {
             parent_id: { [Op.eq]: currentFolderId },
-            user_id: { [Op.eq]: user.id },
           },
         });
       folders.forEach(folder => foldersToCheck.push(folder.id));
@@ -276,7 +275,7 @@ module.exports = (Model) => {
     return totalSize;
   };
 
-  const getFilesTotalSizeFromFolder = async (userId, folderId) => {
+  const getFilesTotalSizeFromFolder = async (folderId) => {
     const result = await Model.file.findAll({
       attributes: [
         [sequelize.fn('sum', sequelize.col('size')), 'total']
@@ -284,7 +283,6 @@ module.exports = (Model) => {
       raw: true,
       where: {
         folderId: { [Op.eq]: folderId },
-        userId: { [Op.eq]: userId },
       },
     });
 
