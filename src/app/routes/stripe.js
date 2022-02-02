@@ -142,65 +142,50 @@ module.exports = (Router, Service) => {
     const stripe = test ? StripeTest : StripeProduction;
     const { mode, successUrl, canceledUrl, priceId, quantity } = req.body;
 
-    async.waterfall(
-      [
-        async () => {
-          return Service.Team.getTeamByEmail(req.user.email);
-        },
-        async (bridgeUser) => {
-          if (!bridgeUser) {
-            const newRandomTeam = Service.Team.randomEmailBridgeUserTeam();
-            const newTeam = Service.Team.create({
-              name: 'My team',
-              admin: req.user.email,
-              bridge_user: newRandomTeam.bridge_user,
-              bridge_password: newRandomTeam.password,
-              bridge_mnemonic: req.body.mnemonicTeam,
-            });
-            return newTeam;
-          }
-          return bridgeUser;
-        },
-        async (bridgeUser) => {
-          const sessionParams = {
-            payment_method_types: ['card'],
-            success_url: successUrl || `${process.env.HOST_DRIVE_WEB}/team/success/{CHECKOUT_SESSION_ID}`,
-            cancel_url: canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
-            mode,
-            line_items: [
-              {
-                price: priceId,
-                quantity,
-              },
-            ],
-            metadata: {
-              is_teams: true,
-              total_members: quantity,
-              team_email: bridgeUser.bridge_user,
-              admin_email: req.user.email,
-            },
-            customer_email: req.user.email,
-            allow_promotion_codes: true,
-            billing_address_collection: 'required',
-          };
+    let bridgeUser = await Service.Team.getTeamByEmail(req.user.email);
+   
+    if (!bridgeUser) {
+      const newRandomTeam = Service.Team.randomEmailBridgeUserTeam();
+      bridgeUser = await Service.Team.create({
+        name: 'My team',
+        admin: req.user.email,
+        bridge_user: newRandomTeam.bridge_user,
+        bridge_password: newRandomTeam.password,
+        bridge_mnemonic: req.body.mnemonicTeam,
+      });
+    }
 
-          if (sessionParams.customer) {
-            delete sessionParams.customer_email;
-          } else {
-            delete sessionParams.customer;
-          }
-
-          return stripe.checkout.sessions.create(sessionParams);
+    const sessionParams = {
+      payment_method_types: ['card'],
+      success_url: successUrl || `${process.env.HOST_DRIVE_WEB}/team/success/{CHECKOUT_SESSION_ID}`,
+      cancel_url: canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
+      mode,
+      line_items: [
+        {
+          price: priceId,
+          quantity,
         },
       ],
-      (err, result) => {
-        if (err) {
-          res.status(500).send({ error: err.message });
-        } else {
-          res.status(200).send(result);
-        }
+      metadata: {
+        is_teams: true,
+        total_members: quantity,
+        team_email: bridgeUser.bridge_user,
+        admin_email: req.user.email,
       },
-    );
+      customer_email: req.user.email,
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+    };
+
+    if (sessionParams.customer) {
+      delete sessionParams.customer_email;
+    } else {
+      delete sessionParams.customer;
+    }
+
+    const result = await stripe.checkout.sessions.create(sessionParams);
+    
+    res.status(200).send(result);
   });
 
   /**
