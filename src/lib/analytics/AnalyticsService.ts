@@ -52,6 +52,42 @@ export async function trackSignUp(req: express.Request, user: User) {
   });
 }
 
+
+export async function trackSignUpAction(req: express.Request) {
+  const { page, user } = req.body;
+  const userId = user.uuid;
+  const { sharedWorkspace, name, lastname } = user;
+
+  const affiliate = getAppsumoAffiliate(user) || getAffiliate(req.headers.referrer);
+  const appContext = await getContext(req);
+  const context = { ...appContext, ...page.context };
+  const location = context.location;
+
+  Analytics.identify({
+    userId,
+    traits: {
+      shared_workspace: sharedWorkspace,
+      name,
+      last_name: lastname,
+      affiliate,
+      usage: 0,
+      ...affiliate,
+      ...location,
+    },
+    context,
+  });
+
+  Analytics.track({
+    userId,
+    event: TrackName.SignUp,
+    properties: {
+      shared_workspace: sharedWorkspace,
+      ...affiliate,
+    },
+    context,
+  });
+}
+
 export async function trackInvitationSent(userId: string, inviteEmail: string) {
   Analytics.track({
     userId,
@@ -177,6 +213,42 @@ export async function trackSignIn() {
   // TODO
 }
 
+export async function page(req: express.Request) {
+  const appContext = getContext(req);
+  const { anonymousId, userId, name, properties } = req.body.page;
+  const context = { ...appContext, ...req.body.page.context };
+  Analytics.page({
+    anonymousId,
+    userId,
+    context,
+    name,
+    properties
+  });
+}
+
+export function trackSignupServerSide(req: express.Request) {
+  const appContext = getContext(req);
+  const { anonymousId } = req.body.page;
+  const context = { ...appContext, ...req.body.page.context };
+  const { properties, traits, userId } = req.body.track;
+  Analytics.identify({
+    userId,
+    anonymousId,
+    context,
+    traits,
+  });
+  Analytics.track({
+    userId,
+    event: TrackName.SignUp,
+    anonymousId,
+    context,
+    properties
+  });
+
+}
+
 export const actions = {
   file_downloaded: trackFileDownloaded,
+  user_signup: trackSignUpAction,
+  server_signup: trackSignupServerSide
 };

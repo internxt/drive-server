@@ -23,6 +23,14 @@ class Analytics {
       logError(err);
     }
   }
+
+  page(params: any) {
+    try {
+      this.analytics.page(params);
+    } catch (err: unknown) {
+      logError(err);
+    }
+  }
 }
 
 export default new Analytics();
