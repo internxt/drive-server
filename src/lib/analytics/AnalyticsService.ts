@@ -20,6 +20,10 @@ export async function trackDeactivationRequest(uuid: string, req: express.Reques
 }
 
 export async function trackSignUp(req: express.Request, user: User) {
+  const inxtClient = req.headers['internxt-client'];
+  if(inxtClient === 'drive-web') {
+    return;
+  }
   const userId = user.uuid;
   const { sharedWorkspace, name, lastname } = user;
 
@@ -226,8 +230,8 @@ export async function page(req: express.Request) {
   });
 }
 
-export function trackSignupServerSide(req: express.Request) {
-  const appContext = getContext(req);
+export async function trackSignupServerSide(req: express.Request) {
+  const appContext = await getContext(req);
   const { anonymousId } = req.body.page;
   const context = { ...appContext, ...req.body.page.context };
   const { properties, traits, userId } = req.body.track;
