@@ -1,11 +1,12 @@
 const InternxtMailer = require('inxt-service-mailer');
+const { isProduction } = require('../../config/environments/env');
 
 module.exports = (Model) => {
   const mailInstance = () => {
     const mailConfig = {
       host: process.env.INXT_MAILER_HOST,
       port: process.env.INXT_MAILER_PORT,
-      secure: process.env.NODE_ENV === 'staging' || process.env.NODE_ENV === 'production',
+      secure: isProduction(),
       auth: {
         user: process.env.INXT_MAILER_USERNAME,
         pass: process.env.INXT_MAILER_PASSWORD,

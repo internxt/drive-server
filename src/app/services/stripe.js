@@ -1,8 +1,8 @@
 const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
 
-const async = require('async');
 const cache = require('memory-cache');
+const { isProduction } = require('../../config/environments/env');
 
 const RenewalPeriod = {
   Monthly: 'monthly',
@@ -96,7 +96,7 @@ module.exports = () => {
    * @returns
    */
   const getAllStorageProducts2 = async () => {
-    const isTest = process.env.NODE_ENV === 'development';
+    const isTest = !isProduction();
     const stripe = getStripe(isTest);
     const cacheName = `stripe_plans_v3_${isTest ? 'test' : 'production'}`;
     const cachedPlans = cache.get(cacheName);
@@ -218,7 +218,7 @@ module.exports = () => {
   };
 
   const getUserSubscriptionPlans = async (email) => {
-    const isTest = process.env.NODE_ENV !== 'production';
+    const isTest = !isProduction();
     const stripe = await getStripe(isTest);
     const customers = await findCustomersByEmail(email, isTest);
     const plans = [];

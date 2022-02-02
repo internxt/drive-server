@@ -1,11 +1,12 @@
 // Google ReCaptcha V3
 import axios from 'axios';
 import { encode } from 'querystring';
+import { isProduction } from '../config/environments/env';
 
 const GOOGLE_RECAPTCHA_V3_ENDPOINT = 'https://www.google.com/recaptcha/api/siteverify';
 
 export async function verify(captcha: any, remoteip?: string) {
-  if (process.env.NODE_ENV === 'development') {
+  if (!isProduction()) {
     return {};
   }
   const body = {
