@@ -100,6 +100,9 @@ module.exports = (Router, Service) => {
     const { deviceName } = req.body;
     return Service.Backup.createDeviceAsFolder(req.user, deviceName).then((folder) => res.status(200).send(folder));
   });
+  Router.get('/backup/deviceAsFolder/:id', passportAuth, (req, res) => {
+    return Service.Backup.getDeviceAsFolder(req.user, req.params.id).then((folder) => res.status(200).send(folder));
+  });
 
   Router.post('/backup', passportAuth, (req, res) => {
     const { deviceId, path, encryptVersion, interval, enabled } = req.body;

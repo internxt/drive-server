@@ -1,5 +1,6 @@
 const createHttpError = require('http-errors');
 const sequelize = require('sequelize');
+const { default: user } = require('../models/user');
 
 const { Op, fn, col } = sequelize;
 
@@ -113,6 +114,13 @@ module.exports = (Model, App) => {
     return Model.folder.create({ name: encryptedFolderName, bucket: backupsBucket, userId: userData.id });
   };
 
+  const getDeviceAsFolder = async (userData, id) => {
+    const folder = await Model.folder.findOne({ where: { id, user_id: userData.id } });
+    if (!folder) throw createHttpError(404, 'Folder does not exist');
+
+    return folder;
+  };
+
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userId } });
 
@@ -181,5 +189,6 @@ module.exports = (Model, App) => {
     updateDevice,
     updateManyOfDevice,
     createDeviceAsFolder,
+    getDeviceAsFolder,
   };
 };
