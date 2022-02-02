@@ -20,6 +20,10 @@ export async function trackDeactivationRequest(uuid: string, req: express.Reques
 }
 
 export async function trackSignUp(req: express.Request, user: User) {
+  const inxtClient = req.headers['internxt-client'];
+  if(inxtClient === 'drive-web') {
+    return;
+  }
   const userId = user.uuid;
   const { sharedWorkspace, name, lastname } = user;
 
