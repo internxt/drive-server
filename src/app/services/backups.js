@@ -1,3 +1,4 @@
+const createHttpError = require('http-errors');
 const sequelize = require('sequelize');
 
 const { Op, fn, col } = sequelize;
@@ -88,6 +89,30 @@ module.exports = (Model, App) => {
     return Inxt.updateBucketLimit(backupsBucket, limit);
   };
 
+  const createDeviceAsFolder = async (userData, deviceName) => {
+    const { User, Crypt } = App.services;
+    let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
+
+    if (!backupsBucket) {
+      await activate(userData);
+      backupsBucket = (await User.FindUserObjByEmail(userData.email)).backupsBucket;
+    }
+
+    const encryptedFolderName = Crypt.encryptName(deviceName, backupsBucket);
+
+    const alreadyExists = await Model.folder.findOne({
+      where: {
+        bucket: { [Op.eq]: backupsBucket },
+        name: { [Op.eq]: encryptedFolderName },
+      },
+    });
+
+    if (alreadyExists) {
+      throw createHttpError(404, 'Folder with the same name already exists');
+    }
+    return Model.folder.create({ name: encryptedFolderName, bucket: backupsBucket, userId: userData.id });
+  };
+
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userId } });
 
@@ -155,5 +180,6 @@ module.exports = (Model, App) => {
     createDevice,
     updateDevice,
     updateManyOfDevice,
+    createDeviceAsFolder,
   };
 };

@@ -96,6 +96,11 @@ module.exports = (Router, Service) => {
       .catch((err) => res.status(500).send({ error: err.message }));
   });
 
+  Router.post('/backup/deviceAsFolder', passportAuth, (req, res) => {
+    const { deviceName } = req.body;
+    return Service.Backup.createDeviceAsFolder(req.user, deviceName).then((folder) => res.status(200).send(folder));
+  });
+
   Router.post('/backup', passportAuth, (req, res) => {
     const { deviceId, path, encryptVersion, interval, enabled } = req.body;
 
