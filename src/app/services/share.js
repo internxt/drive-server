@@ -48,20 +48,20 @@ module.exports = (Model) => {
    * @returns {Promise<*&{fileMeta: *}>}
    */
   const getFile = async (token) => {
-    const result = await findShareByToken(token);
+    const share = await findShareByToken(token);
 
-    if (!result) {
+    if (!share) {
       throw Error('Token does not exist');
     }
 
-    if (result.views === 1) {
-      await result.destroy();
+    if (share.views === 1) {
+      await share.destroy();
     } else {
-      await Model.shares.update({ views: result.views - 1 }, { where: { id: { [Op.eq]: result.id } } });
+      await Model.shares.update({ views: share.views - 1 }, { where: { id: { [Op.eq]: share.id } } });
     }
 
     const file = await Model.file.findOne({
-      where: { fileId: { [Op.eq]: result.file } },
+      where: { fileId: { [Op.eq]: share.file } },
     });
 
     if (!file) {
@@ -72,7 +72,7 @@ module.exports = (Model) => {
       throw Error('File too large');
     }
 
-    return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
+    return { ...share.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
 
 
