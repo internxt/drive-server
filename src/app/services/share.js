@@ -8,10 +8,47 @@ const { Op } = sequelize;
 module.exports = (Model) => {
   const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
 
-  const getFile = async (token) => {
-    const result = await Model.shares.findOne({
-      where: { token: { [Op.eq]: token } },
+  /**
+   * Returns a share of a specific token
+   * @param token
+   * @returns {Promise<Model> | Promise<ReferralAttributes> | Promise<Model | null>}
+   */
+  const findShareByToken = (token) => {
+    return Model.shares.findOne({
+      where: {
+        token: {
+          [Op.eq]: token
+        }
+      },
     });
+  };
+
+  /**
+   * Returns a share of a specific token
+   * @returns {Promise<Model> | Promise<ReferralAttributes> | Promise<Model | null>}
+   * @param resourceId
+   * @param userEmail
+   */
+  const findShareByResourceAndUser = (resourceId, userEmail) => {
+    return Model.shares.findOne({
+      where: {
+        file: {
+          [Op.eq]: resourceId
+        },
+        user: {
+          [Op.eq]: userEmail
+        }
+      },
+    });
+  };
+
+  /**
+   * Returns the shared file data of a specific token
+   * @param token
+   * @returns {Promise<*&{fileMeta: *}>}
+   */
+  const getFile = async (token) => {
+    const result = await findShareByToken(token);
 
     if (!result) {
       throw Error('Token does not exist');
@@ -37,6 +74,7 @@ module.exports = (Model) => {
 
     return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
   };
+
 
   /**
    * Generates a share file token
@@ -82,11 +120,9 @@ module.exports = (Model) => {
     // Always generate a new token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const tokenData = await Model.shares.findOne({
-      where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user.email } },
-    });
+    const share = await findShareByResourceAndUser(fileIdInBucket, user.email);
 
-    if (tokenData) {
+    if (share) {
       // Update token
       Model.shares.update(
         {
@@ -97,7 +133,7 @@ module.exports = (Model) => {
           fileToken,
           encryptionKey,
         },
-        { where: { id: { [Op.eq]: tokenData.id } } },
+        { where: { id: { [Op.eq]: share.id } } },
       );
       return newToken;
     }
@@ -156,16 +192,7 @@ module.exports = (Model) => {
     // Generate a new share token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const share = await Model.shares.findOne({
-      where: {
-        file: {
-          [Op.eq]: folderId
-        },
-        user: {
-          [Op.eq]: user.email
-        }
-      },
-    });
+    const share = await findShareByResourceAndUser(folderId, user.email);
 
     if (share) {
       // Update share details
