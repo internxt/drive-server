@@ -96,12 +96,14 @@ module.exports = (Router, Service) => {
       .catch((err) => res.status(500).send({ error: err.message }));
   });
 
-  Router.post('/backup/deviceAsFolder', passportAuth, (req, res) => {
+  Router.post('/backup/deviceAsFolder', passportAuth, async (req, res) => {
     const { deviceName } = req.body;
-    return Service.Backup.createDeviceAsFolder(req.user, deviceName).then((folder) => res.status(200).send(folder));
+    const folder = await Service.Backup.createDeviceAsFolder(req.user, deviceName);
+    return res.status(200).send(folder);
   });
-  Router.get('/backup/deviceAsFolder/:id', passportAuth, (req, res) => {
-    return Service.Backup.getDeviceAsFolder(req.user, req.params.id).then((folder) => res.status(200).send(folder));
+  Router.get('/backup/deviceAsFolder/:id', passportAuth, async (req, res) => {
+    const folder = await Service.Backup.getDeviceAsFolder(req.user, req.params.id);
+    return res.status(200).send(folder);
   });
 
   Router.post('/backup', passportAuth, (req, res) => {
