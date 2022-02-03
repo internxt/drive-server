@@ -1,4 +1,4 @@
-import { create } from 'domain';
+import { expect } from 'chai';
 import { stub } from 'sinon';
 
 const initBackups = require('../../src/app/services/backups');
@@ -45,7 +45,7 @@ describe('# backups', () => {
 
     await backupsService.renameDeviceAsFolder({ id: 'foo' });
 
-    encryptNameStub.calledOnceWith(undefined, bucket);
+    expect(encryptNameStub.calledOnceWith(undefined, bucket)).to.be.true;
   });
   it('createDeviceAsFolder()', async () => {
     const bucket = 'bucket';
@@ -54,6 +54,6 @@ describe('# backups', () => {
 
     await backupsService.createDeviceAsFolder({ id: 'foo', email: 'bar' });
 
-    encryptNameStub.calledOnceWith(undefined, 'bucket');
+    expect(encryptNameStub.calledOnceWith(undefined, 'bucket')).to.be.true;
   });
 });
