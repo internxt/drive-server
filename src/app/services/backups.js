@@ -120,6 +120,14 @@ module.exports = (Model, App) => {
     return folder;
   };
 
+  const renameDeviceAsFolder = async (userData, id, deviceName) => {
+    const folder = await Model.folder.findOne({ where: { id, user_id: userData.id } });
+    if (!folder) throw createHttpError(404, 'Folder does not exist');
+
+    const encryptedFolderName = App.services.Crypt.encryptName(deviceName, folder.bucket);
+    return folder.update({ name: encryptedFolderName });
+  };
+
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userId } });
 
@@ -189,5 +197,6 @@ module.exports = (Model, App) => {
     updateManyOfDevice,
     createDeviceAsFolder,
     getDeviceAsFolder,
+    renameDeviceAsFolder,
   };
 };
