@@ -106,6 +106,12 @@ module.exports = (Router, Service) => {
     return res.status(200).send(folder);
   });
 
+  Router.patch('/backup/deviceAsFolder/:id', passportAuth, async (req, res) => {
+    const { deviceName } = req.body;
+    const folder = await Service.Backup.renameDeviceAsFolder(req.user, req.params.id, deviceName);
+    return res.status(200).send(folder);
+  });
+
   Router.post('/backup', passportAuth, (req, res) => {
     const { deviceId, path, encryptVersion, interval, enabled } = req.body;
 
