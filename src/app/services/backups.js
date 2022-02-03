@@ -1,6 +1,5 @@
 const createHttpError = require('http-errors');
 const sequelize = require('sequelize');
-const { default: user } = require('../models/user');
 
 const { Op, fn, col } = sequelize;
 
