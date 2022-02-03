@@ -88,5 +88,8 @@
   "license": "MIT",
   "engines": {
     "node": ">=14.17"
+  },
+  "resolutions": {
+    "yargs": "^13.3.2"
   }
 }
