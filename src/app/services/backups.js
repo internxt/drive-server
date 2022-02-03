@@ -109,7 +109,7 @@ module.exports = (Model, App) => {
     });
 
     if (alreadyExists) {
-      throw createHttpError(404, 'Folder with the same name already exists');
+      throw createHttpError(409, 'Folder with the same name already exists');
     }
     return Model.folder.create({ name: encryptedFolderName, bucket: backupsBucket, userId: userData.id });
   };
