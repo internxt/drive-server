@@ -303,7 +303,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.getFile(req.params.token)
+    Service.Share.getFileInfo(req.params.token)
       .then((share) => {
         res.status(200).json(share);
 
@@ -313,6 +313,24 @@ module.exports = (Router, Service, App) => {
         res.status(500).send({ error: err.message });
       });
   });
+
+  Router.get('/storage/shared-folder/:token', async (req, res) => {
+    const result = await Service.Share.getFolderInfo(req.params.token);
+    res.status(200).json(result);
+  });
+
+  Router.post('/storage/share/down/folders', async (req, res) => {
+    let { token, directoryId, offset, limit } = req.body;
+    const result = await Service.Share.getDirectoryFolders(directoryId, offset, limit, token);
+    res.status(200).json(result);
+  });
+
+  Router.post('/storage/share/down/files', async (req, res) => {
+    let { token, code, directoryId, offset, limit } = req.body;
+    const result = await Service.Share.getDirectoryFiles(directoryId, offset, limit, token, code);
+    res.status(200).json(result);
+  });
+
 
   // Needs db index
   Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
