@@ -160,37 +160,65 @@ module.exports = (Model, App) => {
     return treeSize;
   };
 
-  // A tree without using hierarchy library
   const GetTree = async (user, rootFolderId = null) => {
-    const folderContents = (
-      await Model.folder.findOne({
-        where: { id: { [Op.eq]: rootFolderId || user.root_folder_id } },
-        include: [
-          {
-            model: Model.folder,
-            as: 'children',
-            include: [
-              {
-                model: Model.file,
-                as: 'files',
-              },
-            ],
-          },
-          {
-            model: Model.file,
-            as: 'files',
-          },
-        ],
-      })
-    ).toJSON();
+    const rootElements = [];
+    const pendingFolders = [{
+      folderId: rootFolderId || user.root_folder_id,
+      elements: rootElements
+    }];
 
-    const res = await async.mapSeries(folderContents.children, async (folder) => {
-      return GetTree(user, folder.id);
+    while (pendingFolders.length) {
+      const { folderId, elements } = pendingFolders.shift();
+      const folder = await getFolderByFolderId(folderId);
+      folder.files = await getFilesByFolderId(folderId);
+      folder.children = [];
+
+      const folders = await getChildrenFoldersByFolderId(folderId);
+
+      folders.forEach(f => {
+        pendingFolders.push({
+          folderId: f.id,
+          elements: folder.children
+        });
+      });
+
+      elements.push(folder);
+    }
+
+    return rootElements[0];
+  };
+
+  const getFolderByFolderId = (folderId) => {
+    return Model.folder.findOne({
+      raw: true,
+      where: {
+        id: {
+          [Op.eq]: folderId
+        }
+      },
     });
+  };
 
-    folderContents.children = res;
+  const getChildrenFoldersByFolderId = (folderId) => {
+    return Model.folder.findAll({
+      raw: true,
+      where: {
+        parent_id: {
+          [Op.eq]: folderId
+        }
+      },
+    });
+  };
 
-    return folderContents;
+  const getFilesByFolderId = (folderId) => {
+    return Model.file.findAll({
+      raw: true,
+      where: {
+        folder_id: {
+          [Op.eq]: folderId
+        },
+      },
+    });
   };
 
   const GetFoldersPagination = async (user, index) => {
