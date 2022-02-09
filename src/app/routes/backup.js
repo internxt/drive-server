@@ -112,6 +112,11 @@ module.exports = (Router, Service) => {
     return res.status(200).send(folder);
   });
 
+  Router.get('/backup/deviceAsFolder', passportAuth, async (req, res) => {
+    const folders = await Service.Backup.getDevicesAsFolder(req.user);
+    return res.status(200).send(folders);
+  });
+
   Router.post('/backup', passportAuth, (req, res) => {
     const { deviceId, path, encryptVersion, interval, enabled } = req.body;
 

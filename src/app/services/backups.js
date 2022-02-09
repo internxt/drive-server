@@ -128,6 +128,14 @@ module.exports = (Model, App) => {
     return folder.update({ name: encryptedFolderName });
   };
 
+  const getDevicesAsFolder = async (userData) => {
+    const { backupsBucket } = await Model.users.findOne({ where: { id: userData.id } });
+
+    if (!backupsBucket) throw createHttpError(400, 'Backups is not activated for this user');
+
+    return Model.folder.findAll({ where: { bucket: backupsBucket } });
+  };
+
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userId } });
 
@@ -198,5 +206,6 @@ module.exports = (Model, App) => {
     createDeviceAsFolder,
     getDeviceAsFolder,
     renameDeviceAsFolder,
+    getDevicesAsFolder,
   };
 };
