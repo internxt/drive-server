@@ -233,7 +233,7 @@ module.exports = (Model, App) => {
    * @returns {Promise<Environment>}
    */
   const getNetworkHandler = async (mnemonic, email) => {
-    const { user_id } = await Model.users.findOne({
+    const { user_id, bridge_user } = await Model.users.findOne({
       raw: true,
       where: {
         email: { [Op.eq]: email },
@@ -242,7 +242,7 @@ module.exports = (Model, App) => {
     });
     return new Environment({
       bridgePass: user_id,
-      bridgeUser: email,
+      bridgeUser: bridge_user,
       encryptionKey: mnemonic,
       bridgeUrl: App.config.get('STORJ_BRIDGE'),
     });
