@@ -238,7 +238,7 @@ module.exports = (Model, App) => {
       where: {
         email: { [Op.eq]: email },
       },
-      attributes: ['user_id']
+      attributes: ['user_id', 'bridge_user']
     });
     return new Environment({
       bridgePass: user_id,
