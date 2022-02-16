@@ -166,13 +166,14 @@ module.exports = (Router, Service, App) => {
         logReferralError(behalfUser.id, err);
       });
     }
+
+    res.status(200).json(result);
+
     const workspaceMembers = await App.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
     workspaceMembers.forEach(
       ({ email }) => void Notifications.getInstance().fileCreated({ file: result, email, clientId }),
     );
-
-    res.status(200).json(result);
 
     AnalyticsService.trackUploadCompleted(req, behalfUser);
   });
