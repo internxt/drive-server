@@ -33,6 +33,14 @@ export default class Notifications {
     return this.post({ event: 'FILE_CREATED', payload: file, email, clientId });
   }
 
+  fileUpdated({
+    file,
+    email,
+    clientId,
+  }: { file: FileAttributes } & Pick<RequestData, 'email' | 'clientId'>): Promise<void> {
+    return this.post({ event: 'FILE_UPDATED', payload: file, email, clientId });
+  }
+
   private async post(data: RequestData): Promise<void> {
     try {
       const res = await axios.post(process.env.NOTIFICATIONS_URL as string, data, {

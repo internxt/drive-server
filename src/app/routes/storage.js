@@ -183,10 +183,16 @@ module.exports = (Router, Service, App) => {
     const fileId = req.params.fileid;
     const { metadata, bucketId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().fileUpdated({ file: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
