@@ -86,10 +86,17 @@ module.exports = (Router, Service, App) => {
 
     const { user } = req;
     user.mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.Create(user, folderName, parentFolderId)
-      .then((result) => {
+      .then(async (result) => {
         res.status(201).json(result);
+
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderCreated({ folder: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.warn(err);
