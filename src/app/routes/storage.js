@@ -25,10 +25,10 @@ module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
   const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
-  Router.get('/storage/folder/size/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { params, behalfUser } = req;
+  Router.get('/storage/folder/size/:id', passportAuth, async (req, res) => {
+    const { params } = req;
     const folderId = params.id;
-    const size = await Service.Share.getFolderSize(behalfUser, folderId);
+    const size = await Service.Share.getFolderSize(folderId);
     res.status(200).json({
       size: size
     });
@@ -303,7 +303,7 @@ module.exports = (Router, Service, App) => {
   });
 
   Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.getFile(req.params.token)
+    Service.Share.getFileInfo(req.params.token)
       .then((share) => {
         res.status(200).json(share);
 
@@ -313,6 +313,24 @@ module.exports = (Router, Service, App) => {
         res.status(500).send({ error: err.message });
       });
   });
+
+  Router.get('/storage/shared-folder/:token', async (req, res) => {
+    const result = await Service.Share.getFolderInfo(req.params.token);
+    res.status(200).json(result);
+  });
+
+  Router.post('/storage/share/down/folders/:token/:directoryId/:offset/:limit', async (req, res) => {
+    let { token, directoryId, offset, limit } = req.params;
+    const result = await Service.Share.getDirectoryFolders(directoryId, offset, limit, token);
+    res.status(200).json(result);
+  });
+
+  Router.post('/storage/share/down/files/:code/:token/:directoryId/:offset/:limit', async (req, res) => {
+    let { token, code, directoryId, offset, limit } = req.params;
+    const result = await Service.Share.getDirectoryFiles(directoryId, offset, limit, token, code);
+    res.status(200).json(result);
+  });
+
 
   // Needs db index
   Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {

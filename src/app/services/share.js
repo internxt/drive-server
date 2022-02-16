@@ -1,33 +1,68 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
 const { SHARE_TOKEN_LENGTH } = require('../constants');
-const FolderService = require('./folder');
-const lib = require('@internxt/lib');
+const { Environment } = require('@internxt/inxt-js');
+const { aes } = require('@internxt/lib');
 
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const FolderServiceInstance = FolderService(Model, App);
+  const maxAcceptableSize = 1024 * 1024 * 1024; // 1GB
 
-  const getFile = async (token) => {
-    const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
-
-    const result = await Model.shares.findOne({
-      where: { token: { [Op.eq]: token } },
+  /**
+   * Returns a share of a specific token
+   * @param token
+   * @returns {Promise<Model> | Promise<ReferralAttributes> | Promise<Model | null>}
+   */
+  const findShareByToken = (token) => {
+    return Model.shares.findOne({
+      where: {
+        token: {
+          [Op.eq]: token
+        }
+      },
     });
+  };
 
-    if (!result) {
+  /**
+   * Returns a share of a specific token
+   * @returns {Promise<Model> | Promise<ReferralAttributes> | Promise<Model | null>}
+   * @param resourceId
+   * @param userEmail
+   */
+  const findShareByResourceAndUser = (resourceId, userEmail) => {
+    return Model.shares.findOne({
+      where: {
+        file: {
+          [Op.eq]: resourceId
+        },
+        user: {
+          [Op.eq]: userEmail
+        }
+      },
+    });
+  };
+
+  /**
+   * Returns the shared file data of a specific token
+   * @param token
+   * @returns {Promise<*&{fileMeta: *}>}
+   */
+  const getFileInfo = async (token) => {
+    const share = await findShareByToken(token);
+
+    if (!share) {
       throw Error('Token does not exist');
     }
 
-    if (result.views === 1) {
-      await result.destroy();
+    if (share.views === 1) {
+      await share.destroy();
     } else {
-      await Model.shares.update({ views: result.views - 1 }, { where: { id: { [Op.eq]: result.id } } });
+      await Model.shares.update({ views: share.views - 1 }, { where: { id: { [Op.eq]: share.id } } });
     }
 
     const file = await Model.file.findOne({
-      where: { fileId: { [Op.eq]: result.file } },
+      where: { fileId: { [Op.eq]: share.file } },
     });
 
     if (!file) {
@@ -38,7 +73,215 @@ module.exports = (Model, App) => {
       throw Error('File too large');
     }
 
-    return { ...result.get({ plain: true }), fileMeta: file.get({ plain: true }) };
+    return {
+      ...share.get({ plain: true }),
+      fileMeta: file.get({ plain: true })
+    };
+  };
+
+  /**
+   * Returns the shared folder data given a specific token and code
+   * @param token
+   * @returns {Promise<*&{fileMeta: *}>}
+   */
+  const getFolderInfo = async (token) => {
+    const share = await findShareByToken(token);
+
+    if (!share) {
+      throw Error('Token does not exist');
+    }
+
+    if (share.views === 1) {
+      await share.destroy();
+    } else {
+      await Model.shares.update({ views: share.views - 1 }, { where: { id: { [Op.eq]: share.id } } });
+    }
+
+    const folderId = share.file;
+
+    const sharedFolder = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+      }
+    });
+
+    if (!sharedFolder) {
+      throw Error('Folder not found on database, please refresh');
+    }
+
+    const folderSize = await getFolderSize(folderId);
+
+    if (folderSize > maxAcceptableSize) {
+      throw Error('Folder too large');
+    }
+
+    return {
+      folderId: folderId,
+      name: decryptName(sharedFolder.name, sharedFolder.parentId),
+      bucket: share.bucket,
+      bucketToken: share.fileToken,
+      size: folderSize,
+    };
+  };
+
+  /**
+   * Fetches a paginated list of the folders inside a directory
+   * @param directoryId
+   * @param offset
+   * @param limit
+   * @param token
+   * @returns {Promise<{folders: {name: *, folderId: *}[], last: boolean}>}
+   */
+  const getDirectoryFolders = async (directoryId, offset, limit, token) => {
+    const share = await findShareByToken(token);
+
+    if (!share) {
+      throw Error('Token does not exist');
+    }
+
+    const resultFolders = await Model.folder.findAll({
+      raw: true,
+      where: {
+        parent_id: { [Op.eq]: directoryId },
+      },
+      offset: offset,
+      limit: limit,
+      order: [
+        ['id', 'ASC']
+      ]
+    });
+
+    const totalFolders = await getTotalFoldersWithParent(directoryId);
+    const completed = offset + limit >= totalFolders;
+
+    const folders = resultFolders.map(folder => {
+      return {
+        id: folder.id,
+        name: decryptName(folder.name, folder.parentId),
+      };
+    });
+
+    return {
+      folders: folders,
+      last: completed
+    };
+  };
+
+  /**
+   * Fetches a paginated list of files inside a directory
+   * @param directoryId
+   * @param offset
+   * @param limit
+   * @param token
+   * @param code
+   * @returns {Promise<{files: {name: *, id: *}[], last: boolean}>}
+   */
+  const getDirectoryFiles = async (directoryId, offset, limit, token, code) => {
+    const share = await findShareByToken(token);
+
+    if (!share) {
+      throw Error('Token does not exist');
+    }
+
+    const resultFiles = await Model.file.findAll({
+      raw: true,
+      where: {
+        folder_id: { [Op.eq]: directoryId },
+      },
+      offset: offset,
+      limit: limit,
+      order: [
+        ['id', 'ASC']
+      ]
+    });
+
+    // Recover mnemonic
+    const encryptedMnemonic = share.mnemonic.toString();
+    const mnemonic = aes.decrypt(encryptedMnemonic, code);
+    const network = await getNetworkHandler(mnemonic, share.user);
+    const totalFiles = await getTotalFilesWithParent(directoryId);
+    const completed = offset + limit >= totalFiles;
+
+    const files = [];
+    for (const file of resultFiles) {
+      const { index } = await network.getFileInfo(share.bucket, file.fileId);
+      const fileEncryptionKey = await Environment.utils
+        .generateFileKey(
+          mnemonic,
+          share.bucket,
+          Buffer.from(index, 'hex')
+        );
+      files.push({
+        id: file.fileId,
+        name: decryptName(file.name, file.folder_id),
+        type: file.type,
+        size: file.size,
+        encryptionKey: fileEncryptionKey.toString('hex')
+      });
+    }
+
+    return {
+      files: files,
+      last: completed
+    };
+  };
+
+  /**
+   * Initializes and returns a user-identified handler to the network
+   * @param mnemonic
+   * @param email
+   * @returns {Promise<Environment>}
+   */
+  const getNetworkHandler = async (mnemonic, email) => {
+    const { user_id, bridge_user } = await Model.users.findOne({
+      raw: true,
+      where: {
+        email: { [Op.eq]: email },
+      },
+      attributes: ['user_id']
+    });
+    return new Environment({
+      bridgePass: user_id,
+      bridgeUser: bridge_user,
+      encryptionKey: mnemonic,
+      bridgeUrl: App.config.get('STORJ_BRIDGE'),
+    });
+  };
+
+  /**
+   * Returns the total count of folders in a folder
+   * @returns {Promise<*>}
+   * @param folderId
+   */
+  const getTotalFoldersWithParent = async (folderId) => {
+    const resultCount = await Model.folder.findAll({
+      attributes: [
+        [sequelize.fn('count', sequelize.col('id')), 'total']
+      ],
+      raw: true,
+      where: {
+        parent_id: { [Op.eq]: folderId },
+      },
+    });
+    return resultCount[0].total;
+  };
+
+  /**
+   * Returns the total count of files in a folder
+   * @returns {Promise<*>}
+   * @param folderId
+   */
+  const getTotalFilesWithParent = async (folderId) => {
+    const resultCount = await Model.file.findAll({
+      attributes: [
+        [sequelize.fn('count', sequelize.col('id')), 'total']
+      ],
+      raw: true,
+      where: {
+        folder_id: { [Op.eq]: folderId },
+      },
+    });
+    return resultCount[0].total;
   };
 
   /**
@@ -78,8 +321,6 @@ module.exports = (Model, App) => {
       throw Error('File not found');
     }
 
-    const maxAcceptableSize = 1024 * 1024 * 1200; // 1200MB
-
     if (itemExists.size > maxAcceptableSize) {
       throw Error('File too large');
     }
@@ -87,11 +328,9 @@ module.exports = (Model, App) => {
     // Always generate a new token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const tokenData = await Model.shares.findOne({
-      where: { file: { [Op.eq]: fileIdInBucket }, user: { [Op.eq]: user.email } },
-    });
+    const share = await findShareByResourceAndUser(fileIdInBucket, user.email);
 
-    if (tokenData) {
+    if (share) {
       // Update token
       Model.shares.update(
         {
@@ -102,7 +341,7 @@ module.exports = (Model, App) => {
           fileToken,
           encryptionKey,
         },
-        { where: { id: { [Op.eq]: tokenData.id } } },
+        { where: { id: { [Op.eq]: share.id } } },
       );
       return newToken;
     }
@@ -152,8 +391,6 @@ module.exports = (Model, App) => {
       throw Error('Folder not found');
     }
 
-    const maxAcceptableSize = 1024 * 1024 * 1000; // 1GB
-
     const folderSize = await getFolderSize(folderId);
 
     if (folderSize > maxAcceptableSize) {
@@ -163,16 +400,7 @@ module.exports = (Model, App) => {
     // Generate a new share token
     const newToken = crypto.randomBytes(10).toString('hex');
 
-    const share = await Model.shares.findOne({
-      where: {
-        file: {
-          [Op.eq]: folderId
-        },
-        user: {
-          [Op.eq]: user.email
-        }
-      },
-    });
+    const share = await findShareByResourceAndUser(folderId, user.email);
 
     if (share) {
       // Update share details
@@ -229,7 +457,12 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getFolderSize = async (user, folderId) => {
+  /**
+   * Computes the total tree size of a folder
+   * @param folderId
+   * @returns {Promise<number>}
+   */
+  const getFolderSize = async (folderId) => {
     const foldersToCheck = [folderId];
     let totalSize = 0;
 
@@ -237,7 +470,7 @@ module.exports = (Model, App) => {
       const currentFolderId = foldersToCheck.shift();
 
       // Sum files size from this level
-      const filesSize = await getFilesTotalSizeFromFolder(user.id, currentFolderId);
+      const filesSize = await getFilesTotalSizeFromFolder(currentFolderId);
       totalSize += filesSize;
 
       // Add folders from this level to the list
@@ -247,7 +480,6 @@ module.exports = (Model, App) => {
           raw: true,
           where: {
             parent_id: { [Op.eq]: currentFolderId },
-            user_id: { [Op.eq]: user.id },
           },
         });
       folders.forEach(folder => foldersToCheck.push(folder.id));
@@ -256,7 +488,12 @@ module.exports = (Model, App) => {
     return totalSize;
   };
 
-  const getFilesTotalSizeFromFolder = async (userId, folderId) => {
+  /**
+   * Computes the size of the elements inside one folder
+   * @param folderId
+   * @returns {Promise<*>}
+   */
+  const getFilesTotalSizeFromFolder = async (folderId) => {
     const result = await Model.file.findAll({
       attributes: [
         [sequelize.fn('sum', sequelize.col('size')), 'total']
@@ -264,19 +501,25 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         folderId: { [Op.eq]: folderId },
-        userId: { [Op.eq]: userId },
       },
     });
 
     return result[0].total;
   };
 
+  const decryptName = (encryptedName, folderId) => {
+    return App.services.Crypt.decryptName(encryptedName, folderId);
+  };
+
   return {
     Name: 'Share',
-    getFile,
+    getFileInfo,
+    getFolderInfo,
     list,
     GenerateFileToken,
     GenerateFolderTokenAndCode,
     getFolderSize,
+    getDirectoryFolders,
+    getDirectoryFiles
   };
 };

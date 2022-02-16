@@ -4,6 +4,7 @@
   "description": "Drive Server API",
   "main": "build/app.js",
   "dependencies": {
+    "@internxt/inxt-js": "^1.3.0",
     "@internxt/lib": "^1.1.4",
     "@sendgrid/mail": "^7.2.1",
     "analytics-node": "^5.1.0",
