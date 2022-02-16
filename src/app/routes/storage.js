@@ -252,10 +252,16 @@ module.exports = (Router, Service, App) => {
   Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
     const { behalfUser: user, params } = req;
     const { folderid, fileid } = params;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Files.DeleteFile(user, folderid, fileid)
-      .then(() => {
+      .then(async () => {
         res.status(200).json({ deleted: true });
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().fileDeleted({ id: fileid, email, clientId }),
+        );
 
         AnalyticsService.trackFileDeleted(req);
       })
