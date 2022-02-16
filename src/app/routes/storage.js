@@ -64,10 +64,16 @@ module.exports = (Router, Service, App) => {
     const { behalfUser: user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.UpdateMetadata(user, folderId, metadata)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderUpdated({ folder: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
