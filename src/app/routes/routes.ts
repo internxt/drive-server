@@ -11,7 +11,6 @@ import MobileRoutes from './mobile';
 import TwoFactorRoutes from './twofactor';
 import AppSumoRoutes from './appsumo';
 import PlanRoutes from './plan';
-import PhotosRoutes from './photos';
 import ShareRoutes from './share';
 import BackupsRoutes from './backup';
 import GuestRoutes from './guest';
@@ -41,7 +40,6 @@ export default (router: Router, service: any, App: any): Router => {
   TeamsRoutes(router, service, App);
   AppSumoRoutes(router, service, App);
   PlanRoutes(router, service);
-  PhotosRoutes(router, service, App);
   ShareRoutes(router, service);
   BackupsRoutes(router, service);
   GuestRoutes(router, service);
