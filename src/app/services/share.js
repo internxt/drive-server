@@ -7,7 +7,7 @@ const { aes } = require('@internxt/lib');
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const maxAcceptableSize = 1024 * 1024 * 1000; // 1000MB
+  const maxAcceptableSize = 1024 * 1024 * 1024; // 1GB
 
   /**
    * Returns a share of a specific token

@@ -319,14 +319,14 @@ module.exports = (Router, Service, App) => {
     res.status(200).json(result);
   });
 
-  Router.post('/storage/share/down/folders', async (req, res) => {
-    let { token, directoryId, offset, limit } = req.body;
+  Router.post('/storage/share/down/folders/:token/:directoryId/:offset/:limit', async (req, res) => {
+    let { token, directoryId, offset, limit } = req.params;
     const result = await Service.Share.getDirectoryFolders(directoryId, offset, limit, token);
     res.status(200).json(result);
   });
 
-  Router.post('/storage/share/down/files', async (req, res) => {
-    let { token, code, directoryId, offset, limit } = req.body;
+  Router.post('/storage/share/down/files/:code/:token/:directoryId/:offset/:limit', async (req, res) => {
+    let { token, code, directoryId, offset, limit } = req.params;
     const result = await Service.Share.getDirectoryFiles(directoryId, offset, limit, token, code);
     res.status(200).json(result);
   });
