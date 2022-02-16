@@ -5,6 +5,7 @@ const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
 const { ReferralsNotAvailableError } = require('../services/errors/referrals');
+const { default: Notifications } = require('../../config/initializers/notifications');
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
@@ -30,7 +31,7 @@ module.exports = (Router, Service, App) => {
     const folderId = params.id;
     const size = await Service.Share.getFolderSize(behalfUser, folderId);
     res.status(200).json({
-      size: size
+      size: size,
     });
   });
 
@@ -137,6 +138,7 @@ module.exports = (Router, Service, App) => {
     const { behalfUser } = req;
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
+    const clientId = req.headers['internxt-client-id'];
 
     if (!file.fileId && file.file_id) {
       // TODO : Remove WHEN every project uses the SDK
@@ -145,7 +147,7 @@ module.exports = (Router, Service, App) => {
 
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       Logger.error(
-        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
+        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
       res.status(400).json({ error: 'Invalid metadata for new file' });
     }
@@ -164,6 +166,11 @@ module.exports = (Router, Service, App) => {
         logReferralError(behalfUser.id, err);
       });
     }
+    const workspaceMembers = await App.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
+
+    workspaceMembers.forEach(
+      ({ email }) => void Notifications.getInstance().fileCreated({ file: result, email, clientId }),
+    );
 
     res.status(200).json(result);
 
@@ -286,17 +293,10 @@ module.exports = (Router, Service, App) => {
     const folderId = req.params.id;
     const { views, bucketToken, bucket, mnemonic } = req.body;
 
-    const token = await Service.Share.GenerateFolderTokenAndCode(
-      user,
-      folderId,
-      bucket,
-      mnemonic,
-      bucketToken,
-      views,
-    );
+    const token = await Service.Share.GenerateFolderTokenAndCode(user, folderId, bucket, mnemonic, bucketToken, views);
 
     res.status(200).send({
-      token: token
+      token: token,
     });
 
     AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
@@ -404,5 +404,4 @@ module.exports = (Router, Service, App) => {
         res.status(404).end();
       });
   });
-
 };

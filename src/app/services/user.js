@@ -201,7 +201,8 @@ module.exports = (Model, App) => {
           Authorization: `Basic ${auth}`,
           'Content-Type': 'application/json',
         },
-      }).catch((err) => {
+      })
+      .catch((err) => {
         throw new Error(request.extractMessageFromError(err));
       });
   };
@@ -210,11 +211,13 @@ module.exports = (Model, App) => {
     let user;
 
     try {
-      const userEmail = await axios.get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
-        headers: { 'Content-Type': 'application/json' },
-      }).then((res) => {
-        return res.data.email;
-      });
+      const userEmail = await axios
+        .get(`${App.config.get('STORJ_BRIDGE')}/deactivationStripe/${token}`, {
+          headers: { 'Content-Type': 'application/json' },
+        })
+        .then((res) => {
+          return res.data.email;
+        });
 
       user = await Model.users.findOne({ where: { username: userEmail } });
 
@@ -598,6 +601,10 @@ module.exports = (Model, App) => {
     return user.save();
   };
 
+  const findWorkspaceMembers = async (bridgeUser) => {
+    return Model.users.findAll({ where: { bridgeUser } });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -625,6 +632,7 @@ module.exports = (Model, App) => {
     recoverPassword,
     invite,
     deactivate,
-    confirmDeactivate
+    confirmDeactivate,
+    findWorkspaceMembers,
   };
 };
