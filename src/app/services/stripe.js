@@ -261,13 +261,6 @@ module.exports = () => {
     return plans;
   };
 
-  const findPriceById = async (priceId) => {
-    const stripe = await getStripe();
-    const price = await stripe.prices.retrieve(priceId);
-
-    return price;
-  };
-
   const findSessionById = async (sessionId) => {
     const stripe = await getStripe(sessionId.match(/^cs_test/));
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -287,7 +280,6 @@ module.exports = () => {
     findCustomerByEmail,
     getBilling,
     getUserSubscriptionPlans,
-    findPriceById,
     findSessionById
   };
 };
