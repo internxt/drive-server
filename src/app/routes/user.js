@@ -49,11 +49,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.get('/user/credit', passportAuth, (req, res) => {
-    const { user } = req;
-    return res.status(200).send({ userCredit: user.credit });
-  });
-
   Router.get('/user/keys/:email', passportAuth, async (req, res) => {
     const { email } = req.params;
 
