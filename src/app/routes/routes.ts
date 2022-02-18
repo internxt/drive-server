@@ -2,6 +2,7 @@ import { Router } from 'express';
 import speakeasy from 'speakeasy';
 import createHttpError from 'http-errors';
 
+import AuthRoutes from './auth';
 import ActivationRoutes from './activation';
 import StorageRoutes from './storage';
 import BridgeRoutes from './bridge';
@@ -31,6 +32,10 @@ import { AuthorizedUser } from './types';
 const Logger = logger.getInstance();
 
 export default (router: Router, service: any, App: any): Router => {
+  service.Analytics = AnalyticsService;
+  service.ReCaptcha = ReCaptchaV3;
+
+  AuthRoutes(router, service);
   ActivationRoutes(router, service);
   StorageRoutes(router, service, App);
   BridgeRoutes(router, service);
@@ -236,18 +241,6 @@ export default (router: Router, service: any, App: any): Router => {
     };
 
     res.status(200).json({ user, token });
-  });
-
-  router.post('/register', async (req, res) => {
-    if (req.headers['internxt-client'] !== 'drive-mobile') {
-      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-      await ReCaptchaV3.verify(req.body.captcha, ipaddress);
-    }
-
-    const result = await service.User.RegisterUser(req.body);
-    res.status(200).send(result);
-
-    AnalyticsService.trackSignUp(req, result.user);
   });
 
   router.post('/initialize', async (req, res) => {
