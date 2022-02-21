@@ -139,6 +139,20 @@ services:
     networks:
       - internxt
 
+  notifications:
+    build:
+      context: ../../notifications
+      dockerfile: infrastructure/development.Dockerfile
+    container_name: notifications
+    networks:
+      - internxt
+    depends_on:
+      - drive-server
+    ports:
+      - 4000:4000
+    volumes:
+      - ../../notifications/src:/usr/app/src
+
   maria:
     image: mariadb
     container_name: drive-server-maria
