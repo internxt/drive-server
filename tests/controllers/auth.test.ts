@@ -270,7 +270,146 @@ describe('Auth controller', () => {
       } catch ({ message }) {
         expect(message).to.equal('Wrong email/password');
       }
+    });
 
+    it('should fail when max failed login tries have been reached', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .resolves({
+              errorLoginCount: 10
+            })
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        body: {
+          email: ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.access(request, response);
+      } catch ({ message }) {
+        expect(message).to.equal('Your account has been blocked for security reasons. Please reach out to us');
+      }
+    });
+
+    it('should fail when hashed password does not match', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .resolves({
+              errorLoginCount: 9,
+              password: 'stored_hash'
+            }),
+          LoginFailed: sinon.spy()
+        },
+        Crypt: {
+          decryptText: sinon.stub({
+            decryptText: null
+          }, 'decryptText')
+            .returns('given_hash')
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        body: {
+          email: ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.access(request, response);
+      } catch ({ message }) {
+        expect(message).to.equal('Wrong email/password');
+        expect(services.User.LoginFailed.calledOnce).to.be.true;
+        expect(services.User.LoginFailed.args[0]).to.deep.equal(['', true]);
+      }
+    });
+
+    it('should update account activity and return data on correct login', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .resolves({
+              errorLoginCount: 9,
+              password: 'stored_hash'
+            }),
+          LoginFailed: sinon.spy(),
+          UpdateAccountActivity: sinon.spy(),
+          GetUserBucket: sinon.spy()
+        },
+        Crypt: {
+          decryptText: sinon.stub({
+            decryptText: null
+          }, 'decryptText')
+            .returns('stored_hash')
+        },
+        KeyServer: {
+          keysExists: sinon.spy(),
+          getKeys: sinon.spy(),
+        },
+        Team: {
+          getTeamByMember: sinon.spy()
+        },
+        AppSumo: {
+          GetDetails: sinon.stub({
+            GetDetails: null
+          }, 'GetDetails')
+            .returns(Promise.all([]))
+        },
+        UsersReferrals: {
+          hasReferralsProgram: sinon.spy()
+        }
+      };
+      const controller = getController(services, {
+        JWT: 'token'
+      });
+      const request = getRequest({
+        headers: {
+          'internxt-client': 'drive-web'
+        },
+        body: {
+          email: ''
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.access(request, response);
+
+      // Assert
+      expect(services.User.LoginFailed.calledOnce).to.be.true;
+      expect(services.User.LoginFailed.args[0]).to.deep.equal(['', false]);
+      expect(services.User.UpdateAccountActivity.calledOnce).to.be.true;
+      expect(services.User.GetUserBucket.calledOnce).to.be.true;
+      expect(services.KeyServer.keysExists.calledOnce).to.be.true;
+      expect(services.KeyServer.getKeys.calledOnce).to.be.true;
+      expect(services.Team.getTeamByMember.calledOnce).to.be.true;
+      expect(services.AppSumo.GetDetails.calledOnce).to.be.true;
+      expect(services.UsersReferrals.hasReferralsProgram.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
     });
 
   });
@@ -278,7 +417,7 @@ describe('Auth controller', () => {
 });
 
 
-function getController(services = {}): AuthController {
+function getController(services = {}, secrets = {}): AuthController {
   const defaultServices = {
     User: {},
     Analytics: {},
@@ -295,9 +434,13 @@ function getController(services = {}): AuthController {
     ...services
   };
 
-  const config = sinon.mock(Config);
+  const config = {
+    get: () => {
+      return secrets;
+    }
+  };
 
-  return new AuthController(finalServices, {} as unknown as Config);
+  return new AuthController(finalServices, config as unknown as Config);
 }
 
 function getRequest(props = {}): Request {
