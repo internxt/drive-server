@@ -2,6 +2,7 @@ import sinon from 'sinon';
 import { AuthController } from '../../src/app/routes/auth';
 import { Request, Response } from 'express';
 import { expect } from 'chai';
+import Config from '../../src/config/config';
 
 describe('Auth controller', () => {
 
@@ -25,7 +26,7 @@ describe('Auth controller', () => {
           verify: sinon.spy()
         },
       };
-      const request = {
+      const request = getRequest({
         headers: {
           'internxt-client': 'drive-web'
         },
@@ -33,18 +34,18 @@ describe('Auth controller', () => {
         body: {
           captcha: ''
         }
-      } as unknown as Request<{ email: string }>;
-      const response = {
+      });
+      const response = getResponse({
         status: () => {
           return {
             send: sinon.spy()
           };
         }
-      } as unknown as Response;
+      });
       const controller = getController(services);
 
       // Act
-      await controller.register(request, response);
+      await controller.register(request as Request<{ email: string }>, response);
 
       // Assert
       expect(services.ReCaptcha.verify.calledOnce).to.be.true;
@@ -77,22 +78,22 @@ describe('Auth controller', () => {
           keysExists: sinon.spy()
         },
       };
-      const request = {
+      const request = getRequest({
         headers: {
           'internxt-client': 'drive-mobile'
         },
-      } as unknown as Request<{ email: string }>;
-      const response = {
+      });
+      const response = getResponse({
         status: () => {
           return {
             send: () => null
           };
         }
-      } as unknown as Response;
+      });
       const controller = getController(services);
 
       // Act
-      await controller.register(request, response);
+      await controller.register(request as Request<{ email: string }>, response);
 
       // Assert
       expect(services.ReCaptcha.verify.calledOnce).to.be.false;
@@ -106,10 +107,10 @@ describe('Auth controller', () => {
 
     it('should throw exception when no email on body', async () => {
       // Arrange
-      const request = {
+      const request = getRequest({
         body: ''
-      } as unknown as Request;
-      const response = {} as unknown as Response;
+      });
+      const response = getResponse();
       const controller = getController();
 
       try {
@@ -141,18 +142,18 @@ describe('Auth controller', () => {
         }
       };
 
-      const request = {
+      const request = getRequest({
         body: {
           email: 'CAPS@EMAIL.COM'
         }
-      } as unknown as Request;
-      const response = {
+      });
+      const response = getResponse({
         status: () => {
           return {
             send: sinon.spy()
           };
         }
-      } as unknown as Response;
+      });
       const controller = getController(services);
 
       // Act
@@ -173,18 +174,18 @@ describe('Auth controller', () => {
         },
       };
 
-      const request = {
+      const request = getRequest({
         body: {
           email: 'CAPS@EMAIL.COM'
         }
-      } as unknown as Request;
-      const response = {
+      });
+      const response = getResponse({
         status: () => {
           return {
             send: sinon.spy()
           };
         }
-      } as unknown as Response;
+      });
       const controller = getController(services);
 
       try {
@@ -216,19 +217,19 @@ describe('Auth controller', () => {
         }
       };
 
-      const request = {
+      const request = getRequest({
         body: {
           email: 'CAPS@EMAIL.COM'
         }
-      } as unknown as Request;
+      });
       const sendSpy = sinon.spy();
-      const response = {
+      const response = getResponse({
         status: () => {
           return {
             send: sendSpy
           };
         }
-      } as unknown as Response;
+      });
       const controller = getController(services);
 
       // Act
@@ -246,6 +247,33 @@ describe('Auth controller', () => {
 
   });
 
+  describe('/access', () => {
+
+    it('should fail if no user data is found', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        body: {
+          email: ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.access(request, response);
+      } catch ({ message }) {
+        expect(message).to.equal('Wrong email/password');
+      }
+
+    });
+
+  });
 
 });
 
@@ -267,5 +295,15 @@ function getController(services = {}): AuthController {
     ...services
   };
 
-  return new AuthController(finalServices);
+  const config = sinon.mock(Config);
+
+  return new AuthController(finalServices, {} as unknown as Config);
+}
+
+function getRequest(props = {}): Request {
+  return props as unknown as Request;
+}
+
+function getResponse(props = {}): Response {
+  return props as unknown as Response;
 }
