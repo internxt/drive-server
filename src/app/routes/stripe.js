@@ -10,18 +10,6 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service) => {
 
-  Router.get('/price', passportAuth, (req, res) => {
-    const priceId = req.query.priceId;
-
-    Service.Stripe.findPriceById(priceId)
-      .then((data) => {
-        res.status(200).json(data);
-      })
-      .catch(() => {
-        res.status(400).json({ message: 'Error retrieving priceId data'});
-      });
-  });
-
   Router.get('/stripe/session', passportAuth, (req, res) => {
     const sessionId = req.query.sessionId;
 
