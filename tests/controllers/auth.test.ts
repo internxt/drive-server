@@ -9,16 +9,14 @@ describe('Auth controller', () => {
 
     it('should verify recaptcha when is not invoked from mobile', async () => {
       // Arrange
-      const UserService = {
-        RegisterUser: () => {
-          return {};
-        }
-      };
       const services = {
         User: {
-          RegisterUser: sinon.stub(UserService, 'RegisterUser').returns({
-            user: {}
-          })
+          RegisterUser: sinon
+            .stub({
+              RegisterUser: null
+            }, 'RegisterUser').returns({
+              user: {}
+            })
         },
         Analytics: {
           trackSignUp: sinon.spy()
@@ -26,12 +24,8 @@ describe('Auth controller', () => {
         ReCaptcha: {
           verify: sinon.spy()
         },
-        Crypt: {
-          encryptText: sinon.spy()
-        },
-        KeyServer: {
-          keysExists: sinon.spy()
-        }
+        Crypt: {},
+        KeyServer: {}
       };
       const request = {
         headers: {
@@ -45,7 +39,7 @@ describe('Auth controller', () => {
       const response = {
         status: () => {
           return {
-            send: () => null
+            send: sinon.spy()
           };
         }
       } as unknown as Response;
@@ -112,24 +106,14 @@ describe('Auth controller', () => {
 
   describe('/login', () => {
 
-    it('should throw exception when no mail on body', async () => {
+    it('should throw exception when no email on body', async () => {
       // Arrange
       const services = {
-        User: {
-          RegisterUser: sinon.spy()
-        },
-        Analytics: {
-          trackSignUp: sinon.spy()
-        },
-        ReCaptcha: {
-          verify: sinon.spy()
-        },
-        Crypt: {
-          encryptText: sinon.spy()
-        },
-        KeyServer: {
-          keysExists: sinon.spy()
-        }
+        User: {},
+        Analytics: {},
+        ReCaptcha: {},
+        Crypt: {},
+        KeyServer: {}
       };
 
       const request = {
@@ -145,6 +129,49 @@ describe('Auth controller', () => {
         // Assert
         expect(message).to.equal('Missing email param');
       }
+    });
+
+    it('should convert email to lowercase', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .returns({
+              hKey: '',
+              secret_2FA: ''
+            })
+        },
+        Analytics: {},
+        ReCaptcha: {},
+        Crypt: {
+          encryptText: sinon.spy()
+        },
+        KeyServer: {
+          keysExists: sinon.spy()
+        }
+      };
+
+      const request = {
+        body: {
+          email: 'CAPS@EMAIL.COM'
+        }
+      } as unknown as Request;
+      const response = {
+        status: () => {
+          return {
+            send: sinon.spy()
+          };
+        }
+      } as unknown as Response;
+      const controller = new AuthController(services);
+
+      // Act
+      await controller.login(request, response);
+
+      // Assert
+      expect(services.User.FindUserByEmail.args[0][0]).to.equal('caps@email.com');
     });
 
   });
