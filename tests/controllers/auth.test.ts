@@ -7,24 +7,26 @@ describe('Auth controller', () => {
 
   describe('/register', () => {
 
-    it('should verify recaptcha when is not invoked from mobile', () => {
+    it('should verify recaptcha when is not invoked from mobile', async () => {
       // Arrange
+      const UserService = {
+        RegisterUser: () => {
+          return {};
+        }
+      };
       const services = {
         User: {
-          RegisterUser: () => {
-            return {
-              user: null
-            };
-          }
+          RegisterUser: sinon.stub(UserService, 'RegisterUser').returns({
+            user: {}
+          })
         },
         Analytics: {
-          trackSignUp: () => null
+          trackSignUp: sinon.spy()
         },
         ReCaptcha: {
           verify: sinon.spy()
         }
       };
-
       const request = {
         headers: {
           'internxt-client': 'drive-web'
@@ -34,7 +36,6 @@ describe('Auth controller', () => {
           captcha: ''
         }
       } as unknown as Request<{ email: string }>;
-
       const response = {
         status: () => {
           return {
@@ -42,28 +43,32 @@ describe('Auth controller', () => {
           };
         }
       } as unknown as Response;
-
       const controller = new AuthController(services);
 
       // Act
-      controller.register(request, response);
+      await controller.register(request, response);
 
       // Assert
       expect(services.ReCaptcha.verify.calledOnce).to.be.true;
+      expect(services.User.RegisterUser.calledOnce).to.be.true;
+      expect(services.Analytics.trackSignUp.calledOnce).to.be.true;
     });
 
-    it('should not verify recaptcha when is invoked from mobile', () => {
+    it('should not verify recaptcha when is invoked from mobile', async () => {
       // Arrange
+      const UserService = {
+        RegisterUser: () => {
+          return {};
+        }
+      };
       const services = {
         User: {
-          RegisterUser: () => {
-            return {
-              user: null
-            };
-          }
+          RegisterUser: sinon.stub(UserService, 'RegisterUser').returns({
+            user: {}
+          })
         },
         Analytics: {
-          trackSignUp: () => null
+          trackSignUp: sinon.spy()
         },
         ReCaptcha: {
           verify: sinon.spy()
@@ -84,10 +89,12 @@ describe('Auth controller', () => {
       const controller = new AuthController(services);
 
       // Act
-      controller.register(request, response);
+      await controller.register(request, response);
 
       // Assert
       expect(services.ReCaptcha.verify.calledOnce).to.be.false;
+      expect(services.User.RegisterUser.calledOnce).to.be.true;
+      expect(services.Analytics.trackSignUp.calledOnce).to.be.true;
     });
 
   });
