@@ -26,7 +26,6 @@ import TeamsRoutes from './teams';
 import logger from '../../lib/logger';
 import * as ReCaptchaV3 from '../../lib/recaptcha';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
-import { UserAttributes } from '../models/user';
 import { AuthorizedUser } from './types';
 
 const Logger = logger.getInstance();

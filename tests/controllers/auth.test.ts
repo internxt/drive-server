@@ -24,8 +24,6 @@ describe('Auth controller', () => {
         ReCaptcha: {
           verify: sinon.spy()
         },
-        Crypt: {},
-        KeyServer: {}
       };
       const request = {
         headers: {
@@ -43,7 +41,7 @@ describe('Auth controller', () => {
           };
         }
       } as unknown as Response;
-      const controller = new AuthController(services);
+      const controller = getController(services);
 
       // Act
       await controller.register(request, response);
@@ -77,7 +75,7 @@ describe('Auth controller', () => {
         },
         KeyServer: {
           keysExists: sinon.spy()
-        }
+        },
       };
       const request = {
         headers: {
@@ -91,7 +89,7 @@ describe('Auth controller', () => {
           };
         }
       } as unknown as Response;
-      const controller = new AuthController(services);
+      const controller = getController(services);
 
       // Act
       await controller.register(request, response);
@@ -108,19 +106,11 @@ describe('Auth controller', () => {
 
     it('should throw exception when no email on body', async () => {
       // Arrange
-      const services = {
-        User: {},
-        Analytics: {},
-        ReCaptcha: {},
-        Crypt: {},
-        KeyServer: {}
-      };
-
       const request = {
         body: ''
       } as unknown as Request;
       const response = {} as unknown as Response;
-      const controller = new AuthController(services);
+      const controller = getController();
 
       try {
         // Act
@@ -143,8 +133,6 @@ describe('Auth controller', () => {
               secret_2FA: ''
             })
         },
-        Analytics: {},
-        ReCaptcha: {},
         Crypt: {
           encryptText: sinon.spy()
         },
@@ -165,7 +153,7 @@ describe('Auth controller', () => {
           };
         }
       } as unknown as Response;
-      const controller = new AuthController(services);
+      const controller = getController(services);
 
       // Act
       await controller.login(request, response);
@@ -174,6 +162,110 @@ describe('Auth controller', () => {
       expect(services.User.FindUserByEmail.args[0][0]).to.equal('caps@email.com');
     });
 
+    it('should return error if user is not found', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .rejects({})
+        },
+      };
+
+      const request = {
+        body: {
+          email: 'CAPS@EMAIL.COM'
+        }
+      } as unknown as Request;
+      const response = {
+        status: () => {
+          return {
+            send: sinon.spy()
+          };
+        }
+      } as unknown as Response;
+      const controller = getController(services);
+
+      try {
+        // Act
+        await controller.login(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Wrong email/password');
+      }
+    });
+
+    it('should return correct body when successful', async () => {
+      // Arrange
+      const services = {
+        User: {
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .returns({
+              hKey: '',
+              secret_2FA: ''
+            })
+        },
+        Crypt: {
+          encryptText: sinon.spy()
+        },
+        KeyServer: {
+          keysExists: sinon.spy()
+        }
+      };
+
+      const request = {
+        body: {
+          email: 'CAPS@EMAIL.COM'
+        }
+      } as unknown as Request;
+      const sendSpy = sinon.spy();
+      const response = {
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      } as unknown as Response;
+      const controller = getController(services);
+
+      // Act
+      await controller.login(request, response);
+
+      // Assert
+      expect(services.Crypt.encryptText.calledOnce).to.be.true;
+      expect(services.KeyServer.keysExists.calledOnce).to.be.true;
+      expect(sendSpy.args[0][0]).to.deep.equal({
+        hasKeys: undefined,
+        sKey: undefined,
+        tfa: '',
+      });
+    });
+
   });
 
+
 });
+
+
+function getController(services = {}): AuthController {
+  const defaultServices = {
+    User: {},
+    Analytics: {},
+    ReCaptcha: {},
+    Crypt: {},
+    KeyServer: {},
+    Team: {},
+    AppSumo: {},
+    UsersReferrals: {},
+  };
+
+  const finalServices = {
+    ...defaultServices,
+    ...services
+  };
+
+  return new AuthController(finalServices);
+}
