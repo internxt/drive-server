@@ -56,32 +56,6 @@ export default (router: Router, service: any, App: any): Router => {
   UserRoutes(router, service, App);
   AnalyticsRoutes(router);
 
-  router.post('/login', async (req, res) => {
-    if (!req.body.email) {
-      throw createHttpError(400, 'Missing email param');
-    }
-
-    try {
-      req.body.email = req.body.email.toLowerCase();
-    } catch (e) {
-      throw createHttpError(400, 'Invalid email');
-    }
-
-    let user: UserAttributes;
-    try {
-      user = await service.User.FindUserByEmail(req.body.email);
-    } catch {
-      throw createHttpError(401, 'Wrong email/password');
-    }
-
-    const encSalt = App.services.Crypt.encryptText(user.hKey.toString());
-    const required2FA = user.secret_2FA && user.secret_2FA.length > 0;
-
-    const hasKeys = await service.KeyServer.keysExists(user);
-
-    res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
-  });
-
   router.post('/access', async (req, res) => {
     const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 

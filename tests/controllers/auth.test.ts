@@ -25,6 +25,12 @@ describe('Auth controller', () => {
         },
         ReCaptcha: {
           verify: sinon.spy()
+        },
+        Crypt: {
+          encryptText: sinon.spy()
+        },
+        KeyServer: {
+          keysExists: sinon.spy()
         }
       };
       const request = {
@@ -56,14 +62,13 @@ describe('Auth controller', () => {
 
     it('should not verify recaptcha when is invoked from mobile', async () => {
       // Arrange
-      const UserService = {
-        RegisterUser: () => {
-          return {};
-        }
-      };
       const services = {
         User: {
-          RegisterUser: sinon.stub(UserService, 'RegisterUser').returns({
+          RegisterUser: sinon.stub({
+            RegisterUser: () => {
+              return {};
+            }
+          }, 'RegisterUser').returns({
             user: {}
           })
         },
@@ -72,6 +77,12 @@ describe('Auth controller', () => {
         },
         ReCaptcha: {
           verify: sinon.spy()
+        },
+        Crypt: {
+          encryptText: sinon.spy()
+        },
+        KeyServer: {
+          keysExists: sinon.spy()
         }
       };
       const request = {
@@ -95,6 +106,45 @@ describe('Auth controller', () => {
       expect(services.ReCaptcha.verify.calledOnce).to.be.false;
       expect(services.User.RegisterUser.calledOnce).to.be.true;
       expect(services.Analytics.trackSignUp.calledOnce).to.be.true;
+    });
+
+  });
+
+  describe('/login', () => {
+
+    it('should throw exception when no mail on body', async () => {
+      // Arrange
+      const services = {
+        User: {
+          RegisterUser: sinon.spy()
+        },
+        Analytics: {
+          trackSignUp: sinon.spy()
+        },
+        ReCaptcha: {
+          verify: sinon.spy()
+        },
+        Crypt: {
+          encryptText: sinon.spy()
+        },
+        KeyServer: {
+          keysExists: sinon.spy()
+        }
+      };
+
+      const request = {
+        body: ''
+      } as unknown as Request;
+      const response = {} as unknown as Response;
+      const controller = new AuthController(services);
+
+      try {
+        // Act
+        await controller.login(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Missing email param');
+      }
     });
 
   });
