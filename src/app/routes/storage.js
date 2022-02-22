@@ -81,29 +81,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/folder', passportAuth, (req, res) => {
-    const { folderName, parentFolderId } = req.body;
-
-    const { user } = req;
-    user.mnemonic = req.headers['internxt-mnemonic'];
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Folder.Create(user, folderName, parentFolderId)
-      .then(async (result) => {
-        res.status(201).json(result);
-
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().folderCreated({ folder: result, email, clientId }),
-        );
-      })
-      .catch((err) => {
-        Logger.warn(err);
-        res.status(500).json({ error: err.message });
-      });
-  });
-
   Router.delete('/storage/folder/:id', passportAuth, sharedAdapter, (req, res) => {
     const { behalfUser: user } = req;
 
@@ -157,50 +134,6 @@ module.exports = (Router, Service, App) => {
       .catch((error) => {
         res.status(500).json({ error: error.message });
       });
-  });
-
-  Router.post('/storage/file', passportAuth, sharedAdapter, async (req, res) => {
-    const { behalfUser } = req;
-    const { file } = req.body;
-    const internxtClient = req.headers['internxt-client'];
-    const clientId = req.headers['internxt-client-id'];
-
-    if (!file.fileId && file.file_id) {
-      // TODO : Remove WHEN every project uses the SDK
-      file.fileId = file.file_id;
-    }
-
-    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
-      Logger.error(
-        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
-      );
-      res.status(400).json({ error: 'Invalid metadata for new file' });
-    }
-
-    const result = await Service.Files.CreateFile(behalfUser, file);
-
-    // TODO: If user has referrals, then apply. Do not catch everything
-    if (internxtClient === 'drive-mobile') {
-      Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err) => {
-        logReferralError(behalfUser.id, err);
-      });
-    }
-
-    if (internxtClient === 'drive-desktop') {
-      Service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err) => {
-        logReferralError(behalfUser.id, err);
-      });
-    }
-
-    res.status(200).json(result);
-
-    const workspaceMembers = await App.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
-
-    workspaceMembers.forEach(
-      ({ email }) => void Notifications.getInstance().fileCreated({ file: result, email, clientId }),
-    );
-
-    AnalyticsService.trackUploadCompleted(req, behalfUser);
   });
 
   Router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, (req, res) => {

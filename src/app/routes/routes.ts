@@ -4,6 +4,7 @@ import createHttpError from 'http-errors';
 import AuthRoutes from './auth';
 import ActivationRoutes from './activation';
 import StorageRoutes from './storage';
+import StorageRoutesV2 from './storage-v2';
 import BridgeRoutes from './bridge';
 import StripeRoutes from './stripe';
 import DesktopRoutes from './desktop';
@@ -25,16 +26,19 @@ import logger from '../../lib/logger';
 import * as ReCaptchaV3 from '../../lib/recaptcha';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
 import { AuthorizedUser } from './types';
+import { default as Notifications } from '../../config/initializers/notifications';
 
 const Logger = logger.getInstance();
 
 export default (router: Router, service: any, App: any): Router => {
   service.Analytics = AnalyticsService;
   service.ReCaptcha = ReCaptchaV3;
+  service.Notifications = Notifications.getInstance();
 
   AuthRoutes(router, service, App.config);
   ActivationRoutes(router, service);
   StorageRoutes(router, service, App);
+  StorageRoutesV2(router, service);
   BridgeRoutes(router, service);
   StripeRoutes(router, service);
   DesktopRoutes(router, service);
