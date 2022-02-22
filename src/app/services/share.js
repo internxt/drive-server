@@ -109,19 +109,40 @@ module.exports = (Model, App) => {
       throw Error('Folder not found on database, please refresh');
     }
 
-    const folderSize = await getFolderSize(folderId);
-
-    if (folderSize > maxAcceptableSize) {
-      throw Error('Folder too large');
-    }
-
     return {
       folderId: folderId,
       name: decryptName(sharedFolder.name, sharedFolder.parentId),
       bucket: share.bucket,
       bucketToken: share.fileToken,
-      size: folderSize,
+      // TODO: Remove this from SDK and then remove it from here
+      size: 0,
+      shareId: share.id
     };
+  };
+
+  const getSharedFolderSize = async (shareId, folderId) => {
+
+    const share = await Model.shares.findOne({ 
+      where: {
+        id: shareId, file: folderId 
+      }
+    });
+
+    if (!share) {
+      throw new Error('Share not found');
+    }
+
+    const folder = await Model.folder.findOne({ 
+      where: {
+        id: folderId 
+      }
+    });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    return getFolderSize(folderId, folder.user_id);
   };
 
   /**
@@ -391,12 +412,6 @@ module.exports = (Model, App) => {
       throw Error('Folder not found');
     }
 
-    const folderSize = await getFolderSize(folderId);
-
-    if (folderSize > maxAcceptableSize) {
-      throw Error('Folder too large');
-    }
-
     // Generate a new share token
     const newToken = crypto.randomBytes(10).toString('hex');
 
@@ -462,7 +477,7 @@ module.exports = (Model, App) => {
    * @param folderId
    * @returns {Promise<number>}
    */
-  const getFolderSize = async (folderId) => {
+  const getFolderSize = async (folderId, userId) => {
     const foldersToCheck = [folderId];
     let totalSize = 0;
 
@@ -470,18 +485,20 @@ module.exports = (Model, App) => {
       const currentFolderId = foldersToCheck.shift();
 
       // Sum files size from this level
-      const filesSize = await getFilesTotalSizeFromFolder(currentFolderId);
+      const [filesSize, folders] = await Promise.all([
+        getFilesTotalSizeFromFolder(currentFolderId),
+        Model.folder
+          .findAll({
+            attributes: ['id'],
+            raw: true,
+            where: {
+              parent_id: { [Op.eq]: currentFolderId },
+              user_id: userId
+            },
+          })
+      ]);
       totalSize += filesSize;
 
-      // Add folders from this level to the list
-      const folders = await Model.folder
-        .findAll({
-          attributes: ['id'],
-          raw: true,
-          where: {
-            parent_id: { [Op.eq]: currentFolderId },
-          },
-        });
       folders.forEach(folder => foldersToCheck.push(folder.id));
     }
 
@@ -516,6 +533,7 @@ module.exports = (Model, App) => {
     getFileInfo,
     getFolderInfo,
     list,
+    getSharedFolderSize,
     GenerateFileToken,
     GenerateFolderTokenAndCode,
     getFolderSize,

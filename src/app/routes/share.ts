@@ -18,6 +18,13 @@ class ShareController {
 
     res.status(200).send(list);
   }
+
+  async getSharedFolderSize(req: Request<{ shareId: string, folderId: string }>, res: Response) {
+    const { shareId, folderId } = req.params;
+    const folderSize = await this.service.Share.getSharedFolderSize(shareId, folderId);
+
+    res.status(200).send({ size: folderSize });
+  }
 }
 
 export default (router: Router, service: any) => {
@@ -25,4 +32,5 @@ export default (router: Router, service: any) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
 
   router.get('/share/list', passportAuth, sharedAdapter, controller.listShares.bind(controller));
+  router.get('/share/:shareId/folder/:folderId', controller.getSharedFolderSize.bind(controller));
 };
