@@ -1,6 +1,6 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-interface FileAttributes {
+export interface FileAttributes {
   id: number;
   fileId: string;
   name: string;

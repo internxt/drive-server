@@ -5,6 +5,7 @@ const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
 const { ReferralsNotAvailableError } = require('../services/errors/referrals');
+const { default: Notifications } = require('../../config/initializers/notifications');
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
@@ -30,7 +31,7 @@ module.exports = (Router, Service, App) => {
     const folderId = params.id;
     const size = await Service.Share.getFolderSize(folderId);
     res.status(200).json({
-      size: size
+      size: size,
     });
   });
 
@@ -63,10 +64,16 @@ module.exports = (Router, Service, App) => {
     const { behalfUser: user } = req;
     const folderId = req.params.folderid;
     const { metadata } = req.body;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.UpdateMetadata(user, folderId, metadata)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderUpdated({ folder: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
@@ -79,10 +86,17 @@ module.exports = (Router, Service, App) => {
 
     const { user } = req;
     user.mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.Create(user, folderName, parentFolderId)
-      .then((result) => {
+      .then(async (result) => {
         res.status(201).json(result);
+
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderCreated({ folder: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.warn(err);
@@ -94,10 +108,16 @@ module.exports = (Router, Service, App) => {
     const { behalfUser: user } = req;
 
     const folderId = req.params.id;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.Delete(user, folderId)
-      .then((result) => {
+      .then(async (result) => {
         res.status(204).send(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderDeleted({ id: folderId, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(`${err.message}\n${err.stack}`);
@@ -109,10 +129,16 @@ module.exports = (Router, Service, App) => {
     const { folderId } = req.body;
     const { destination } = req.body;
     const { behalfUser: user } = req;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Folder.MoveFolder(user, folderId, destination)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().folderUpdated({ folder: result.result, email, clientId }),
+        );
       })
       .catch((err) => {
         res.status(err.status || 500).json({ error: err.message });
@@ -137,6 +163,7 @@ module.exports = (Router, Service, App) => {
     const { behalfUser } = req;
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
+    const clientId = req.headers['internxt-client-id'];
 
     if (!file.fileId && file.file_id) {
       // TODO : Remove WHEN every project uses the SDK
@@ -145,7 +172,7 @@ module.exports = (Router, Service, App) => {
 
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       Logger.error(
-        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
+        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
       res.status(400).json({ error: 'Invalid metadata for new file' });
     }
@@ -167,6 +194,12 @@ module.exports = (Router, Service, App) => {
 
     res.status(200).json(result);
 
+    const workspaceMembers = await App.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
+
+    workspaceMembers.forEach(
+      ({ email }) => void Notifications.getInstance().fileCreated({ file: result, email, clientId }),
+    );
+
     AnalyticsService.trackUploadCompleted(req, behalfUser);
   });
 
@@ -175,10 +208,16 @@ module.exports = (Router, Service, App) => {
     const fileId = req.params.fileid;
     const { metadata, bucketId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().fileUpdated({ file: result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(`Error updating metadata from file ${fileId} : ${err}`);
@@ -189,10 +228,16 @@ module.exports = (Router, Service, App) => {
   Router.post('/storage/move/file', passportAuth, sharedAdapter, (req, res) => {
     const { fileId, destination } = req.body;
     const { behalfUser: user } = req;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Files.MoveFile(user, fileId, destination)
-      .then((result) => {
+      .then(async (result) => {
         res.status(200).json(result);
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().fileUpdated({ file: result.result, email, clientId }),
+        );
       })
       .catch((err) => {
         Logger.error(err);
@@ -232,10 +277,16 @@ module.exports = (Router, Service, App) => {
   Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
     const { behalfUser: user, params } = req;
     const { folderid, fileid } = params;
+    const clientId = req.headers['internxt-client-id'];
 
     Service.Files.DeleteFile(user, folderid, fileid)
-      .then(() => {
+      .then(async () => {
         res.status(200).json({ deleted: true });
+        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
+
+        workspaceMembers.forEach(
+          ({ email }) => void Notifications.getInstance().fileDeleted({ id: fileid, email, clientId }),
+        );
 
         AnalyticsService.trackFileDeleted(req);
       })
@@ -286,17 +337,10 @@ module.exports = (Router, Service, App) => {
     const folderId = req.params.id;
     const { views, bucketToken, bucket, mnemonic } = req.body;
 
-    const token = await Service.Share.GenerateFolderTokenAndCode(
-      user,
-      folderId,
-      bucket,
-      mnemonic,
-      bucketToken,
-      views,
-    );
+    const token = await Service.Share.GenerateFolderTokenAndCode(user, folderId, bucket, mnemonic, bucketToken, views);
 
     res.status(200).send({
-      token: token
+      token: token,
     });
 
     AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
@@ -422,5 +466,4 @@ module.exports = (Router, Service, App) => {
         res.status(404).end();
       });
   });
-
 };

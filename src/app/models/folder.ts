@@ -1,6 +1,6 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-interface FolderAttributes {
+export interface FolderAttributes {
   id: number;
   parentId: number;
   name: string;
