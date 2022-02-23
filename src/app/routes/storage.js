@@ -4,23 +4,10 @@ const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
-const { ReferralsNotAvailableError } = require('../services/errors/referrals');
 const { default: Notifications } = require('../../config/initializers/notifications');
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
-
-const logReferralError = (userId, err) => {
-  if (!err.message) {
-    return Logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
-  }
-
-  if (err instanceof ReferralsNotAvailableError) {
-    return;
-  }
-
-  return Logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
-};
 
 module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
@@ -238,31 +225,6 @@ module.exports = (Router, Service, App) => {
       .catch((err) => {
         res.status(500).json(err.message);
       });
-  });
-
-  Router.post('/storage/share/file/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { behalfUser: user } = req;
-    const itemId = req.params.id;
-    const { views, encryptionKey, fileToken, bucket } = req.body;
-
-    const result = await Service.Share.GenerateFileToken(
-      user,
-      itemId,
-      '',
-      bucket,
-      encryptionKey,
-      fileToken,
-      false,
-      views,
-    );
-
-    await Service.UsersReferrals.applyUserReferral(user.id, 'share-file').catch((err) => {
-      logReferralError(user.id, err);
-    });
-
-    res.status(200).send({ token: result });
-
-    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
   });
 
   Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {

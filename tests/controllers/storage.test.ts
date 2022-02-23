@@ -602,6 +602,151 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Generate share file token', () => {
+
+    it('should fail if `itemId` is not valid', async () => {
+      await testIsErrorWithData('File ID must be a valid string', {
+        params: {},
+        body: {
+          views: '1',
+          encryptionKey: 'enckey',
+          fileToken: 'token',
+          bucket: 'bucket',
+        }
+      });
+    });
+
+    it('should fail if `views` is not valid', async () => {
+      await testIsErrorWithData('Views parameter not valid', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          encryptionKey: 'enckey',
+          fileToken: 'token',
+          bucket: 'bucket',
+        }
+      });
+    });
+
+    it('should fail if `encryptionKey` is not valid', async () => {
+      await testIsErrorWithData('Encryption key must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          fileToken: 'token',
+          bucket: 'bucket',
+        }
+      });
+    });
+
+    it('should fail if `fileToken` is not valid', async () => {
+      await testIsErrorWithData('File token must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          encryptionKey: 'enckey',
+          bucket: 'bucket',
+        }
+      });
+    });
+
+    it('should fail if `bucket` is not valid', async () => {
+      await testIsErrorWithData('Bucket identifier must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          encryptionKey: 'enckey',
+          fileToken: 'token',
+        }
+      });
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          GenerateFileToken: sinon.stub({
+            GenerateFileToken: null
+          }, 'GenerateFileToken')
+            .resolves('token')
+        },
+        UsersReferrals: {
+          applyUserReferral: sinon.stub({
+            applyUserReferral: null
+          }, 'applyUserReferral')
+            .resolves()
+        },
+        Analytics: {
+          trackShareLinkCopied: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const finalParams = {
+        behalfUser: {
+          email: ''
+        },
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          encryptionKey: 'enckey',
+          fileToken: 'token',
+          bucket: 'bucket',
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.generateShareFileToken(request, response);
+
+      // Assert
+      expect(services.Share.GenerateFileToken.calledOnce).to.be.true;
+      expect(services.UsersReferrals.applyUserReferral.calledOnce).to.be.true;
+      expect(services.Analytics.trackShareLinkCopied.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        token: 'token'
+      }]);
+    });
+
+    async function testIsErrorWithData(error: string, params = {}) {
+      // Arrange
+      const controller = getController({});
+      const finalParams = {
+        behalfUser: {
+          email: ''
+        },
+        ...params
+      };
+      const request = getRequest(finalParams);
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.generateShareFileToken(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal(error);
+      }
+    }
+
+  });
+
 });
 
 
@@ -612,7 +757,8 @@ function getController(services = {}, logger = {}): StorageController {
     UsersReferrals: {},
     Analytics: {},
     User: {},
-    Notifications: {}
+    Notifications: {},
+    Share: {}
   };
 
   const finalServices = {

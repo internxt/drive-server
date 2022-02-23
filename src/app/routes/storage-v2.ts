@@ -15,6 +15,7 @@ interface Services {
   Analytics: any
   User: any
   Notifications: any
+  Share: any
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -29,7 +30,7 @@ export class StorageController {
     this.logger = logger;
   }
 
-  async createFile(req: Request, res: Response) {
+  public async createFile(req: Request, res: Response) {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
@@ -79,11 +80,11 @@ export class StorageController {
     this.services.Analytics.trackUploadCompleted(req, behalfUser);
   }
 
-  createFolder(req: Request, res: Response): Promise<void> {
+  public async createFolder(req: Request, res: Response): Promise<void> {
     const { folderName, parentFolderId } = req.body;
     const { user } = req as PassportRequest;
 
-    if (typeof folderName !== 'string' || folderName.length === 0) {
+    if (this.invalidString(folderName)) {
       throw createHttpError(400, 'Folder name must be a valid string');
     }
 
@@ -111,7 +112,53 @@ export class StorageController {
       });
   }
 
-  logReferralError(userId: unknown, err: Error) {
+  public async generateShareFileToken(req: Request, res: Response) {
+    const { behalfUser: user } = req as SharedRequest;
+    const itemId = req.params.id;
+    const { views, encryptionKey, fileToken, bucket } = req.body;
+
+    if (this.invalidString(itemId)) {
+      throw createHttpError(400, 'File ID must be a valid string');
+    }
+
+    if (isNaN(views) || views <= 0) {
+      throw createHttpError(400, 'Views parameter not valid');
+    }
+
+    if (this.invalidString(encryptionKey)) {
+      throw createHttpError(400, 'Encryption key must be a valid string');
+    }
+
+    if (this.invalidString(fileToken)) {
+      throw createHttpError(400, 'File token must be a valid string');
+    }
+
+    if (this.invalidString(bucket)) {
+      throw createHttpError(400, 'Bucket identifier must be a valid string');
+    }
+
+    const result = await this.services.Share.GenerateFileToken(
+      user,
+      itemId,
+      '',
+      bucket,
+      encryptionKey,
+      fileToken,
+      false,
+      views,
+    );
+
+    await this.services.UsersReferrals.applyUserReferral(user.id, 'share-file')
+      .catch((err: Error) => {
+        this.logReferralError(user.id, err);
+      });
+
+    res.status(200).send({ token: result });
+
+    this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
+  }
+
+  private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
     }
@@ -122,6 +169,10 @@ export class StorageController {
 
     return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
   };
+
+  private invalidString(string: unknown): boolean {
+    return typeof string !== 'string' || string.length === 0;
+  }
 }
 
 export default (router: Router, service: any) => {
@@ -130,6 +181,14 @@ export default (router: Router, service: any) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
-  router.post('/storage/folder', passportAuth, controller.createFolder.bind(controller));
+  router.post('/storage/file', passportAuth, sharedAdapter,
+    controller.createFile.bind(controller)
+  );
+  router.post('/storage/folder', passportAuth,
+    controller.createFolder.bind(controller)
+  );
+  router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
+    controller.generateShareFileToken.bind(controller)
+  );
+
 };
