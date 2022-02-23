@@ -364,7 +364,7 @@ module.exports = (Router, Service, App) => {
 
     limit = Math.min(parseInt(limit, 10), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
 
-    Service.Files.getRecentFiles(req.behalfUser.id, limit)
+    Service.Files.getRecentFiles(req.behalfUser, limit)
       .then((files) => {
         if (!files) {
           return res.status(404).send({ error: 'Files not found' });

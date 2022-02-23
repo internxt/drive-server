@@ -303,12 +303,12 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getRecentFiles = async (userId, limit) => {
+  const getRecentFiles = async (user, limit) => {
     const results = await Model.file.findAll({
       order: [['updatedAt', 'DESC']],
       limit,
       raw: true,
-      where: { userId },
+      where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
     });
 
     return results;
