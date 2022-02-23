@@ -112,7 +112,7 @@ export class StorageController {
       });
   }
 
-  public async generateShareFileToken(req: Request, res: Response) {
+  public async generateShareFileToken(req: Request, res: Response): Promise<void> {
     const { behalfUser: user } = req as SharedRequest;
     const itemId = req.params.id;
     const { views, encryptionKey, fileToken, bucket } = req.body;
@@ -158,6 +158,43 @@ export class StorageController {
     this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
   }
 
+  public async getTree(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+
+    return this.services.Folder.GetTree(user)
+      .then((result: unknown) => {
+        res.status(200).send(result);
+      })
+      .catch((err: Error) => {
+        res.status(500).send({
+          error: err.message
+        });
+      });
+  }
+
+  public async getTreeSpecific(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId } = req.params;
+
+    if (isNaN(Number(folderId)) || Number(folderId) <= 0) {
+      throw createHttpError(400, 'Folder ID not valid');
+    }
+
+    return this.services.Folder.GetTree(user)
+      .then((result: unknown) => {
+        const treeSize = this.services.Folder.GetTreeSize(result);
+        res.status(200).send({
+          tree: result,
+          size: treeSize
+        });
+      })
+      .catch((err: Error) => {
+        res.status(500).send({
+          error: err.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -189,6 +226,12 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
     controller.generateShareFileToken.bind(controller)
+  );
+  router.post('/storage/tree', passportAuth,
+    controller.getTree.bind(controller)
+  );
+  router.post('/storage/tree/:folderId', passportAuth,
+    controller.getTreeSpecific.bind(controller)
   );
 
 };

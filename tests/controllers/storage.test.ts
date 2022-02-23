@@ -747,6 +747,198 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Generate folder tree', () => {
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: sinon.stub({
+            GetTree: null
+          }, 'GetTree')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTree(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: sinon.stub({
+            GetTree: null
+          }, 'GetTree')
+            .resolves({
+              value: 'any'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTree(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        value: 'any'
+      }]);
+    });
+
+  });
+
+  describe('Generate folder tree of a specific folder', () => {
+
+    it('should fail if `folderId` is not valid', async () => {
+      // Arrange
+      const controller = getController();
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: ''
+        }
+      };
+      const request = getRequest(finalParams);
+      const response = getResponse();
+
+      try {
+
+        // Act
+        await controller.getTreeSpecific(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: sinon.stub({
+            GetTree: null
+          }, 'GetTree')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: '1'
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTreeSpecific(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: sinon.stub({
+            GetTree: null
+          }, 'GetTree')
+            .resolves({
+              value: 'any'
+            }),
+          GetTreeSize: sinon.stub({
+            GetTreeSize: null
+          }, 'GetTreeSize')
+            .returns(999),
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: '1'
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTreeSpecific(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(services.Folder.GetTreeSize.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        tree: {
+          value: 'any'
+        },
+        size: 999
+      }]);
+    });
+
+  });
+
 });
 
 
