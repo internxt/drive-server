@@ -122,9 +122,9 @@ module.exports = (Model, App) => {
 
   const getSharedFolderSize = async (shareId, folderId) => {
 
-    const share = await Model.shares.findOne({ 
+    const share = await Model.shares.findOne({
       where: {
-        id: shareId, file: folderId 
+        id: shareId, file: folderId
       }
     });
 
@@ -132,9 +132,9 @@ module.exports = (Model, App) => {
       throw new Error('Share not found');
     }
 
-    const folder = await Model.folder.findOne({ 
+    const folder = await Model.folder.findOne({
       where: {
-        id: folderId 
+        id: folderId
       }
     });
 
@@ -172,8 +172,7 @@ module.exports = (Model, App) => {
       ]
     });
 
-    const totalFolders = await getTotalFoldersWithParent(directoryId);
-    const completed = offset + limit >= totalFolders;
+    const completed = limit > resultFolders.length;
 
     const folders = resultFolders.map(folder => {
       return {
