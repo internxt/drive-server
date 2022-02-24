@@ -47,27 +47,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, (req, res) => {
-    const { behalfUser: user } = req;
-    const folderId = req.params.folderid;
-    const { metadata } = req.body;
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Folder.UpdateMetadata(user, folderId, metadata)
-      .then(async (result) => {
-        res.status(200).json(result);
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().folderUpdated({ folder: result, email, clientId }),
-        );
-      })
-      .catch((err) => {
-        Logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
-        res.status(500).json(err.message);
-      });
-  });
-
   Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];

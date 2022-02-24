@@ -1206,6 +1206,156 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Update folder', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: ''
+        },
+        body: {
+          metadata: {},
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should fail if missing header client-id', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: '2'
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Missing header internxt-client-id');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: '2'
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFolder(request, response);
+
+      // Assert
+      expect(services.Folder.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .resolves({
+              result: {
+                some: 'data'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: '2'
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFolder(request, response);
+
+      // Assert
+      expect(services.Folder.UpdateMetadata.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        result: {
+          some: 'data'
+        }
+      }]);
+    });
+
+  });
+
 });
 
 

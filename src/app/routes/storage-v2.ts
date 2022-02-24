@@ -7,6 +7,7 @@ import { default as logger } from '../../lib/logger';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError from 'http-errors';
 import { FolderAttributes } from '../models/folder';
+import { default as Notifications } from '../../config/initializers/notifications';
 
 interface Services {
   Files: any
@@ -262,6 +263,38 @@ export class StorageController {
       });
   }
 
+  public async updateFolder(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const folderId = req.params.folderid;
+    const { metadata } = req.body;
+
+    if (this.invalidNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    if (!req.headers['internxt-client-id']) {
+      throw createHttpError(400, 'Missing header internxt-client-id');
+    }
+    const clientId = String(req.headers['internxt-client-id']);
+
+    return this.services.Folder.UpdateMetadata(user, folderId, metadata)
+      .then(async (result: FolderAttributes) => {
+        res.status(200).json(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.folderUpdated({
+            folder: result,
+            email: email,
+            clientId: clientId
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
+        res.status(500).json(err.message);
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -309,6 +342,9 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/move/folder', passportAuth, sharedAdapter,
     controller.moveFolder.bind(controller)
+  );
+  router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter,
+    controller.updateFolder.bind(controller)
   );
 
 };
