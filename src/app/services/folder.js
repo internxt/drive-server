@@ -526,6 +526,70 @@ module.exports = (Model, App) => {
     if (!res) throw new Error();
   };
 
+  /**
+   * Get directory files paginated
+   * @param {number} directoryId Folder id
+   * @param {*} offset 
+   * @param {*} limit 
+   * @returns directory files 
+   */
+  const getDirectoryFiles = async (directoryId, offset, limit) => {
+    const rawFiles = await Model.file.findAll({
+      raw: true,
+      where: {
+        folder_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [
+        ['id', 'ASC']
+      ]
+    });
+
+    const files = [];
+
+    for (const file of rawFiles) {
+      files.push({
+        ...file,
+        name: App.services.Crypt.decryptName(file.name, file.folder_id)
+      });
+    }
+
+    return { files, last: limit > rawFiles.length };
+  };
+
+  /**
+   * Get directory folders paginated
+   * @param {number} directoryId Folder id
+   * @param {*} offset 
+   * @param {*} limit 
+   * @returns directory folders
+   */
+  const getDirectoryFolders = async (directoryId, offset, limit) => {
+    const rawFolders = await Model.folder.findAll({
+      raw: true,
+      where: {
+        parent_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [
+        ['id', 'ASC']
+      ]
+    });
+
+    const folders = [];
+
+    for (const folder of rawFolders) {
+      folders.push({
+        ...folder,
+        name: App.services.Crypt.decryptName(folder.name, folder.parentId)
+      });
+    }
+
+    return { folders, last: limit > rawFolders.length };
+  };
+
   return {
     Name: 'Folder',
     getById,
@@ -544,5 +608,7 @@ module.exports = (Model, App) => {
     acquireLock,
     releaseLock,
     refreshLock,
+    getDirectoryFiles,
+    getDirectoryFolders
   };
 };

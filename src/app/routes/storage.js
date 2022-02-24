@@ -365,13 +365,13 @@ module.exports = (Router, Service, App) => {
 
   Router.get('/storage/share/down/folders', async (req, res) => {
     let { token, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getDirectoryFolders(directoryId, Number(offset), Number(limit), token);
+    const result = await Service.Share.getSharedDirectoryFolders(directoryId, Number(offset), Number(limit), token);
     res.status(200).json(result);
   });
 
   Router.get('/storage/share/down/files', async (req, res) => {
     let { token, code, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getDirectoryFiles(directoryId, Number(offset), Number(limit), token, code);
+    const result = await Service.Share.getSharedDirectoryFiles(directoryId, Number(offset), Number(limit), token, code);
     res.status(200).json(result);
   });
 
