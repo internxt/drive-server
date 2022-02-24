@@ -492,13 +492,6 @@ module.exports = (Model, App) => {
 
     const driveUsage = usage[0].total;
 
-    const photosUsage = await (async () => {
-      const photosUser = await Model.usersphotos.findOne({ where: { userId: targetUser.id } });
-      const photosList = await photosUser.getPhotos();
-      const photosSizeList = photosList.map((p) => p.size);
-      return photosSizeList.reduce((a, b) => a + b);
-    })().catch(() => 0);
-
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },
       attributes: [[fn('sum', col('size')), 'total']],
@@ -508,9 +501,8 @@ module.exports = (Model, App) => {
     const backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
 
     return {
-      total: driveUsage + photosUsage + backupsUsage,
+      total: driveUsage + backupsUsage,
       _id: user.email,
-      photos: photosUsage,
       drive: driveUsage || 0,
       backups: backupsUsage,
     };
