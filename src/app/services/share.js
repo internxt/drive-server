@@ -153,38 +153,14 @@ module.exports = (Model, App) => {
    * @param token
    * @returns {Promise<{folders: {name: *, folderId: *}[], last: boolean}>}
    */
-  const getDirectoryFolders = async (directoryId, offset, limit, token) => {
+  const getSharedDirectoryFolders = async (directoryId, offset, limit, token) => {
     const share = await findShareByToken(token);
 
     if (!share) {
       throw Error('Token does not exist');
     }
 
-    const resultFolders = await Model.folder.findAll({
-      raw: true,
-      where: {
-        parent_id: { [Op.eq]: directoryId },
-      },
-      offset,
-      limit,
-      order: [
-        ['id', 'ASC']
-      ]
-    });
-
-    const completed = limit > resultFolders.length;
-
-    const folders = resultFolders.map(folder => {
-      return {
-        id: folder.id,
-        name: decryptName(folder.name, folder.parentId),
-      };
-    });
-
-    return {
-      folders: folders,
-      last: completed
-    };
+    return App.services.Folder.getDirectoryFolders(directoryId, offset, limit);
   };
 
   /**
@@ -196,32 +172,21 @@ module.exports = (Model, App) => {
    * @param code
    * @returns {Promise<{files: {name: *, id: *}[], last: boolean}>}
    */
-  const getDirectoryFiles = async (directoryId, offset, limit, token, code) => {
+  const getSharedDirectoryFiles = async (directoryId, offset, limit, token, code) => {
     const share = await findShareByToken(token);
 
     if (!share) {
       throw Error('Token does not exist');
     }
 
-    const resultFiles = await Model.file.findAll({
-      raw: true,
-      where: {
-        folder_id: { [Op.eq]: directoryId },
-      },
-      offset,
-      limit,
-      order: [
-        ['id', 'ASC']
-      ]
-    });
+    const { files: directoryFiles, last } = await App.services.Folder.getDirectoryFiles(directoryId, offset, limit);
 
     const encryptedMnemonic = share.mnemonic.toString();
     const mnemonic = aes.decrypt(encryptedMnemonic, code);
     const network = await getNetworkHandler(mnemonic, share.user);
-    const completed = limit > resultFiles.length;
 
     const files = [];
-    for (const file of resultFiles) {
+    for (const file of directoryFiles) {
       const { index } = await network.getFileInfo(share.bucket, file.fileId);
       const fileEncryptionKey = await Environment.utils
         .generateFileKey(
@@ -230,18 +195,14 @@ module.exports = (Model, App) => {
           Buffer.from(index, 'hex')
         );
       files.push({
+        ...file,
+        /* TODO: This is not the file.id, this could be confusing */
         id: file.fileId,
-        name: decryptName(file.name, file.folder_id),
-        type: file.type,
-        size: file.size,
         encryptionKey: fileEncryptionKey.toString('hex')
       });
     }
 
-    return {
-      files: files,
-      last: completed
-    };
+    return { files, last };
   };
 
   /**
@@ -498,7 +459,7 @@ module.exports = (Model, App) => {
     GenerateFileToken,
     GenerateFolderTokenAndCode,
     getFolderSize,
-    getDirectoryFolders,
-    getDirectoryFiles
+    getSharedDirectoryFolders,
+    getSharedDirectoryFiles
   };
 };
