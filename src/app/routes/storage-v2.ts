@@ -8,6 +8,7 @@ import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
+import Validator from '../../lib/Validator';
 
 interface Services {
   Files: any
@@ -85,7 +86,7 @@ export class StorageController {
     const { folderName, parentFolderId } = req.body;
     const { user } = req as PassportRequest;
 
-    if (this.invalidString(folderName)) {
+    if (Validator.isInvalidString(folderName)) {
       throw createHttpError(400, 'Folder name must be a valid string');
     }
 
@@ -113,52 +114,6 @@ export class StorageController {
       });
   }
 
-  public async generateShareFileToken(req: Request, res: Response): Promise<void> {
-    const { behalfUser: user } = req as SharedRequest;
-    const itemId = req.params.id;
-    const { views, encryptionKey, fileToken, bucket } = req.body;
-
-    if (this.invalidString(itemId)) {
-      throw createHttpError(400, 'File ID must be a valid string');
-    }
-
-    if (isNaN(views) || views <= 0) {
-      throw createHttpError(400, 'Views parameter not valid');
-    }
-
-    if (this.invalidString(encryptionKey)) {
-      throw createHttpError(400, 'Encryption key must be a valid string');
-    }
-
-    if (this.invalidString(fileToken)) {
-      throw createHttpError(400, 'File token must be a valid string');
-    }
-
-    if (this.invalidString(bucket)) {
-      throw createHttpError(400, 'Bucket identifier must be a valid string');
-    }
-
-    const result = await this.services.Share.GenerateFileToken(
-      user,
-      itemId,
-      '',
-      bucket,
-      encryptionKey,
-      fileToken,
-      false,
-      views,
-    );
-
-    await this.services.UsersReferrals.applyUserReferral(user.id, 'share-file')
-      .catch((err: Error) => {
-        this.logReferralError(user.id, err);
-      });
-
-    res.status(200).send({ token: result });
-
-    this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
-  }
-
   public async getTree(req: Request, res: Response): Promise<void> {
     const { user } = req as PassportRequest;
 
@@ -177,7 +132,7 @@ export class StorageController {
     const { user } = req as PassportRequest;
     const { folderId } = req.params;
 
-    if (this.invalidNumber(folderId)) {
+    if (Validator.isInvalidPositiveNumber(folderId)) {
       throw createHttpError(400, 'Folder ID not valid');
     }
 
@@ -200,7 +155,7 @@ export class StorageController {
     const { behalfUser: user } = req as SharedRequest;
 
     const folderId = Number(req.params.id);
-    if (this.invalidNumber(folderId)) {
+    if (Validator.isInvalidPositiveNumber(folderId)) {
       throw createHttpError(400, 'Folder ID param is not valid');
     }
 
@@ -228,11 +183,11 @@ export class StorageController {
     const { behalfUser: user } = req as SharedRequest;
     const { folderId, destination } = req.body;
 
-    if (this.invalidNumber(folderId)) {
+    if (Validator.isInvalidPositiveNumber(folderId)) {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
-    if (this.invalidNumber(destination)) {
+    if (Validator.isInvalidPositiveNumber(destination)) {
       throw createHttpError(400, 'Destination folder ID is not valid');
     }
 
@@ -262,7 +217,7 @@ export class StorageController {
     const folderId = req.params.folderid;
     const { metadata } = req.body;
 
-    if (this.invalidNumber(folderId)) {
+    if (Validator.isInvalidPositiveNumber(folderId)) {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
@@ -290,7 +245,7 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
 
-    if (this.invalidNumber(id)) {
+    if (Validator.isInvalidPositiveNumber(id)) {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
@@ -319,7 +274,7 @@ export class StorageController {
     const { user } = req as PassportRequest;
     const folderId = req.params.id;
 
-    if (this.invalidNumber(folderId)) {
+    if (Validator.isInvalidPositiveNumber(folderId)) {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
@@ -341,14 +296,6 @@ export class StorageController {
 
     return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
   };
-
-  private invalidString(string: unknown): boolean {
-    return typeof string !== 'string' || string.length === 0;
-  }
-
-  private invalidNumber(number: unknown): boolean {
-    return isNaN(Number(number)) || Number(number) <= 0;
-  }
 }
 
 export default (router: Router, service: any) => {
@@ -363,9 +310,6 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/folder', passportAuth,
     controller.createFolder.bind(controller)
-  );
-  router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
-    controller.generateShareFileToken.bind(controller)
   );
   router.get('/storage/tree', passportAuth,
     controller.getTree.bind(controller)
