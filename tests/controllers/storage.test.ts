@@ -939,6 +939,148 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Delete folder', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.deleteFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID param is not valid');
+      }
+    });
+
+    it('should fail if missing header client-id', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '1'
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.deleteFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Missing header internxt-client-id');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          Delete: sinon.stub({
+            Delete: null
+          }, 'Delete')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '1'
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFolder(request, response);
+
+      // Assert
+      expect(services.Folder.Delete.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          Delete: sinon.stub({
+            Delete: null
+          }, 'Delete')
+            .resolves({
+              some: 'data'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: sinon.stub({
+            findWorkspaceMembers: null
+          }, 'findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderDeleted: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '1'
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFolder(request, response);
+
+      // Assert
+      expect(services.Folder.Delete.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderDeleted.calledTwice).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        some: 'data'
+      }]);
+    });
+
+  });
+
 });
 
 

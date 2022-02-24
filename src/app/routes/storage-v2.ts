@@ -176,7 +176,7 @@ export class StorageController {
     const { user } = req as PassportRequest;
     const { folderId } = req.params;
 
-    if (isNaN(Number(folderId)) || Number(folderId) <= 0) {
+    if (this.invalidNumber(folderId)) {
       throw createHttpError(400, 'Folder ID not valid');
     }
 
@@ -195,6 +195,37 @@ export class StorageController {
       });
   }
 
+  public async deleteFolder(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+
+    const folderId = Number(req.params.id);
+    if (this.invalidNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID param is not valid');
+    }
+
+    if (!req.headers['internxt-client-id']) {
+      throw createHttpError(400, 'Missing header internxt-client-id');
+    }
+    const clientId = String(req.headers['internxt-client-id']);
+
+    return this.services.Folder.Delete(user, folderId)
+      .then(async (result: unknown) => {
+        res.status(204).send(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.folderDeleted({
+            id: folderId,
+            email: email,
+            clientId: clientId,
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        this.logger.error(`${err.message}\n${err.stack}`);
+        res.status(500).send({ error: err.message });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -209,6 +240,10 @@ export class StorageController {
 
   private invalidString(string: unknown): boolean {
     return typeof string !== 'string' || string.length === 0;
+  }
+
+  private invalidNumber(number: unknown): boolean {
+    return isNaN(Number(number)) || Number(number) <= 0;
   }
 }
 
@@ -227,11 +262,14 @@ export default (router: Router, service: any) => {
   router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
     controller.generateShareFileToken.bind(controller)
   );
-  router.post('/storage/tree', passportAuth,
+  router.get('/storage/tree', passportAuth,
     controller.getTree.bind(controller)
   );
-  router.post('/storage/tree/:folderId', passportAuth,
+  router.get('/storage/tree/:folderId', passportAuth,
     controller.getTreeSpecific.bind(controller)
+  );
+  router.delete('/storage/folder/:id', passportAuth, sharedAdapter,
+    controller.deleteFolder.bind(controller)
   );
 
 };

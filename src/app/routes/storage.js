@@ -68,27 +68,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.delete('/storage/folder/:id', passportAuth, sharedAdapter, (req, res) => {
-    const { behalfUser: user } = req;
-
-    const folderId = req.params.id;
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Folder.Delete(user, folderId)
-      .then(async (result) => {
-        res.status(204).send(result);
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().folderDeleted({ id: folderId, email, clientId }),
-        );
-      })
-      .catch((err) => {
-        Logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ error: err.message });
-      });
-  });
-
   Router.post('/storage/move/folder', passportAuth, sharedAdapter, (req, res) => {
     const { folderId } = req.body;
     const { destination } = req.body;
