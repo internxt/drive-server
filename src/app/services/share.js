@@ -315,7 +315,7 @@ module.exports = (Model, App) => {
    * @returns {Promise<string|*>}
    * @constructor
    */
-  const GenerateFolderTokenAndCode = async (
+  const GenerateFolderToken = async (
     user,
     folderId,
     bucket,
@@ -457,7 +457,7 @@ module.exports = (Model, App) => {
     list,
     getSharedFolderSize,
     GenerateFileToken,
-    GenerateFolderTokenAndCode,
+    GenerateFolderToken,
     getFolderSize,
     getSharedDirectoryFolders,
     getSharedDirectoryFiles

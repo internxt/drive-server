@@ -129,20 +129,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { behalfUser: user } = req;
-    const folderId = req.params.id;
-    const { views, bucketToken, bucket, mnemonic } = req.body;
-
-    const token = await Service.Share.GenerateFolderTokenAndCode(user, folderId, bucket, mnemonic, bucketToken, views);
-
-    res.status(200).send({
-      token: token,
-    });
-
-    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
-  });
-
   Router.get('/storage/share/:token', (req, res) => {
     Service.Share.getFileInfo(req.params.token)
       .then((share) => {

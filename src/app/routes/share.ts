@@ -89,6 +89,46 @@ export class ShareController {
     this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
   }
 
+  public async generateShareFolderToken(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as AuthorizedRequest;
+    const folderId = req.params.id;
+    const { views, bucketToken, bucket, mnemonic } = req.body;
+
+    if (Validator.isInvalidString(folderId)) {
+      throw createHttpError(400, 'Folder ID must be a valid string');
+    }
+
+    if (Validator.isInvalidPositiveNumber(views)) {
+      throw createHttpError(400, 'Views parameter not valid');
+    }
+
+    if (Validator.isInvalidString(bucketToken)) {
+      throw createHttpError(400, 'Bucket token must be a valid string');
+    }
+
+    if (Validator.isInvalidString(mnemonic)) {
+      throw createHttpError(400, 'Mnemonic must be a valid string');
+    }
+
+    if (Validator.isInvalidString(bucket)) {
+      throw createHttpError(400, 'Bucket identifier must be a valid string');
+    }
+    const token = await this.services.Share.GenerateFolderToken(
+      user,
+      folderId,
+      bucket,
+      mnemonic,
+      bucketToken,
+      views
+    );
+
+    res.status(200).send({
+      token: token,
+    });
+
+    this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -107,9 +147,16 @@ export default (router: Router, service: any,) => {
   const controller = new ShareController(service, Logger);
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
 
-  router.get('/share/list', passportAuth, sharedAdapter, controller.listShares.bind(controller));
-  router.get('/share/:shareId/folder/:folderId', controller.getSharedFolderSize.bind(controller));
+  router.get('/share/list', passportAuth, sharedAdapter,
+    controller.listShares.bind(controller)
+  );
+  router.get('/share/:shareId/folder/:folderId',
+    controller.getSharedFolderSize.bind(controller)
+  );
   router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
     controller.generateShareFileToken.bind(controller)
+  );
+  router.post('/storage/share/folder/:id', passportAuth, sharedAdapter,
+    controller.generateShareFolderToken.bind(controller)
   );
 };
