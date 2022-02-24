@@ -12,7 +12,6 @@ export default class Validator {
   }
 
   public static isInvalidUnsignedNumber(number: unknown): boolean {
-    console.log(Number(number));
     return isNaN(Number(number)) || Number(number) < 0;
   }
 }
