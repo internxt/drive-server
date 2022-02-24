@@ -26,13 +26,18 @@ export class ShareController {
   }
 
   public async listShares(req: Request, res: Response) {
-    const list = await this.services.Share.list((req as AuthorizedRequest).behalfUser);
-
+    const { behalfUser } = req as AuthorizedRequest;
+    const list = await this.services.Share.list(behalfUser);
     res.status(200).send(list);
   }
 
   public async getSharedFolderSize(req: Request<{ shareId: string, folderId: string }>, res: Response) {
     const { shareId, folderId } = req.params;
+
+    if (Validator.isInvalidString(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
     const folderSize = await this.services.Share.getSharedFolderSize(shareId, folderId);
 
     res.status(200).send({ size: folderSize });
@@ -97,7 +102,7 @@ export class ShareController {
   };
 }
 
-export default (router: Router, service: any, ) => {
+export default (router: Router, service: any,) => {
   const Logger = logger.getInstance();
   const controller = new ShareController(service, Logger);
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
