@@ -1356,6 +1356,192 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Get folder contents', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getFolderContents(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should fail if first method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').rejects({
+            message: 'my-error'
+          }),
+          getFolders: stubOf('getById').resolves(),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should fail if second method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves(),
+          getFolders: stubOf('getById').rejects({
+            message: 'my-error'
+          }),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should fail if third method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves(),
+          getFolders: stubOf('getById').resolves(),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').rejects({
+            message: 'my-error'
+          })
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves({
+            data: 'some'
+          }),
+          getFolders: stubOf('getById').resolves([
+            {}, {}
+          ]),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([
+            {}
+          ])
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some',
+        children: [{}, {}],
+        files: [{}]
+      }]);
+    });
+
+  });
+
 });
 
 

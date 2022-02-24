@@ -7,7 +7,7 @@ import { default as logger } from '../../lib/logger';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError from 'http-errors';
 import { FolderAttributes } from '../models/folder';
-import { default as Notifications } from '../../config/initializers/notifications';
+import teamsMiddlewareBuilder from '../middleware/teams';
 
 interface Services {
   Files: any
@@ -295,6 +295,35 @@ export class StorageController {
       });
   }
 
+  public async getFolderContents(req: Request, res: Response): Promise<void> {
+    const { behalfUser } = req as SharedRequest;
+    const { id } = req.params;
+
+    if (this.invalidNumber(id)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return Promise.all([
+      this.services.Folder.getById(id),
+      this.services.Folder.getFolders(id, behalfUser.id),
+      this.services.Files.getByFolderAndUserId(id, behalfUser.id),
+    ])
+      .then(([currentFolder, childrenFolders, childrenFiles]) => {
+        if (!currentFolder || !childrenFolders || !childrenFiles) {
+          res.status(400).send();
+        }
+
+        res.status(200).json({
+          ...currentFolder,
+          children: childrenFolders,
+          files: childrenFiles,
+        });
+      })
+      .catch((err) => {
+        res.status(500).json({ error: err.message });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -320,6 +349,7 @@ export default (router: Router, service: any) => {
   const Logger = logger.getInstance();
   const { passportAuth } = passport;
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
+  const teamsAdapter = teamsMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
   router.post('/storage/file', passportAuth, sharedAdapter,
@@ -345,6 +375,9 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter,
     controller.updateFolder.bind(controller)
+  );
+  router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter,
+    controller.getFolderContents.bind(controller)
   );
 
 };

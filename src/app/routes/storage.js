@@ -1,6 +1,5 @@
 const passport = require('../middleware/passport');
 const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
-const teamsMiddlewareBuilder = require('../middleware/teams');
 const logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
@@ -11,7 +10,6 @@ const { passportAuth } = passport;
 
 module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
-  const teamsAdapter = teamsMiddlewareBuilder.build(Service);
 
   Router.get('/storage/folder/size/:id', passportAuth, async (req, res) => {
     const { params, user } = req;
@@ -20,31 +18,6 @@ module.exports = (Router, Service, App) => {
     res.status(200).json({
       size: size,
     });
-  });
-
-  Router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter, (req, res) => {
-    const { params, behalfUser } = req;
-    const { id } = params;
-
-    return Promise.all([
-      Service.Folder.getById(id),
-      Service.Folder.getFolders(id, behalfUser.id),
-      Service.Files.getByFolderAndUserId(id, behalfUser.id),
-    ])
-      .then(([currentFolder, childrenFolders, childrenFiles]) => {
-        if (!currentFolder || !childrenFolders || !childrenFiles) {
-          return res.status(400).send();
-        }
-
-        return res.status(200).json({
-          ...currentFolder,
-          children: childrenFolders,
-          files: childrenFiles,
-        });
-      })
-      .catch((err) => {
-        return res.status(500).json({ error: err.message });
-      });
   });
 
   Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
