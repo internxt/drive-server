@@ -848,18 +848,29 @@ describe('Share controller', () => {
       // Arrange
       const services = {
         Share: {
-          getSharedFolderSize: stubOf('getSharedFolderSize')
-            .resolves(99)
+          GenerateFolderToken: stubOf('GenerateFolderToken')
+            .resolves('token')
         },
+        Analytics: {
+          trackShareLinkCopied: sinon.spy()
+        }
       };
       const controller = getController(services);
       const finalParams = {
-        params: {
-          shareId: '',
-          folderId: '1'
+        behalfUser: {
+          email: ''
         },
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          bucketToken: 'token',
+          bucket: 'bucket',
+          mnemonic: 'nemo',
+        }
       };
-      const request = getRequest(finalParams) as unknown as Request<{ shareId: string, folderId: string }>;
+      const request = getRequest(finalParams);
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
@@ -870,12 +881,13 @@ describe('Share controller', () => {
       });
 
       // Act
-      await controller.getSharedFolderSize(request, response);
+      await controller.generateShareFolderToken(request, response);
 
       // Assert
-      expect(services.Share.getSharedFolderSize.calledOnce).to.be.true;
+      expect(services.Share.GenerateFolderToken.calledOnce).to.be.true;
+      expect(services.Analytics.trackShareLinkCopied.calledOnce).to.be.true;
       expect(sendSpy.args[0]).to.deep.equal([{
-        size: 99
+        token: 'token'
       }]);
     });
 
