@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { StorageController } from '../../src/app/routes/storage-v2';
 import { Logger } from 'winston';
-import sinon from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import { expect } from 'chai';
 
 describe('Storage controller', () => {
@@ -213,9 +213,7 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -270,9 +268,7 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -328,15 +324,11 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         UsersReferrals: {
-          applyUserReferral: sinon.stub({
-            applyUserReferral: null
-          }, 'applyUserReferral')
+          applyUserReferral: stubOf('applyUserReferral')
             .resolves()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -394,15 +386,11 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         UsersReferrals: {
-          applyUserReferral: sinon.stub({
-            applyUserReferral: null
-          }, 'applyUserReferral')
+          applyUserReferral: stubOf('applyUserReferral')
             .resolves()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -507,9 +495,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Create: sinon.stub({
-            Create: null
-          }, 'Create')
+          Create: stubOf('Create')
             .rejects({
               message: 'my-error'
             })
@@ -550,17 +536,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Create: sinon.stub({
-            Create: null
-          }, 'Create')
+          Create: stubOf('Create')
             .resolves({
               data: 'some'
             })
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -672,15 +654,11 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Share: {
-          GenerateFileToken: sinon.stub({
-            GenerateFileToken: null
-          }, 'GenerateFileToken')
+          GenerateFileToken: stubOf('GenerateFileToken')
             .resolves('token')
         },
         UsersReferrals: {
-          applyUserReferral: sinon.stub({
-            applyUserReferral: null
-          }, 'applyUserReferral')
+          applyUserReferral: stubOf('applyUserReferral')
             .resolves()
         },
         Analytics: {
@@ -753,9 +731,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: sinon.stub({
-            GetTree: null
-          }, 'GetTree')
+          GetTree: stubOf('GetTree')
             .rejects({
               message: 'my-error'
             })
@@ -790,9 +766,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: sinon.stub({
-            GetTree: null
-          }, 'GetTree')
+          GetTree: stubOf('GetTree')
             .resolves({
               value: 'any'
             })
@@ -853,9 +827,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: sinon.stub({
-            GetTree: null
-          }, 'GetTree')
+          GetTree: stubOf('GetTree')
             .rejects({
               message: 'my-error'
             })
@@ -893,15 +865,11 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: sinon.stub({
-            GetTree: null
-          }, 'GetTree')
+          GetTree: stubOf('GetTree')
             .resolves({
               value: 'any'
             }),
-          GetTreeSize: sinon.stub({
-            GetTreeSize: null
-          }, 'GetTreeSize')
+          GetTreeSize: stubOf('GetTreeSize')
             .returns(999),
         },
       };
@@ -986,9 +954,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Delete: sinon.stub({
-            Delete: null
-          }, 'Delete')
+          Delete: stubOf('Delete')
             .rejects({
               message: 'my-error'
             }),
@@ -1028,17 +994,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Delete: sinon.stub({
-            Delete: null
-          }, 'Delete')
+          Delete: stubOf('Delete')
             .resolves({
               some: 'data'
             }),
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([
               {}, {}
             ]),
@@ -1151,9 +1113,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          MoveFolder: sinon.stub({
-            MoveFolder: null
-          }, 'MoveFolder')
+          MoveFolder: stubOf('MoveFolder')
             .rejects({
               message: 'my-error'
             }),
@@ -1194,9 +1154,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          MoveFolder: sinon.stub({
-            MoveFolder: null
-          }, 'MoveFolder')
+          MoveFolder: stubOf('MoveFolder')
             .resolves({
               result: {
                 some: 'data'
@@ -1204,9 +1162,7 @@ describe('Storage controller', () => {
             }),
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([
               {}, {}
             ]),
@@ -1288,4 +1244,10 @@ function getRequest(props = {}): Request {
 
 function getResponse(props = {}): Response {
   return props as unknown as Response;
+}
+
+function stubOf(functionName: string): SinonStub {
+  return sinon.stub({
+    [functionName]: null
+  }, functionName);
 }
