@@ -1081,6 +1081,175 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Move folder', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '',
+          destination: '2'
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `destination`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '2',
+          destination: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Destination folder ID is not valid');
+      }
+    });
+
+    it('should fail if missing header client-id', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '2',
+          destination: '3'
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFolder(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Missing header internxt-client-id');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          MoveFolder: sinon.stub({
+            MoveFolder: null
+          }, 'MoveFolder')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '1',
+          destination: '2'
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFolder(request, response);
+
+      // Assert
+      expect(services.Folder.MoveFolder.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          MoveFolder: sinon.stub({
+            MoveFolder: null
+          }, 'MoveFolder')
+            .resolves({
+              result: {
+                some: 'data'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: sinon.stub({
+            findWorkspaceMembers: null
+          }, 'findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '1',
+          destination: '2'
+        },
+        headers: {
+          'internxt-client-id': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFolder(request, response);
+
+      // Assert
+      expect(services.Folder.MoveFolder.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        some: 'data'
+      }]);
+    });
+
+  });
+
 });
 
 

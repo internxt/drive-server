@@ -226,6 +226,42 @@ export class StorageController {
       });
   }
 
+  public async moveFolder(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { folderId, destination } = req.body;
+
+    if (this.invalidNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    if (this.invalidNumber(destination)) {
+      throw createHttpError(400, 'Destination folder ID is not valid');
+    }
+
+    if (!req.headers['internxt-client-id']) {
+      throw createHttpError(400, 'Missing header internxt-client-id');
+    }
+    const clientId = String(req.headers['internxt-client-id']);
+
+    return this.services.Folder.MoveFolder(user, folderId, destination)
+      .then(async ({ result }: { result: FolderAttributes }) => {
+        res.status(200).json(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.folderUpdated({
+            folder: result,
+            email: email,
+            clientId: clientId
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        res.status(500).json({
+          error: err.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -270,6 +306,9 @@ export default (router: Router, service: any) => {
   );
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter,
     controller.deleteFolder.bind(controller)
+  );
+  router.post('/storage/move/folder', passportAuth, sharedAdapter,
+    controller.moveFolder.bind(controller)
   );
 
 };

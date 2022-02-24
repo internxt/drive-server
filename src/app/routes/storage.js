@@ -68,26 +68,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/move/folder', passportAuth, sharedAdapter, (req, res) => {
-    const { folderId } = req.body;
-    const { destination } = req.body;
-    const { behalfUser: user } = req;
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Folder.MoveFolder(user, folderId, destination)
-      .then(async (result) => {
-        res.status(200).json(result);
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().folderUpdated({ folder: result.result, email, clientId }),
-        );
-      })
-      .catch((err) => {
-        res.status(err.status || 500).json({ error: err.message });
-      });
-  });
-
   Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
