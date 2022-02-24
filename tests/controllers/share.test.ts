@@ -822,6 +822,65 @@ describe('Share controller', () => {
 
   });
 
+  describe('Get shared folder size', () => {
+
+    it('should fail if `itemId` is not valid', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        params: {
+          shareId: '',
+          folderId: ''
+        },
+      }) as unknown as Request<{ shareId: string, folderId: string }>;
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getSharedFolderSize(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getSharedFolderSize: stubOf('getSharedFolderSize')
+            .resolves(99)
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        params: {
+          shareId: '',
+          folderId: '1'
+        },
+      };
+      const request = getRequest(finalParams) as unknown as Request<{ shareId: string, folderId: string }>;
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getSharedFolderSize(request, response);
+
+      // Assert
+      expect(services.Share.getSharedFolderSize.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        size: 99
+      }]);
+    });
+
+  });
+
 });
 
 function getController(services = {}, logger = {}): ShareController {
