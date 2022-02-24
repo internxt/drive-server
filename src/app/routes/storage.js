@@ -11,15 +11,6 @@ const { passportAuth } = passport;
 module.exports = (Router, Service, App) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(Service);
 
-  Router.get('/storage/folder/size/:id', passportAuth, async (req, res) => {
-    const { params, user } = req;
-    const folderId = params.id;
-    const size = await Service.Share.getFolderSize(folderId, user.id);
-    res.status(200).json({
-      size: size,
-    });
-  });
-
   Router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter, (req, res) => {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];

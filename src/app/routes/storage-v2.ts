@@ -324,6 +324,21 @@ export class StorageController {
       });
   }
 
+  public async getFolderSize(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const folderId = req.params.id;
+
+    if (this.invalidNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    const size = await this.services.Share.getFolderSize(folderId, user.id);
+
+    res.status(200).json({
+      size: size,
+    });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -378,6 +393,9 @@ export default (router: Router, service: any) => {
   );
   router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter,
     controller.getFolderContents.bind(controller)
+  );
+  router.get('/storage/folder/size/:id', passportAuth,
+    controller.getFolderSize.bind(controller)
   );
 
 };

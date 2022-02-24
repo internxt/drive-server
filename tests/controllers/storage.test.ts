@@ -1542,6 +1542,64 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Get folder size', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getFolderSize(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getFolderSize: stubOf('getFolderSize').resolves(5)
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderSize(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        size: 5
+      }]);
+    });
+
+  });
+
 });
 
 
