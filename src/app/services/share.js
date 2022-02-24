@@ -165,8 +165,8 @@ module.exports = (Model, App) => {
       where: {
         parent_id: { [Op.eq]: directoryId },
       },
-      offset: offset,
-      limit: limit,
+      offset,
+      limit,
       order: [
         ['id', 'ASC']
       ]
@@ -208,19 +208,17 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.eq]: directoryId },
       },
-      offset: offset,
-      limit: limit,
+      offset,
+      limit,
       order: [
         ['id', 'ASC']
       ]
     });
 
-    // Recover mnemonic
     const encryptedMnemonic = share.mnemonic.toString();
     const mnemonic = aes.decrypt(encryptedMnemonic, code);
     const network = await getNetworkHandler(mnemonic, share.user);
-    const totalFiles = await getTotalFilesWithParent(directoryId);
-    const completed = offset + limit >= totalFiles;
+    const completed = limit > resultFiles.length;
 
     const files = [];
     for (const file of resultFiles) {
@@ -266,42 +264,6 @@ module.exports = (Model, App) => {
       encryptionKey: mnemonic,
       bridgeUrl: App.config.get('STORJ_BRIDGE'),
     });
-  };
-
-  /**
-   * Returns the total count of folders in a folder
-   * @returns {Promise<*>}
-   * @param folderId
-   */
-  const getTotalFoldersWithParent = async (folderId) => {
-    const resultCount = await Model.folder.findAll({
-      attributes: [
-        [sequelize.fn('count', sequelize.col('id')), 'total']
-      ],
-      raw: true,
-      where: {
-        parent_id: { [Op.eq]: folderId },
-      },
-    });
-    return resultCount[0].total;
-  };
-
-  /**
-   * Returns the total count of files in a folder
-   * @returns {Promise<*>}
-   * @param folderId
-   */
-  const getTotalFilesWithParent = async (folderId) => {
-    const resultCount = await Model.file.findAll({
-      attributes: [
-        [sequelize.fn('count', sequelize.col('id')), 'total']
-      ],
-      raw: true,
-      where: {
-        folder_id: { [Op.eq]: folderId },
-      },
-    });
-    return resultCount[0].total;
   };
 
   /**
