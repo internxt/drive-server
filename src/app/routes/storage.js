@@ -1,9 +1,7 @@
 const passport = require('../middleware/passport');
 const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
 const logger = require('../../lib/logger').default;
-const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const CONSTANTS = require('../constants');
-const { default: Notifications } = require('../../config/initializers/notifications');
 const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
@@ -22,30 +20,6 @@ module.exports = (Router, Service, App) => {
       })
       .catch((error) => {
         res.status(500).json({ error: error.message });
-      });
-  });
-
-  /*
-   * Delete file by database ids (sql)
-   */
-  Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
-    const { behalfUser: user, params } = req;
-    const { folderid, fileid } = params;
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Files.DeleteFile(user, folderid, fileid)
-      .then(async () => {
-        res.status(200).json({ deleted: true });
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().fileDeleted({ id: fileid, email, clientId }),
-        );
-
-        AnalyticsService.trackFileDeleted(req);
-      })
-      .catch((err) => {
-        res.status(500).json({ error: err.message });
       });
   });
 

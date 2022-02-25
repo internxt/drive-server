@@ -1888,6 +1888,158 @@ describe('Storage controller', () => {
     });
   });
 
+  describe('Delete file (database)', () => {
+
+    it('should fail if missing param `fileid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.deleteFileDatabase(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `folderid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.deleteFileDatabase(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          DeleteFile: stubOf('DeleteFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileDatabase(request, response);
+
+      // Assert
+      expect(services.Files.DeleteFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          DeleteFile: stubOf('DeleteFile')
+            .resolves({
+              data: 'some'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileDeleted: sinon.spy()
+        },
+        Analytics: {
+          trackFileDeleted: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileDatabase(request, response);
+
+      // Assert
+      expect(services.Files.DeleteFile.calledOnce).to.be.true;
+      expect(services.Analytics.trackFileDeleted.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        deleted: true
+      }]);
+    });
+  });
+
 });
 
 

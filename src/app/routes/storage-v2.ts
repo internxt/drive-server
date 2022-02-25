@@ -391,6 +391,38 @@ export class StorageController {
       });
   }
 
+  public async deleteFileDatabase(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { folderid, fileid } = req.params;
+    const clientId = String(req.headers['internxt-client-id']);
+
+    if (Validator.isInvalidPositiveNumber(fileid)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(folderid)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Files.DeleteFile(user, folderid, fileid)
+      .then(async () => {
+        res.status(200).json({ deleted: true });
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.fileDeleted({
+            id: Number(fileid),
+            email,
+            clientId
+          }),
+        );
+
+        this.services.Analytics.trackFileDeleted(req);
+      })
+      .catch((err: Error) => {
+        res.status(500).json({ error: err.message });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -446,6 +478,9 @@ export default (router: Router, service: any) => {
   );
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth,
     controller.deleteFileBridge.bind(controller)
+  );
+  router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter,
+    controller.deleteFileDatabase.bind(controller)
   );
 
 };
