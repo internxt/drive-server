@@ -33,11 +33,6 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
     const internxtClient = req.headers['internxt-client'];
-
-    if (!req.headers['internxt-client-id']) {
-      throw createHttpError(400, 'Missing header internxt-client-id');
-    }
-
     const clientId = String(req.headers['internxt-client-id']);
 
     if (!file.fileId && file.file_id) {
@@ -94,10 +89,6 @@ export class StorageController {
 
     if (!parentFolderId || parentFolderId <= 0) {
       throw createHttpError(400, 'Parent folder ID is not valid');
-    }
-
-    if (!req.headers['internxt-client-id']) {
-      throw createHttpError(400, 'Missing header internxt-client-id');
     }
 
     const clientId = String(req.headers['internxt-client-id']);

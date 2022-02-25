@@ -8,43 +8,6 @@ describe('Storage controller', () => {
 
   describe('Create file', () => {
 
-    it('should fail if missing header client-id', async () => {
-      // Arrange
-      const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
-      const request = getRequest({
-        behalfUser: {
-          email: ''
-        },
-        body: {
-          file: {},
-        },
-        headers: {
-          'internxt-client': ''
-        }
-      });
-      const jsonSpy = sinon.spy();
-      const response = getResponse({
-        status: () => {
-          return {
-            json: jsonSpy
-          };
-        }
-      });
-
-      try {
-
-        // Act
-        await controller.createFile(request, response);
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Missing header internxt-client-id');
-      }
-
-    });
-
     it('should fail if `fileId` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
@@ -65,7 +28,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -105,7 +67,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -145,7 +106,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -185,7 +145,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -225,7 +184,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -280,7 +238,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -339,7 +296,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': '',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -404,7 +360,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': 'drive-mobile',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -471,7 +426,6 @@ describe('Storage controller', () => {
         },
         headers: {
           'internxt-client': 'drive-desktop',
-          'internxt-client-id': '11',
         }
       });
       const jsonSpy = sinon.spy();
@@ -512,9 +466,7 @@ describe('Storage controller', () => {
           folderName: '',
           parentFolderId: 10
         },
-        headers: {
-          'internxt-client-id': '--'
-        }
+        headers: {}
       });
       const response = getResponse();
 
@@ -538,32 +490,6 @@ describe('Storage controller', () => {
           folderName: 'name',
           parentFolderId: 0
         },
-        headers: {
-          'internxt-client-id': '--'
-        }
-      });
-      const response = getResponse();
-
-      try {
-        // Act
-        await controller.createFolder(request, response);
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Parent folder ID is not valid');
-      }
-    });
-
-    it('should fail if missing header client-id', async () => {
-      // Arrange
-      const controller = getController({});
-      const request = getRequest({
-        user: {
-          email: ''
-        },
-        body: {
-          folderName: 'name',
-          parentFolderId: 10
-        },
         headers: {}
       });
       const response = getResponse();
@@ -573,7 +499,7 @@ describe('Storage controller', () => {
         await controller.createFolder(request, response);
       } catch ({ message }) {
         // Assert
-        expect(message).to.equal('Missing header internxt-client-id');
+        expect(message).to.equal('Parent folder ID is not valid');
       }
     });
 
@@ -598,9 +524,7 @@ describe('Storage controller', () => {
           folderName: 'name',
           parentFolderId: 10
         },
-        headers: {
-          'internxt-client-id': '--'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
@@ -652,9 +576,7 @@ describe('Storage controller', () => {
           folderName: 'name',
           parentFolderId: 10
         },
-        headers: {
-          'internxt-client-id': '--'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
