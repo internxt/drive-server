@@ -1545,6 +1545,212 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Update file', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: ''
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `bucketId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: '',
+          relativePath: 'sss',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Bucket ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `relativePath`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: '',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Relative path is not valid');
+      }
+    });
+
+    it('should fail if missing mnemonic header', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Mnemonic is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {
+          'internxt-mnemonic': 'nemo'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFile(request, response);
+
+      // Assert
+      expect(services.Files.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .resolves({
+              data: 'some'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          bridgeUser: ''
+        },
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {
+          'internxt-mnemonic': 'nemo'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFile(request, response);
+
+      // Assert
+      expect(services.Files.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+
+  });
+
 });
 
 

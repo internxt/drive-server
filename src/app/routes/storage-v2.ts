@@ -10,6 +10,7 @@ import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
+import { default as Notifications } from '../../config/initializers/notifications';
 
 interface Services {
   Files: any
@@ -320,6 +321,47 @@ export class StorageController {
       });
   }
 
+  public async updateFile(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const fileId = req.params.fileid;
+    const { metadata, bucketId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = String(req.headers['internxt-client-id']);
+
+    if (Validator.isInvalidPositiveNumber(fileId)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidString(bucketId)) {
+      throw createHttpError(400, 'Bucket ID is not valid');
+    }
+
+    if (Validator.isInvalidString(relativePath)) {
+      throw createHttpError(400, 'Relative path is not valid');
+    }
+
+    if (Validator.isInvalidString(mnemonic)) {
+      throw createHttpError(400, 'Mnemonic is not valid');
+    }
+
+    return this.services.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath)
+      .then(async (result: FileAttributes) => {
+        res.status(200).json(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.fileUpdated({
+            file: result,
+            email,
+            clientId
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+        res.status(500).json(err.message);
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -369,6 +411,9 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter,
     controller.moveFile.bind(controller)
+  );
+  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter,
+    controller.updateFile.bind(controller)
   );
 
 };
