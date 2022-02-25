@@ -929,27 +929,6 @@ describe('Storage controller', () => {
       }
     });
 
-    it('should fail if missing header client-id', async () => {
-      // Arrange
-      const controller = getController({});
-      const request = getRequest({
-        behalfUser: {},
-        params: {
-          id: '1'
-        },
-        headers: {}
-      });
-      const response = getResponse();
-
-      try {
-        // Act
-        await controller.deleteFolder(request, response);
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Missing header internxt-client-id');
-      }
-    });
-
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
@@ -966,9 +945,7 @@ describe('Storage controller', () => {
         params: {
           id: '1'
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const sendSpy = sinon.spy();
       const response = getResponse({
@@ -1015,9 +992,7 @@ describe('Storage controller', () => {
         params: {
           id: '1'
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const sendSpy = sinon.spy();
       const response = getResponse({
@@ -1087,28 +1062,6 @@ describe('Storage controller', () => {
       }
     });
 
-    it('should fail if missing header client-id', async () => {
-      // Arrange
-      const controller = getController({});
-      const request = getRequest({
-        behalfUser: {},
-        body: {
-          folderId: '2',
-          destination: '3'
-        },
-        headers: {}
-      });
-      const response = getResponse();
-
-      try {
-        // Act
-        await controller.moveFolder(request, response);
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Missing header internxt-client-id');
-      }
-    });
-
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
@@ -1126,9 +1079,7 @@ describe('Storage controller', () => {
           folderId: '1',
           destination: '2'
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
@@ -1178,9 +1129,7 @@ describe('Storage controller', () => {
           folderId: '1',
           destination: '2'
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
@@ -1231,30 +1180,6 @@ describe('Storage controller', () => {
       }
     });
 
-    it('should fail if missing header client-id', async () => {
-      // Arrange
-      const controller = getController({});
-      const request = getRequest({
-        behalfUser: {},
-        params: {
-          folderid: '2'
-        },
-        body: {
-          metadata: {},
-        },
-        headers: {}
-      });
-      const response = getResponse();
-
-      try {
-        // Act
-        await controller.updateFolder(request, response);
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Missing header internxt-client-id');
-      }
-    });
-
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
@@ -1274,9 +1199,7 @@ describe('Storage controller', () => {
         body: {
           metadata: {},
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
@@ -1326,9 +1249,7 @@ describe('Storage controller', () => {
         body: {
           metadata: {},
         },
-        headers: {
-          'internxt-client-id': 'wever'
-        }
+        headers: {}
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({

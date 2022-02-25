@@ -204,9 +204,6 @@ export class StorageController {
       throw createHttpError(400, 'Folder ID param is not valid');
     }
 
-    if (!req.headers['internxt-client-id']) {
-      throw createHttpError(400, 'Missing header internxt-client-id');
-    }
     const clientId = String(req.headers['internxt-client-id']);
 
     return this.services.Folder.Delete(user, folderId)
@@ -239,9 +236,6 @@ export class StorageController {
       throw createHttpError(400, 'Destination folder ID is not valid');
     }
 
-    if (!req.headers['internxt-client-id']) {
-      throw createHttpError(400, 'Missing header internxt-client-id');
-    }
     const clientId = String(req.headers['internxt-client-id']);
 
     return this.services.Folder.MoveFolder(user, folderId, destination)
@@ -272,9 +266,6 @@ export class StorageController {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
-    if (!req.headers['internxt-client-id']) {
-      throw createHttpError(400, 'Missing header internxt-client-id');
-    }
     const clientId = String(req.headers['internxt-client-id']);
 
     return this.services.Folder.UpdateMetadata(user, folderId, metadata)
