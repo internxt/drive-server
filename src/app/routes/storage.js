@@ -129,12 +129,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.get('/storage/share/down/folders', async (req, res) => {
-    let { token, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getSharedDirectoryFolders(directoryId, Number(offset), Number(limit), token);
-    res.status(200).json(result);
-  });
-
   // Needs db index
   Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
     let { limit } = req.query;

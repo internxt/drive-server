@@ -526,7 +526,7 @@ describe('Share controller', () => {
 
   });
 
-  describe('Get share folder info', () => {
+  describe('Get shared directory files', () => {
 
     it('should fail if `token` is not valid', async () => {
       await testIsErrorWithData('Token must be a valid string', {
@@ -596,7 +596,7 @@ describe('Share controller', () => {
 
       try {
         // Act
-        await controller.getDirectoryFiles(request, response);
+        await controller.getSharedDirectoryFiles(request, response);
       } catch ({ message }) {
         // Assert
         expect(message).to.equal(error);
@@ -607,7 +607,7 @@ describe('Share controller', () => {
       // Arrange
       const services = {
         Share: {
-          getDirectoryFiles: stubOf('getDirectoryFiles')
+          getSharedDirectoryFiles: stubOf('getSharedDirectoryFiles')
             .rejects({
               message: 'my-error'
             })
@@ -633,10 +633,10 @@ describe('Share controller', () => {
       });
 
       // Act
-      await controller.getDirectoryFiles(request, response);
+      await controller.getSharedDirectoryFiles(request, response);
 
       // Assert
-      expect(services.Share.getDirectoryFiles.calledOnce).to.be.true;
+      expect(services.Share.getSharedDirectoryFiles.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         error: 'my-error'
       }]);
@@ -646,7 +646,7 @@ describe('Share controller', () => {
       // Arrange
       const services = {
         Share: {
-          getDirectoryFiles: stubOf('getDirectoryFiles')
+          getSharedDirectoryFiles: stubOf('getSharedDirectoryFiles')
             .resolves({
               data: 'some'
             })
@@ -672,10 +672,149 @@ describe('Share controller', () => {
       });
 
       // Act
-      await controller.getDirectoryFiles(request, response);
+      await controller.getSharedDirectoryFiles(request, response);
 
       // Assert
-      expect(services.Share.getDirectoryFiles.calledOnce).to.be.true;
+      expect(services.Share.getSharedDirectoryFiles.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
+
+  describe('Get shared directory folders', () => {
+
+    it('should fail if `token` is not valid', async () => {
+      await testIsErrorWithData('Token must be a valid string', {
+        query: {
+          token: '',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `directoryId` is not valid', async () => {
+      await testIsErrorWithData('Directory ID is not valid', {
+        query: {
+          token: 'token',
+          directoryId: '',
+          offset: '2',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `offset` is not valid', async () => {
+      await testIsErrorWithData('Offset is not valid', {
+        query: {
+          token: 'token',
+          directoryId: '1',
+          offset: '',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `limit` is not valid', async () => {
+      await testIsErrorWithData('Limit is not valid', {
+        query: {
+          token: 'token',
+          directoryId: '1',
+          offset: '2',
+          limit: '',
+        }
+      });
+    });
+
+    async function testIsErrorWithData(error: string, params = {}) {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest(params);
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getSharedDirectoryFolders(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal(error);
+      }
+    }
+
+    it('should return error if execution fails', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getSharedDirectoryFolders: stubOf('getSharedDirectoryFolders')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        query: {
+          token: 'token',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getSharedDirectoryFolders(request, response);
+
+      // Assert
+      expect(services.Share.getSharedDirectoryFolders.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getSharedDirectoryFolders: stubOf('getSharedDirectoryFolders')
+            .resolves({
+              data: 'some'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        query: {
+          token: 'token',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getSharedDirectoryFolders(request, response);
+
+      // Assert
+      expect(services.Share.getSharedDirectoryFolders.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some'
       }]);

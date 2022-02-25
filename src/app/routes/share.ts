@@ -166,7 +166,7 @@ export class ShareController {
       });
   }
 
-  public async getDirectoryFiles(req: Request, res: Response): Promise<void> {
+  public async getSharedDirectoryFiles(req: Request, res: Response): Promise<void> {
     const { token, code, directoryId, offset, limit } = req.query;
 
     if (Validator.isInvalidString(token)) {
@@ -190,8 +190,38 @@ export class ShareController {
     }
 
     return this.services.Share.getSharedDirectoryFiles(directoryId, Number(offset), Number(limit), token, code)
-      .then((info: unknown) => {
-        res.status(200).json(info);
+      .then((results: unknown) => {
+        res.status(200).json(results);
+      })
+      .catch((err: Error) => {
+        res.status(500).json({
+          error: err.message
+        });
+      });
+  }
+
+  public async getSharedDirectoryFolders(req: Request, res: Response): Promise<void> {
+    const { token, directoryId, offset, limit } = req.query;
+
+    if (Validator.isInvalidString(token)) {
+      throw createHttpError(400, 'Token must be a valid string');
+    }
+
+    if (Validator.isInvalidPositiveNumber(directoryId)) {
+      throw createHttpError(400, 'Directory ID is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(offset)) {
+      throw createHttpError(400, 'Offset is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(limit)) {
+      throw createHttpError(400, 'Limit is not valid');
+    }
+
+    return this.services.Share.getSharedDirectoryFolders(directoryId, Number(offset), Number(limit), token)
+      .then((results: unknown) => {
+        res.status(200).json(results);
       })
       .catch((err: Error) => {
         res.status(500).json({
@@ -237,6 +267,9 @@ export default (router: Router, service: any,) => {
     controller.getShareFolderInfo.bind(controller)
   );
   router.get('/storage/share/down/files',
-    controller.getDirectoryFiles.bind(controller)
+    controller.getSharedDirectoryFiles.bind(controller)
+  );
+  router.get('/storage/share/down/folders',
+    controller.getSharedDirectoryFolders.bind(controller)
   );
 };
