@@ -362,6 +362,35 @@ export class StorageController {
       });
   }
 
+  public async deleteFileBridge(req: Request, res: Response): Promise<void> {
+    if (req.params.bucketid === 'null') { // Weird checking...
+      res.status(500).json({ error: 'No bucket ID provided' });
+      return;
+    }
+
+    if (req.params.fileid === 'null') {
+      res.status(500).json({ error: 'No file ID provided' });
+      return;
+    }
+
+    const { user } = req as PassportRequest;
+    const bucketId = req.params.bucketid;
+    const fileIdInBucket = req.params.fileid;
+
+    return this.services.Files.Delete(user, bucketId, fileIdInBucket)
+      .then(() => {
+        res.status(200).json({
+          deleted: true
+        });
+      })
+      .catch((err: Error) => {
+        this.logger.error(err.stack);
+        res.status(500).json({
+          error: err.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -414,6 +443,9 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter,
     controller.updateFile.bind(controller)
+  );
+  router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth,
+    controller.deleteFileBridge.bind(controller)
   );
 
 };

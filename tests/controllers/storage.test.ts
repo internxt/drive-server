@@ -1748,7 +1748,144 @@ describe('Storage controller', () => {
       }]);
     });
 
+  });
 
+  describe('Delete file (bridge)', () => {
+
+    it('should fail if missing param `bucketid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'null'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'No bucket ID provided'
+      }]);
+    });
+
+    it('should fail if missing param `fileid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'lala',
+          fileid: 'null'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'No file ID provided'
+      }]);
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          Delete: stubOf('Delete')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'lala',
+          fileid: 'lolo'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(services.Files.Delete.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          Delete: stubOf('Delete')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          bridgeUser: ''
+        },
+        params: {
+          bucketid: 'lala',
+          fileid: 'lolo'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(services.Files.Delete.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        deleted: true
+      }]);
+    });
   });
 
 });

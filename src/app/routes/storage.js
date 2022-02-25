@@ -26,32 +26,6 @@ module.exports = (Router, Service, App) => {
   });
 
   /*
-   * Delete file by bridge (mongodb) ids
-   */
-  Router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, (req, res) => {
-    if (req.params.bucketid === 'null') {
-      return res.status(500).json({ error: 'No bucket ID provided' });
-    }
-
-    if (req.params.fileid === 'null') {
-      return res.status(500).json({ error: 'No file ID provided' });
-    }
-
-    const { user } = req;
-    const bucketId = req.params.bucketid;
-    const fileIdInBucket = req.params.fileid;
-
-    return Service.Files.Delete(user, bucketId, fileIdInBucket)
-      .then(() => {
-        res.status(200).json({ deleted: true });
-      })
-      .catch((err) => {
-        Logger.error(err.stack);
-        res.status(500).json({ error: err.message });
-      });
-  });
-
-  /*
    * Delete file by database ids (sql)
    */
   Router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter, (req, res) => {
