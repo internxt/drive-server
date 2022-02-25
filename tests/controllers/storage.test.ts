@@ -1109,6 +1109,9 @@ describe('Storage controller', () => {
             .resolves({
               result: {
                 some: 'data'
+              },
+              other: {
+                some: 'more'
               }
             }),
         },
@@ -1149,7 +1152,12 @@ describe('Storage controller', () => {
       expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
-        some: 'data'
+        result: {
+          some: 'data'
+        },
+        other: {
+          some: 'more'
+        }
       }]);
     });
 

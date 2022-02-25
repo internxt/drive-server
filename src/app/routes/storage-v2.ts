@@ -239,12 +239,12 @@ export class StorageController {
     const clientId = String(req.headers['internxt-client-id']);
 
     return this.services.Folder.MoveFolder(user, folderId, destination)
-      .then(async ({ result }: { result: FolderAttributes }) => {
+      .then(async (result: { result: FolderAttributes }) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
           ({ email }: { email: string }) => void this.services.Notifications.folderUpdated({
-            folder: result,
+            folder: result.result,
             email: email,
             clientId: clientId
           }),
