@@ -335,12 +335,11 @@ describe('Share controller', () => {
     it('should fail if `token` is not valid', async () => {
       // Arrange
       const controller = getController({});
-      const finalParams = {
+      const request = getRequest({
         params: {
           token: ''
         }
-      };
-      const request = getRequest(finalParams);
+      });
       const response = getResponse();
 
       try {
@@ -366,12 +365,11 @@ describe('Share controller', () => {
         }
       };
       const controller = getController(services);
-      const finalParams = {
+      const request = getRequest({
         params: {
           token: 'sss'
         }
-      };
-      const request = getRequest(finalParams);
+      });
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
@@ -406,12 +404,11 @@ describe('Share controller', () => {
         }
       };
       const controller = getController(services);
-      const finalParams = {
+      const request = getRequest({
         params: {
           token: 'sss'
         }
-      };
-      const request = getRequest(finalParams);
+      });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
@@ -427,6 +424,99 @@ describe('Share controller', () => {
       // Assert
       expect(services.Share.getFileInfo.calledOnce).to.be.true;
       expect(services.Analytics.trackSharedLink.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
+
+  describe('Get share folder info', () => {
+
+    it('should fail if `token` is not valid', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        params: {
+          token: ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getShareFolderInfo(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Token must be a valid string');
+      }
+    });
+
+    it('should return error if execution fails', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getFolderInfo: stubOf('getFolderInfo')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        params: {
+          token: 'sss'
+        }
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getShareFolderInfo(request, response);
+
+      // Assert
+      expect(services.Share.getFolderInfo.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getFolderInfo: stubOf('getFolderInfo')
+            .resolves({
+              data: 'some'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        params: {
+          token: 'sss'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getShareFolderInfo(request, response);
+
+      // Assert
+      expect(services.Share.getFolderInfo.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some'
       }]);

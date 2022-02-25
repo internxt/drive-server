@@ -148,6 +148,24 @@ export class ShareController {
       });
   }
 
+  public async getShareFolderInfo(req: Request, res: Response): Promise<void> {
+    const { token } = req.params;
+
+    if (Validator.isInvalidString(token)) {
+      throw createHttpError(400, 'Token must be a valid string');
+    }
+
+    return this.services.Share.getFolderInfo(req.params.token)
+      .then((info: unknown) => {
+        res.status(200).json(info);
+      })
+      .catch((err: Error) => {
+        res.status(500).send({
+          error: err.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -180,5 +198,8 @@ export default (router: Router, service: any,) => {
   );
   router.get('/storage/share/:token',
     controller.getShareFileInfo.bind(controller)
+  );
+  router.get('/storage/shared-folder/:token',
+    controller.getShareFolderInfo.bind(controller)
   );
 };
