@@ -10,4 +10,9 @@ export default class Validator {
   public static isInvalidPositiveNumber(number: unknown): boolean {
     return isNaN(Number(number)) || Number(number) <= 0;
   }
+
+  public static isInvalidUnsignedNumber(number: unknown): boolean {
+    console.log(Number(number));
+    return isNaN(Number(number)) || Number(number) < 0;
+  }
 }

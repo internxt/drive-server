@@ -534,7 +534,7 @@ describe('Share controller', () => {
           token: '',
           code: 'code',
           directoryId: '1',
-          offset: '2',
+          offset: '0',
           limit: '3',
         }
       });
@@ -570,7 +570,7 @@ describe('Share controller', () => {
           token: 'token',
           code: 'code',
           directoryId: '1',
-          offset: '',
+          offset: '-1',
           limit: '3',
         }
       });
@@ -690,7 +690,7 @@ describe('Share controller', () => {
         query: {
           token: '',
           directoryId: '1',
-          offset: '2',
+          offset: '0',
           limit: '3',
         }
       });
@@ -712,7 +712,7 @@ describe('Share controller', () => {
         query: {
           token: 'token',
           directoryId: '1',
-          offset: '',
+          offset: '-1',
           limit: '3',
         }
       });

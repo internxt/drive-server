@@ -181,7 +181,7 @@ export class ShareController {
       throw createHttpError(400, 'Directory ID is not valid');
     }
 
-    if (Validator.isInvalidPositiveNumber(offset)) {
+    if (Validator.isInvalidUnsignedNumber(offset)) {
       throw createHttpError(400, 'Offset is not valid');
     }
 
@@ -211,7 +211,7 @@ export class ShareController {
       throw createHttpError(400, 'Directory ID is not valid');
     }
 
-    if (Validator.isInvalidPositiveNumber(offset)) {
+    if (Validator.isInvalidUnsignedNumber(offset)) {
       throw createHttpError(400, 'Offset is not valid');
     }
 
