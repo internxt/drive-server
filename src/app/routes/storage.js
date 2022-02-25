@@ -129,18 +129,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.getFileInfo(req.params.token)
-      .then((share) => {
-        res.status(200).json(share);
-
-        AnalyticsService.trackSharedLink(req, share);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
-  });
-
   Router.get('/storage/shared-folder/:token', async (req, res) => {
     const result = await Service.Share.getFolderInfo(req.params.token);
     res.status(200).json(result);

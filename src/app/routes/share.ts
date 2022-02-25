@@ -129,6 +129,25 @@ export class ShareController {
     this.services.Analytics.trackShareLinkCopied(user.uuid, views, req);
   }
 
+  public async getShareFileInfo(req: Request, res: Response): Promise<void> {
+    const { token } = req.params;
+
+    if (Validator.isInvalidString(token)) {
+      throw createHttpError(400, 'Token must be a valid string');
+    }
+
+    return this.services.Share.getFileInfo()
+      .then((share: unknown) => {
+        res.status(200).json(share);
+        this.services.Analytics.trackSharedLink(req, share);
+      })
+      .catch((err: Error) => {
+        res.status(500).send({
+          error: err.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -158,5 +177,8 @@ export default (router: Router, service: any,) => {
   );
   router.post('/storage/share/folder/:id', passportAuth, sharedAdapter,
     controller.generateShareFolderToken.bind(controller)
+  );
+  router.get('/storage/share/:token',
+    controller.getShareFileInfo.bind(controller)
   );
 };
