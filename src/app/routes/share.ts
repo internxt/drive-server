@@ -136,7 +136,7 @@ export class ShareController {
       throw createHttpError(400, 'Token must be a valid string');
     }
 
-    return this.services.Share.getFileInfo()
+    return this.services.Share.getFileInfo(token)
       .then((share: unknown) => {
         res.status(200).json(share);
         this.services.Analytics.trackSharedLink(req, share);
@@ -155,12 +155,46 @@ export class ShareController {
       throw createHttpError(400, 'Token must be a valid string');
     }
 
-    return this.services.Share.getFolderInfo(req.params.token)
+    return this.services.Share.getFolderInfo(token)
       .then((info: unknown) => {
         res.status(200).json(info);
       })
       .catch((err: Error) => {
         res.status(500).send({
+          error: err.message
+        });
+      });
+  }
+
+  public async getDirectoryFiles(req: Request, res: Response): Promise<void> {
+    const { token, code, directoryId, offset, limit } = req.query;
+
+    if (Validator.isInvalidString(token)) {
+      throw createHttpError(400, 'Token must be a valid string');
+    }
+
+    if (Validator.isInvalidString(code)) {
+      throw createHttpError(400, 'Code must be a valid string');
+    }
+
+    if (Validator.isInvalidPositiveNumber(directoryId)) {
+      throw createHttpError(400, 'Directory ID is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(offset)) {
+      throw createHttpError(400, 'Offset is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(limit)) {
+      throw createHttpError(400, 'Limit is not valid');
+    }
+
+    return this.services.Share.getSharedDirectoryFiles(directoryId, Number(offset), Number(limit), token, code)
+      .then((info: unknown) => {
+        res.status(200).json(info);
+      })
+      .catch((err: Error) => {
+        res.status(500).json({
           error: err.message
         });
       });
@@ -201,5 +235,8 @@ export default (router: Router, service: any,) => {
   );
   router.get('/storage/shared-folder/:token',
     controller.getShareFolderInfo.bind(controller)
+  );
+  router.get('/storage/share/down/files',
+    controller.getDirectoryFiles.bind(controller)
   );
 };

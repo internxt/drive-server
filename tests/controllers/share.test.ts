@@ -423,6 +423,7 @@ describe('Share controller', () => {
 
       // Assert
       expect(services.Share.getFileInfo.calledOnce).to.be.true;
+      expect(services.Share.getFileInfo.args[0]).to.deep.equal(['sss']);
       expect(services.Analytics.trackSharedLink.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some'
@@ -517,6 +518,164 @@ describe('Share controller', () => {
 
       // Assert
       expect(services.Share.getFolderInfo.calledOnce).to.be.true;
+      expect(services.Share.getFolderInfo.args[0]).to.deep.equal(['sss']);
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
+
+  describe('Get share folder info', () => {
+
+    it('should fail if `token` is not valid', async () => {
+      await testIsErrorWithData('Token must be a valid string', {
+        query: {
+          token: '',
+          code: 'code',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `code` is not valid', async () => {
+      await testIsErrorWithData('Code must be a valid string', {
+        query: {
+          token: 'token',
+          code: '',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `directoryId` is not valid', async () => {
+      await testIsErrorWithData('Directory ID is not valid', {
+        query: {
+          token: 'token',
+          code: 'code',
+          directoryId: '',
+          offset: '2',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `offset` is not valid', async () => {
+      await testIsErrorWithData('Offset is not valid', {
+        query: {
+          token: 'token',
+          code: 'code',
+          directoryId: '1',
+          offset: '',
+          limit: '3',
+        }
+      });
+    });
+
+    it('should fail if `limit` is not valid', async () => {
+      await testIsErrorWithData('Limit is not valid', {
+        query: {
+          token: 'token',
+          code: 'code',
+          directoryId: '1',
+          offset: '2',
+          limit: '',
+        }
+      });
+    });
+
+    async function testIsErrorWithData(error: string, params = {}) {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest(params);
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getDirectoryFiles(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal(error);
+      }
+    }
+
+    it('should return error if execution fails', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getDirectoryFiles: stubOf('getDirectoryFiles')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        query: {
+          token: 'token',
+          code: 'code',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getDirectoryFiles(request, response);
+
+      // Assert
+      expect(services.Share.getDirectoryFiles.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getDirectoryFiles: stubOf('getDirectoryFiles')
+            .resolves({
+              data: 'some'
+            })
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        query: {
+          token: 'token',
+          code: 'code',
+          directoryId: '1',
+          offset: '2',
+          limit: '3',
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getDirectoryFiles(request, response);
+
+      // Assert
+      expect(services.Share.getDirectoryFiles.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some'
       }]);

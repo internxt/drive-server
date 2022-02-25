@@ -135,13 +135,6 @@ module.exports = (Router, Service, App) => {
     res.status(200).json(result);
   });
 
-  Router.get('/storage/share/down/files', async (req, res) => {
-    let { token, code, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getSharedDirectoryFiles(directoryId, Number(offset), Number(limit), token, code);
-    res.status(200).json(result);
-  });
-
-
   // Needs db index
   Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
     let { limit } = req.query;
