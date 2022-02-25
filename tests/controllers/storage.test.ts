@@ -1400,6 +1400,151 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Move file', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '',
+          destination: '2'
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `destination`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          destination: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Destination folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          MoveFile: stubOf('MoveFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFile(request, response);
+
+      // Assert
+      expect(services.Files.MoveFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          MoveFile: stubOf('MoveFile')
+            .resolves({
+              result: {
+                some: 'data'
+              },
+              other: {
+                some: 'more'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFile(request, response);
+
+      // Assert
+      expect(services.Files.MoveFile.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.fileUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        result: {
+          some: 'data'
+        },
+        other: {
+          some: 'more'
+        }
+      }]);
+    });
+
+  });
+
 });
 
 

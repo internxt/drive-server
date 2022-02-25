@@ -47,26 +47,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/move/file', passportAuth, sharedAdapter, (req, res) => {
-    const { fileId, destination } = req.body;
-    const { behalfUser: user } = req;
-    const clientId = req.headers['internxt-client-id'];
-
-    Service.Files.MoveFile(user, fileId, destination)
-      .then(async (result) => {
-        res.status(200).json(result);
-        const workspaceMembers = await App.services.User.findWorkspaceMembers(user.bridgeUser);
-
-        workspaceMembers.forEach(
-          ({ email }) => void Notifications.getInstance().fileUpdated({ file: result.result, email, clientId }),
-        );
-      })
-      .catch((err) => {
-        Logger.error(err);
-        res.status(err.status || 500).json({ error: err.message });
-      });
-  });
-
   /*
    * Delete file by bridge (mongodb) ids
    */
