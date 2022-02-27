@@ -32,19 +32,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.put('/storage/folder/:folderId/lock/:lockId', passportAuth, (req, res) => {
-    const userId = req.user.id;
-    const { folderId, lockId } = req.params;
-
-    Service.Folder.refreshLock(userId, folderId, lockId)
-      .then(() => {
-        res.status(200).end();
-      })
-      .catch(() => {
-        res.status(409).end();
-      });
-  });
-
   Router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth, (req, res) => {
     const userId = req.user.id;
     const { folderId, lockId } = req.params;
