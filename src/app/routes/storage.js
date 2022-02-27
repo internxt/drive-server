@@ -1,8 +1,5 @@
 const passport = require('../middleware/passport');
 const sharedMiddlewareBuilder = require('../middleware/shared-workspace');
-const logger = require('../../lib/logger').default;
-const CONSTANTS = require('../constants');
-const Logger = logger.getInstance();
 
 const { passportAuth } = passport;
 
@@ -32,31 +29,6 @@ module.exports = (Router, Service, App) => {
       })
       .catch((err) => {
         res.status(500).json(err.message);
-      });
-  });
-
-  // Needs db index
-  Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
-    let { limit } = req.query;
-
-    limit = Math.min(parseInt(limit, 10), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
-
-    Service.Files.getRecentFiles(req.behalfUser, limit)
-      .then((files) => {
-        if (!files) {
-          return res.status(404).send({ error: 'Files not found' });
-        }
-
-        files = files.map((file) => ({
-          ...file,
-          name: App.services.Crypt.decryptName(file.name, file.folder_id),
-        }));
-
-        return res.status(200).json(files);
-      })
-      .catch((err) => {
-        Logger.error(`Can not get recent files: ${req.user.email} : ${err.message}`);
-        res.status(500).send({ error: 'Can not get recent files' });
       });
   });
 

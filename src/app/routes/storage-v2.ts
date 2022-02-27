@@ -10,7 +10,7 @@ import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
-import { default as Notifications } from '../../config/initializers/notifications';
+import CONSTANTS from '../constants';
 
 interface Services {
   Files: any
@@ -20,6 +20,7 @@ interface Services {
   User: any
   Notifications: any
   Share: any
+  Crypt: any
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -423,6 +424,35 @@ export class StorageController {
       });
   }
 
+  public async getRecentFiles(req: Request, res: Response): Promise<void> {
+    const { behalfUser } = req as SharedRequest;
+    const { user } = req as PassportRequest;
+    const { limit } = req.query;
+
+    if (Validator.isInvalidPositiveNumber(limit)) {
+      throw createHttpError(400, 'Limit is not valid');
+    }
+    let validLimit = Number(limit);
+
+    validLimit = Math.min(validLimit, CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
+
+    return this.services.Files.getRecentFiles(behalfUser, validLimit)
+      .then((files: FileAttributes[]) => {
+        if (!files) {
+          return res.status(404).send({ error: 'Files not found' });
+        }
+        files = files.map((file) => ({
+          ...file,
+          name: this.services.Crypt.decryptName(file.name, file.folderId),
+        }));
+        return res.status(200).json(files);
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Can not get recent files: ${user.email} : ${err.message}`);
+        res.status(500).send({ error: 'Can not get recent files' });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -481,6 +511,9 @@ export default (router: Router, service: any) => {
   );
   router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter,
     controller.deleteFileDatabase.bind(controller)
+  );
+  router.get('/storage/recents', passportAuth, sharedAdapter,
+    controller.getRecentFiles.bind(controller)
   );
 
 };

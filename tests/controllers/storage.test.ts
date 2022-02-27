@@ -2040,6 +2040,174 @@ describe('Storage controller', () => {
     });
   });
 
+  describe('Get recent files', () => {
+
+    it('should fail if missing param `limit`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        query: {
+          limit: '',
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.getRecentFiles(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Limit is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '2',
+        },
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'Can not get recent files'
+      }]);
+    });
+
+    it('should fail when no files found', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '3',
+        },
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'Files not found'
+      }]);
+    });
+
+    it('should excute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .resolves([
+              {
+                name: '1',
+                folderId: '2',
+              },
+              {
+                name: '3',
+                folderId: '4',
+              }
+            ]),
+        },
+        Crypt: {
+          decryptName: stubOf('decryptName').returns('lala')
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '3',
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(services.Crypt.decryptName.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([
+        [
+          {
+            name: 'lala',
+            folderId: '2',
+          },
+          {
+            name: 'lala',
+            folderId: '4',
+          }
+        ]
+      ]);
+    });
+  });
+
 });
 
 
@@ -2051,7 +2219,8 @@ function getController(services = {}, logger = {}): StorageController {
     Analytics: {},
     User: {},
     Notifications: {},
-    Share: {}
+    Share: {},
+    Crypt: {},
   };
 
   const finalServices = {
