@@ -453,6 +453,23 @@ export class StorageController {
       });
   }
 
+  public async acquireFolderLock(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId, lockId } = req.params;
+
+    if (Validator.isInvalidPositiveNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Folder.acquireLock(user.id, folderId, lockId)
+      .then(() => {
+        res.status(201).end();
+      })
+      .catch(() => {
+        res.status(409).end();
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -514,6 +531,9 @@ export default (router: Router, service: any) => {
   );
   router.get('/storage/recents', passportAuth, sharedAdapter,
     controller.getRecentFiles.bind(controller)
+  );
+  router.post('/storage/folder/:folderId/lock/:lockId', passportAuth,
+    controller.acquireFolderLock.bind(controller)
   );
 
 };
