@@ -32,16 +32,4 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth, (req, res) => {
-    const userId = req.user.id;
-    const { folderId, lockId } = req.params;
-
-    Service.Folder.releaseLock(userId, folderId, lockId)
-      .then(() => {
-        res.status(200).end();
-      })
-      .catch(() => {
-        res.status(404).end();
-      });
-  });
 };

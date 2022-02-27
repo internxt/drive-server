@@ -2406,6 +2406,105 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Release folder lock', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '',
+          lockId: '',
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.releaseFolderLock(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          releaseLock: stubOf('releaseLock')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '3',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.releaseFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.releaseLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+    it('should execute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          releaseLock: stubOf('releaseLock')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '2',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.releaseFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.releaseLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+  });
+
 });
 
 
