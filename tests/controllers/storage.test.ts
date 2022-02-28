@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { StorageController } from '../../src/app/routes/storage-v2';
+import { StorageController } from '../../src/app/routes/storage';
 import { Logger } from 'winston';
 import sinon, { SinonStub } from 'sinon';
 import { expect } from 'chai';
