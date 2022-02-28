@@ -461,6 +461,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.createFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder name must be a valid string');
@@ -485,6 +486,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.createFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Parent folder ID is not valid');
@@ -717,6 +719,8 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.generateShareFileToken(request, response);
+        expect(true).to.be.false;
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal(error);
@@ -817,6 +821,7 @@ describe('Storage controller', () => {
 
         // Act
         await controller.getTreeSpecific(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID not valid');
@@ -926,6 +931,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.deleteFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID param is not valid');
@@ -1038,6 +1044,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.moveFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
@@ -1059,6 +1066,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.moveFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Destination folder ID is not valid');
@@ -1185,6 +1193,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.updateFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
@@ -1304,6 +1313,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.getFolderContents(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
@@ -1489,6 +1499,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.getFolderSize(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
