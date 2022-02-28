@@ -3,7 +3,7 @@ import createHttpError from 'http-errors';
 
 import AuthRoutes from './auth';
 import ActivationRoutes from './activation';
-import StorageRoutesV2 from './storage-v2';
+import StorageRoutes from './storage';
 import BridgeRoutes from './bridge';
 import StripeRoutes from './stripe';
 import DesktopRoutes from './desktop';
@@ -36,7 +36,7 @@ export default (router: Router, service: any, App: any): Router => {
 
   AuthRoutes(router, service, App.config);
   ActivationRoutes(router, service);
-  StorageRoutesV2(router, service);
+  StorageRoutes(router, service);
   BridgeRoutes(router, service);
   StripeRoutes(router, service);
   DesktopRoutes(router, service);
