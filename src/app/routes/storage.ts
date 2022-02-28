@@ -293,7 +293,7 @@ export class StorageController {
     const { behalfUser: user } = req as SharedRequest;
     const { fileId, destination } = req.body;
 
-    if (Validator.isInvalidPositiveNumber(fileId)) {
+    if (Validator.isInvalidString(fileId)) {
       throw createHttpError(400, 'File ID is not valid');
     }
 
