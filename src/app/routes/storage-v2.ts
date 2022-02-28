@@ -539,6 +539,18 @@ export class StorageController {
       });
   }
 
+  public async fixDuplicate(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+
+    return this.services.Folder.changeDuplicateName(user)
+      .then((result: unknown) => {
+        res.status(204).json(result);
+      })
+      .catch((err: Error) => {
+        res.status(500).json(err.message);
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -612,6 +624,9 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter,
     controller.renameFileInNetwork.bind(controller)
+  );
+  router.post('/storage/folder/fixduplicate', passportAuth,
+    controller.fixDuplicate.bind(controller)
   );
 
 };

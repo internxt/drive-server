@@ -2696,6 +2696,75 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Fix duplicated folder', () => {
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          changeDuplicateName: stubOf('changeDuplicateName')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {},
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.fixDuplicate(request, response);
+
+      // Assert
+      expect(services.Folder.changeDuplicateName.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          changeDuplicateName: stubOf('changeDuplicateName')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {},
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.fixDuplicate(request, response);
+
+      // Assert
+      expect(services.Folder.changeDuplicateName.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
 });
 
 
