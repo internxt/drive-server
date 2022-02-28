@@ -181,7 +181,7 @@ export class StorageController {
       throw createHttpError(400, 'Folder ID not valid');
     }
 
-    return this.services.Folder.GetTree(user)
+    return this.services.Folder.GetTree(user, folderId)
       .then((result: unknown) => {
         const treeSize = this.services.Folder.GetTreeSize(result);
         res.status(200).send({

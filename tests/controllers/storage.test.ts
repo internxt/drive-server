@@ -895,6 +895,9 @@ describe('Storage controller', () => {
 
       // Assert
       expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(services.Folder.GetTree.args[0]).to.deep.equal([
+        {}, '1'
+      ]);
       expect(services.Folder.GetTreeSize.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
       expect(sendSpy.args[0]).to.deep.equal([{
