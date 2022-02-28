@@ -588,15 +588,17 @@ describe('Storage controller', () => {
 
   describe('Generate share file token', () => {
 
+    const defaultBody = {
+      views: '1',
+      encryptionKey: 'enckey',
+      fileToken: 'token',
+      bucket: 'bucket',
+    };
+
     it('should fail if `itemId` is not valid', async () => {
       await testIsErrorWithData('File ID must be a valid string', {
         params: {},
-        body: {
-          views: '1',
-          encryptionKey: 'enckey',
-          fileToken: 'token',
-          bucket: 'bucket',
-        }
+        body: defaultBody
       });
     });
 
@@ -606,9 +608,8 @@ describe('Storage controller', () => {
           id: 'file-id'
         },
         body: {
-          encryptionKey: 'enckey',
-          fileToken: 'token',
-          bucket: 'bucket',
+          ...defaultBody,
+          views: ''
         }
       });
     });
@@ -619,9 +620,8 @@ describe('Storage controller', () => {
           id: 'file-id'
         },
         body: {
-          views: '1',
-          fileToken: 'token',
-          bucket: 'bucket',
+          ...defaultBody,
+          encryptionKey: ''
         }
       });
     });
@@ -632,9 +632,8 @@ describe('Storage controller', () => {
           id: 'file-id'
         },
         body: {
-          views: '1',
-          encryptionKey: 'enckey',
-          bucket: 'bucket',
+          ...defaultBody,
+          fileToken: ''
         }
       });
     });
@@ -645,9 +644,8 @@ describe('Storage controller', () => {
           id: 'file-id'
         },
         body: {
-          views: '1',
-          encryptionKey: 'enckey',
-          fileToken: 'token',
+          ...defaultBody,
+          bucket: ''
         }
       });
     });
