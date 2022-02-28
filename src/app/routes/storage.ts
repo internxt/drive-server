@@ -330,7 +330,7 @@ export class StorageController {
     const mnemonic = req.headers['internxt-mnemonic'];
     const clientId = String(req.headers['internxt-client-id']);
 
-    if (Validator.isInvalidPositiveNumber(fileId)) {
+    if (Validator.isInvalidString(fileId)) {
       throw createHttpError(400, 'File ID is not valid');
     }
 
