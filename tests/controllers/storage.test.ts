@@ -2505,6 +2505,197 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Rename file in network', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `bucketId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '3',
+          bucketId: '',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Bucket ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `relativePath`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '4',
+          bucketId: '1',
+          relativePath: '',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Relative path is not valid');
+      }
+    });
+
+    it('should fail if missing mnemonic header', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Mnemonic is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Inxt: {
+          renameFile: stubOf('renameFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.renameFileInNetwork(request, response);
+
+      // Assert
+      expect(services.Inxt.renameFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Inxt: {
+          renameFile: stubOf('renameFile')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          email: '',
+          userId: ''
+        },
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.renameFileInNetwork(request, response);
+
+      // Assert
+      expect(services.Inxt.renameFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        message: 'File renamed in network: 2'
+      }]);
+    });
+
+  });
+
 });
 
 
@@ -2518,6 +2709,7 @@ function getController(services = {}, logger = {}): StorageController {
     Notifications: {},
     Share: {},
     Crypt: {},
+    Inxt: {},
   };
 
   const finalServices = {

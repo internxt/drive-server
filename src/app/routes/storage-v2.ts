@@ -21,6 +21,7 @@ interface Services {
   Notifications: any
   Share: any
   Crypt: any
+  Inxt: any
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -504,6 +505,40 @@ export class StorageController {
       });
   }
 
+  public async renameFileInNetwork(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { bucketId, fileId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+
+    if (Validator.isEmpty(fileId)) { // Not sure the datatype of it. number or string
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidString(bucketId)) {
+      throw createHttpError(400, 'Bucket ID is not valid');
+    }
+
+    if (Validator.isInvalidString(relativePath)) {
+      throw createHttpError(400, 'Relative path is not valid');
+    }
+
+    if (Validator.isInvalidString(mnemonic)) {
+      throw createHttpError(400, 'Mnemonic is not valid');
+    }
+
+    return this.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath)
+      .then(() => {
+        res.status(200).json({
+          message: `File renamed in network: ${fileId}`
+        });
+      })
+      .catch((error: Error) => {
+        res.status(500).json({
+          error: error.message
+        });
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -574,6 +609,9 @@ export default (router: Router, service: any) => {
   );
   router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth,
     controller.releaseFolderLock.bind(controller)
+  );
+  router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter,
+    controller.renameFileInNetwork.bind(controller)
   );
 
 };

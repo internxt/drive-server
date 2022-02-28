@@ -14,4 +14,8 @@ export default class Validator {
   public static isInvalidUnsignedNumber(number: unknown): boolean {
     return isNaN(Number(number)) || Number(number) < 0;
   }
+
+  static isEmpty(field: unknown) {
+    return !field;
+  }
 }
