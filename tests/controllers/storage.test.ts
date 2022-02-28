@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { StorageController } from '../../src/app/routes/storage-v2';
 import { Logger } from 'winston';
-import sinon from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import { expect } from 'chai';
 
 describe('Storage controller', () => {
@@ -213,9 +213,7 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -270,9 +268,7 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -328,15 +324,11 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         UsersReferrals: {
-          applyUserReferral: sinon.stub({
-            applyUserReferral: null
-          }, 'applyUserReferral')
+          applyUserReferral: stubOf('applyUserReferral')
             .resolves()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -394,15 +386,11 @@ describe('Storage controller', () => {
           trackUploadCompleted: sinon.spy()
         },
         UsersReferrals: {
-          applyUserReferral: sinon.stub({
-            applyUserReferral: null
-          }, 'applyUserReferral')
+          applyUserReferral: stubOf('applyUserReferral')
             .resolves()
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -473,6 +461,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.createFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder name must be a valid string');
@@ -497,6 +486,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.createFolder(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Parent folder ID is not valid');
@@ -507,9 +497,7 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Create: sinon.stub({
-            Create: null
-          }, 'Create')
+          Create: stubOf('Create')
             .rejects({
               message: 'my-error'
             })
@@ -550,17 +538,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Create: sinon.stub({
-            Create: null
-          }, 'Create')
+          Create: stubOf('Create')
             .resolves({
               data: 'some'
             })
         },
         User: {
-          findWorkspaceMembers: sinon.stub({
-            findWorkspaceMembers: null
-          }, 'findWorkspaceMembers')
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
             .resolves([{}, {}])
         },
         Notifications: {
@@ -602,6 +586,961 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Generate share file token', () => {
+
+    const defaultBody = {
+      views: '1',
+      encryptionKey: 'enckey',
+      fileToken: 'token',
+      bucket: 'bucket',
+    };
+
+    it('should fail if `itemId` is not valid', async () => {
+      await testIsErrorWithData('File ID must be a valid string', {
+        params: {},
+        body: defaultBody
+      });
+    });
+
+    it('should fail if `views` is not valid', async () => {
+      await testIsErrorWithData('Views parameter not valid', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          ...defaultBody,
+          views: ''
+        }
+      });
+    });
+
+    it('should fail if `encryptionKey` is not valid', async () => {
+      await testIsErrorWithData('Encryption key must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          ...defaultBody,
+          encryptionKey: ''
+        }
+      });
+    });
+
+    it('should fail if `fileToken` is not valid', async () => {
+      await testIsErrorWithData('File token must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          ...defaultBody,
+          fileToken: ''
+        }
+      });
+    });
+
+    it('should fail if `bucket` is not valid', async () => {
+      await testIsErrorWithData('Bucket identifier must be a valid string', {
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          ...defaultBody,
+          bucket: ''
+        }
+      });
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          GenerateFileToken: stubOf('GenerateFileToken')
+            .resolves('token')
+        },
+        UsersReferrals: {
+          applyUserReferral: stubOf('applyUserReferral')
+            .resolves()
+        },
+        Analytics: {
+          trackShareLinkCopied: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const finalParams = {
+        behalfUser: {
+          email: ''
+        },
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          encryptionKey: 'enckey',
+          fileToken: 'token',
+          bucket: 'bucket',
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.generateShareFileToken(request, response);
+
+      // Assert
+      expect(services.Share.GenerateFileToken.calledOnce).to.be.true;
+      expect(services.UsersReferrals.applyUserReferral.calledOnce).to.be.true;
+      expect(services.Analytics.trackShareLinkCopied.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        token: 'token'
+      }]);
+    });
+
+    async function testIsErrorWithData(error: string, params = {}) {
+      // Arrange
+      const controller = getController({});
+      const finalParams = {
+        behalfUser: {
+          email: ''
+        },
+        ...params
+      };
+      const request = getRequest(finalParams);
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.generateShareFileToken(request, response);
+        expect(true).to.be.false;
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal(error);
+      }
+    }
+
+  });
+
+  describe('Generate folder tree', () => {
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: stubOf('GetTree')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTree(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: stubOf('GetTree')
+            .resolves({
+              value: 'any'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTree(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        value: 'any'
+      }]);
+    });
+
+  });
+
+  describe('Generate folder tree of a specific folder', () => {
+
+    it('should fail if `folderId` is not valid', async () => {
+      // Arrange
+      const controller = getController();
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: ''
+        }
+      };
+      const request = getRequest(finalParams);
+      const response = getResponse();
+
+      try {
+
+        // Act
+        await controller.getTreeSpecific(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: stubOf('GetTree')
+            .rejects({
+              message: 'my-error'
+            })
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: '1'
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTreeSpecific(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          GetTree: stubOf('GetTree')
+            .resolves({
+              value: 'any'
+            }),
+          GetTreeSize: stubOf('GetTreeSize')
+            .returns(999),
+        },
+      };
+      const controller = getController(services);
+      const finalParams = {
+        user: {},
+        params: {
+          folderId: '1'
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getTreeSpecific(request, response);
+
+      // Assert
+      expect(services.Folder.GetTree.calledOnce).to.be.true;
+      expect(services.Folder.GetTree.args[0]).to.deep.equal([
+        {}, '1'
+      ]);
+      expect(services.Folder.GetTreeSize.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        tree: {
+          value: 'any'
+        },
+        size: 999
+      }]);
+    });
+
+  });
+
+  describe('Delete folder', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.deleteFolder(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID param is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          Delete: stubOf('Delete')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '1'
+        },
+        headers: {}
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFolder(request, response);
+
+      // Assert
+      expect(services.Folder.Delete.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          Delete: stubOf('Delete')
+            .resolves({
+              some: 'data'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderDeleted: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '1'
+        },
+        headers: {}
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFolder(request, response);
+
+      // Assert
+      expect(services.Folder.Delete.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderDeleted.calledTwice).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        some: 'data'
+      }]);
+    });
+
+  });
+
+  describe('Move folder', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '',
+          destination: '2'
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFolder(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `destination`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '2',
+          destination: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFolder(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Destination folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          MoveFolder: stubOf('MoveFolder')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFolder(request, response);
+
+      // Assert
+      expect(services.Folder.MoveFolder.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          MoveFolder: stubOf('MoveFolder')
+            .resolves({
+              result: {
+                some: 'data'
+              },
+              other: {
+                some: 'more'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          folderId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFolder(request, response);
+
+      // Assert
+      expect(services.Folder.MoveFolder.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        result: {
+          some: 'data'
+        },
+        other: {
+          some: 'more'
+        }
+      }]);
+    });
+
+  });
+
+  describe('Update folder', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: ''
+        },
+        body: {
+          metadata: {},
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFolder(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: '2'
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFolder(request, response);
+
+      // Assert
+      expect(services.Folder.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .resolves({
+              result: {
+                some: 'data'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          folderUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          folderid: '2'
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFolder(request, response);
+
+      // Assert
+      expect(services.Folder.UpdateMetadata.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        result: {
+          some: 'data'
+        }
+      }]);
+    });
+
+  });
+
+  describe('Get folder contents', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getFolderContents(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should fail if first method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').rejects({
+            message: 'my-error'
+          }),
+          getFolders: stubOf('getById').resolves(),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should fail if second method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves(),
+          getFolders: stubOf('getById').rejects({
+            message: 'my-error'
+          }),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should fail if third method fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves(),
+          getFolders: stubOf('getById').resolves(),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').rejects({
+            message: 'my-error'
+          })
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves({
+            data: 'some'
+          }),
+          getFolders: stubOf('getById').resolves([
+            {}, {}
+          ]),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([
+            {}
+          ])
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some',
+        children: [{}, {}],
+        files: [{}]
+      }]);
+    });
+
+  });
+
+  describe('Get folder size', () => {
+
+    it('should fail if missing param `id`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        params: {
+          id: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getFolderSize(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          getFolderSize: stubOf('getFolderSize').resolves(5)
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          id: '2'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderSize(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        size: 5
+      }]);
+    });
+
+  });
+
 });
 
 
@@ -612,7 +1551,8 @@ function getController(services = {}, logger = {}): StorageController {
     UsersReferrals: {},
     Analytics: {},
     User: {},
-    Notifications: {}
+    Notifications: {},
+    Share: {}
   };
 
   const finalServices = {
@@ -639,4 +1579,10 @@ function getRequest(props = {}): Request {
 
 function getResponse(props = {}): Response {
   return props as unknown as Response;
+}
+
+function stubOf(functionName: string): SinonStub {
+  return sinon.stub({
+    [functionName]: null
+  }, functionName);
 }
