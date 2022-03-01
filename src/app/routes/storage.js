@@ -129,50 +129,6 @@ module.exports = (Router, Service, App) => {
       });
   });
 
-  Router.post('/storage/share/folder/:id', passportAuth, sharedAdapter, async (req, res) => {
-    const { behalfUser: user } = req;
-    const folderId = req.params.id;
-    const { views, bucketToken, bucket, mnemonic } = req.body;
-
-    const token = await Service.Share.GenerateFolderTokenAndCode(user, folderId, bucket, mnemonic, bucketToken, views);
-
-    res.status(200).send({
-      token: token,
-    });
-
-    AnalyticsService.trackShareLinkCopied(user.uuid, views, req);
-  });
-
-  Router.get('/storage/share/:token', (req, res) => {
-    Service.Share.getFileInfo(req.params.token)
-      .then((share) => {
-        res.status(200).json(share);
-
-        AnalyticsService.trackSharedLink(req, share);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
-  });
-
-  Router.get('/storage/shared-folder/:token', async (req, res) => {
-    const result = await Service.Share.getFolderInfo(req.params.token);
-    res.status(200).json(result);
-  });
-
-  Router.get('/storage/share/down/folders', async (req, res) => {
-    let { token, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getSharedDirectoryFolders(directoryId, Number(offset), Number(limit), token);
-    res.status(200).json(result);
-  });
-
-  Router.get('/storage/share/down/files', async (req, res) => {
-    let { token, code, directoryId, offset, limit } = req.query;
-    const result = await Service.Share.getSharedDirectoryFiles(directoryId, Number(offset), Number(limit), token, code);
-    res.status(200).json(result);
-  });
-
-
   // Needs db index
   Router.get('/storage/recents', passportAuth, sharedAdapter, (req, res) => {
     let { limit } = req.query;
