@@ -2071,7 +2071,7 @@ describe('Storage controller', () => {
         expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
-        expect(message).to.equal('Limit is not valid');
+        expect(message).to.equal('Missing limit param');
       }
     });
 
