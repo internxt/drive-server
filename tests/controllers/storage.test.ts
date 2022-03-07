@@ -2047,33 +2047,33 @@ describe('Storage controller', () => {
 
   describe('Get recent files', () => {
 
-    it('should fail if missing param `limit`', async () => {
-      // Arrange
-      const controller = getController({});
-      const request = getRequest({
-        behalfUser: {},
-        query: {
-          limit: '',
-        },
-      });
-      const jsonSpy = sinon.spy();
-      const response = getResponse({
-        status: () => {
-          return {
-            json: jsonSpy
-          };
-        }
-      });
+    // it('should fail if missing param `limit`', async () => {
+    //   // Arrange
+    //   const controller = getController({});
+    //   const request = getRequest({
+    //     behalfUser: {},
+    //     query: {
+    //       limit: '',
+    //     },
+    //   });
+    //   const jsonSpy = sinon.spy();
+    //   const response = getResponse({
+    //     status: () => {
+    //       return {
+    //         json: jsonSpy
+    //       };
+    //     }
+    //   });
 
-      try {
-        // Act
-        await controller.getRecentFiles(request, response);
-        expect(true).to.be.false;
-      } catch ({ message }) {
-        // Assert
-        expect(message).to.equal('Missing limit param');
-      }
-    });
+    //   try {
+    //     // Act
+    //     await controller.getRecentFiles(request, response);
+    //     expect(true).to.be.false;
+    //   } catch ({ message }) {
+    //     // Assert
+    //     expect(message).to.equal('Missing limit param');
+    //   }
+    // });
 
     it('should return error when execution fails', async () => {
       // Arrange

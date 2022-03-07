@@ -430,10 +430,7 @@ export class StorageController {
     const { user } = req as PassportRequest;
     const { limit } = req.query;
 
-    if (!limit) {
-      throw createHttpError(400, 'Missing limit param');
-    }
-
+    // Mobile is not sending the limit
     const validLimit = Math.min(parseInt(limit as string), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
 
     return this.services.Files.getRecentFiles(behalfUser, validLimit)
