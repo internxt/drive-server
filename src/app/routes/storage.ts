@@ -510,7 +510,7 @@ export class StorageController {
     const { bucketId, fileId, relativePath } = req.body;
     const mnemonic = req.headers['internxt-mnemonic'];
 
-    if (Validator.isEmpty(fileId)) { // Not sure the datatype of it. number or string
+    if (Validator.isInvalidString(fileId)) {
       throw createHttpError(400, 'File ID is not valid');
     }
 

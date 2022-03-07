@@ -675,7 +675,6 @@ describe('Storage controller', () => {
       const response = getResponse();
 
       try {
-
         // Act
         await controller.getTreeSpecific(request, response);
         expect(true).to.be.false;
@@ -1565,6 +1564,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.updateFile(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('File ID is not valid');
@@ -1591,6 +1591,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.updateFile(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Bucket ID is not valid');
@@ -1617,6 +1618,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.updateFile(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Relative path is not valid');
@@ -1643,6 +1645,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.updateFile(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Mnemonic is not valid');
@@ -1913,6 +1916,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.deleteFileDatabase(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('File ID is not valid');
@@ -1942,6 +1946,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.deleteFileDatabase(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
@@ -2063,6 +2068,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.getRecentFiles(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Limit is not valid');
@@ -2425,6 +2431,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.releaseFolderLock(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Folder ID is not valid');
@@ -2526,6 +2533,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('File ID is not valid');
@@ -2551,6 +2559,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Bucket ID is not valid');
@@ -2576,6 +2585,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Relative path is not valid');
@@ -2601,6 +2611,7 @@ describe('Storage controller', () => {
       try {
         // Act
         await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
       } catch ({ message }) {
         // Assert
         expect(message).to.equal('Mnemonic is not valid');
