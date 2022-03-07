@@ -9,6 +9,8 @@ import createHttpError from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
+import { FileAttributes } from '../models/file';
+import CONSTANTS from '../constants';
 
 interface Services {
   Files: any
@@ -18,6 +20,8 @@ interface Services {
   User: any
   Notifications: any
   Share: any
+  Crypt: any
+  Inxt: any
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -285,6 +289,268 @@ export class StorageController {
     });
   }
 
+  public async moveFile(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { fileId, destination } = req.body;
+
+    if (Validator.isInvalidString(fileId)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(destination)) {
+      throw createHttpError(400, 'Destination folder ID is not valid');
+    }
+
+    const clientId = String(req.headers['internxt-client-id']);
+
+    return this.services.Files.MoveFile(user, fileId, destination)
+      .then(async (result: { result: FileAttributes }) => {
+        res.status(200).json(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.fileUpdated({
+            file: result.result,
+            email: email,
+            clientId: clientId
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        this.logger.error(err);
+        res.status(500).json({
+          error: err.message
+        });
+      });
+  }
+
+  public async updateFile(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const fileId = req.params.fileid;
+    const { metadata, bucketId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+    const clientId = String(req.headers['internxt-client-id']);
+
+    if (Validator.isInvalidString(fileId)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidString(bucketId)) {
+      throw createHttpError(400, 'Bucket ID is not valid');
+    }
+
+    if (Validator.isInvalidString(relativePath)) {
+      throw createHttpError(400, 'Relative path is not valid');
+    }
+
+    if (Validator.isInvalidString(mnemonic)) {
+      throw createHttpError(400, 'Mnemonic is not valid');
+    }
+
+    return this.services.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath)
+      .then(async (result: FileAttributes) => {
+        res.status(200).json(result);
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.fileUpdated({
+            file: result,
+            email,
+            clientId
+          }),
+        );
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+        res.status(500).json(err.message);
+      });
+  }
+
+  public async deleteFileBridge(req: Request, res: Response): Promise<void> {
+    if (req.params.bucketid === 'null') { // Weird checking...
+      res.status(500).json({ error: 'No bucket ID provided' });
+      return;
+    }
+
+    if (req.params.fileid === 'null') {
+      res.status(500).json({ error: 'No file ID provided' });
+      return;
+    }
+
+    const { user } = req as PassportRequest;
+    const bucketId = req.params.bucketid;
+    const fileIdInBucket = req.params.fileid;
+
+    return this.services.Files.Delete(user, bucketId, fileIdInBucket)
+      .then(() => {
+        res.status(200).json({
+          deleted: true
+        });
+      })
+      .catch((err: Error) => {
+        this.logger.error(err.stack);
+        res.status(500).json({
+          error: err.message
+        });
+      });
+  }
+
+  public async deleteFileDatabase(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { folderid, fileid } = req.params;
+    const clientId = String(req.headers['internxt-client-id']);
+
+    if (Validator.isInvalidPositiveNumber(fileid)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidPositiveNumber(folderid)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Files.DeleteFile(user, folderid, fileid)
+      .then(async () => {
+        res.status(200).json({ deleted: true });
+        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+        workspaceMembers.forEach(
+          ({ email }: { email: string }) => void this.services.Notifications.fileDeleted({
+            id: Number(fileid),
+            email,
+            clientId
+          }),
+        );
+
+        this.services.Analytics.trackFileDeleted(req);
+      })
+      .catch((err: Error) => {
+        res.status(500).json({ error: err.message });
+      });
+  }
+
+  public async getRecentFiles(req: Request, res: Response): Promise<void> {
+    const { behalfUser } = req as SharedRequest;
+    const { user } = req as PassportRequest;
+    const { limit } = req.query;
+
+    if (Validator.isInvalidPositiveNumber(limit)) {
+      throw createHttpError(400, 'Limit is not valid');
+    }
+    let validLimit = Number(limit);
+
+    validLimit = Math.min(validLimit, CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
+
+    return this.services.Files.getRecentFiles(behalfUser, validLimit)
+      .then((files: FileAttributes[]) => {
+        if (!files) {
+          return res.status(404).send({ error: 'Files not found' });
+        }
+        files = files.map((file) => ({
+          ...file,
+          name: this.services.Crypt.decryptName(file.name, file.folderId),
+        }));
+        return res.status(200).json(files);
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Can not get recent files: ${user.email} : ${err.message}`);
+        res.status(500).send({ error: 'Can not get recent files' });
+      });
+  }
+
+  public async acquireFolderLock(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId, lockId } = req.params;
+
+    if (Validator.isInvalidPositiveNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Folder.acquireLock(user.id, folderId, lockId)
+      .then(() => {
+        res.status(201).end();
+      })
+      .catch(() => {
+        res.status(409).end();
+      });
+  }
+
+  public async refreshFolderLock(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId, lockId } = req.params;
+
+    if (Validator.isInvalidPositiveNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Folder.refreshLock(user.id, folderId, lockId)
+      .then(() => {
+        res.status(200).end();
+      })
+      .catch(() => {
+        res.status(409).end();
+      });
+  }
+
+  public async releaseFolderLock(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId, lockId } = req.params;
+
+    if (Validator.isInvalidPositiveNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Folder.releaseLock(user.id, folderId, lockId)
+      .then(() => {
+        res.status(200).end();
+      })
+      .catch(() => {
+        res.status(404).end();
+      });
+  }
+
+  public async renameFileInNetwork(req: Request, res: Response): Promise<void> {
+    const { behalfUser: user } = req as SharedRequest;
+    const { bucketId, fileId, relativePath } = req.body;
+    const mnemonic = req.headers['internxt-mnemonic'];
+
+    if (Validator.isInvalidString(fileId)) {
+      throw createHttpError(400, 'File ID is not valid');
+    }
+
+    if (Validator.isInvalidString(bucketId)) {
+      throw createHttpError(400, 'Bucket ID is not valid');
+    }
+
+    if (Validator.isInvalidString(relativePath)) {
+      throw createHttpError(400, 'Relative path is not valid');
+    }
+
+    if (Validator.isInvalidString(mnemonic)) {
+      throw createHttpError(400, 'Mnemonic is not valid');
+    }
+
+    return this.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath)
+      .then(() => {
+        res.status(200).json({
+          message: `File renamed in network: ${fileId}`
+        });
+      })
+      .catch((error: Error) => {
+        res.status(500).json({
+          error: error.message
+        });
+      });
+  }
+
+  public async fixDuplicate(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+
+    return this.services.Folder.changeDuplicateName(user)
+      .then((result: unknown) => {
+        res.status(204).json(result);
+      })
+      .catch((err: Error) => {
+        res.status(500).json(err.message);
+      });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -331,6 +597,36 @@ export default (router: Router, service: any) => {
   );
   router.get('/storage/folder/size/:id', passportAuth,
     controller.getFolderSize.bind(controller)
+  );
+  router.post('/storage/move/file', passportAuth, sharedAdapter,
+    controller.moveFile.bind(controller)
+  );
+  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter,
+    controller.updateFile.bind(controller)
+  );
+  router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth,
+    controller.deleteFileBridge.bind(controller)
+  );
+  router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter,
+    controller.deleteFileDatabase.bind(controller)
+  );
+  router.get('/storage/recents', passportAuth, sharedAdapter,
+    controller.getRecentFiles.bind(controller)
+  );
+  router.post('/storage/folder/:folderId/lock/:lockId', passportAuth,
+    controller.acquireFolderLock.bind(controller)
+  );
+  router.put('/storage/folder/:folderId/lock/:lockId', passportAuth,
+    controller.refreshFolderLock.bind(controller)
+  );
+  router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth,
+    controller.releaseFolderLock.bind(controller)
+  );
+  router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter,
+    controller.renameFileInNetwork.bind(controller)
+  );
+  router.post('/storage/folder/fixduplicate', passportAuth,
+    controller.fixDuplicate.bind(controller)
   );
 
 };

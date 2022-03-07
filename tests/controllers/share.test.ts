@@ -822,6 +822,77 @@ describe('Share controller', () => {
 
   });
 
+  describe('Get shared folder size', () => {
+
+    it('should fail if `itemId` is not valid', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        params: {
+          shareId: '',
+          folderId: ''
+        },
+      }) as unknown as Request<{ shareId: string, folderId: string }>;
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.getSharedFolderSize(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should execute successfully when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Share: {
+          GenerateFolderToken: stubOf('GenerateFolderToken')
+            .resolves('token')
+        },
+        Analytics: {
+          trackShareLinkCopied: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const finalParams = {
+        behalfUser: {
+          email: ''
+        },
+        params: {
+          id: 'file-id'
+        },
+        body: {
+          views: '1',
+          bucketToken: 'token',
+          bucket: 'bucket',
+          mnemonic: 'nemo',
+        }
+      };
+      const request = getRequest(finalParams);
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.generateShareFolderToken(request, response);
+
+      // Assert
+      expect(services.Share.GenerateFolderToken.calledOnce).to.be.true;
+      expect(services.Analytics.trackShareLinkCopied.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        token: 'token'
+      }]);
+    });
+
+  });
+
 });
 
 function getController(services = {}, logger = {}): ShareController {

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { StorageController } from '../../src/app/routes/storage-v2';
+import { StorageController } from '../../src/app/routes/storage';
 import { Logger } from 'winston';
 import sinon, { SinonStub } from 'sinon';
 import { expect } from 'chai';
@@ -675,7 +675,6 @@ describe('Storage controller', () => {
       const response = getResponse();
 
       try {
-
         // Act
         await controller.getTreeSpecific(request, response);
         expect(true).to.be.false;
@@ -1400,6 +1399,1383 @@ describe('Storage controller', () => {
 
   });
 
+  describe('Move file', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '',
+          destination: '2'
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `destination`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          destination: ''
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.moveFile(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Destination folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          MoveFile: stubOf('MoveFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFile(request, response);
+
+      // Assert
+      expect(services.Files.MoveFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          MoveFile: stubOf('MoveFile')
+            .resolves({
+              result: {
+                some: 'data'
+              },
+              other: {
+                some: 'more'
+              }
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '1',
+          destination: '2'
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveFile(request, response);
+
+      // Assert
+      expect(services.Files.MoveFile.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.fileUpdated.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        result: {
+          some: 'data'
+        },
+        other: {
+          some: 'more'
+        }
+      }]);
+    });
+
+  });
+
+  describe('Update file', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: ''
+        },
+        body: {
+          metadata: {},
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `bucketId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: '',
+          relativePath: 'sss',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Bucket ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `relativePath`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: '',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Relative path is not valid');
+      }
+    });
+
+    it('should fail if missing mnemonic header', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {}
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.updateFile(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Mnemonic is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {
+          'internxt-mnemonic': 'nemo'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFile(request, response);
+
+      // Assert
+      expect(services.Files.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          UpdateMetadata: stubOf('UpdateMetadata')
+            .resolves({
+              data: 'some'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileUpdated: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          bridgeUser: ''
+        },
+        params: {
+          fileid: '1'
+        },
+        body: {
+          metadata: {},
+          bucketId: 'ss',
+          relativePath: 'sss',
+        },
+        headers: {
+          'internxt-mnemonic': 'nemo'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.updateFile(request, response);
+
+      // Assert
+      expect(services.Files.UpdateMetadata.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
+
+  describe('Delete file (bridge)', () => {
+
+    it('should fail if missing param `bucketid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'null'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'No bucket ID provided'
+      }]);
+    });
+
+    it('should fail if missing param `fileid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'lala',
+          fileid: 'null'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'No file ID provided'
+      }]);
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          Delete: stubOf('Delete')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          bucketid: 'lala',
+          fileid: 'lolo'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(services.Files.Delete.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          Delete: stubOf('Delete')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          bridgeUser: ''
+        },
+        params: {
+          bucketid: 'lala',
+          fileid: 'lolo'
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileBridge(request, response);
+
+      // Assert
+      expect(services.Files.Delete.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        deleted: true
+      }]);
+    });
+  });
+
+  describe('Delete file (database)', () => {
+
+    it('should fail if missing param `fileid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.deleteFileDatabase(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `folderid`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.deleteFileDatabase(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          DeleteFile: stubOf('DeleteFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileDatabase(request, response);
+
+      // Assert
+      expect(services.Files.DeleteFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          DeleteFile: stubOf('DeleteFile')
+            .resolves({
+              data: 'some'
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          fileDeleted: sinon.spy()
+        },
+        Analytics: {
+          trackFileDeleted: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          fileid: '2',
+          folderid: '2',
+        },
+        headers: {}
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.deleteFileDatabase(request, response);
+
+      // Assert
+      expect(services.Files.DeleteFile.calledOnce).to.be.true;
+      expect(services.Analytics.trackFileDeleted.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        deleted: true
+      }]);
+    });
+  });
+
+  describe('Get recent files', () => {
+
+    it('should fail if missing param `limit`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        query: {
+          limit: '',
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      try {
+        // Act
+        await controller.getRecentFiles(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Limit is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '2',
+        },
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'Can not get recent files'
+      }]);
+    });
+
+    it('should fail when no files found', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '3',
+        },
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
+      expect(sendSpy.args[0]).to.deep.equal([{
+        error: 'Files not found'
+      }]);
+    });
+
+    it('should excute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          getRecentFiles: stubOf('getRecentFiles')
+            .resolves([
+              {
+                name: '1',
+                folderId: '2',
+              },
+              {
+                name: '3',
+                folderId: '4',
+              }
+            ]),
+        },
+        Crypt: {
+          decryptName: stubOf('decryptName').returns('lala')
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        user: {
+          email: ''
+        },
+        query: {
+          limit: '3',
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getRecentFiles(request, response);
+
+      // Assert
+      expect(services.Files.getRecentFiles.calledOnce).to.be.true;
+      expect(services.Crypt.decryptName.calledTwice).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([
+        [
+          {
+            name: 'lala',
+            folderId: '2',
+          },
+          {
+            name: 'lala',
+            folderId: '4',
+          }
+        ]
+      ]);
+    });
+  });
+
+  describe('Acquire folder lock', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '',
+          lockId: '',
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.acquireFolderLock(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          acquireLock: stubOf('acquireLock')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '3',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.acquireFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.acquireLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+    it('should execute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          acquireLock: stubOf('acquireLock')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '2',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.acquireFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.acquireLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+  });
+
+  describe('Refresh folder lock', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '',
+          lockId: '',
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.refreshFolderLock(request, response);
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          refreshLock: stubOf('refreshLock')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '3',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.refreshFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.refreshLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+    it('should execute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          refreshLock: stubOf('refreshLock')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '2',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.refreshFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.refreshLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+  });
+
+  describe('Release folder lock', () => {
+
+    it('should fail if missing param `folderId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '',
+          lockId: '',
+        },
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.releaseFolderLock(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Folder ID is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          releaseLock: stubOf('releaseLock')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '3',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.releaseFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.releaseLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+    it('should execute correct when everything is fine', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          releaseLock: stubOf('releaseLock')
+            .resolves(),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {
+          id: ''
+        },
+        params: {
+          folderId: '2',
+          lockId: '2',
+        },
+      });
+      const endSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            end: endSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.releaseFolderLock(request, response);
+
+      // Assert
+      expect(services.Folder.releaseLock.calledOnce).to.be.true;
+      expect(endSpy.calledOnce).to.be.true;
+    });
+
+  });
+
+  describe('Rename file in network', () => {
+
+    it('should fail if missing param `fileId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('File ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `bucketId`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '3',
+          bucketId: '',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Bucket ID is not valid');
+      }
+    });
+
+    it('should fail if missing param `relativePath`', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '4',
+          bucketId: '1',
+          relativePath: '',
+        },
+        headers: {
+          'internxt-mnemonic': '4'
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Relative path is not valid');
+      }
+    });
+
+    it('should fail if missing mnemonic header', async () => {
+      // Arrange
+      const controller = getController({});
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': ''
+        }
+      });
+      const response = getResponse();
+
+      try {
+        // Act
+        await controller.renameFileInNetwork(request, response);
+        expect(true).to.be.false;
+      } catch ({ message }) {
+        // Assert
+        expect(message).to.equal('Mnemonic is not valid');
+      }
+    });
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Inxt: {
+          renameFile: stubOf('renameFile')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.renameFileInNetwork(request, response);
+
+      // Assert
+      expect(services.Inxt.renameFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        error: 'my-error'
+      }]);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Inxt: {
+          renameFile: stubOf('renameFile')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          email: '',
+          userId: ''
+        },
+        body: {
+          fileId: '2',
+          bucketId: '1',
+          relativePath: '2',
+        },
+        headers: {
+          'internxt-mnemonic': 'wever'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.renameFileInNetwork(request, response);
+
+      // Assert
+      expect(services.Inxt.renameFile.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        message: 'File renamed in network: 2'
+      }]);
+    });
+
+  });
+
+  describe('Fix duplicated folder', () => {
+
+    it('should return error when execution fails', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          changeDuplicateName: stubOf('changeDuplicateName')
+            .rejects({
+              message: 'my-error'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {},
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.fixDuplicate(request, response);
+
+      // Assert
+      expect(services.Folder.changeDuplicateName.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal(['my-error']);
+    });
+
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          changeDuplicateName: stubOf('changeDuplicateName')
+            .resolves({
+              data: 'some'
+            }),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        user: {},
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.fixDuplicate(request, response);
+
+      // Assert
+      expect(services.Folder.changeDuplicateName.calledOnce).to.be.true;
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some'
+      }]);
+    });
+
+  });
 });
 
 
@@ -1411,7 +2787,9 @@ function getController(services = {}, logger = {}): StorageController {
     Analytics: {},
     User: {},
     Notifications: {},
-    Share: {}
+    Share: {},
+    Crypt: {},
+    Inxt: {},
   };
 
   const finalServices = {
