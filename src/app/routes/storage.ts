@@ -429,7 +429,12 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { user } = req as PassportRequest;
     const { limit } = req.query;
-    const validLimit = Math.min(parseInt(limit), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
+
+    if (!limit) {
+      throw createHttpError(400, 'Missing limit param');
+    }
+
+    const validLimit = Math.min(parseInt(limit as string), CONSTANTS.RECENTS_LIMIT) || CONSTANTS.RECENTS_LIMIT;
 
     return this.services.Files.getRecentFiles(behalfUser, validLimit)
       .then((files: FileAttributes[]) => {
