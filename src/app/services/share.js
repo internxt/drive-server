@@ -1,6 +1,5 @@
 const crypto = require('crypto');
 const sequelize = require('sequelize');
-const { SHARE_TOKEN_LENGTH } = require('../constants');
 const { Environment } = require('@internxt/inxt-js');
 const { aes } = require('@internxt/lib');
 
@@ -252,10 +251,6 @@ module.exports = (Model, App) => {
   ) => {
     if (!encryptionKey) {
       throw Error('Encryption key cannot be empty');
-    }
-
-    if (encryptionKey.length !== SHARE_TOKEN_LENGTH) {
-      throw Error('Invalid encryption key size');
     }
 
     const itemExists = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileIdInBucket }, userId: user.id } });
