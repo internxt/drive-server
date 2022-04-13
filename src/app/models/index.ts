@@ -7,13 +7,14 @@ import initFile, { FileModel } from './file';
 import initFolder, { FolderModel } from './folder';
 import initInvitation, { InvitationModel } from './invitation';
 import initKeyServer, { KeyServerModel } from './keyserver';
+import initMailLimit, { MailLimitModel } from './mailLimit';
 import initPlan, { PlanModel } from './plan';
+import initReferral, { ReferralModel } from './referral';
 import initShare, { ShareModel } from './share';
 import initTeam, { TeamModel } from './team';
 import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
 import initTeamMember, { TeamMemberModel } from './teammember';
 import initUser, { UserModel } from './user';
-import initReferral, { ReferralModel } from './referral';
 import initUserReferral, { UserReferralModel } from './userReferral';
 
 export type ModelType =
@@ -24,13 +25,14 @@ export type ModelType =
   | FolderModel
   | InvitationModel
   | KeyServerModel
+  | MailLimitModel
   | PlanModel
+  | ReferralModel
   | ShareModel
   | TeamModel
   | TeamInvitationModel
   | TeamMemberModel
   | UserModel
-  | ReferralModel
   | UserReferralModel;
 
 export default (database: Sequelize) => {
@@ -41,13 +43,14 @@ export default (database: Sequelize) => {
   const Folder = initFolder(database);
   const Invitation = initInvitation(database);
   const KeyServer = initKeyServer(database);
+  const MailLimit = initMailLimit(database);
   const Plan = initPlan(database);
+  const Referral = initReferral(database);
   const Share = initShare(database);
   const Team = initTeam(database);
   const TeamMember = initTeamMember(database);
   const TeamInvitation = initTeamInvitation(database);
   const User = initUser(database);
-  const Referral = initReferral(database);
   const UserReferral = initUserReferral(database);
 
   AppSumo.belongsTo(User);
@@ -69,7 +72,11 @@ export default (database: Sequelize) => {
   Invitation.belongsTo(User, { foreignKey: 'host', targetKey: 'id' });
   Invitation.belongsTo(User, { foreignKey: 'guest', targetKey: 'id' });
 
+  MailLimit.belongsTo(User);
+
   Plan.belongsTo(User);
+
+  Referral.belongsToMany(User, { through: UserReferral });
 
   Share.hasOne(File, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
 
@@ -81,11 +88,10 @@ export default (database: Sequelize) => {
   User.hasMany(Device);
   User.hasMany(Invitation, { foreignKey: 'host' });
   User.belongsToMany(Referral, { through: UserReferral });
+  User.hasMany(MailLimit, { foreignKey: 'user_id' });
 
-  Referral.belongsToMany(User, { through: UserReferral });
-
-  UserReferral.belongsTo(User, { foreignKey: 'user_id', targetKey: 'id' });
-  UserReferral.belongsTo(Referral, { foreignKey: 'referral_id', targetKey: 'id' });
+  UserReferral.belongsTo(User, { foreignKey: 'user_id' });
+  UserReferral.belongsTo(Referral, { foreignKey: 'referral_id' });
 
   return {
     [AppSumo.name]: AppSumo,
@@ -95,13 +101,14 @@ export default (database: Sequelize) => {
     [Folder.name]: Folder,
     [Invitation.name]: Invitation,
     [KeyServer.name]: KeyServer,
+    ['mailLimit']: MailLimit,
     [Plan.name]: Plan,
+    [Referral.name]: Referral,
     [Share.name]: Share,
     [Team.name]: Team,
     [TeamMember.name]: TeamMember,
     [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
-    [Referral.name]: Referral,
     [UserReferral.name]: UserReferral,
   };
 };
