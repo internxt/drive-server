@@ -105,6 +105,7 @@ module.exports = (Router, Service, App) => {
       await Service.User.invite({
         inviteEmail,
         hostEmail: user.email,
+        hostUserId: user.id,
         hostFullName,
         hostReferralCode: user.referralCode,
       });
@@ -113,10 +114,15 @@ module.exports = (Router, Service, App) => {
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
     } catch (err) {
-      logger.error('Error inviting user with email %s: %s', inviteEmail, err ? err.message : err);
-      res.status((err && err.status) || 500).send({
-        error: err ? err.message : err,
-      });
+      if (err instanceof Service.User.UserAlreadyRegisteredError) {
+        return res.status(400).send(err.message);
+      }
+
+      if (err instanceof Service.User.DailyInvitationUsersLimitReached) {
+        return res.status(429).send(err.message);
+      } 
+
+      throw err;
     }
   });
 
