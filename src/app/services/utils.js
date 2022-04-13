@@ -33,11 +33,27 @@ module.exports = () => {
     return { name: matches[1], ext: matches[3] ? matches[3] : null };
   };
 
+  const isToday = (date) => {
+    const otherDate = new Date(date);
+    const todayDate = new Date();
+  
+    if (
+      otherDate.getDate() === todayDate.getDate() &&
+      otherDate.getMonth() === todayDate.getMonth() &&
+      otherDate.getYear() === todayDate.getYear()
+    ) {
+      return true;
+    } else {
+      return false;
+    }
+  };
+
   return {
     Name: 'Utils',
     IsBucketId,
     IsDatabaseId,
     FileNameParts,
     getNewMoveName,
+    isToday
   };
 };

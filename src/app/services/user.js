@@ -10,17 +10,35 @@ const createHttpError = require('http-errors');
 const uuid = require('uuid');
 
 const MailService = require('./mail');
+const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
 const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 const Logger = require('../../lib/logger').default;
 
 const { Op, col, fn } = sequelize;
 
+class UserAlreadyRegisteredError extends Error {
+  constructor(userEmail) {
+    super(`User ${userEmail || ''} is already registered`);
+  
+    Object.setPrototypeOf(this, UserAlreadyRegisteredError.prototype);
+  }
+}
+
+class DailyInvitationUsersLimitReached extends Error {
+  constructor() {
+    super('Mail invitation daily limit reached');
+
+    Object.setPrototypeOf(this, DailyInvitationUsersLimitReached.prototype);
+  }
+}
+
 module.exports = (Model, App) => {
   const logger = Logger.getInstance();
   const KeyServer = KeyServerService(Model, App);
   const CryptServiceInstance = CryptService(Model, App);
   const mailService = MailService(Model, App);
+  const utilsService = UtilsService();
 
   const FindOrCreate = (user) => {
     // Create password hashed pass only when a pass is given
@@ -555,11 +573,42 @@ module.exports = (Model, App) => {
     return user;
   };
 
-  const invite = async ({ inviteEmail, hostEmail, hostFullName, hostReferralCode }) => {
+  const invite = async ({ inviteEmail, hostEmail, hostUserId, hostFullName, hostReferralCode }) => {
     const userToInvite = await Model.users.findOne({ where: { email: inviteEmail } });
 
     if (userToInvite) {
-      throw createHttpError(409, `Email ${inviteEmail} is already registered`);
+      throw new UserAlreadyRegisteredError(inviteEmail);
+    }
+
+    let mailLimit = await Model.mailLimit.findOne({ 
+      where: { 
+        userId: hostUserId,
+        mailType: 'invite_friend'
+      } 
+    });
+
+    let limitAlreadyExists = false;
+
+    if (!mailLimit) {
+      mailLimit = await Model.mailLimit.create({
+        userId: hostUserId,
+        mailType: 'invite_friend',
+        attemptsCount: 0,
+        attemptsLimit: 10
+      });
+    } else {
+      limitAlreadyExists = true;
+    }
+
+    const limitReached = mailLimit.attemptsCount >= mailLimit.attemptsLimit;
+    const lastMailWasSentToday = utilsService.isToday(mailLimit.lastMailSent); 
+
+    if (lastMailWasSentToday) {
+      if (limitReached) {
+        throw new DailyInvitationUsersLimitReached();
+      }
+    } else if (limitAlreadyExists) {
+      mailLimit.attemptsCount = 0;
     }
 
     await mailService.sendInviteFriendMail(inviteEmail, {
@@ -567,6 +616,16 @@ module.exports = (Model, App) => {
       hostEmail,
       hostFullName,
       registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
+    });
+
+    await Model.mailLimit.update({ 
+      attemptsCount: mailLimit.attemptsCount + 1,
+      lastMailSent: new Date()
+    }, {
+      where: {
+        userId: hostUserId,
+        mailType: 'invite_friend'
+      }
     });
   };
 
@@ -626,5 +685,7 @@ module.exports = (Model, App) => {
     deactivate,
     confirmDeactivate,
     findWorkspaceMembers,
+    UserAlreadyRegisteredError,
+    DailyInvitationUsersLimitReached
   };
 };
