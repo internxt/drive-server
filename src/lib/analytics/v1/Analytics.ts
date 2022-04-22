@@ -1,5 +1,5 @@
 import AnalyticsSegment from 'analytics-node';
-import { logError } from './utils';
+import { logError } from '../utils';
 
 class Analytics {
   analytics: AnalyticsSegment;
