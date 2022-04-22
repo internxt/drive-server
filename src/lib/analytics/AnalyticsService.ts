@@ -1,4 +1,5 @@
-import Analytics from './Analytics';
+import Analytics from './v1/Analytics';
+import AnalyticsV2 from './v2/Analytics';
 import { getAppsumoAffiliate, getContext, getAffiliate } from './utils';
 import { TrackName, User, ReqUser } from './types';
 
@@ -137,7 +138,7 @@ export async function trackUploadCompleted(req: express.Request & ReqUser) {
   const { user } = req;
   const context = await getContext(req);
 
-  Analytics.track({
+  const eventContent = {
     userId: user.uuid,
     event: TrackName.UploadCompleted,
     properties: {
@@ -145,7 +146,9 @@ export async function trackUploadCompleted(req: express.Request & ReqUser) {
       size: file.size,
     },
     context,
-  });
+  };
+  AnalyticsV2.track(eventContent);
+  Analytics.track(eventContent);
 }
 
 export async function trackShareLinkCopied(userUuid: string, views: number, req: express.Request) {
