@@ -185,6 +185,22 @@ export class AuthController {
       },
     };
   }
+
+  async areCredentialsCorrect(req: Request, res: Response) {
+    if (!req.query.email || !req.query.hashedPassword)
+      throw createHttpError(400, 'Query params must contain email and hashedPassword properties');
+
+    const { email, hashedPassword } = req.query;
+
+    try {
+      const user: UserAttributes = await this.service.User.FindUserByEmail(email);
+      if (user.password.toString() !== hashedPassword) throw new Error('Passwords are not the same');
+
+      return res.status(200).end();
+    } catch (err) {
+      throw createHttpError(401, 'Wrong credentials');
+    }
+  }
 }
 
 export default (router: Router, service: any, config: Config) => {
@@ -194,4 +210,5 @@ export default (router: Router, service: any, config: Config) => {
   router.post('/login', controller.login.bind(controller));
   router.post('/access', controller.access.bind(controller));
   router.get('/new-token', passportAuth, controller.getNewToken.bind(controller));
+  router.get('/are-credentials-correct', controller.areCredentialsCorrect.bind(controller));
 };
