@@ -66,7 +66,6 @@ services:
       context: ../../farmer
       dockerfile: infrastructure/Dockerfile
     depends_on:
-      - renter
       - s3
     container_name: farmer
     networks:
@@ -100,26 +99,6 @@ services:
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
       exit 0;
       "
-    networks:
-      - internxt
-
-  renter:
-    build:
-      context: ../../complex
-      dockerfile: infrastructure/renter.Dockerfile
-    container_name: renter
-    depends_on:
-      - landlord
-    networks:
-      - internxt
-
-  landlord:
-    build:
-      context: ../../complex
-      dockerfile: infrastructure/landlord.Dockerfile
-    container_name: landlord
-    depends_on:
-      - bridge
     networks:
       - internxt
 
