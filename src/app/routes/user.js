@@ -120,7 +120,7 @@ module.exports = (Router, Service, App) => {
 
       if (err instanceof Service.User.DailyInvitationUsersLimitReached) {
         return res.status(429).send(err.message);
-      } 
+      }
 
       throw err;
     }
@@ -152,6 +152,21 @@ module.exports = (Router, Service, App) => {
       })
       .catch((err) => {
         logger.error('Error during Update for user %s: %s', req.user.email, err.message);
+        res.status(500).send({ error: err.message });
+      });
+  });
+
+  Router.patch('/user/profile', passportAuth, (req, res) => {
+    if (typeof req.body !== 'object') {
+      res.status(400).send({ error: 'Request has no body' });
+    }
+
+    Service.User.modifyProfile(req.user.email, req.body)
+      .then(() => {
+        res.status(200).end();
+      })
+      .catch((err) => {
+        logger.error('Error during profile update for user %s: %s', req.user.email, err.message);
         res.status(500).send({ error: err.message });
       });
   });
