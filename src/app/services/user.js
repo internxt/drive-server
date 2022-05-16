@@ -20,7 +20,7 @@ const { Op, col, fn } = sequelize;
 class UserAlreadyRegisteredError extends Error {
   constructor(userEmail) {
     super(`User ${userEmail || ''} is already registered`);
-  
+
     Object.setPrototypeOf(this, UserAlreadyRegisteredError.prototype);
   }
 }
@@ -580,11 +580,11 @@ module.exports = (Model, App) => {
       throw new UserAlreadyRegisteredError(inviteEmail);
     }
 
-    let mailLimit = await Model.mailLimit.findOne({ 
-      where: { 
+    let mailLimit = await Model.mailLimit.findOne({
+      where: {
         userId: hostUserId,
-        mailType: 'invite_friend'
-      } 
+        mailType: 'invite_friend',
+      },
     });
 
     let limitAlreadyExists = false;
@@ -594,14 +594,14 @@ module.exports = (Model, App) => {
         userId: hostUserId,
         mailType: 'invite_friend',
         attemptsCount: 0,
-        attemptsLimit: 10
+        attemptsLimit: 10,
       });
     } else {
       limitAlreadyExists = true;
     }
 
     const limitReached = mailLimit.attemptsCount >= mailLimit.attemptsLimit;
-    const lastMailWasSentToday = utilsService.isToday(mailLimit.lastMailSent); 
+    const lastMailWasSentToday = utilsService.isToday(mailLimit.lastMailSent);
 
     if (lastMailWasSentToday) {
       if (limitReached) {
@@ -618,15 +618,18 @@ module.exports = (Model, App) => {
       registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
     });
 
-    await Model.mailLimit.update({ 
-      attemptsCount: mailLimit.attemptsCount + 1,
-      lastMailSent: new Date()
-    }, {
-      where: {
-        userId: hostUserId,
-        mailType: 'invite_friend'
-      }
-    });
+    await Model.mailLimit.update(
+      {
+        attemptsCount: mailLimit.attemptsCount + 1,
+        lastMailSent: new Date(),
+      },
+      {
+        where: {
+          userId: hostUserId,
+          mailType: 'invite_friend',
+        },
+      },
+    );
   };
 
   const CompleteInfo = async (user, info) => {
@@ -654,6 +657,10 @@ module.exports = (Model, App) => {
 
   const findWorkspaceMembers = async (bridgeUser) => {
     return Model.users.findAll({ where: { bridgeUser } });
+  };
+
+  const modifyProfile = async (email, { name, lastname }) => {
+    return Model.users.update({ name, lastname }, { where: { email } });
   };
 
   return {
@@ -686,6 +693,7 @@ module.exports = (Model, App) => {
     confirmDeactivate,
     findWorkspaceMembers,
     UserAlreadyRegisteredError,
-    DailyInvitationUsersLimitReached
+    DailyInvitationUsersLimitReached,
+    modifyProfile,
   };
 };
