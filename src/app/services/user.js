@@ -435,7 +435,7 @@ module.exports = (Model, App) => {
 
     if (hasReferrer) {
       AnalyticsService.trackInvitationAccepted(userData.uuid, referrer.uuid, referrer.email);
-
+      await Model.FriendInvitation.update({ accepted: true }, { where: { host: referrer.id, guestEmail: email } });
       await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }
 
