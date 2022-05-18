@@ -114,10 +114,6 @@ module.exports = (Router, Service, App) => {
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
     } catch (err) {
-      if (err instanceof Service.User.UserAlreadyRegisteredError) {
-        return res.status(400).send(err.message);
-      }
-
       if (err instanceof Service.User.DailyInvitationUsersLimitReached) {
         return res.status(429).send(err.message);
       }
