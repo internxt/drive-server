@@ -122,6 +122,14 @@ module.exports = (Router, Service, App) => {
     }
   });
 
+  Router.get('/user/invite', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    const invites = await Service.User.getFriendInvites(user.id);
+
+    res.status(200).send(invites);
+  });
+
   Router.post('/activate/update', passportAuth, (req, res) => {
     Service.User.CompleteInfo(req.user, req.body)
       .then(async () => {

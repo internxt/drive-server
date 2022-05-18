@@ -668,6 +668,10 @@ module.exports = (Model, App) => {
     return Model.users.update({ name, lastname }, { where: { email } });
   };
 
+  const getFriendInvites = async (id) => {
+    return Model.FriendInvitation.findAll({ where: { host: id } });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -700,5 +704,6 @@ module.exports = (Model, App) => {
     UserAlreadyRegisteredError,
     DailyInvitationUsersLimitReached,
     modifyProfile,
+    getFriendInvites,
   };
 };
