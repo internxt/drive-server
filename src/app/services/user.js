@@ -732,5 +732,6 @@ module.exports = (Model, App) => {
     modifyProfile,
     upsertAvatar,
     deleteAvatar,
+    getSignedAvatarUrl,
   };
 };
