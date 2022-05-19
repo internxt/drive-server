@@ -179,4 +179,12 @@ module.exports = (Router, Service, App) => {
 
     res.status(200).send(response);
   });
+
+  Router.delete('/user/avatar', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    await Service.User.deleteAvatar(user);
+
+    res.status(200).end();
+  });
 };

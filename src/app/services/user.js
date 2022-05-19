@@ -673,18 +673,29 @@ module.exports = (Model, App) => {
     });
   };
 
+  const deleteAvatarInS3 = (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    return s3.deleteObject({ Bucket: process.env.AVATAR_BUCKET, Key: avatarKey }).promise();
+  };
+
   const upsertAvatar = async (user, newAvatarKey) => {
     await Model.users.update({ avatar: newAvatarKey }, { where: { id: user.id } });
 
     if (user.avatar) {
       try {
-        const s3 = AvatarS3.getInstance();
-        await s3.deleteObject({ Bucket: process.env.AVATAR_BUCKET, Key: user.avatar }).promise();
+        await deleteAvatarInS3(user.avatar);
       } catch (err) {
         logger.error(`Error while deleting already existing avatar for user ${user.email}: ${err.message}`);
       }
     }
     return { avatar: await getSignedAvatarUrl(newAvatarKey) };
+  };
+
+  const deleteAvatar = async (user) => {
+    if (!user.avatar) return;
+
+    await deleteAvatarInS3(user.avatar);
+    return Model.users.update({ avatar: null }, { where: { id: user.id } });
   };
 
   return {
@@ -720,5 +731,6 @@ module.exports = (Model, App) => {
     DailyInvitationUsersLimitReached,
     modifyProfile,
     upsertAvatar,
+    deleteAvatar,
   };
 };
