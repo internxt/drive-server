@@ -8,6 +8,7 @@ const KeyServerService = require('./keyserver');
 const CryptService = require('./crypt');
 const createHttpError = require('http-errors');
 const uuid = require('uuid');
+const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
 const MailService = require('./mail');
 const UtilsService = require('./utils');
@@ -663,6 +664,29 @@ module.exports = (Model, App) => {
     return Model.users.update({ name, lastname }, { where: { email } });
   };
 
+  const getSignedAvatarUrl = (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    return s3.getSignedUrlPromise('getObject', {
+      Bucket: process.env.AVATAR_BUCKET,
+      Key: avatarKey,
+      Expires: 24 * 3600,
+    });
+  };
+
+  const upsertAvatar = async (user, newAvatarKey) => {
+    await Model.users.update({ avatar: newAvatarKey }, { where: { id: user.id } });
+
+    if (user.avatar) {
+      try {
+        const s3 = AvatarS3.getInstance();
+        await s3.deleteObject({ Bucket: process.env.AVATAR_BUCKET, Key: user.avatar }).promise();
+      } catch (err) {
+        logger.error(`Error while deleting already existing avatar for user ${user.email}: ${err.message}`);
+      }
+    }
+    return { avatar: await getSignedAvatarUrl(newAvatarKey) };
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -695,5 +719,6 @@ module.exports = (Model, App) => {
     UserAlreadyRegisteredError,
     DailyInvitationUsersLimitReached,
     modifyProfile,
+    upsertAvatar,
   };
 };

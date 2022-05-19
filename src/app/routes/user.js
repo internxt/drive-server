@@ -1,9 +1,9 @@
 const openpgp = require('openpgp');
-
 const createHttpError = require('http-errors');
 const { passportAuth, Sign } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
+const { default: uploadAvatar } = require('../middleware/upload-avatar');
 
 const logger = Logger.getInstance();
 
@@ -169,5 +169,14 @@ module.exports = (Router, Service, App) => {
         logger.error('Error during profile update for user %s: %s', req.user.email, err.message);
         res.status(500).send({ error: err.message });
       });
+  });
+
+  Router.put('/user/avatar', passportAuth, uploadAvatar, async (req, res) => {
+    const { user } = req;
+    if (!req.file) res.status(400).send({ error: 'Avatar field is required' });
+
+    const response = await Service.User.upsertAvatar(user, req.file.key);
+
+    res.status(200).send(response);
   });
 };
