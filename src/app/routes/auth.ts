@@ -149,6 +149,7 @@ export class AuthController {
         userData.userId,
       ),
       backupsBucket: userData.backupsBucket,
+      avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
     };
 
     const userTeam = null;
