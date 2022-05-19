@@ -436,7 +436,7 @@ module.exports = (Model, App) => {
 
     if (hasReferrer) {
       AnalyticsService.trackInvitationAccepted(userData.uuid, referrer.uuid, referrer.email);
-
+      await Model.FriendInvitation.update({ accepted: true }, { where: { host: referrer.id, guestEmail: email } });
       await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }
 
@@ -575,12 +575,6 @@ module.exports = (Model, App) => {
   };
 
   const invite = async ({ inviteEmail, hostEmail, hostUserId, hostFullName, hostReferralCode }) => {
-    const userToInvite = await Model.users.findOne({ where: { email: inviteEmail } });
-
-    if (userToInvite) {
-      throw new UserAlreadyRegisteredError(inviteEmail);
-    }
-
     let mailLimit = await Model.mailLimit.findOne({
       where: {
         userId: hostUserId,
@@ -612,25 +606,36 @@ module.exports = (Model, App) => {
       mailLimit.attemptsCount = 0;
     }
 
-    await mailService.sendInviteFriendMail(inviteEmail, {
-      inviteEmail,
-      hostEmail,
-      hostFullName,
-      registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
+    const userToInviteAlreadyExists = await Model.users.findOne({ where: { email: inviteEmail } });
+
+    if (!userToInviteAlreadyExists) {
+      await mailService.sendInviteFriendMail(inviteEmail, {
+        inviteEmail,
+        hostEmail,
+        hostFullName,
+        registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
+      });
+      await Model.mailLimit.update(
+        {
+          attemptsCount: mailLimit.attemptsCount + 1,
+          lastMailSent: new Date(),
+        },
+        {
+          where: {
+            userId: hostUserId,
+            mailType: 'invite_friend',
+          },
+        },
+      );
+    }
+
+    const alreadyExistingFriendInvitation = await Model.FriendInvitation.findOne({
+      where: { guestEmail: inviteEmail, host: hostUserId },
     });
 
-    await Model.mailLimit.update(
-      {
-        attemptsCount: mailLimit.attemptsCount + 1,
-        lastMailSent: new Date(),
-      },
-      {
-        where: {
-          userId: hostUserId,
-          mailType: 'invite_friend',
-        },
-      },
-    );
+    if (!alreadyExistingFriendInvitation) {
+      await Model.FriendInvitation.create({ host: hostUserId, guestEmail: inviteEmail });
+    }
   };
 
   const CompleteInfo = async (user, info) => {
@@ -698,6 +703,10 @@ module.exports = (Model, App) => {
     return Model.users.update({ avatar: null }, { where: { id: user.id } });
   };
 
+  const getFriendInvites = async (id) => {
+    return Model.FriendInvitation.findAll({ where: { host: id } });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -733,5 +742,6 @@ module.exports = (Model, App) => {
     upsertAvatar,
     deleteAvatar,
     getSignedAvatarUrl,
+    getFriendInvites,
   };
 };

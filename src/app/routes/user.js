@@ -114,16 +114,20 @@ module.exports = (Router, Service, App) => {
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
     } catch (err) {
-      if (err instanceof Service.User.UserAlreadyRegisteredError) {
-        return res.status(400).send(err.message);
-      }
-
       if (err instanceof Service.User.DailyInvitationUsersLimitReached) {
         return res.status(429).send(err.message);
       }
 
       throw err;
     }
+  });
+
+  Router.get('/user/invite', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    const invites = await Service.User.getFriendInvites(user.id);
+
+    res.status(200).send(invites);
   });
 
   Router.post('/activate/update', passportAuth, (req, res) => {
