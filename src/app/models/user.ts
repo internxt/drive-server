@@ -26,6 +26,7 @@ export interface UserAttributes {
   backupsBucket: string;
   sharedWorkspace: boolean;
   tempKey: string;
+  avatar: string;
 }
 
 export type UserModel = ModelDefined<UserAttributes, UserAttributes>;
@@ -133,6 +134,10 @@ export default (database: Sequelize): UserModel => {
       },
       tempKey: {
         type: DataTypes.STRING,
+      },
+      avatar: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
     },
     {
