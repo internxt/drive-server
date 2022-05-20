@@ -669,13 +669,20 @@ module.exports = (Model, App) => {
     return Model.users.update({ name, lastname }, { where: { email } });
   };
 
-  const getSignedAvatarUrl = (avatarKey) => {
+  const getSignedAvatarUrl = async (avatarKey) => {
     const s3 = AvatarS3.getInstance();
-    return s3.getSignedUrlPromise('getObject', {
+    const url = await s3.getSignedUrlPromise('getObject', {
       Bucket: process.env.AVATAR_BUCKET,
       Key: avatarKey,
       Expires: 24 * 3600,
     });
+
+    const endpointRewrite = process.env.AVATAR_ENDPOINT_REWRITE_FOR_SIGNED_URLS;
+    if (endpointRewrite) {
+      return url.replace(process.env.AVATAR_ENDPOINT, endpointRewrite);
+    } else {
+      return url;
+    }
   };
 
   const deleteAvatarInS3 = (avatarKey) => {
