@@ -8,6 +8,7 @@ const KeyServerService = require('./keyserver');
 const CryptService = require('./crypt');
 const createHttpError = require('http-errors');
 const uuid = require('uuid');
+const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
 const MailService = require('./mail');
 const UtilsService = require('./utils');
@@ -668,6 +669,47 @@ module.exports = (Model, App) => {
     return Model.users.update({ name, lastname }, { where: { email } });
   };
 
+  const getSignedAvatarUrl = async (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    const url = await s3.getSignedUrlPromise('getObject', {
+      Bucket: process.env.AVATAR_BUCKET,
+      Key: avatarKey,
+      Expires: 24 * 3600,
+    });
+
+    const endpointRewrite = process.env.AVATAR_ENDPOINT_REWRITE_FOR_SIGNED_URLS;
+    if (endpointRewrite) {
+      return url.replace(process.env.AVATAR_ENDPOINT, endpointRewrite);
+    } else {
+      return url;
+    }
+  };
+
+  const deleteAvatarInS3 = (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    return s3.deleteObject({ Bucket: process.env.AVATAR_BUCKET, Key: avatarKey }).promise();
+  };
+
+  const upsertAvatar = async (user, newAvatarKey) => {
+    await Model.users.update({ avatar: newAvatarKey }, { where: { id: user.id } });
+
+    if (user.avatar) {
+      try {
+        await deleteAvatarInS3(user.avatar);
+      } catch (err) {
+        logger.error(`Error while deleting already existing avatar for user ${user.email}: ${err.message}`);
+      }
+    }
+    return { avatar: await getSignedAvatarUrl(newAvatarKey) };
+  };
+
+  const deleteAvatar = async (user) => {
+    if (!user.avatar) return;
+
+    await deleteAvatarInS3(user.avatar);
+    return Model.users.update({ avatar: null }, { where: { id: user.id } });
+  };
+
   const getFriendInvites = async (id) => {
     return Model.FriendInvitation.findAll({ where: { host: id } });
   };
@@ -704,6 +746,9 @@ module.exports = (Model, App) => {
     UserAlreadyRegisteredError,
     DailyInvitationUsersLimitReached,
     modifyProfile,
+    upsertAvatar,
+    deleteAvatar,
+    getSignedAvatarUrl,
     getFriendInvites,
   };
 };
