@@ -191,4 +191,12 @@ module.exports = (Router, Service, App) => {
 
     res.status(200).end();
   });
+
+  Router.post('/user/sendVerificationEmail', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    await Service.User.sendEmailVerification(user);
+
+    res.status(200).end();
+  });
 };

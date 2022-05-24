@@ -10,6 +10,8 @@ const createHttpError = require('http-errors');
 const uuid = require('uuid');
 const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
+const config = require('../../config/config').default.getInstance();
+const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
@@ -714,6 +716,11 @@ module.exports = (Model, App) => {
     return Model.FriendInvitation.findAll({ where: { host: id } });
   };
 
+  const sendEmailVerification = async (user) => {
+    const secret = config.get('secrets').JWT;
+    const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -750,5 +757,6 @@ module.exports = (Model, App) => {
     deleteAvatar,
     getSignedAvatarUrl,
     getFriendInvites,
+    sendEmailVerification,
   };
 };
