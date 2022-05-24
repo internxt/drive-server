@@ -197,7 +197,7 @@ module.exports = (Router, Service, App) => {
 
     await Service.User.sendEmailVerification(user);
 
-    res.status(200).end();
+    res.status(201).end();
   });
 
   Router.post('/user/verifyEmail', async (req, res) => {
