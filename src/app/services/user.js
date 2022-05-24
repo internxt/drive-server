@@ -721,6 +721,25 @@ module.exports = (Model, App) => {
     const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
   };
 
+  const verifyEmail = async (verificationToken) => {
+    const secret = config.get('secrets').JWT;
+
+    let uuid;
+
+    try {
+      uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
+    } catch (err) {
+      logger.error(`Error while validating verificationToken (verifyEmail) ${err.message}`);
+      throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
+    }
+
+    try {
+      await Model.users.update({ emailVerified: true }, { where: { uuid } });
+    } catch (err) {
+      logger.error(`Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+    }
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -758,5 +777,6 @@ module.exports = (Model, App) => {
     getSignedAvatarUrl,
     getFriendInvites,
     sendEmailVerification,
+    verifyEmail,
   };
 };

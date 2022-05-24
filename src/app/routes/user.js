@@ -199,4 +199,14 @@ module.exports = (Router, Service, App) => {
 
     res.status(200).end();
   });
+
+  Router.post('/user/verifyEmail', async (req, res) => {
+    const { verificationToken } = req.body;
+
+    if (!verificationToken) return res.status(400).send({ error: 'There is no verification token to validate' });
+
+    await Service.User.verifyEmail(verificationToken);
+
+    res.status(201).end();
+  });
 };
