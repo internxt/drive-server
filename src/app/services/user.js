@@ -719,6 +719,12 @@ module.exports = (Model, App) => {
   const sendEmailVerification = async (user) => {
     const secret = config.get('secrets').JWT;
     const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
+
+    const verificationTokenEncoded = encodeURIComponent(verificationToken);
+
+    const url = `${process.env.HOST_DRIVE_WEB}/verify-email/${verificationTokenEncoded}`;
+
+    await mailService.sendVerifyEmailMail(user.email, { firstName: user.name, url });
   };
 
   const verifyEmail = async (verificationToken) => {
