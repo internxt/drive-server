@@ -255,7 +255,7 @@ export class StorageController {
   public async getFolderContents(req: Request, res: Response): Promise<void> {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
-    const { trash } = req.query;
+    const trash = req.query?.trash || null;
     const deleted = trash === 'true' ? 1 : 0;
 
     if (Validator.isInvalidPositiveNumber(id)) {

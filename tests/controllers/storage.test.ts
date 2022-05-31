@@ -1338,6 +1338,54 @@ describe('Storage controller', () => {
       }]);
     });
 
+    it('should execute fine when no error with trash', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves({
+            data: 'some'
+          }),
+          getFolders: stubOf('getById').resolves([
+            {}, {}
+          ]),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([
+            {}
+          ])
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        params: {
+          id: '2'
+        },
+        query: {
+          trash: 'true'
+        }
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([{
+        data: 'some',
+        children: [{}, {}],
+        files: [{}]
+      }]);
+    });
+
   });
 
   describe('Get folder size', () => {
@@ -1543,6 +1591,7 @@ describe('Storage controller', () => {
     });
 
   });
+  
 
   describe('Update file', () => {
 
@@ -2773,6 +2822,71 @@ describe('Storage controller', () => {
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some'
       }]);
+    });
+
+  });
+
+  describe('Move items to trash', () => {
+    it('should execute fine when no error', async () => {
+      // Arrange
+      const services = {
+        Files: {
+          moveFileToTrash: stubOf('moveFileToTrash')
+            .resolves({
+              result: {
+                some: 'data'
+              },
+              trashed: true
+            }),
+        },
+        Folder: {
+          MoveFolderToTrash: stubOf('MoveFolderToTrash')
+            .resolves({
+              result: {
+                some: 'data'
+              },
+              trashed: true
+            }),
+        },
+        User: {
+          findWorkspaceMembers: stubOf('findWorkspaceMembers')
+            .resolves([
+              {}, {}
+            ]),
+        },
+        Notifications: {
+          itemsToTrash: sinon.spy()
+        }
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {},
+        body: {
+          items: [
+            {id: '1', type: 'file'},
+            {id: '4', type: 'folder'}
+          ]
+        },
+        headers: {}
+      });
+      const sendSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            send: sendSpy
+          };
+        }
+      });
+
+      // Act
+      await controller.moveItemsToTrash(request, response);
+
+      // Assert
+      expect(services.Files.moveFileToTrash.calledOnce).to.be.true;
+      expect(services.Folder.MoveFolderToTrash.calledOnce).to.be.true;
+      expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
+      expect(services.Notifications.itemsToTrash.calledTwice).to.be.true;
+      expect(sendSpy.calledOnce).to.be.true;
     });
 
   });
