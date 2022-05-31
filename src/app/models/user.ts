@@ -10,7 +10,7 @@ export interface UserAttributes {
   bridgeUser: string;
   password: string;
   mnemonic: string;
-  rootFolderId: number;
+  root_folder_id: number;
   hKey: Buffer;
   secret_2FA: string;
   errorLoginCount: number;

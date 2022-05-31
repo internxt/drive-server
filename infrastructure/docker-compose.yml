@@ -9,6 +9,8 @@ services:
       RABBITMQ_DEFAULT_PASS: password
     networks:
       - internxt
+    ports:
+      - 5672:5672
 
   bridge-redis:
     image: redis:latest
@@ -45,6 +47,8 @@ services:
       - bridge-redis
     ports:
       - 6382:6382
+    env_file:
+      - ../../bridge/.env
 
   mongo-viewer:
     image: mongo-express
@@ -72,6 +76,8 @@ services:
       - internxt
     ports:
       - 43758:43758
+    env_file:
+      - ../../farmer/.env
 
   s3:
     image: quay.io/minio/minio
@@ -115,8 +121,11 @@ services:
       - redis
     volumes:
       - ../src:/usr/app/src
+      - ../migrations:/usr/app/migrations
     networks:
       - internxt
+    env_file:
+      - ../.env
 
   notifications:
     build:
@@ -131,6 +140,8 @@ services:
       - 4000:4000
     volumes:
       - ../../notifications/src:/usr/app/src
+    env_file:
+      - ../../notifications/.env
 
   maria:
     image: mariadb

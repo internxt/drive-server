@@ -220,6 +220,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
+        fileId: { [Op.ne]: fileId }
       },
     });
 
@@ -232,6 +233,8 @@ module.exports = (Model, App) => {
     const result = await file.update({
       folder_id: parseInt(destination, 10),
       name: destinationName,
+      deleted: 0,
+      deletedAt: null
     });
 
     // we don't want ecrypted name on front
@@ -243,6 +246,23 @@ module.exports = (Model, App) => {
       item: file,
       destination,
       moved: true,
+    };
+  };
+
+  const moveFileToTrash = async(user, fileId) => {
+    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
+
+    if (!file) {
+      throw Error('File not found');
+    }
+
+    file.deleted = true;
+    file.deletedAt = new Date();
+    file.save();
+
+    return {
+      result: file,
+      trashed: true,
     };
   };
 
@@ -290,8 +310,8 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getByFolderAndUserId = (folderId, userId) => {
-    return Model.file.findAll({ where: { folderId, userId } }).then((files) => {
+  const getByFolderAndUserId = (folderId, userId, deleted = 0) => {
+    return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
       if (!files) {
         throw new Error('Not found');
       }
@@ -321,6 +341,7 @@ module.exports = (Model, App) => {
     DeleteFile,
     UpdateMetadata,
     MoveFile,
+    moveFileToTrash,
     isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder,

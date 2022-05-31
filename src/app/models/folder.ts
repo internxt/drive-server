@@ -7,6 +7,8 @@ export interface FolderAttributes {
   bucket: string;
   userId: number;
   encryptVersion: string;
+  deleted: boolean;
+  deletedAt: Date;
 }
 
 export type FolderModel = ModelDefined<FolderAttributes, FolderAttributes>;
@@ -43,6 +45,14 @@ export default (database: Sequelize): FolderModel => {
       },
       encrypt_version: {
         type: DataTypes.STRING,
+      },
+      deleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
       },
     },
     {

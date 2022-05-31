@@ -66,6 +66,11 @@ export default class Notifications {
     return this.post({ event: 'FOLDER_DELETED', payload: { id }, email, clientId });
   }
 
+  itemsToTrash({ items, email, clientId } :
+    { items: Array<{ id: string, type: string }> } & Pick<RequestData, 'email' | 'clientId'>) : Promise<void> {
+    return this.post({ event: 'ITEMS_TRASH', payload: items, email, clientId });
+  }
+
   private async post(data: RequestData): Promise<void> {
     try {
       const res = await axios.post(process.env.NOTIFICATIONS_URL as string, data, {

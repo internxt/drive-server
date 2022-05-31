@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+const { child } = require('winston');
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -264,10 +265,10 @@ module.exports = (Model, App) => {
     };
   };
 
-  const getFolders = (parentFolderId, userId) => {
+  const getFolders = (parentFolderId, userId, deleted = 0) => {
     return Model.folder
       .findAll({
-        where: { parentId: parentFolderId, userId },
+        where: { parentId: parentFolderId, userId, deleted },
       })
       .then((folders) => {
         if (!folders) {
@@ -412,6 +413,7 @@ module.exports = (Model, App) => {
       where: {
         name: { [Op.eq]: destinationName },
         parent_id: { [Op.eq]: destination },
+        id: { [Op.ne]: folderId }
       },
     });
 
@@ -425,6 +427,8 @@ module.exports = (Model, App) => {
     const result = await folder.update({
       parentId: parseInt(destination, 10),
       name: destinationName,
+      deleted: 0,
+      deletedAt: null
     });
     // we don't want ecrypted name on front
     folder.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
@@ -437,6 +441,29 @@ module.exports = (Model, App) => {
     };
 
     return response;
+  };
+
+
+  const MoveFolderToTrash = async(user, folderId) => {
+    const folder = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+        user_id: { [Op.eq]: user.id },
+      },
+    });
+
+    if (!folder) {
+      throw Error('Folder does not exists');
+    }
+
+    folder.deleted = true;
+    folder.deletedAt = new Date();
+    folder.save();
+
+    return {
+      result: folder,
+      trashed: true,
+    };
   };
 
   const GetBucket = (user, folderId) =>
@@ -598,6 +625,7 @@ module.exports = (Model, App) => {
     GetTreeSize,
     UpdateMetadata,
     MoveFolder,
+    MoveFolderToTrash,
     GetBucket,
     getFolders,
     isFolderOfTeam,

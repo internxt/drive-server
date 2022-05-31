@@ -61,6 +61,7 @@ export default (database: Sequelize): FileModel => {
       },
       deletedAt: {
         type: DataTypes.DATE,
+        allowNull: true,
       },
       userId: {
         type: DataTypes.INTEGER,
