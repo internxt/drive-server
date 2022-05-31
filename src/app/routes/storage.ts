@@ -336,8 +336,7 @@ export class StorageController {
     const { behalfUser: user } = req as SharedRequest;
     const { items } = req.body;
     
-
-    items.forEach(async (item: {id: string, type: string}) => {
+    for (const item of items) {
       if(item.type === 'file') {
         if (Validator.isInvalidString(item.id)) {
           throw createHttpError(400, 'File ID is not valid');
@@ -347,9 +346,9 @@ export class StorageController {
         if (Validator.isInvalidPositiveNumber(item.id)) {
           throw createHttpError(400, 'Folder ID is not valid');
         }
-        return await this.services.Folder.MoveFolderToTrash(user, item.id);
+        await this.services.Folder.MoveFolderToTrash(user, item.id);
       }
-    });
+    }
 
     res.status(200).send();
 

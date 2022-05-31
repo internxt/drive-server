@@ -11,8 +11,8 @@ module.exports = {
   },
 
   down: async (queryInterface) => {
-    queryInterface.removeColumn('folders', 'deleted');
-    queryInterface.removeColumn('folders', 'deleted_at');
+    await queryInterface.removeColumn('folders', 'deleted');
+    await queryInterface.removeColumn('folders', 'deleted_at');
     return;
   },
 };

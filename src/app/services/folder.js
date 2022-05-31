@@ -5,7 +5,6 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
-const { child } = require('winston');
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -458,7 +457,7 @@ module.exports = (Model, App) => {
 
     folder.deleted = true;
     folder.deletedAt = new Date();
-    folder.save();
+    await folder.save();
 
     return {
       result: folder,

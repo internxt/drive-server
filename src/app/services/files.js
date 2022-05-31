@@ -258,7 +258,7 @@ module.exports = (Model, App) => {
 
     file.deleted = true;
     file.deletedAt = new Date();
-    file.save();
+    await file.save();
 
     return {
       result: file,
