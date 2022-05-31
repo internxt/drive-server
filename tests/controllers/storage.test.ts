@@ -1357,7 +1357,9 @@ describe('Storage controller', () => {
       };
       const controller = getController(services);
       const request = getRequest({
-        behalfUser: {},
+        behalfUser: {
+          id: 'id1'
+        },
         params: {
           id: '2'
         },
@@ -1378,6 +1380,8 @@ describe('Storage controller', () => {
       await controller.getFolderContents(request, response);
 
       // Assert
+      expect(services.Folder.getFolders.calledWith('2', 'id1', 1)).to.equal(true);
+      expect(services.Files.getByFolderAndUserId.calledWith('2', 'id1', 1)).to.equal(true);
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([{
         data: 'some',
