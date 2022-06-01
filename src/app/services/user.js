@@ -10,6 +10,8 @@ const createHttpError = require('http-errors');
 const uuid = require('uuid');
 const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
+const config = require('../../config/config').default.getInstance();
+const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
@@ -714,6 +716,36 @@ module.exports = (Model, App) => {
     return Model.FriendInvitation.findAll({ where: { host: id } });
   };
 
+  const sendEmailVerification = async (user) => {
+    const secret = config.get('secrets').JWT;
+    const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
+
+    const verificationTokenEncoded = encodeURIComponent(verificationToken);
+
+    const url = `${process.env.HOST_DRIVE_WEB}/verify-email/${verificationTokenEncoded}`;
+
+    await mailService.sendVerifyEmailMail(user.email, { firstName: user.name, url });
+  };
+
+  const verifyEmail = async (verificationToken) => {
+    const secret = config.get('secrets').JWT;
+
+    let uuid;
+
+    try {
+      uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
+    } catch (err) {
+      logger.error(`Error while validating verificationToken (verifyEmail) ${err.message}`);
+      throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
+    }
+
+    try {
+      await Model.users.update({ emailVerified: true }, { where: { uuid } });
+    } catch (err) {
+      logger.error(`Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+    }
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -750,5 +782,7 @@ module.exports = (Model, App) => {
     deleteAvatar,
     getSignedAvatarUrl,
     getFriendInvites,
+    sendEmailVerification,
+    verifyEmail,
   };
 };

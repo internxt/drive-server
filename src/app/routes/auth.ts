@@ -150,6 +150,7 @@ export class AuthController {
       ),
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
+      emailVerified: userData.emailVerified,
     };
 
     const userTeam = null;
