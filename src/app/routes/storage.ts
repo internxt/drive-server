@@ -12,6 +12,8 @@ import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 
+import axios from 'axios';
+
 interface Services {
   Files: any
   Folder: any
@@ -245,11 +247,22 @@ export class StorageController {
       });
   }
 
-  public async getTrash(req: Request, res: Response): Promise<void> {
-    const { behalfUser } = req as SharedRequest;
-    req.query.trash = 'true';
-    req.params.id = behalfUser.root_folder_id.toString();
-    return this.getFolderContents(req, res);
+  public async getTrash(req: Request, res: Response): Promise<any> {
+    const token = req.headers.authorization;
+    const clientId = req.headers['internxt-client-id'];
+    const version = req.headers['internxt-version'];
+    const response: any = await axios({
+      url: `${process.env.DRIVE_SERVER_WIP_URL}/api/storage/trash`,
+      method: 'get',
+      headers: {
+        'Authorization': `${token}`,
+        'internxt-client-id': `${clientId}`,
+        'internxt-version': `${version}`,
+      },
+    }).catch((err) => {
+      return res.status(err.response.data.statusCode).json(err.response.data);
+    });
+    return res.status(200).json(response.data);
   }
 
   public async getFolderContents(req: Request, res: Response): Promise<void> {
@@ -332,36 +345,24 @@ export class StorageController {
       });
   }
 
-  public async moveItemsToTrash(req: Request, res: Response): Promise<void> {
-    const { behalfUser: user } = req as SharedRequest;
-    const { items } = req.body;
-    
-    for (const item of items) {
-      if(item.type === 'file') {
-        if (Validator.isInvalidString(item.id)) {
-          throw createHttpError(400, 'File ID is not valid');
-        }
-        await this.services.Files.moveFileToTrash(user, item.id);
-      } else if (item.type === 'folder') {
-        if (Validator.isInvalidPositiveNumber(item.id)) {
-          throw createHttpError(400, 'Folder ID is not valid');
-        }
-        await this.services.Folder.MoveFolderToTrash(user, item.id);
-      }
-    }
-
-    res.status(200).send();
-
-    const clientId = String(req.headers['internxt-client-id']);
-    const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-    workspaceMembers.forEach(
-      ({ email }: { email: string }) => void this.services.Notifications.itemsToTrash({
-        items: items,
-        email: email,
-        clientId: clientId
-      }),
-    );
-
+  public async moveItemsToTrash(req: Request, res: Response): Promise<any> {
+    const token = req.headers.authorization;
+    const clientId = req.headers['internxt-client-id'];
+    const version = req.headers['internxt-version'];
+    const response: any = await axios({
+      url: `${process.env.DRIVE_SERVER_WIP_URL}/api/storage/trash/add`,
+      method: 'post',
+      headers: {
+        'Authorization': `${token}`,
+        'internxt-client-id': `${clientId}`,
+        'internxt-version': `${version}`,
+      },
+      data: req.body
+    })
+    .catch((err) => {
+      return res.status(err.response.data.statusCode).json(err.response.data);
+    });
+    return res.status(200).json(response.data);
   }
 
   public async updateFile(req: Request, res: Response): Promise<void> {
@@ -614,7 +615,7 @@ export default (router: Router, service: any) => {
   router.post('/storage/folder', passportAuth,
     controller.createFolder.bind(controller)
   );
-  router.get('/storage/tree', passportAuth,
+  router.get('/storage/tree',
     controller.getTree.bind(controller)
   );
   router.get('/storage/tree/:folderId', passportAuth,
@@ -641,7 +642,7 @@ export default (router: Router, service: any) => {
   router.get('/storage/trash', passportAuth, sharedAdapter,
     controller.getTrash.bind(controller)
   );
-  router.post('/storage/trash/add', passportAuth, sharedAdapter,
+  router.post('/storage/trash/add',
     controller.moveItemsToTrash.bind(controller)
   );
   router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter,

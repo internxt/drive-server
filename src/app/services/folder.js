@@ -442,29 +442,6 @@ module.exports = (Model, App) => {
     return response;
   };
 
-
-  const MoveFolderToTrash = async(user, folderId) => {
-    const folder = await Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-        user_id: { [Op.eq]: user.id },
-      },
-    });
-
-    if (!folder) {
-      throw Error('Folder does not exists');
-    }
-
-    folder.deleted = true;
-    folder.deletedAt = new Date();
-    await folder.save();
-
-    return {
-      result: folder,
-      trashed: true,
-    };
-  };
-
   const GetBucket = (user, folderId) =>
     Model.folder.findOne({
       where: {
@@ -624,7 +601,6 @@ module.exports = (Model, App) => {
     GetTreeSize,
     UpdateMetadata,
     MoveFolder,
-    MoveFolderToTrash,
     GetBucket,
     getFolders,
     isFolderOfTeam,

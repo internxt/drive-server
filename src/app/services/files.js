@@ -249,22 +249,6 @@ module.exports = (Model, App) => {
     };
   };
 
-  const moveFileToTrash = async(user, fileId) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
-
-    if (!file) {
-      throw Error('File not found');
-    }
-
-    file.deleted = true;
-    file.deletedAt = new Date();
-    await file.save();
-
-    return {
-      result: file,
-      trashed: true,
-    };
-  };
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
@@ -341,7 +325,6 @@ module.exports = (Model, App) => {
     DeleteFile,
     UpdateMetadata,
     MoveFile,
-    moveFileToTrash,
     isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder,
