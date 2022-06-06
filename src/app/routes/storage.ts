@@ -615,7 +615,7 @@ export default (router: Router, service: any) => {
   router.post('/storage/folder', passportAuth,
     controller.createFolder.bind(controller)
   );
-  router.get('/storage/tree',
+  router.get('/storage/tree', passportAuth,
     controller.getTree.bind(controller)
   );
   router.get('/storage/tree/:folderId', passportAuth,
