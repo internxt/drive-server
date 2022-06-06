@@ -50,21 +50,6 @@ services:
     env_file:
       - ../../bridge/.env
 
-  mongo-viewer:
-    image: mongo-express
-    container_name: mongo-viewer
-    restart: always
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb://admin:password@mongo:27017/__inxt-network
-      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
-      ME_CONFIG_MONGODB_ADMINPASSWORD: password
-    ports:
-      - 8081:8081
-    networks:
-      - internxt
-    depends_on:
-      - mongo
-
   farmer:
     build:
       context: ../../farmer
@@ -149,24 +134,12 @@ services:
     restart: always
     volumes:
       - ./maria-init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - 33064:3306
     environment:
       MYSQL_ROOT_PASSWORD: example
     networks:
       - internxt
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver
-    container_name: cloudbeaver
-    restart: always
-    depends_on:
-      - maria
-    networks:
-      - internxt
-    ports:
-      - 8080:8978
-    volumes:
-      - ./volumes/dbeaver_logs:/opt/cloudbeaver/logs
-      - ./volumes/dbeaver_workspace:/opt/cloudbeaver/workspace
 
   redis:
     image: redis:latest

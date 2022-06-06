@@ -23,15 +23,8 @@ services:
       - ./maria-init-scripts:/docker-entrypoint-initdb.d
     environment:
       MYSQL_ROOT_PASSWORD: example
-
-  cloudbeaver:
-    image: dbeaver/cloudbeaver
-    container_name: cloudbeaver
-    restart: always
-    depends_on:
-      - maria
-    ports:
-      - 8080:8978
+    ports: 
+      - 33065:3306
 
   redis:
     image: redis:latest
