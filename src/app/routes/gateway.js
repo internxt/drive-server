@@ -68,10 +68,12 @@ module.exports = (Router, Service) => {
     const { email, maxSpaceBytes } = req.body;
     let user = await Service.User.FindUserByEmail(email).catch(() => null);
     if (!user) {
-      user = await Service.User.CreateStaggingUser(email).catch((err) => {
+      try {
+        user = await Service.User.CreateStaggingUser(email);
+      } catch (err) {
         Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
         return res.status(500).send({ error: err.message });
-      });
+      }
     }
     Service.User.UpdateUserStorage(email, maxSpaceBytes)
       .then(() => {
