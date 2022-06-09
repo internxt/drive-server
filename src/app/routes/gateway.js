@@ -66,16 +66,18 @@ module.exports = (Router, Service) => {
 
   Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
     const { email, maxSpaceBytes } = req.body;
-    const userExists = await Service.User.FindUserByEmail(email).catch(() => null);
-    if (!userExists) {
-      await Service.User.CreateStaggingUser(email).catch((err) => {
+    let user = await Service.User.FindUserByEmail(email).catch(() => null);
+    if (!user) {
+      try {
+        user = await Service.User.CreateStaggingUser(email);
+      } catch (err) {
         Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
         return res.status(500).send({ error: err.message });
-      });
+      }
     }
     Service.User.UpdateUserStorage(email, maxSpaceBytes)
       .then(() => {
-        return res.status(200).send({ error: null, message: `Storage updated ${maxSpaceBytes} for user: ${email}` });
+        return res.status(200).send({ error: null, user });
       })
       .catch((err) => {
         Logger.error('[GATEWAY]: Error updating storage to %s for user %s: %s', maxSpaceBytes, email, err.message);
@@ -100,7 +102,6 @@ module.exports = (Router, Service) => {
 
     return Service.User.FindUserByEmail(email)
       .then((user) => {
-
         res.status(200).send(user);
       })
       .catch((err) => {
@@ -112,13 +113,11 @@ module.exports = (Router, Service) => {
   Router.get('/gateway/checkout/session', basicAuth, async (req, res) => {
     const sessionId = req.query.sessionId;
 
-    const session = await Service.Stripe.findSessionById(sessionId)
-      .catch((err) => {
-        Logger.error('[Gateway]: Failed to get stripe session %s', err.message);
-        res.status(500).send({ error: 'Failed to get stripe session'});
-      });
+    const session = await Service.Stripe.findSessionById(sessionId).catch((err) => {
+      Logger.error('[Gateway]: Failed to get stripe session %s', err.message);
+      res.status(500).send({ error: 'Failed to get stripe session' });
+    });
 
     res.status(200).send(session);
   });
-
 };
