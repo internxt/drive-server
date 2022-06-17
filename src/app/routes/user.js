@@ -130,7 +130,7 @@ module.exports = (Router, Service, App) => {
     res.status(200).send(invites);
   });
 
-  Router.post('/activate/update', passportAuth, (req, res) => {
+  Router.post('/activate/update', passportAuth, async (req, res) => {
     try {
       await Service.User.CompleteInfo(req.user, req.body);
 
