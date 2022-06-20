@@ -42,6 +42,20 @@ export default class Redis {
             end`,
     });
 
+    Redis.instance.defineCommand('acquireOrRefreshLock', {
+      numberOfKeys: 1,
+      lua: `local current = redis.call("get", KEYS[1]);
+
+            if current == false then
+              return redis.call("set", KEYS[1], ARGV[1], "EX", 15, "NX");
+            elseif current == ARGV[1] then
+              return redis.call("expire", KEYS[1], 15);
+            else 
+              return 0;
+            end
+            `,
+    });
+
     return Redis.instance;
   }
 }
