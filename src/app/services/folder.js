@@ -528,6 +528,14 @@ module.exports = (Model, App) => {
     if (!res) throw new Error();
   };
 
+  const acquireOrRefreshLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+
+    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+
+    if (!res) throw new Error();
+  };
+
   /**
    * Get directory files paginated
    * @param {number} directoryId Folder id
@@ -606,6 +614,7 @@ module.exports = (Model, App) => {
     acquireLock,
     releaseLock,
     refreshLock,
+    acquireOrRefreshLock,
     getDirectoryFiles,
     getDirectoryFolders,
   };
