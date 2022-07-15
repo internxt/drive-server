@@ -4,6 +4,7 @@ import speakeasy from 'speakeasy';
 import { UserAttributes } from '../models/user';
 import { passportAuth, Sign } from '../middleware/passport';
 import Config from '../../config/config';
+import { AuthorizedUser } from './types';
 
 interface Services {
   User: any;
@@ -189,10 +190,11 @@ export class AuthController {
   }
 
   async areCredentialsCorrect(req: Request, res: Response) {
-    if (!req.query.email || !req.query.hashedPassword)
-      throw createHttpError(400, 'Query params must contain email and hashedPassword properties');
+    if (!req.query.hashedPassword)
+      throw createHttpError(400, 'Query params must contain the hashedPassword property');
 
-    const { email, hashedPassword } = req.query;
+    const { hashedPassword } = req.query;
+    const email = (req as AuthorizedUser).user.email;
 
     try {
       const user: UserAttributes = await this.service.User.FindUserByEmail(email);
@@ -212,5 +214,5 @@ export default (router: Router, service: any, config: Config) => {
   router.post('/login', controller.login.bind(controller));
   router.post('/access', controller.access.bind(controller));
   router.get('/new-token', passportAuth, controller.getNewToken.bind(controller));
-  router.get('/are-credentials-correct', controller.areCredentialsCorrect.bind(controller));
+  router.get('/are-credentials-correct', passportAuth, controller.areCredentialsCorrect.bind(controller));
 };
