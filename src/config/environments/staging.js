@@ -8,8 +8,8 @@ exports.data = {
     user: process.env.RDS_USERNAME,
     password: process.env.RDS_PASSWORD,
     sequelizeConfig: {
-      dialect: 'mariadb',
-      port: process.env.RDS_PORT || 3306,
+      dialect: 'postgres',
+      port: process.env.RDS_PORT,
       replication: {
         read: [
           { host: process.env.RDS_HOSTNAME2, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD },
