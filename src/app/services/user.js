@@ -417,8 +417,6 @@ module.exports = (Model, App) => {
       throw createHttpError(400, 'The referral code used is not correct');
     }
 
-    console.log('here i am');
-
     const email = newUserData.email.toLowerCase().trim();
     const userData = await FindOrCreate({
       ...newUserData,
