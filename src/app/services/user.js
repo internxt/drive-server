@@ -43,7 +43,7 @@ module.exports = (Model, App) => {
   const mailService = MailService(Model, App);
   const utilsService = UtilsService();
 
-  const FindOrCreate = (user) => {
+  const FindOrCreate = async (user) => {
     // Create password hashed pass only when a pass is given
     const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
     const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
@@ -53,8 +53,10 @@ module.exports = (Model, App) => {
       throw Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) =>
-      Model.users
+    const transaction = await Model.users.sequelize.transaction();
+
+    try {
+      const [userResult, isNewRecord] = await Model.users
         .findOrCreate({
           where: { username: user.email },
           defaults: {
@@ -73,69 +75,65 @@ module.exports = (Model, App) => {
             username: user.username,
             bridgeUser: user.bridgeUser,
           },
-          transaction: t,
-        })
-        .then(async ([userResult, isNewRecord]) => {
-          if (isNewRecord) {
-            if (user.publicKey && user.privateKey && user.revocationKey) {
-              Model.keyserver.findOrCreate({
-                where: { user_id: userResult.id },
-                defaults: {
-                  user_id: user.id,
-                  private_key: user.privateKey,
-                  public_key: user.publicKey,
-                  revocation_key: user.revocationKey,
-                  encrypt_version: null,
-                },
-                transaction: t,
-              });
-            }
+          transaction
+        });
 
-            // Create bridge pass using email (because id is unconsistent)
-            const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+      if (isNewRecord) {
+        if (user.publicKey && user.privateKey && user.revocationKey) {
+          Model.keyserver.findOrCreate({
+            where: { user_id: userResult.id },
+            defaults: {
+              user_id: user.id,
+              private_key: user.privateKey,
+              public_key: user.publicKey,
+              revocation_key: user.revocationKey,
+              encrypt_version: null,
+            },
+            transaction,
+          });
+        }
 
-            const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
-            if (
-              bridgeUser &&
-              bridgeUser.response &&
-              (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)
-            ) {
-              throw Error(bridgeUser.response.data.error);
-            }
+        // Create bridge pass using email (because id is unconsistent)
+        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
 
-            if (!bridgeUser.data) {
-              throw Error('Error creating bridge user');
-            }
+        if (
+          bridgeUser &&
+          bridgeUser.response &&
+          (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)
+        ) {
+          throw Error(bridgeUser.response.data.error);
+        }
 
-            logger.info('User Service | created brigde user: %s', userResult.email);
+        if (!bridgeUser.data) {
+          throw Error('Error creating bridge user');
+        }
 
-            // Store bcryptid on user register
-            await userResult.update(
-              {
-                userId: bcryptId,
-                uuid: bridgeUser.data.uuid,
-              },
-              { transaction: t },
-            );
+        logger.info('User Service | created brigde user: %s', userResult.email);
 
-            // Set created flag for Frontend management
-            Object.assign(userResult, { isNewRecord });
-          }
+        await userResult.update(
+          {
+            userId: bcryptId,
+            uuid: bridgeUser.data.uuid,
+          },
+          { transaction },
+        );
 
-          // TODO: proveriti userId kao pass
-          return userResult;
-        })
-        .catch((err) => {
-          if (err.response) {
-            // This happens when email is registered in bridge
-            logger.error(err.response.data);
-          } else {
-            logger.error(err.stack);
-          }
+        // Set created flag for Frontend management
+        Object.assign(userResult, { isNewRecord });
+      }
 
-          throw Error(err);
-        }),
-    ); // end transaction
+      await transaction.commit();
+
+      // TODO: Move on wip to the repository
+      userResult.mnemonic = userResult.mnemonic.toString();
+
+      return userResult;
+    } catch (err) {
+      await transaction.rollback();
+
+      throw err;
+    }    
   };
 
   const InitializeUser = (user) =>
@@ -418,6 +416,8 @@ module.exports = (Model, App) => {
     if (hasReferrer && !referrer) {
       throw createHttpError(400, 'The referral code used is not correct');
     }
+
+    console.log('here i am');
 
     const email = newUserData.email.toLowerCase().trim();
     const userData = await FindOrCreate({
