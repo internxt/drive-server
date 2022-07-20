@@ -509,7 +509,7 @@ module.exports = (Model, App) => {
       raw: true,
     });
 
-    const driveUsage = usage[0].total;
+    const driveUsage = parseInt(usage[0].total);
 
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },
@@ -517,7 +517,7 @@ module.exports = (Model, App) => {
       raw: true,
     });
 
-    const backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
+    const backupsUsage = parseInt(backupsQuery[0].total ? backupsQuery[0].total : 0);
 
     return {
       total: driveUsage + backupsUsage,
