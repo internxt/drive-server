@@ -571,6 +571,72 @@ export class StorageController {
       });
   }
 
+  getDirectoryFiles(req: Request, res: Response): void {
+    const { user } = req as PassportRequest;
+    const folderId = req.params.id;
+    const offset = req.query.offset;
+    const limit = req.query.limit;
+
+    if (Validator.isInvalidUnsignedNumber(offset)) {
+      throw createHttpError(400, 'Offset should be positive');
+    }
+
+    if (Validator.isInvalidUnsignedNumber(limit)) {
+      throw createHttpError(400, 'Limit should be positive');
+    }
+
+    this.services.Folder.getUserDirectoryFiles(
+      user.id, 
+      folderId, 
+      Number(offset), 
+      Number(limit)
+    ).then((content: { files: any[], last: boolean }) => {
+      res.status(200).send(content);
+    })
+    .catch((err: Error) => {
+      this.logger.error(
+        'getDirectoryFiles: %s. STACK %s', 
+        err.message, 
+        err.stack || 'NO STACK'
+      );
+
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
+  }
+
+  getDirectoryFolders(req: Request, res: Response): void {
+    const { user } = req as PassportRequest;
+    const folderId = req.params.id;
+    const offset = req.query.offset;
+    const limit = req.query.limit;
+
+    if (Validator.isInvalidUnsignedNumber(offset)) {
+      throw createHttpError(400, 'Offset should be positive');
+    }
+
+    if (Validator.isInvalidUnsignedNumber(limit)) {
+      throw createHttpError(400, 'Limit should be positive');
+    }
+
+    this.services.Folder.getUserDirectoryFolders(
+      user.id, 
+      folderId, 
+      Number(offset), 
+      Number(limit)
+    ).then((content: { folders: any[], last: boolean }) => {
+      res.status(200).send(content);
+    })
+    .catch((err: Error) => {
+      this.logger.error(
+        'getDirectoryFolders: %s. STACK %s', 
+        err.message, 
+        err.stack || 'NO STACK'
+      );
+
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -631,4 +697,10 @@ export default (router: Router, service: any) => {
     controller.renameFileInNetwork.bind(controller),
   );
   router.post('/storage/folder/fixduplicate', passportAuth, controller.fixDuplicate.bind(controller));
+
+  /**
+   * V2 starts here (which will replace V1 and the /v2 will be removed)
+   */
+  router.get('/storage/v2/folders/:id/files', passportAuth, controller.getDirectoryFiles.bind(controller));
+  router.get('/storage/v2/folders/:id/folders', passportAuth, controller.getDirectoryFolders.bind(controller));
 };
