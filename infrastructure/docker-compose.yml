@@ -35,7 +35,7 @@ services:
   bridge:
     build:
       context: ../../bridge
-      dockerfile: Dockerfile
+      dockerfile: infrastructure/development.Dockerfile
     container_name: bridge
     networks:
       - internxt
