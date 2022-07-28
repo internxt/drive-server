@@ -6,7 +6,7 @@ module.exports = {
       $$
       BEGIN
       INSERT INTO deleted_files(file_id, user_id, folder_id, bucket) select file_id, user_id, folder_id, bucket from files where files.folder_id = OLD.id;
-      RETURN NEW;
+      RETURN OLD;
       END;
       $$
       LANGUAGE 'plpgsql';`);
