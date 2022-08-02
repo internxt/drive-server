@@ -17,12 +17,6 @@ export default class Database {
     const defaultSettings = {
       resetAfterUse: true,
       operatorsAliases: 0,
-      dialectOptions: {
-        connectTimeout: 20000,
-        options: {
-          requestTimeout: 4000,
-        },
-      },
       pool: {
         maxConnections: Number.MAX_SAFE_INTEGER,
         maxIdleTime: 30000,
