@@ -3,8 +3,9 @@ import nconf from 'nconf';
 const development = require('./environments/development.js').data;
 const test = require('./environments/test.js').data;
 const staging = require('./environments/staging.js').data;
+const e2e = require('./environments/e2e.js').data;
 
-const environments: any = { development, test, staging };
+const environments: any = { development, test, staging, e2e };
 
 export default class Config {
   private static instance: Config;
