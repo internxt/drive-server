@@ -59,6 +59,7 @@
     "docker": "cross-env NODE_ENV=docker nodemon app.ts",
     "testsuite": "cross-env APP_SEGMENT_KEY=a NODE_ENV=test ts-mocha tests/**/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",
+    "test:e2e": "NODE_ENV=test jest --config ./tests/e2e/jest-e2e.json --setupFiles dotenv/config",
     "migrate": "yarn run build && sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./src",
