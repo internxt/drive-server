@@ -55,6 +55,11 @@ export default class Server {
     this.logger.info(`Bridge location: ${this.config.get('STORJ_BRIDGE')}`);
   }
 
+  stop() {
+    this.instance?.close();
+    this.database?.close();
+  }
+
   handleuncaughtException(err: Error) {
     this.logger.info('Unhandled exception: %s\n%s', err.message, err.stack);
     // eslint-disable-next-line no-process-exit
