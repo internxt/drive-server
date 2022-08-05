@@ -16,3 +16,5 @@ App.start(() => {
   App.initRoutes(Routes);
   App.initSocketServer(SocketServer);
 });
+
+module.exports = App;
