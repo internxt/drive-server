@@ -61,6 +61,10 @@ describe('Storage controller (e2e)', () => {
     const email = `test${Date.now()}@internxt.com`;
     const user = await createTestUser(email);
 
+    if (!user.dataValues.id || !user.dataValues.root_folder_id) {
+      process.exit();
+    }
+
     userId = user.dataValues.id;
     rootFolderId = user.dataValues.root_folder_id;
     token = Sign({ email }, server.config.get('secrets').JWT);
