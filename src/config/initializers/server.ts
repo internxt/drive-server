@@ -30,7 +30,7 @@ export default class Server {
 
   constructor() {
     this.config = Config.getInstance();
-    this.logger = Logger.getInstance();
+    this.logger = Logger.getInstance(this.config.get('logger'));
     this.express = express();
     this.router = express.Router();
     this.instance = null;
