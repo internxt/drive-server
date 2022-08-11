@@ -26,6 +26,10 @@ const clearUserDrive = async (userId: number, rootFolderId: number): Promise<voi
 
   const folders = await server.models.folder.findAll({ where: { user_id: userId, id: { [Op.not]: rootFolderId } } });
   await folders.map((folder: FileModel) => folder.destroy());
+
+  await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
+    replacements: { userId },
+  });
 };
 
 const createFolder = async (body: any, authToken: string): Promise<request.Response> =>
@@ -144,6 +148,67 @@ describe('Storage controller (e2e)', () => {
           expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
         });
       });
+
+      describe('File deletion', () => {
+        describe('From folder', () => {
+          it('should be able to delete a file', async () => {
+            const deleteFileFromStorgeMock = jest.fn();
+            deleteFileFromStorgeMock.mockReturnValueOnce(Promise.resolve());
+            server.services.Inxt.DeleteFile = deleteFileFromStorgeMock;
+
+            const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+            const { body } = await createFileOnFolder(rootFolderId, fileName, token);
+
+            const response = await request(app)
+              .delete(`/api/storage/folder/${rootFolderId}/file/${body.id}`)
+              .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(HttpStatus.OK);
+            expect(response.body.deleted).toBe(true);
+          });
+
+          it('should be able to delete a file inside a folder', async () => {
+            const deleteFileFromStorgeMock = jest.fn();
+            deleteFileFromStorgeMock.mockReturnValueOnce(Promise.resolve());
+            server.services.Inxt.DeleteFile = deleteFileFromStorgeMock;
+
+            const { body: folder } = await createFolder(
+              {
+                folderName: 'this is test',
+                parentFolderId: rootFolderId,
+              },
+              token,
+            );
+            const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+            const { body: file } = await createFileOnFolder(folder.id, fileName, token);
+
+            const response = await request(app)
+              .delete(`/api/storage/folder/${folder.id}/file/${file.id}`)
+              .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(HttpStatus.OK);
+            expect(response.body.deleted).toBe(true);
+          });
+        });
+
+        describe('From bucket', () => {
+          it('should be able to delete a file', async () => {
+            const deleteFileFromStorgeMock = jest.fn();
+            deleteFileFromStorgeMock.mockReturnValueOnce(Promise.resolve());
+            server.services.Inxt.DeleteFile = deleteFileFromStorgeMock;
+
+            const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+            const { body: file } = await createFileOnFolder(rootFolderId, fileName, token);
+
+            const response = await request(app)
+              .delete(`/api/storage/bucket/${file.bucket}/file/${file.fileId}`)
+              .set('Authorization', `Bearer ${token}`);
+
+            expect(response.status).toBe(HttpStatus.OK);
+            expect(response.body.deleted).toBe(true);
+          });
+        });
+      });
     });
 
     describe('Folder management', () => {
@@ -202,6 +267,92 @@ describe('Storage controller (e2e)', () => {
           expect(firstFolderResponse.status).toBe(HttpStatus.CREATED);
           expect(secondFolderResponse.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
           expect(secondFolderResponse.body.error).toBe('Folder with the same name already exists');
+        });
+      });
+
+      describe('Folder deletion', () => {
+        it('should be able to delete a folder', async () => {
+          const { body: folder } = await request(app)
+            .post('/api/storage/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderName: 'folder on root',
+              parentFolderId: rootFolderId,
+            });
+
+          const response = await request(app)
+            .delete(`/api/storage/folder/${folder.id}`)
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(response.status).toBe(HttpStatus.NO_CONTENT);
+        });
+
+        it('should delete containing files', async () => {
+          const { body: folder } = await request(app)
+            .post('/api/storage/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderName: 'folder on root',
+              parentFolderId: rootFolderId,
+            });
+          const fileName = encryptFilename(`test-${Date.now()}`, folder.id);
+          const { body: file } = await createFileOnFolder(folder.id, fileName, token);
+
+          const response = await request(app)
+            .delete(`/api/storage/folder/${folder.id}`)
+            .set('Authorization', `Bearer ${token}`);
+          expect(response.status).toBe(HttpStatus.NO_CONTENT);
+
+          const [, result] = await server.database.query(
+            'SELECT * FROM deleted_files WHERE file_id = (:fileId) AND user_id = (:userId)',
+            {
+              replacements: { fileId: file.fileId, userId },
+            },
+          );
+
+          expect(result.rowCount).toBe(1);
+        });
+
+        it('should delete all subfolders', async () => {
+          const { body: folder } = await request(app)
+            .post('/api/storage/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderName: 'folder on root',
+              parentFolderId: rootFolderId,
+            });
+
+          await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${token}`).send({
+            folderName: 'firstSubfolder',
+            parentFolderId: folder.id,
+          });
+
+          await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${token}`).send({
+            folderName: 'secondSubfolder',
+            parentFolderId: folder.id,
+          });
+
+          const response = await request(app)
+            .delete(`/api/storage/folder/${folder.id}`)
+            .set('Authorization', `Bearer ${token}`);
+
+          const [, result] = await server.database.query(
+            'SELECT * FROM folders WHERE user_id = (:userId) AND parent_id = (:folderId)',
+            {
+              replacements: { userId, folderId: folder.id },
+            },
+          );
+
+          expect(response.status).toBe(HttpStatus.NO_CONTENT);
+          expect(result.rowCount).toBe(0);
+        });
+
+        it('should not be able to delete a root folder', async () => {
+          const response = await request(app)
+            .delete(`/api/storage/folder/${rootFolderId}`)
+            .set('Authorization', `Bearer ${token}`);
+
+          expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
         });
       });
     });
