@@ -216,6 +216,59 @@ describe('Storage controller (e2e)', () => {
           });
         });
       });
+
+      describe('Move file', () => {
+        it('should be able to move files', async () => {
+          const name = 'my file';
+          const encriptedFileName = encryptFilename(name, rootFolderId);
+          const { body: file } = await createFileOnFolder(rootFolderId, encriptedFileName, token);
+          const { body: destinationFolder } = await createFolder(
+            {
+              folderName: 'destination folder',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/file')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              fileId: file.fileId,
+              destination: destinationFolder.id,
+            });
+                    
+          expect(response.status).toBe(HttpStatus.OK);
+          expect(response.body.moved).toBe(true);
+          expect(response.body.item.name).toBe(name);
+        });
+
+        it('should fail if a file with te same name exist on the destianation folder', async () => {
+          const name = 'my file';
+          const encriptedFileName = encryptFilename(name, rootFolderId);
+          const { body: file } = await createFileOnFolder(rootFolderId, encriptedFileName, token);
+          const { body: destinationFolder } = await createFolder(
+            {
+              folderName: 'destination folder',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          await createFileOnFolder(destinationFolder.id, encryptFilename(name, destinationFolder.id), token);
+
+          const response = await request(app)
+            .post('/api/storage/move/file')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              fileId: file.fileId,
+              destination: destinationFolder.id,
+            });
+          
+          expect(response.status).toBe(HttpStatus.CONFLICT);
+          expect(response.body.error).toBe('A file with same name exists in destination');
+        });
+      });
     });
 
     describe('Folder management', () => {
