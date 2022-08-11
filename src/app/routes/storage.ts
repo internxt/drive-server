@@ -11,6 +11,7 @@ import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
+import { HttpError } from 'http-errors';
 
 interface Services {
   Files: any;
@@ -321,6 +322,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(err);
+        if(err instanceof HttpError) {
+          res.status(err.status).json({
+            error: err.message,
+          });
+        }
         res.status(500).json({
           error: err.message,
         });
