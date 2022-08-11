@@ -57,21 +57,27 @@ describe('Storage controller (e2e)', () => {
   let rootFolderId: number;
 
   beforeAll(async () => {
-    if (process.env.NODE_ENV !== 'e2e') {
-      throw new Error('Cannot do E2E tests without NODE_ENV=e2e ');
+    try {
+      if (process.env.NODE_ENV !== 'e2e') {
+        throw new Error('Cannot do E2E tests without NODE_ENV=e2e ');
+      }
+
+      await applicationInitialization(app);
+      const email = `test${Date.now()}@internxt.com`;
+      const user = await createTestUser(email);
+
+      if (!user.dataValues.id || !user.dataValues.root_folder_id) {
+        process.exit();
+      }
+
+      userId = user.dataValues.id;
+      rootFolderId = user.dataValues.root_folder_id;
+      token = Sign({ email }, server.config.get('secrets').JWT);
+    } catch (err: any) {
+      // eslint-disable-next-line no-console
+      console.error('Error setting up storage e2e tests: %s', err.message);
+      process.exit(1);
     }
-
-    await applicationInitialization(app);
-    const email = `test${Date.now()}@internxt.com`;
-    const user = await createTestUser(email);
-
-    if (!user.dataValues.id || !user.dataValues.root_folder_id) {
-      process.exit();
-    }
-
-    userId = user.dataValues.id;
-    rootFolderId = user.dataValues.root_folder_id;
-    token = Sign({ email }, server.config.get('secrets').JWT);
   });
 
   afterAll(async () => {
@@ -79,11 +85,12 @@ describe('Storage controller (e2e)', () => {
       await deleteTestUser(userId);
       await deleteAllUserFilesFromDatabase(userId);
       await deleteAllUserFoldersFromDatabase(userId);
-    } catch (err) {
+    } catch (err: any) {
       // eslint-disable-next-line no-console
-      console.error(err);
+      console.error('Error after storage e2e tests: %s', err.message);
+    } finally {
+      await server.stop();
     }
-    await server.stop();
   });
 
   afterEach(async () => {
