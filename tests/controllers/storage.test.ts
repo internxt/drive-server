@@ -1462,13 +1462,9 @@ describe('Storage controller', () => {
         },
         headers: {}
       });
-      const jsonSpy = sinon.spy();
+      const sendStatusSpy = sinon.spy();
       const response = getResponse({
-        status: () => {
-          return {
-            json: jsonSpy
-          };
-        }
+        sendStatus: sendStatusSpy,
       });
 
       // Act
@@ -1476,10 +1472,8 @@ describe('Storage controller', () => {
 
       // Assert
       expect(services.Files.MoveFile.calledOnce).to.be.true;
-      expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(sendStatusSpy.calledOnce).to.be.true;
+      expect(sendStatusSpy.calledWithExactly(500)).to.be.true;
     });
 
     it('should execute fine when no error', async () => {
