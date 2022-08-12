@@ -197,6 +197,10 @@ export class StorageController {
       throw createHttpError(400, 'Destination folder ID is not valid');
     }
 
+    if (folderId === destination) {
+      throw createHttpError(409, 'Cannot move folder into itself');
+    }
+
     const clientId = String(req.headers['internxt-client-id']);
 
     return this.services.Folder.MoveFolder(user, folderId, destination)
