@@ -1,7 +1,7 @@
 require('dotenv').config();
 import request from 'supertest';
 import { HttpStatus } from '@nestjs/common';
-import { encryptFilename, createTestUser, deleteTestUser } from './utils';
+import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
 import { Sign } from '../../src/app/middleware/passport';
 import { applicationInitialization } from './setup';
 import { FileModel } from '../../src/app/models/file';
@@ -395,6 +395,8 @@ describe('Storage controller (e2e)', () => {
           const response = await request(app)
             .delete(`/api/storage/folder/${folder.id}`)
             .set('Authorization', `Bearer ${token}`);
+
+          await delay(2); // A delay is needed to avoid race conditions invalidates the test
 
           const [, result] = await server.database.query(
             'SELECT * FROM folders WHERE user_id = (:userId) AND parent_id = (:folderId)',

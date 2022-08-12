@@ -49,3 +49,12 @@ export async function deleteTestUser(userId: number): Promise<void> {
   const user = await server.models.users.findOne({ where: { id: userId } });
   await user.destroy();
 };
+
+export async function delay(seconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    },
+    seconds * 1000);
+  });
+}
