@@ -5,7 +5,6 @@ import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils'
 import { Sign } from '../../src/app/middleware/passport';
 import { applicationInitialization } from './setup';
 import { FileModel } from '../../src/app/models/file';
-import { FolderModel } from '../../src/app/models/folder';
 import sequelize from 'sequelize';
 const { Op } = sequelize;
 const server = require('../../src/app');
@@ -13,19 +12,23 @@ const app = server.express;
 
 const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
   const files = await server.models.file.findAll({ where: { user_id: userId } });
-  await files.forEach((file: FileModel) => file.destroy());
+  for (const file of files) {
+    await file.destroy();
+  }
 };
 
 const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
   const folders = await server.models.folder.findAll({ where: { user_id: userId } });
-  await folders.forEach((folder: FolderModel) => folder.destroy());
+  for (const dolder of folders) {
+    await dolder.destroy();
+  }
 };
 
 const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
   await deleteAllUserFilesFromDatabase(userId);
 
   const folders = await server.models.folder.findAll({ where: { user_id: userId, id: { [Op.not]: rootFolderId } } });
-  await folders.map((folder: FileModel) => folder.destroy());
+  await Promise.all(folders.map((folder: FileModel) => folder.destroy()));
 
   await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
     replacements: { userId },
