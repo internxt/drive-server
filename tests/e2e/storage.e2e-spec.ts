@@ -240,7 +240,7 @@ describe('Storage controller (e2e)', () => {
               fileId: file.fileId,
               destination: destinationFolder.id,
             });
-                    
+
           expect(response.status).toBe(HttpStatus.OK);
           expect(response.body.moved).toBe(true);
           expect(response.body.item.name).toBe(name);
@@ -267,7 +267,7 @@ describe('Storage controller (e2e)', () => {
               fileId: file.fileId,
               destination: destinationFolder.id,
             });
-          
+
           expect(response.status).toBe(HttpStatus.CONFLICT);
           expect(response.body.error).toBe('A file with same name exists in destination');
         });
@@ -417,6 +417,134 @@ describe('Storage controller (e2e)', () => {
             .delete(`/api/storage/folder/${rootFolderId}`)
             .set('Authorization', `Bearer ${token}`);
 
+          expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        });
+      });
+
+      describe('Move folder', () => {
+        it('should be able to move folders', async () => {
+          const { body: folder } = await createFolder(
+            {
+              folderName: 'folder to move',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const { body: destinationFolder } = await createFolder(
+            {
+              folderName: 'destination',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderId: folder.id,
+              destination: destinationFolder.id,
+            });
+
+          expect(response.status).toBe(HttpStatus.OK);
+        });
+
+        it('should not be able to move folder inside itself', async () => {
+          const { body: folder } = await createFolder(
+            {
+              folderName: 'folder to move',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderId: folder.id,
+              destination: folder.id,
+            });
+
+          expect(response.status).toBe(HttpStatus.CONFLICT);
+        });
+
+        it('should fail if a folder with the same name exists on destianation', async () => {
+          const { body: folder } = await createFolder(
+            {
+              folderName: 'folder to move',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const { body: destinationFolder } = await createFolder(
+            {
+              folderName: 'destination folder',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          await createFolder(
+            {
+              folderName: 'folder to move',
+              parentFolderId: destinationFolder.id,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderId: folder.id,
+              destination: destinationFolder.id,
+            });
+
+          expect(response.status).toBe(HttpStatus.CONFLICT);
+        });
+
+        it('should fail when the destination folder does not exists', async () => {
+          const destinationFolderId = 50000;
+          const { body: folder } = await createFolder(
+            {
+              folderName: 'folder to move',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderId: folder.id,
+              destination: destinationFolderId,
+            });
+
+          expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+        });
+
+        it('should fail when the folder to move does not exists', async () => {
+          const folderId = 8800;
+          const { body: destinationFolder } = await createFolder(
+            {
+              folderName: 'destination',
+              parentFolderId: rootFolderId,
+            },
+            token,
+          );
+
+          const response = await request(app)
+            .post('/api/storage/move/folder')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+              folderId: folderId,
+              destination: destinationFolder.id,
+            });
+          
           expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
         });
       });
