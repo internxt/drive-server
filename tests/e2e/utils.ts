@@ -9,7 +9,7 @@ export function encryptFilename(filename: string, folderId: number): string {
     salt: '38dce0391b49efba88dbc8c39ebf868f0267eb110bb0012ab27dc52a528d61b1d1ed9d76f400ff58e3240028442b1eab9bb84e111d9dadd997982dbde9dbd25e',
   };
   const CRYPTO_KEY = '8Q8VMUE3BJZV87GT';
-  
+
   return aes.encrypt(filename, `${CRYPTO_KEY}-${folderId}`, aesInit);
 }
 
@@ -48,13 +48,12 @@ export async function createTestUser(email: string): Promise<any> {
 export async function deleteTestUser(userId: number): Promise<void> {
   const user = await server.models.users.findOne({ where: { id: userId } });
   await user.destroy();
-};
+}
 
 export async function delay(seconds: number): Promise<void> {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve();
-    },
-    seconds * 1000);
+    }, seconds * 1000);
   });
 }
