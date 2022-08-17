@@ -80,7 +80,7 @@ module.exports = (Model, App) => {
 
       if (isNewRecord) {
         if (user.publicKey && user.privateKey && user.revocationKey) {
-          Model.keyserver.findOrCreate({
+          await Model.keyserver.findOrCreate({
             where: { user_id: userResult.id },
             defaults: {
               user_id: user.id,
