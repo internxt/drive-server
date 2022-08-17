@@ -11,7 +11,8 @@ type CommandOptions = {
   dbName: string
   dbUsername: string
   dbPassword: string
-  concurrency?: number
+  concurrency?: string
+  limit?: string
   endpoint: string
 }
 
@@ -44,6 +45,11 @@ const commands: { flags: string, description: string, required: boolean }[] = [
   {
     flags: '-c, --concurrency <concurrency>',
     description: 'The concurrency level of the requests that will be made',
+    required: false
+  },
+  {
+    flags: '-l, --limit <limit>',
+    description: 'The files limit to handle each time',
     required: false
   },
   {
@@ -81,10 +87,16 @@ const timer = createTimer();
 timer.start();
 
 let totalFilesRemoved = 0;
+let totalRequests = 0;
+let failedRequests = 0;
 
 const logIntervalId = setInterval(() => {
-  console.log('RATE: %s/s', totalFilesRemoved / (timer.end()/1000));
-}, 1000);
+  console.log(
+    'DELETION RATE: %s/s | FAILURE RATE %s%', 
+    totalFilesRemoved / (timer.end()/1000),
+    (failedRequests / totalRequests) * 100
+  );
+}, 10000);
 
 function finishProgram() {
   clearInterval(logIntervalId);
@@ -116,6 +128,9 @@ async function start(limit = 20, concurrency = 5) {
     const promises = [];
     const chunksOf = Math.ceil(limit/concurrency);
 
+
+    console.time('df-network-req');
+
     for (let i = 0; i < fileIds.length; i += chunksOf) {
       promises.push(
         deleteFiles(
@@ -128,9 +143,14 @@ async function start(limit = 20, concurrency = 5) {
 
     const results = await Promise.allSettled(promises);
 
+    console.timeEnd('df-network-req');
+
     const filesIdsToRemove = results
       .filter((r) => r.status === 'fulfilled')
       .flatMap((r) => (r as PromiseFulfilledResult<DeleteFilesResponse>).value.message.confirmed);
+
+    totalRequests += results.length;
+    failedRequests += results.filter(r => r.status === 'rejected').length;
 
     const deletedFilesToDelete = files.filter(f => {
       return filesIdsToRemove.some(fId => fId === f.fileId);
@@ -138,13 +158,15 @@ async function start(limit = 20, concurrency = 5) {
 
     if (deletedFilesToDelete.length > 0) {
       await deletedFile.destroy({ where: { id: { [Op.in]: deletedFilesToDelete.map(f => f.id) }}});
+    } else {
+      console.warn('Something not going fine, no files deleted');
     }
 
     totalFilesRemoved += deletedFilesToDelete.length;
   } while (fileIds.length === limit);
 }
 
-start(10, opts.concurrency)
+start(parseInt(opts.limit || '20'), parseInt(opts.concurrency || '5'))
   .catch((err) => {
     console.log('err', err);
   }).finally(() => {
