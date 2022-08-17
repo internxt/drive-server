@@ -96,10 +96,33 @@ module.exports = (Model) => {
     });
   };
 
+  const sendVerifyEmailMail = async (email, { url, firstName }) => {
+    const mailer = mailInstance();
+
+    return new Promise((resolve, reject) => {
+      mailer.dispatchSendGrid(
+        email,
+        'verify-email',
+        {
+          url,
+          firstName,
+        },
+        (err) => {
+          if (err) {
+            return reject(Error(`Could not send verification mail: ${err}`));
+          }
+
+          return resolve();
+        },
+      );
+    });
+  };
+
   return {
     Name: 'Mail',
     sendEmailTeamsMember,
     sendGuestInvitation,
     sendInviteFriendMail,
+    sendVerifyEmailMail,
   };
 };

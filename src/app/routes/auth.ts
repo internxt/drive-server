@@ -2,18 +2,19 @@ import { Router, Request, Response } from 'express';
 import createHttpError from 'http-errors';
 import speakeasy from 'speakeasy';
 import { UserAttributes } from '../models/user';
-import { Sign } from '../middleware/passport';
+import { passportAuth, Sign } from '../middleware/passport';
 import Config from '../../config/config';
+import { AuthorizedUser } from './types';
 
 interface Services {
-  User: any,
-  Analytics: any,
-  ReCaptcha: any,
-  Crypt: any,
-  KeyServer: any,
-  Team: any,
-  AppSumo: any,
-  UsersReferrals: any,
+  User: any;
+  Analytics: any;
+  ReCaptcha: any;
+  Crypt: any;
+  KeyServer: any;
+  Team: any;
+  AppSumo: any;
+  UsersReferrals: any;
 }
 
 export class AuthController {
@@ -106,25 +107,15 @@ export class AuthController {
     this.service.User.UpdateAccountActivity(req.body.email);
     const userBucket = await this.service.User.GetUserBucket(userData);
 
-    const newToken = Sign({
-      payload: {
-        uuid: userData.uuid,
-        email: userData.email,
-        name: userData.name,
-        lastname: userData.lastname,
-        username: userData.username,
-        sharedWorkspace: true,
-        networkCredentials: {
-          user: userData.bridgeUser,
-          pass: userData.userId
-        }
-      }
-    }, this.config.get('secrets').JWT);
+    const newToken = Sign(this.getNewTokenPayload(userData), this.config.get('secrets').JWT);
     const keyExists = await this.service.KeyServer.keysExists(userData);
 
     if (!keyExists && req.body.publicKey) {
       await this.service.KeyServer.addKeysLogin(
-        userData, req.body.publicKey, req.body.privateKey, req.body.revocateKey
+        userData,
+        req.body.publicKey,
+        req.body.privateKey,
+        req.body.revocateKey,
       );
     }
 
@@ -159,6 +150,8 @@ export class AuthController {
         userData.userId,
       ),
       backupsBucket: userData.backupsBucket,
+      avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
+      emailVerified: userData.emailVerified,
     };
 
     const userTeam = null;
@@ -172,6 +165,46 @@ export class AuthController {
     // }
     return res.status(200).json({ user, token, userTeam, newToken });
   }
+  async getNewToken(req: Request, res: Response) {
+    const authRequest = req as Request & { user: UserAttributes };
+    const newToken = Sign(this.getNewTokenPayload(authRequest.user), this.config.get('secrets').JWT);
+
+    return res.status(200).json({ newToken });
+  }
+
+  private getNewTokenPayload(userData: any) {
+    return {
+      payload: {
+        uuid: userData.uuid,
+        email: userData.email,
+        name: userData.name,
+        lastname: userData.lastname,
+        username: userData.username,
+        sharedWorkspace: true,
+        networkCredentials: {
+          user: userData.bridgeUser,
+          pass: userData.userId,
+        },
+      },
+    };
+  }
+
+  async areCredentialsCorrect(req: Request, res: Response) {
+    if (!req.query.hashedPassword)
+      throw createHttpError(400, 'Query params must contain the hashedPassword property');
+
+    const { hashedPassword } = req.query;
+    const email = (req as AuthorizedUser).user.email;
+
+    try {
+      const user: UserAttributes = await this.service.User.FindUserByEmail(email);
+      if (user.password.toString() !== hashedPassword) throw new Error('Passwords are not the same');
+
+      return res.status(200).end();
+    } catch (err) {
+      throw createHttpError(401, 'Wrong credentials');
+    }
+  }
 }
 
 export default (router: Router, service: any, config: Config) => {
@@ -180,4 +213,6 @@ export default (router: Router, service: any, config: Config) => {
   router.post('/register', controller.register.bind(controller));
   router.post('/login', controller.login.bind(controller));
   router.post('/access', controller.access.bind(controller));
+  router.get('/new-token', passportAuth, controller.getNewToken.bind(controller));
+  router.get('/are-credentials-correct', passportAuth, controller.areCredentialsCorrect.bind(controller));
 };

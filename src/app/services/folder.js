@@ -6,7 +6,7 @@ const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 
-const invalidName = /[\\/]|[. ]$/;
+const invalidName = /[\\/]|^\s*$/;
 
 const { Op } = sequelize;
 
@@ -162,10 +162,12 @@ module.exports = (Model, App) => {
 
   const GetTree = async (user, rootFolderId = null) => {
     const rootElements = [];
-    const pendingFolders = [{
-      folderId: rootFolderId || user.root_folder_id,
-      elements: rootElements
-    }];
+    const pendingFolders = [
+      {
+        folderId: rootFolderId || user.root_folder_id,
+        elements: rootElements,
+      },
+    ];
 
     while (pendingFolders.length) {
       const { folderId, elements } = pendingFolders.shift();
@@ -175,10 +177,10 @@ module.exports = (Model, App) => {
 
       const folders = await getChildrenFoldersByFolderId(folderId);
 
-      folders.forEach(f => {
+      folders.forEach((f) => {
         pendingFolders.push({
           folderId: f.id,
-          elements: folder.children
+          elements: folder.children,
         });
       });
 
@@ -193,8 +195,8 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         id: {
-          [Op.eq]: folderId
-        }
+          [Op.eq]: folderId,
+        },
       },
     });
   };
@@ -204,8 +206,8 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         parent_id: {
-          [Op.eq]: folderId
-        }
+          [Op.eq]: folderId,
+        },
       },
     });
   };
@@ -215,7 +217,7 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         folder_id: {
-          [Op.eq]: folderId
+          [Op.eq]: folderId,
         },
       },
     });
@@ -526,12 +528,68 @@ module.exports = (Model, App) => {
     if (!res) throw new Error();
   };
 
+  const acquireOrRefreshLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+
+    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+
+    if (!res) throw new Error();
+  };
+
+  const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {
+    const rawFiles = await Model.file.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        folder_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const files = [];
+
+    for (const file of rawFiles) {
+      files.push({
+        ...file,
+        name: App.services.Crypt.decryptName(file.name, file.folder_id),
+      });
+    }
+
+    return { files, last: limit > rawFiles.length };
+  };
+
+  const getUserDirectoryFolders = async (userId, directoryId, offset, limit) => {
+    const rawFolders = await Model.folder.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        parent_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const folders = [];
+
+    for (const folder of rawFolders) {
+      folders.push({
+        ...folder,
+        name: App.services.Crypt.decryptName(folder.name, folder.parentId),
+      });
+    }
+
+    return { folders, last: limit > rawFolders.length };
+  };
+
   /**
    * Get directory files paginated
    * @param {number} directoryId Folder id
-   * @param {*} offset 
-   * @param {*} limit 
-   * @returns directory files 
+   * @param {*} offset
+   * @param {*} limit
+   * @returns directory files
    */
   const getDirectoryFiles = async (directoryId, offset, limit) => {
     const rawFiles = await Model.file.findAll({
@@ -541,9 +599,7 @@ module.exports = (Model, App) => {
       },
       offset,
       limit,
-      order: [
-        ['id', 'ASC']
-      ]
+      order: [['id', 'ASC']],
     });
 
     const files = [];
@@ -551,7 +607,7 @@ module.exports = (Model, App) => {
     for (const file of rawFiles) {
       files.push({
         ...file,
-        name: App.services.Crypt.decryptName(file.name, file.folder_id)
+        name: App.services.Crypt.decryptName(file.name, file.folder_id),
       });
     }
 
@@ -561,8 +617,8 @@ module.exports = (Model, App) => {
   /**
    * Get directory folders paginated
    * @param {number} directoryId Folder id
-   * @param {*} offset 
-   * @param {*} limit 
+   * @param {*} offset
+   * @param {*} limit
    * @returns directory folders
    */
   const getDirectoryFolders = async (directoryId, offset, limit) => {
@@ -573,9 +629,7 @@ module.exports = (Model, App) => {
       },
       offset,
       limit,
-      order: [
-        ['id', 'ASC']
-      ]
+      order: [['id', 'ASC']],
     });
 
     const folders = [];
@@ -583,7 +637,7 @@ module.exports = (Model, App) => {
     for (const folder of rawFolders) {
       folders.push({
         ...folder,
-        name: App.services.Crypt.decryptName(folder.name, folder.parentId)
+        name: App.services.Crypt.decryptName(folder.name, folder.parentId),
       });
     }
 
@@ -608,7 +662,10 @@ module.exports = (Model, App) => {
     acquireLock,
     releaseLock,
     refreshLock,
+    acquireOrRefreshLock,
     getDirectoryFiles,
-    getDirectoryFolders
+    getDirectoryFolders,
+    getUserDirectoryFiles,
+    getUserDirectoryFolders
   };
 };

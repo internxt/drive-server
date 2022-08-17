@@ -5,6 +5,7 @@ import initBackup, { BackupModel } from './backup';
 import initDevice, { DeviceModel } from './device';
 import initFile, { FileModel } from './file';
 import initFolder, { FolderModel } from './folder';
+import initFriendInvitation, { FriendInvitationModel } from './friendinvitation';
 import initInvitation, { InvitationModel } from './invitation';
 import initKeyServer, { KeyServerModel } from './keyserver';
 import initMailLimit, { MailLimitModel } from './mailLimit';
@@ -33,7 +34,8 @@ export type ModelType =
   | TeamInvitationModel
   | TeamMemberModel
   | UserModel
-  | UserReferralModel;
+  | UserReferralModel
+  | FriendInvitationModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -52,6 +54,7 @@ export default (database: Sequelize) => {
   const TeamInvitation = initTeamInvitation(database);
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
+  const FriendInvitation = initFriendInvitation(database);
 
   AppSumo.belongsTo(User);
 
@@ -89,6 +92,7 @@ export default (database: Sequelize) => {
   User.hasMany(Invitation, { foreignKey: 'host' });
   User.belongsToMany(Referral, { through: UserReferral });
   User.hasMany(MailLimit, { foreignKey: 'user_id' });
+  User.hasMany(FriendInvitation, { foreignKey: 'host' });
 
   UserReferral.belongsTo(User, { foreignKey: 'user_id' });
   UserReferral.belongsTo(Referral, { foreignKey: 'referral_id' });
@@ -110,5 +114,6 @@ export default (database: Sequelize) => {
     [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
     [UserReferral.name]: UserReferral,
+    [FriendInvitation.name]: FriendInvitation,
   };
 };

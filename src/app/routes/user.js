@@ -1,9 +1,9 @@
 const openpgp = require('openpgp');
-
 const createHttpError = require('http-errors');
 const { passportAuth, Sign } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
+const { default: uploadAvatar } = require('../middleware/upload-avatar');
 
 const logger = Logger.getInstance();
 
@@ -114,45 +114,105 @@ module.exports = (Router, Service, App) => {
 
       AnalyticsService.trackInvitationSent(user.uuid, inviteEmail);
     } catch (err) {
-      if (err instanceof Service.User.UserAlreadyRegisteredError) {
-        return res.status(400).send(err.message);
-      }
-
       if (err instanceof Service.User.DailyInvitationUsersLimitReached) {
         return res.status(429).send(err.message);
-      } 
+      }
 
       throw err;
     }
   });
 
-  Router.post('/activate/update', passportAuth, (req, res) => {
-    Service.User.CompleteInfo(req.user, req.body)
-      .then(async () => {
-        const userData = req.user;
-        const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+  Router.get('/user/invite', passportAuth, async (req, res) => {
+    const { user } = req;
 
-        const user = {
-          userId: userData.userId,
-          mnemonic: userData.mnemonic.toString(),
-          root_folder_id: userData.root_folder_id,
-          name: userData.name,
-          lastname: userData.lastname,
-          uuid: userData.uuid,
-          credit: userData.credit,
-          createdAt: userData.createdAt,
-          registerCompleted: userData.registerCompleted,
-          email: userData.email,
-          bridgeUser: userData.email,
-          username: userData.email,
-          appSumoDetails: null,
-        };
+    const invites = await Service.User.getFriendInvites(user.id);
 
-        res.status(200).send({ token, user });
+    res.status(200).send(invites);
+  });
+
+  Router.post('/activate/update', passportAuth, async (req, res) => {
+    try {
+      await Service.User.CompleteInfo(req.user, req.body);
+
+      const userData = req.user;
+      const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+
+      const user = {
+        userId: userData.userId,
+        mnemonic: userData.mnemonic.toString(),
+        root_folder_id: userData.root_folder_id,
+        name: userData.name,
+        lastname: userData.lastname,
+        uuid: userData.uuid,
+        credit: userData.credit,
+        createdAt: userData.createdAt,
+        registerCompleted: userData.registerCompleted,
+        email: userData.email,
+        bridgeUser: userData.email,
+        username: userData.email,
+        appSumoDetails: null,
+      };
+
+      res.status(200).send({ token, user });
+    } catch (err) {
+      logger.error(
+        'Update user error %s: %s. STACK %s. BODY %s', 
+        req.user.email, 
+        err.message, 
+        err.stack || 'NO STACK', 
+        req.body
+      );
+      res.status(500).send({ error: 'Internal Server error' });
+    }
+  });
+
+  Router.patch('/user/profile', passportAuth, (req, res) => {
+    if (typeof req.body !== 'object') {
+      res.status(400).send({ error: 'Request has no body' });
+    }
+
+    Service.User.modifyProfile(req.user.email, req.body)
+      .then(() => {
+        res.status(200).end();
       })
       .catch((err) => {
-        logger.error('Error during Update for user %s: %s', req.user.email, err.message);
+        logger.error('Error during profile update for user %s: %s', req.user.email, err.message);
         res.status(500).send({ error: err.message });
       });
+  });
+
+  Router.put('/user/avatar', passportAuth, uploadAvatar, async (req, res) => {
+    const { user } = req;
+    if (!req.file) res.status(400).send({ error: 'Avatar field is required' });
+
+    const response = await Service.User.upsertAvatar(user, req.file.key);
+
+    res.status(200).send(response);
+  });
+
+  Router.delete('/user/avatar', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    await Service.User.deleteAvatar(user);
+
+    res.status(200).end();
+  });
+
+  Router.post('/user/sendVerificationEmail', passportAuth, async (req, res) => {
+    const { user } = req;
+
+    await Service.User.sendEmailVerification(user);
+
+    res.status(201).end();
+  });
+
+  Router.post('/user/verifyEmail', async (req, res) => {
+    const { verificationToken } = req.body;
+
+    if (!verificationToken) return res.status(400).send({ error: 'There is no verification token to validate' });
+
+    await Service.User.verifyEmail(verificationToken);
+
+    res.status(201).end();
   });
 };

@@ -11,6 +11,7 @@ services:
     depends_on:
       - maria
       - redis
+      - s3
     volumes:
       - ../src:/usr/app/src
 
@@ -36,3 +37,27 @@ services:
     image: redis:latest
     container_name: drive-server-redis
     restart: always
+  s3:
+    image: quay.io/minio/minio
+    container_name: s3
+    restart: always
+    command: server --console-address ":9001" /data
+    ports:
+      - 9000:9000
+      - 9001:9001
+
+  initialize_s3:
+    image: minio/mc
+    depends_on:
+      - s3
+    container_name: s3_init
+    entrypoint: >
+      /bin/sh -c "
+      sleep 10;
+      /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
+      /usr/bin/mc mb --ignore-existing myminio/avatars;
+      /usr/bin/mc policy set public myminio/avatars;
+      /usr/bin/mc admin user add myminio internxt internxt;
+      /usr/bin/mc admin policy set myminio readwrite user=internxt;
+      exit 0;
+      "

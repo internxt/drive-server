@@ -11,17 +11,18 @@ import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
+import { HttpError } from 'http-errors';
 
 interface Services {
-  Files: any
-  Folder: any
-  UsersReferrals: any
-  Analytics: any
-  User: any
-  Notifications: any
-  Share: any
-  Crypt: any
-  Inxt: any
+  Files: any;
+  Folder: any;
+  UsersReferrals: any;
+  Analytics: any;
+  User: any;
+  Notifications: any;
+  Share: any;
+  Crypt: any;
+  Inxt: any;
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -49,7 +50,7 @@ export class StorageController {
 
     if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
       this.logger.error(
-        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`
+        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
       return res.status(400).json({ error: 'Invalid metadata for new file' });
     }
@@ -58,17 +59,15 @@ export class StorageController {
 
     // TODO: If user has referrals, then apply. Do not catch everything
     if (internxtClient === 'drive-mobile') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app')
-        .catch((err: Error) => {
-          this.logReferralError(behalfUser.id, err);
-        });
+      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err: Error) => {
+        this.logReferralError(behalfUser.id, err);
+      });
     }
 
     if (internxtClient === 'drive-desktop') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app')
-        .catch((err: Error) => {
-          this.logReferralError(behalfUser.id, err);
-        });
+      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err: Error) => {
+        this.logReferralError(behalfUser.id, err);
+      });
     }
 
     res.status(200).json(result);
@@ -76,11 +75,12 @@ export class StorageController {
     const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
     workspaceMembers.forEach(
-      ({ email }: { email: string }) => void this.services.Notifications.fileCreated({
-        file: result,
-        email: email,
-        clientId: clientId
-      }),
+      ({ email }: { email: string }) =>
+        void this.services.Notifications.fileCreated({
+          file: result,
+          email: email,
+          clientId: clientId,
+        }),
     );
 
     this.services.Analytics.trackUploadCompleted(req, behalfUser);
@@ -105,11 +105,12 @@ export class StorageController {
         res.status(201).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.folderCreated({
-            folder: result,
-            email: email,
-            clientId: clientId
-          })
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.folderCreated({
+              folder: result,
+              email: email,
+              clientId: clientId,
+            }),
         );
       })
       .catch((err: Error) => {
@@ -127,7 +128,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         res.status(500).send({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -145,12 +146,12 @@ export class StorageController {
         const treeSize = this.services.Folder.GetTreeSize(result);
         res.status(200).send({
           tree: result,
-          size: treeSize
+          size: treeSize,
         });
       })
       .catch((err: Error) => {
         res.status(500).send({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -170,11 +171,12 @@ export class StorageController {
         res.status(204).send(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.folderDeleted({
-            id: folderId,
-            email: email,
-            clientId: clientId,
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.folderDeleted({
+              id: folderId,
+              email: email,
+              clientId: clientId,
+            }),
         );
       })
       .catch((err: Error) => {
@@ -202,16 +204,17 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.folderUpdated({
-            folder: result.result,
-            email: email,
-            clientId: clientId
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.folderUpdated({
+              folder: result.result,
+              email: email,
+              clientId: clientId,
+            }),
         );
       })
       .catch((err: Error) => {
         res.status(500).json({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -232,11 +235,12 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.folderUpdated({
-            folder: result,
-            email: email,
-            clientId: clientId
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.folderUpdated({
+              folder: result,
+              email: email,
+              clientId: clientId,
+            }),
         );
       })
       .catch((err: Error) => {
@@ -308,18 +312,22 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.fileUpdated({
-            file: result.result,
-            email: email,
-            clientId: clientId
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.fileUpdated({
+              file: result.result,
+              email: email,
+              clientId: clientId,
+            }),
         );
       })
       .catch((err: Error) => {
         this.logger.error(err);
-        res.status(500).json({
-          error: err.message
-        });
+        if(err instanceof HttpError) {
+          res.status(err.status).json({
+            error: err.message,
+          });
+        }
+        res.sendStatus(500);
       });
   }
 
@@ -351,11 +359,12 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.fileUpdated({
-            file: result,
-            email,
-            clientId
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.fileUpdated({
+              file: result,
+              email,
+              clientId,
+            }),
         );
       })
       .catch((err: Error) => {
@@ -365,7 +374,8 @@ export class StorageController {
   }
 
   public async deleteFileBridge(req: Request, res: Response): Promise<void> {
-    if (req.params.bucketid === 'null') { // Weird checking...
+    if (req.params.bucketid === 'null') {
+      // Weird checking...
       res.status(500).json({ error: 'No bucket ID provided' });
       return;
     }
@@ -382,13 +392,13 @@ export class StorageController {
     return this.services.Files.Delete(user, bucketId, fileIdInBucket)
       .then(() => {
         res.status(200).json({
-          deleted: true
+          deleted: true,
         });
       })
       .catch((err: Error) => {
         this.logger.error(err.stack);
         res.status(500).json({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -411,11 +421,12 @@ export class StorageController {
         res.status(200).json({ deleted: true });
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) => void this.services.Notifications.fileDeleted({
-            id: Number(fileid),
-            email,
-            clientId
-          }),
+          ({ email }: { email: string }) =>
+            void this.services.Notifications.fileDeleted({
+              id: Number(fileid),
+              email,
+              clientId,
+            }),
         );
 
         this.services.Analytics.trackFileDeleted(req);
@@ -501,6 +512,23 @@ export class StorageController {
       });
   }
 
+  public async acquireOrRefreshFolderLock(req: Request, res: Response): Promise<void> {
+    const { user } = req as PassportRequest;
+    const { folderId, lockId } = req.params;
+
+    if (Validator.isInvalidPositiveNumber(folderId)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return this.services.Folder.acquireOrRefreshLock(user.id, folderId, lockId)
+      .then(() => {
+        res.status(200).end();
+      })
+      .catch(() => {
+        res.status(409).end();
+      });
+  }
+
   public async renameFileInNetwork(req: Request, res: Response): Promise<void> {
     const { behalfUser: user } = req as SharedRequest;
     const { bucketId, fileId, relativePath } = req.body;
@@ -525,12 +553,12 @@ export class StorageController {
     return this.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath)
       .then(() => {
         res.status(200).json({
-          message: `File renamed in network: ${fileId}`
+          message: `File renamed in network: ${fileId}`,
         });
       })
       .catch((error: Error) => {
         res.status(500).json({
-          error: error.message
+          error: error.message,
         });
       });
   }
@@ -547,6 +575,72 @@ export class StorageController {
       });
   }
 
+  getDirectoryFiles(req: Request, res: Response): void {
+    const { user } = req as PassportRequest;
+    const folderId = req.params.id;
+    const offset = req.query.offset;
+    const limit = req.query.limit;
+
+    if (Validator.isInvalidUnsignedNumber(offset)) {
+      throw createHttpError(400, 'Offset should be positive');
+    }
+
+    if (Validator.isInvalidUnsignedNumber(limit)) {
+      throw createHttpError(400, 'Limit should be positive');
+    }
+
+    this.services.Folder.getUserDirectoryFiles(
+      user.id, 
+      folderId, 
+      Number(offset), 
+      Number(limit)
+    ).then((content: { files: any[], last: boolean }) => {
+      res.status(200).send(content);
+    })
+    .catch((err: Error) => {
+      this.logger.error(
+        'getDirectoryFiles: %s. STACK %s', 
+        err.message, 
+        err.stack || 'NO STACK'
+      );
+
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
+  }
+
+  getDirectoryFolders(req: Request, res: Response): void {
+    const { user } = req as PassportRequest;
+    const folderId = req.params.id;
+    const offset = req.query.offset;
+    const limit = req.query.limit;
+
+    if (Validator.isInvalidUnsignedNumber(offset)) {
+      throw createHttpError(400, 'Offset should be positive');
+    }
+
+    if (Validator.isInvalidUnsignedNumber(limit)) {
+      throw createHttpError(400, 'Limit should be positive');
+    }
+
+    this.services.Folder.getUserDirectoryFolders(
+      user.id, 
+      folderId, 
+      Number(offset), 
+      Number(limit)
+    ).then((content: { folders: any[], last: boolean }) => {
+      res.status(200).send(content);
+    })
+    .catch((err: Error) => {
+      this.logger.error(
+        'getDirectoryFolders: %s. STACK %s', 
+        err.message, 
+        err.stack || 'NO STACK'
+      );
+
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
+  }
+
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
       return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
@@ -557,7 +651,7 @@ export class StorageController {
     }
 
     return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
-  };
+  }
 }
 
 export default (router: Router, service: any) => {
@@ -567,62 +661,50 @@ export default (router: Router, service: any) => {
   const teamsAdapter = teamsMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file', passportAuth, sharedAdapter,
-    controller.createFile.bind(controller)
+  router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
+  router.post('/storage/folder', passportAuth, controller.createFolder.bind(controller));
+  router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
+  router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
+  router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
+  router.post('/storage/move/folder', passportAuth, sharedAdapter, controller.moveFolder.bind(controller));
+  router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, controller.updateFolder.bind(controller));
+  router.get(
+    '/storage/v2/folder/:id/:idTeam?',
+    passportAuth,
+    sharedAdapter,
+    teamsAdapter,
+    controller.getFolderContents.bind(controller),
   );
-  router.post('/storage/folder', passportAuth,
-    controller.createFolder.bind(controller)
+  router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
+  router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
+  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
+  router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
+  router.delete(
+    '/storage/folder/:folderid/file/:fileid',
+    passportAuth,
+    sharedAdapter,
+    controller.deleteFileDatabase.bind(controller),
   );
-  router.get('/storage/tree', passportAuth,
-    controller.getTree.bind(controller)
+  router.get('/storage/recents', passportAuth, sharedAdapter, controller.getRecentFiles.bind(controller));
+  router.post('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.acquireFolderLock.bind(controller));
+  router.put('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.refreshFolderLock.bind(controller));
+  router.put(
+    '/storage/folder/:folderId/lock/:lockId/acquireOrRefresh',
+    passportAuth,
+    controller.acquireOrRefreshFolderLock.bind(controller),
   );
-  router.get('/storage/tree/:folderId', passportAuth,
-    controller.getTreeSpecific.bind(controller)
+  router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.releaseFolderLock.bind(controller));
+  router.post(
+    '/storage/rename-file-in-network',
+    passportAuth,
+    sharedAdapter,
+    controller.renameFileInNetwork.bind(controller),
   );
-  router.delete('/storage/folder/:id', passportAuth, sharedAdapter,
-    controller.deleteFolder.bind(controller)
-  );
-  router.post('/storage/move/folder', passportAuth, sharedAdapter,
-    controller.moveFolder.bind(controller)
-  );
-  router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter,
-    controller.updateFolder.bind(controller)
-  );
-  router.get('/storage/v2/folder/:id/:idTeam?', passportAuth, sharedAdapter, teamsAdapter,
-    controller.getFolderContents.bind(controller)
-  );
-  router.get('/storage/folder/size/:id', passportAuth,
-    controller.getFolderSize.bind(controller)
-  );
-  router.post('/storage/move/file', passportAuth, sharedAdapter,
-    controller.moveFile.bind(controller)
-  );
-  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter,
-    controller.updateFile.bind(controller)
-  );
-  router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth,
-    controller.deleteFileBridge.bind(controller)
-  );
-  router.delete('/storage/folder/:folderid/file/:fileid', passportAuth, sharedAdapter,
-    controller.deleteFileDatabase.bind(controller)
-  );
-  router.get('/storage/recents', passportAuth, sharedAdapter,
-    controller.getRecentFiles.bind(controller)
-  );
-  router.post('/storage/folder/:folderId/lock/:lockId', passportAuth,
-    controller.acquireFolderLock.bind(controller)
-  );
-  router.put('/storage/folder/:folderId/lock/:lockId', passportAuth,
-    controller.refreshFolderLock.bind(controller)
-  );
-  router.delete('/storage/folder/:folderId/lock/:lockId', passportAuth,
-    controller.releaseFolderLock.bind(controller)
-  );
-  router.post('/storage/rename-file-in-network', passportAuth, sharedAdapter,
-    controller.renameFileInNetwork.bind(controller)
-  );
-  router.post('/storage/folder/fixduplicate', passportAuth,
-    controller.fixDuplicate.bind(controller)
-  );
+  router.post('/storage/folder/fixduplicate', passportAuth, controller.fixDuplicate.bind(controller));
 
+  /**
+   * V2 starts here (which will replace V1 and the /v2 will be removed)
+   */
+  router.get('/storage/v2/folders/:id/files', passportAuth, controller.getDirectoryFiles.bind(controller));
+  router.get('/storage/v2/folders/:id/folders', passportAuth, controller.getDirectoryFolders.bind(controller));
 };

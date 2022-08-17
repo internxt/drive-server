@@ -8,7 +8,10 @@ const KeyServerService = require('./keyserver');
 const CryptService = require('./crypt');
 const createHttpError = require('http-errors');
 const uuid = require('uuid');
+const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
+const config = require('../../config/config').default.getInstance();
+const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
@@ -20,7 +23,7 @@ const { Op, col, fn } = sequelize;
 class UserAlreadyRegisteredError extends Error {
   constructor(userEmail) {
     super(`User ${userEmail || ''} is already registered`);
-  
+
     Object.setPrototypeOf(this, UserAlreadyRegisteredError.prototype);
   }
 }
@@ -435,7 +438,7 @@ module.exports = (Model, App) => {
 
     if (hasReferrer) {
       AnalyticsService.trackInvitationAccepted(userData.uuid, referrer.uuid, referrer.email);
-
+      await Model.FriendInvitation.update({ accepted: true }, { where: { host: referrer.id, guestEmail: email } });
       await App.services.UsersReferrals.applyUserReferral(referrer.id, 'invite-friends');
     }
 
@@ -574,17 +577,11 @@ module.exports = (Model, App) => {
   };
 
   const invite = async ({ inviteEmail, hostEmail, hostUserId, hostFullName, hostReferralCode }) => {
-    const userToInvite = await Model.users.findOne({ where: { email: inviteEmail } });
-
-    if (userToInvite) {
-      throw new UserAlreadyRegisteredError(inviteEmail);
-    }
-
-    let mailLimit = await Model.mailLimit.findOne({ 
-      where: { 
+    let mailLimit = await Model.mailLimit.findOne({
+      where: {
         userId: hostUserId,
-        mailType: 'invite_friend'
-      } 
+        mailType: 'invite_friend',
+      },
     });
 
     let limitAlreadyExists = false;
@@ -594,14 +591,14 @@ module.exports = (Model, App) => {
         userId: hostUserId,
         mailType: 'invite_friend',
         attemptsCount: 0,
-        attemptsLimit: 10
+        attemptsLimit: 10,
       });
     } else {
       limitAlreadyExists = true;
     }
 
     const limitReached = mailLimit.attemptsCount >= mailLimit.attemptsLimit;
-    const lastMailWasSentToday = utilsService.isToday(mailLimit.lastMailSent); 
+    const lastMailWasSentToday = utilsService.isToday(mailLimit.lastMailSent);
 
     if (lastMailWasSentToday) {
       if (limitReached) {
@@ -611,22 +608,36 @@ module.exports = (Model, App) => {
       mailLimit.attemptsCount = 0;
     }
 
-    await mailService.sendInviteFriendMail(inviteEmail, {
-      inviteEmail,
-      hostEmail,
-      hostFullName,
-      registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
+    const userToInviteAlreadyExists = await Model.users.findOne({ where: { email: inviteEmail } });
+
+    if (!userToInviteAlreadyExists) {
+      await mailService.sendInviteFriendMail(inviteEmail, {
+        inviteEmail,
+        hostEmail,
+        hostFullName,
+        registerUrl: `${process.env.HOST_DRIVE_WEB}/new?ref=${hostReferralCode}`,
+      });
+      await Model.mailLimit.update(
+        {
+          attemptsCount: mailLimit.attemptsCount + 1,
+          lastMailSent: new Date(),
+        },
+        {
+          where: {
+            userId: hostUserId,
+            mailType: 'invite_friend',
+          },
+        },
+      );
+    }
+
+    const alreadyExistingFriendInvitation = await Model.FriendInvitation.findOne({
+      where: { guestEmail: inviteEmail, host: hostUserId },
     });
 
-    await Model.mailLimit.update({ 
-      attemptsCount: mailLimit.attemptsCount + 1,
-      lastMailSent: new Date()
-    }, {
-      where: {
-        userId: hostUserId,
-        mailType: 'invite_friend'
-      }
-    });
+    if (!alreadyExistingFriendInvitation) {
+      await Model.FriendInvitation.create({ host: hostUserId, guestEmail: inviteEmail });
+    }
   };
 
   const CompleteInfo = async (user, info) => {
@@ -654,6 +665,85 @@ module.exports = (Model, App) => {
 
   const findWorkspaceMembers = async (bridgeUser) => {
     return Model.users.findAll({ where: { bridgeUser } });
+  };
+
+  const modifyProfile = async (email, { name, lastname }) => {
+    return Model.users.update({ name, lastname }, { where: { email } });
+  };
+
+  const getSignedAvatarUrl = async (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    const url = await s3.getSignedUrlPromise('getObject', {
+      Bucket: process.env.AVATAR_BUCKET,
+      Key: avatarKey,
+      Expires: 24 * 3600,
+    });
+
+    const endpointRewrite = process.env.AVATAR_ENDPOINT_REWRITE_FOR_SIGNED_URLS;
+    if (endpointRewrite) {
+      return url.replace(process.env.AVATAR_ENDPOINT, endpointRewrite);
+    } else {
+      return url;
+    }
+  };
+
+  const deleteAvatarInS3 = (avatarKey) => {
+    const s3 = AvatarS3.getInstance();
+    return s3.deleteObject({ Bucket: process.env.AVATAR_BUCKET, Key: avatarKey }).promise();
+  };
+
+  const upsertAvatar = async (user, newAvatarKey) => {
+    await Model.users.update({ avatar: newAvatarKey }, { where: { id: user.id } });
+
+    if (user.avatar) {
+      try {
+        await deleteAvatarInS3(user.avatar);
+      } catch (err) {
+        logger.error(`Error while deleting already existing avatar for user ${user.email}: ${err.message}`);
+      }
+    }
+    return { avatar: await getSignedAvatarUrl(newAvatarKey) };
+  };
+
+  const deleteAvatar = async (user) => {
+    if (!user.avatar) return;
+
+    await deleteAvatarInS3(user.avatar);
+    return Model.users.update({ avatar: null }, { where: { id: user.id } });
+  };
+
+  const getFriendInvites = async (id) => {
+    return Model.FriendInvitation.findAll({ where: { host: id } });
+  };
+
+  const sendEmailVerification = async (user) => {
+    const secret = config.get('secrets').JWT;
+    const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
+
+    const verificationTokenEncoded = encodeURIComponent(verificationToken);
+
+    const url = `${process.env.HOST_DRIVE_WEB}/verify-email/${verificationTokenEncoded}`;
+
+    await mailService.sendVerifyEmailMail(user.email, { firstName: user.name, url });
+  };
+
+  const verifyEmail = async (verificationToken) => {
+    const secret = config.get('secrets').JWT;
+
+    let uuid;
+
+    try {
+      uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
+    } catch (err) {
+      logger.error(`Error while validating verificationToken (verifyEmail) ${err.message}`);
+      throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
+    }
+
+    try {
+      await Model.users.update({ emailVerified: true }, { where: { uuid } });
+    } catch (err) {
+      logger.error(`Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+    }
   };
 
   return {
@@ -686,6 +776,13 @@ module.exports = (Model, App) => {
     confirmDeactivate,
     findWorkspaceMembers,
     UserAlreadyRegisteredError,
-    DailyInvitationUsersLimitReached
+    DailyInvitationUsersLimitReached,
+    modifyProfile,
+    upsertAvatar,
+    deleteAvatar,
+    getSignedAvatarUrl,
+    getFriendInvites,
+    sendEmailVerification,
+    verifyEmail,
   };
 };
