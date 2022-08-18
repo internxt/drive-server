@@ -67,7 +67,9 @@ export class AuthController {
   async access(req: Request, res: Response) {
     const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
-    const userData: any = await this.service.User.FindUserByEmail(req.body.email);
+    const userData: any = await this.service.User.FindUserByEmail(req.body.email).catch(() => {
+      // eslint-disable @typescript-eslint/no-empty-function
+    });
 
     if (!userData) {
       throw createHttpError(401, 'Wrong email/password');
