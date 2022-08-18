@@ -351,4 +351,28 @@ describe('Auth (e2e)', () => {
       expect(body.error).toBe('Your account has been blocked for security reasons. Please reach out to us');
     });
   });
+
+  describe('renew authorization token', () => {
+    afterEach(() => {
+      server.services.Inxt.RegisterBridgeUser.restore();
+    });
+
+    it('should return a new token for the user', async () => {
+      const RegisterBridgeUserMock = sinon.stub(server.services.Inxt, 'RegisterBridgeUser');
+      RegisterBridgeUserMock.returns({
+        response: {
+          status: HttpStatus.OK,
+        },
+        data: {
+          uuid: 'cfb1a279-d72a-594e-b71b-556012e6592b',
+        },
+      });
+      const user = await registerTestUser(TEST_USER_EMAIL);
+
+      const { status, body } = await request(app).get('/api/new-token').set('Authorization', `Bearer ${user.token}`);
+
+      expect(status).toBe(HttpStatus.OK);
+      expect(body).toHaveProperty('newToken');
+    });
+  });
 });
