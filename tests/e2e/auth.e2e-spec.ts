@@ -8,6 +8,9 @@ import { applicationInitialization } from './setup';
 import speakeasy from 'speakeasy';
 import { delay } from './utils';
 
+const testUsersEmail: Array<any> = [];
+const TEST_USER_EMAIL = 'e2etest@intext.com';
+
 const registrationBodyFor = (email: string) => ({
   name: 'e2e',
   captcha:
@@ -35,40 +38,36 @@ const registrationBodyFor = (email: string) => ({
     'LS0tLS1CRUdJTiBQR1AgUFVCTElDIEtFWSBCTE9DSy0tLS0tDQpWZXJzaW9uOiBPcGVuUEdQLmpzIHY0LjEwLjEwDQpDb21tZW50OiBodHRwczovL29wZW5wZ3Bqcy5vcmcNCkNvbW1lbnQ6IFRoaXMgaXMgYSByZXZvY2F0aW9uIGNlcnRpZmljYXRlDQoNCnduZ0VJQllLQUFrRkFtTDdXc0lDSFFBQUlRa1FIVjlJZ09pS1V5MFdJUVRrR3c4WjhMNUNrbmdJR2pjZA0KWDBpQTZJcFRMUkt4QVFEY29tMFVBYW9IS0tNaHVVV3U1eFdMWnFYblh1ZGNlTmEyNkl2OHBBS3JBQUQ3DQpCMDkxQW90bXZCRHJuaUtxZjA1MjZPV0ZGaThSdFlGWC95TzFJUkRVVXcwPQ0KPVI2bEQNCi0tLS0tRU5EIFBHUCBQVUJMSUMgS0VZIEJMT0NLLS0tLS0NCg==',
 });
 
-const dummyUsers: Array<any> = [];
-const TEST_USER_EMAIL = 'e2etest@intext.com';
+const insertReferral = async (key: string): Promise<number | undefined> => {
+  const [data] = await server.database.query(
+    // eslint-disable-next-line max-len
+    'INSERT INTO referrals ("key", "type", credit, steps, enabled) VALUES((:key), \'storage\', 0, 2, true) ON CONFLICT DO NOTHING RETURNING id',
+    {
+      replacements: { key },
+    },
+  );
 
-const createDummyUserInDatabase = async (email: string): Promise<any> => {
-  const { dataValues: user } = await server.models.users.create({
-    email,
-    name: 'Dummy',
-    lastname: 'User',
-    password: '1HkNK0zndXE1HQDnPtQq',
-    mnemonic: 'JYy7qoMVR9QrKpKJFXTt',
-    hKey: 'a5GlkCWnlOL0c4aKaLai',
-    referrer: null,
-    referralCode: '6cead4f8-b309-56e3-aed6-5537a13d4db7',
-    uuid: null,
-    credit: 0,
-    welcomePack: true,
-    registerCompleted: true,
-    username: 'Dummy User',
-    bridgeUser: null,
+  return data[0]?.id;
+};
+
+const deleteReferral = async (id: number): Promise<void> => {
+  await server.database.query('DELETE FROM referrals WHERE id = (:id)', {
+    replacements: { id },
   });
+};
 
-  await server.services.UsersReferrals.createUserReferrals(user.id);
+const registerTestUser = async (email: string): Promise<any> => {
+  const { body } = await request(app).post('/api/register').send(registrationBodyFor(email));
 
-  dummyUsers.push(user);
+  testUsersEmail.push(email);
 
-  return user;
+  return body;
 };
 
 const deleteCreatedUsers = async (): Promise<void> => {
-  const dummyUsersEmail = dummyUsers.map((user) => user.email);
   await server.database.query('DELETE FROM users WHERE email in (:userEmails)', {
-    replacements: { userEmails: [TEST_USER_EMAIL, ...dummyUsersEmail] },
+    replacements: { userEmails: [TEST_USER_EMAIL, ...testUsersEmail] },
   });
-  //mail_limit
 };
 
 describe('Auth (e2e)', () => {
@@ -95,7 +94,6 @@ describe('Auth (e2e)', () => {
   });
 
   describe('user registration', () => {
-
     afterEach(async () => {
       server.services.Inxt.RegisterBridgeUser.restore();
     });
@@ -104,7 +102,7 @@ describe('Auth (e2e)', () => {
       const RegisterBridgeUserMock = sinon.stub(server.services.Inxt, 'RegisterBridgeUser');
       RegisterBridgeUserMock.returns({
         response: {
-          status: 200,
+          status: HttpStatus.OK,
         },
         data: {
           uuid: 'cfb1a279-d72a-594e-b71b-556012e6592b',
@@ -118,39 +116,54 @@ describe('Auth (e2e)', () => {
       expect(response.body.user.registerCompleted).toBe(true);
     });
 
-    // it('should be able to register a referred user', async () => {
-    //   await server.database.query(
-    //     'INSERT INTO referrals ("key", "type", credit, steps, enabled) VALUES(\'invite-friends\', \'storage\', 0, 0, true) ON CONFLICT DO NOTHING',
-    //   );
+    it('should be able to register a referred user', async () => {
+      const referralInserted = await insertReferral('invite-friends');
 
-    //   const RegisterBridgeUserMock = sinon.stub(server.services.Inxt, 'RegisterBridgeUser');
-    //   RegisterBridgeUserMock.returns({
-    //     response: {
-    //       status: 200,
-    //     },
-    //     data: {
-    //       uuid: 'cfb1a279-d72a-594e-b71b-556012e6592b',
-    //     },
-    //   });
+      server.services.Inxt.RegisterBridgeUser = sinon
+        .stub(server.services.Inxt, 'RegisterBridgeUser')
+        .onFirstCall()
+        .returns({
+          response: {
+            status: HttpStatus.OK,
+          },
+          data: {
+            uuid: '94b6b993-0a39-5ed0-8838-28fdae43c38a',
+          },
+        })
+        .onSecondCall()
+        .returns({
+          response: {
+            status: HttpStatus.OK,
+          },
+          data: {
+            uuid: 'e0d49789-d80c-5ae8-8775-0f7041688b46',
+          },
+        });
+      server.services.Mail.sendInviteFriendMail = sinon.stub(server.services.Mail, 'sendInviteFriendMail').resolves();
+      server.services.Inxt.addStorage = sinon.stub(server.services.Inxt, 'addStorage').resolves();
+      server.services.Plan.hasBeenIndividualSubscribedAnyTime = sinon
+        .stub(server.services.Plan, 'hasBeenIndividualSubscribedAnyTime')
+        .resolves(false);
 
-    //   server.services.Inxt.RegisterBridgeUser = RegisterBridgeUserMock;
+      const inviter = await registerTestUser('inviter@internxt.com');
 
-    //   const sendInviteFriendMailMock = sinon.stub(server.services.Mail, 'sendInviteFriendMail');
-    //   sendInviteFriendMailMock.resolves();
+      const { status } = await request(app)
+        .post('/api/register')
+        .send({
+          ...registrationBodyFor(TEST_USER_EMAIL),
+          referrer: inviter.referralCode,
+        });
 
-    //   server.services.Mail.endInviteFriendMail = sendInviteFriendMailMock;
+      expect(status).toBe(HttpStatus.OK);
 
-    //   const dummyUser = await createDummyUserInDatabase('inviter@internxt.com');
-    //   const requestBoy = {
-    //     ...registrationBodyFor(TEST_USER_EMAIL),
-    //     referrer: dummyUser.referralCode,
-    //   };
+      server.services.Mail.sendInviteFriendMail.restore();
+      server.services.Inxt.addStorage.restore();
+      server.services.Plan.hasBeenIndividualSubscribedAnyTime.restore();
 
-    //   const { status } = await request(app).post('/api/register').send(requestBoy);
-
-    //   expect(status).toBe(HttpStatus.OK);
-    //   sendInviteFriendMailMock.restore();
-    // });
+      if (referralInserted !== undefined) {
+        await deleteReferral(referralInserted);
+      }
+    });
 
     it('should rollback succecfully if fails after the user is insterted on the database', async () => {
       const RegisterBridgeUserMock = sinon.stub(server.services.Inxt, 'RegisterBridgeUser');
@@ -198,7 +211,7 @@ describe('Auth (e2e)', () => {
     beforeEach(() => {
       server.services.Inxt.RegisterBridgeUser = sinon.stub(server.services.Inxt, 'RegisterBridgeUser').returns({
         response: {
-          status: 200,
+          status: HttpStatus.OK,
         },
         data: {
           uuid: 'cfb1a279-d72a-594e-b71b-556012e6592b',
@@ -222,10 +235,7 @@ describe('Auth (e2e)', () => {
         email: TEST_USER_EMAIL,
       });
 
-      // const accesResponse = await request(app).post('/api/access').send(TEST_USER_LOGIN_BODY);
-
       expect(loginResponse.status).toBe(HttpStatus.OK);
-      // expect(accesResponse.status).toBe(HttpStatus.OK);
     });
 
     it('should be able to acces the account', async () => {
