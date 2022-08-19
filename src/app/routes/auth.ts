@@ -68,12 +68,8 @@ export class AuthController {
     const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
     const userData: any = await this.service.User.FindUserByEmail(req.body.email).catch(() => {
-      // eslint-disable @typescript-eslint/no-empty-function
-    });
-
-    if (!userData) {
       throw createHttpError(401, 'Wrong email/password');
-    }
+    });
 
     const loginAttemptsLimitReached = userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS;
 
@@ -192,8 +188,7 @@ export class AuthController {
   }
 
   async areCredentialsCorrect(req: Request, res: Response) {
-    if (!req.query.hashedPassword)
-      throw createHttpError(400, 'Query params must contain the hashedPassword property');
+    if (!req.query.hashedPassword) throw createHttpError(400, 'Query params must contain the hashedPassword property');
 
     const { hashedPassword } = req.query;
     const email = (req as AuthorizedUser).user.email;
