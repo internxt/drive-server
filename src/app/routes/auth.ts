@@ -5,6 +5,8 @@ import { UserAttributes } from '../models/user';
 import { passportAuth, Sign } from '../middleware/passport';
 import Config from '../../config/config';
 import { AuthorizedUser } from './types';
+import Logger from '../../lib/logger';
+import winston from 'winston';
 
 interface Services {
   User: any;
@@ -20,10 +22,12 @@ interface Services {
 export class AuthController {
   private service: Services;
   private config: Config;
+  private logger: winston.Logger;
 
   constructor(service: Services, config: Config) {
     this.service = service;
     this.config = config;
+    this.logger = Logger.getInstance();
   }
 
   async register(req: Request<{ email: string }>, res: Response) {
@@ -68,6 +72,7 @@ export class AuthController {
     const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
     const userData: any = await this.service.User.FindUserByEmail(req.body.email).catch(() => {
+      this.logger.info('Attempted login with a non-existing email: %s', req.body.email);
       throw createHttpError(401, 'Wrong email/password');
     });
 
