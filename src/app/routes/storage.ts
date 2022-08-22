@@ -217,9 +217,12 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
-        res.status(500).json({
-          error: err.message,
-        });
+        if (err instanceof HttpError) {
+          res.status(err.status).json({
+            error: err.message,
+          });
+        }
+        res.sendStatus(500);
       });
   }
 
