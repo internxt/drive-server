@@ -9,7 +9,7 @@ import speakeasy from 'speakeasy';
 import { delay } from './utils';
 
 const testUsersEmail: Array<any> = [];
-const TEST_USER_EMAIL = 'e2etest@intext.com';
+const TEST_USER_EMAIL = 'e2etest@internxt.com';
 
 const registrationBodyFor = (email: string) => ({
   name: 'e2e',
