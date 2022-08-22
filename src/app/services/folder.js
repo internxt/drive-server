@@ -537,6 +537,54 @@ module.exports = (Model, App) => {
     if (!res) throw new Error();
   };
 
+  const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {
+    const rawFiles = await Model.file.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        folder_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const files = [];
+
+    for (const file of rawFiles) {
+      files.push({
+        ...file,
+        name: App.services.Crypt.decryptName(file.name, file.folder_id),
+      });
+    }
+
+    return { files, last: limit > rawFiles.length };
+  };
+
+  const getUserDirectoryFolders = async (userId, directoryId, offset, limit) => {
+    const rawFolders = await Model.folder.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        parent_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const folders = [];
+
+    for (const folder of rawFolders) {
+      folders.push({
+        ...folder,
+        name: App.services.Crypt.decryptName(folder.name, folder.parentId),
+      });
+    }
+
+    return { folders, last: limit > rawFolders.length };
+  };
+
   /**
    * Get directory files paginated
    * @param {number} directoryId Folder id
@@ -618,5 +666,7 @@ module.exports = (Model, App) => {
     acquireOrRefreshLock,
     getDirectoryFiles,
     getDirectoryFolders,
+    getUserDirectoryFiles,
+    getUserDirectoryFolders
   };
 };

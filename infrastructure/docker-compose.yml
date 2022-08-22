@@ -35,7 +35,7 @@ services:
   bridge:
     build:
       context: ../../bridge
-      dockerfile: Dockerfile
+      dockerfile: infrastructure/development.Dockerfile
     container_name: bridge
     networks:
       - internxt
@@ -94,6 +94,7 @@ services:
       sleep 10;
       /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
       /usr/bin/mc mb --ignore-existing myminio/internxt;
+      /usr/bin/mc mb --ignore-existing myminio/avatars;
       /usr/bin/mc policy set public myminio/internxt;
       /usr/bin/mc admin user add myminio internxt internxt;
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
