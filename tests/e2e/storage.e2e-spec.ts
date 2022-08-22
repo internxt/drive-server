@@ -1,4 +1,5 @@
 require('dotenv').config();
+const uuid = require('uuid');
 import request from 'supertest';
 import { HttpStatus } from '@nestjs/common';
 import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
@@ -44,7 +45,7 @@ const createFileOnFolder = async (folderId: number, name: string, authToken: str
     .set('Authorization', `Bearer ${authToken}`)
     .send({
       file: {
-        fileId: '62e7adcfbf9465001f6a4d01',
+        fileId: uuid.v4().substring(0, 24),
         type: 'jpg',
         bucket: '01fa78f686158a14f8f7009b',
         size: 57,
