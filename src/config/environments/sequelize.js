@@ -7,12 +7,6 @@ module.exports = {
     password: process.env.RDS_PASSWORD,
     port: process.env.RDS_PORT,
     logging: true,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
   },
   e2e: {
     dialect: 'postgres',
