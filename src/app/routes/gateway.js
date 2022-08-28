@@ -71,7 +71,7 @@ module.exports = (Router, Service) => {
       try {
         user = await Service.User.CreateStaggingUser(email);
       } catch (err) {
-        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
+        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: ${err.message}`, err);
         return res.status(500).send({ error: err.message });
       }
     }
