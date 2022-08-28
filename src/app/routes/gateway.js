@@ -65,7 +65,8 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
-    const { email, maxSpaceBytes } = req.body;
+    const { maxSpaceBytes } = req.body;
+    const email = req.body.email.toLowerCase();
     let user = await Service.User.FindUserByEmail(email).catch(() => null);
     if (!user) {
       try {
