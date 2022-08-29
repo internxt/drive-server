@@ -65,13 +65,14 @@ module.exports = (Router, Service) => {
   });
 
   Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
-    const { email, maxSpaceBytes } = req.body;
+    const { maxSpaceBytes } = req.body;
+    const email = req.body.email.toLowerCase();
     let user = await Service.User.FindUserByEmail(email).catch(() => null);
     if (!user) {
       try {
         user = await Service.User.CreateStaggingUser(email);
       } catch (err) {
-        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: %s`, err.message);
+        Logger.error(`[GATEWAY]: Create stagging error for user ${email}: ${err.message}`, err);
         return res.status(500).send({ error: err.message });
       }
     }
