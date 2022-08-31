@@ -427,7 +427,7 @@ module.exports = (Model, App) => {
     });
 
     if (!userData) {
-      throw Error('User can not be created');
+      throw createHttpError(409, 'Email adress already used');
     }
 
     if (!userData.isNewRecord) {

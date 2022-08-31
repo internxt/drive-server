@@ -5,6 +5,7 @@ import { UserAttributes } from '../models/user';
 import { passportAuth, Sign } from '../middleware/passport';
 import Config from '../../config/config';
 import { AuthorizedUser } from './types';
+import { HttpError } from 'http-errors';
 import Logger from '../../lib/logger';
 import winston from 'winston';
 
@@ -35,11 +36,20 @@ export class AuthController {
       const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
       await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
     }
+    try {
+      const result = await this.service.User.RegisterUser(req.body);
+      res.status(200).send(result);
 
-    const result = await this.service.User.RegisterUser(req.body);
-    res.status(200).send(result);
+      this.service.Analytics.trackSignUp(req, result.user);
+    } catch (err) {
+      if (err instanceof HttpError) {
+        res.status(err.status).send({
+          error: err.message,
+        });
+      }
 
-    this.service.Analytics.trackSignUp(req, result.user);
+      res.sendStatus(500);
+    }
   }
 
   async login(req: Request, res: Response) {
