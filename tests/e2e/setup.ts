@@ -1,5 +1,4 @@
 import { Express } from 'express';
-import { Sequelize } from 'sequelize/types';
 
 export function applicationInitialization(app: Express): Promise<void> {
   const TRIES_UNTIL_DRIVE_SERVER_IS_READY = 10;
@@ -26,29 +25,3 @@ export function applicationInitialization(app: Express): Promise<void> {
     }, INTERVAL_FOR_RETRY);
   });
 };
-
-export function databaseConnection(database: Sequelize): Promise<void> {
-  const TRIES_UNTIL_DRIVE_SERVER_DATABASE_IS_READY = 10;
-  const INTERVAL_FOR_RETRY = 3000;
-
-  return new Promise((resolve, reject) => {
-    let tries = 0;
-        const interval = setInterval(async () => {
-          try {
-            await database.showAllSchemas({});
-            clearInterval(interval);
-            resolve();
-          } catch (err) {
-            tries += 1;
-
-            if (tries > TRIES_UNTIL_DRIVE_SERVER_DATABASE_IS_READY) {
-              clearInterval(interval);
-              reject(new Error('Too many tries to connect to Drive Server Database'));
-            } else {
-              // eslint-disable-next-line no-console
-              console.log(`Database not ready yet, waiting: ${INTERVAL_FOR_RETRY / 1000} more seconds`);
-            }
-          }
-        }, INTERVAL_FOR_RETRY);
-  });
-}
