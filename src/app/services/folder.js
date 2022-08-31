@@ -94,8 +94,9 @@ module.exports = (Model, App) => {
 
   // Requires stored procedure
   const DeleteOrphanFolders = async (userId) => {
-    const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId)', { replacements: { userId } });
-
+    const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId, :output)', {
+      replacements: { userId, output: null },
+    });
     const totalLeft = clear[0].total_left;
 
     if (totalLeft > 0) {

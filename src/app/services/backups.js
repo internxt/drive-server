@@ -20,7 +20,7 @@ module.exports = (Model, App) => {
     return Model.device.findAll({
       where: { userId },
       attributes: { include: [[fn('SUM', col('backups.size')), 'size']] },
-      group: ['id'],
+      group: [col('device.id'), col('backups.id')],
       include: [{ model: Model.backup, attributes: ['size'] }],
     });
   };

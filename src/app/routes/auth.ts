@@ -6,6 +6,8 @@ import { passportAuth, Sign } from '../middleware/passport';
 import Config from '../../config/config';
 import { AuthorizedUser } from './types';
 import { HttpError } from 'http-errors';
+import Logger from '../../lib/logger';
+import winston from 'winston';
 
 interface Services {
   User: any;
@@ -21,10 +23,12 @@ interface Services {
 export class AuthController {
   private service: Services;
   private config: Config;
+  private logger: winston.Logger;
 
   constructor(service: Services, config: Config) {
     this.service = service;
     this.config = config;
+    this.logger = Logger.getInstance();
   }
 
   async register(req: Request<{ email: string }>, res: Response) {
@@ -38,7 +42,7 @@ export class AuthController {
 
       this.service.Analytics.trackSignUp(req, result.user);
     } catch (err) {
-      if(err instanceof HttpError) {
+      if (err instanceof HttpError) {
         res.status(err.status).send({
           error: err.message,
         });
@@ -77,11 +81,10 @@ export class AuthController {
   async access(req: Request, res: Response) {
     const MAX_LOGIN_FAIL_ATTEMPTS = 10;
 
-    const userData: any = await this.service.User.FindUserByEmail(req.body.email);
-
-    if (!userData) {
+    const userData: any = await this.service.User.FindUserByEmail(req.body.email).catch(() => {
+      this.logger.info('Attempted login with a non-existing email: %s', req.body.email);
       throw createHttpError(401, 'Wrong email/password');
-    }
+    });
 
     const loginAttemptsLimitReached = userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS;
 
@@ -200,8 +203,7 @@ export class AuthController {
   }
 
   async areCredentialsCorrect(req: Request, res: Response) {
-    if (!req.query.hashedPassword)
-      throw createHttpError(400, 'Query params must contain the hashedPassword property');
+    if (!req.query.hashedPassword) throw createHttpError(400, 'Query params must contain the hashedPassword property');
 
     const { hashedPassword } = req.query;
     const email = (req as AuthorizedUser).user.email;

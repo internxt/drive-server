@@ -1,6 +1,6 @@
 exports.data = {
   server: {
-    port: 8000,
+    port: 5555,
   },
   database: {
     name: process.env.RDS_DBNAME,
@@ -10,6 +10,12 @@ exports.data = {
       dialect: 'postgres',
       port: process.env.RDS_PORT,
       host: process.env.RDS_HOSTNAME || 'localhost',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      },
     },
   },
   secrets: {
@@ -24,7 +30,7 @@ exports.data = {
     CRYPTO_SECRET2: process.env.CRYPTO_SECRET2,
   },
   logger: {
-    level: 2,
+    level: 0,
   },
   STORJ_BRIDGE: 'https://api.internxt.com',
 };

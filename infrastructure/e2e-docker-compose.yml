@@ -94,7 +94,6 @@ services:
       sleep 10;
       /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
       /usr/bin/mc mb --ignore-existing myminio/internxt;
-      /usr/bin/mc mb --ignore-existing myminio/avatars;
       /usr/bin/mc policy set public myminio/internxt;
       /usr/bin/mc admin user add myminio internxt internxt;
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
@@ -109,45 +108,57 @@ services:
       dockerfile: infrastructure/development.Dockerfile
     container_name: drive-server
     ports:
-      - 3000:8000
+      - 8000:8000
     depends_on:
-      - bridge
-      - postgres
+      - drive-database
       - redis
     volumes:
       - ../src:/usr/app/src
+      - ../tests/e2e/:/usr/app/tests/e2e
     networks:
       - internxt
 
-  notifications:
-    build:
-      context: ../../notifications
-      dockerfile: infrastructure/development.Dockerfile
-    container_name: notifications
-    networks:
-      - internxt
-    depends_on:
-      - drive-server
-    ports:
-      - 4000:4000
-    volumes:
-      - ../../notifications/src:/usr/app/src
+  # notifications:
+  #   build:
+  #     context: ../../notifications
+  #     dockerfile: infrastructure/development.Dockerfile
+  #   container_name: notifications
+  #   networks:
+  #     - internxt
+  #   depends_on:
+  #     - drive-server
+  #   ports:
+  #     - 4000:4000
+  #   volumes:
+  #     - ../../notifications/src:/usr/app/src
 
-  postgres:
+  drive-database:
     image: postgres:14
-    container_name: postgres
+    container_name: drive-database
     restart: always
+    ports:
+      - 5432:5432
     volumes:
       - ./maria-init-scripts:/docker-entrypoint-initdb.d
     environment:
-      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: xCloud
     networks:
       - internxt
-    ports:
-      - 5432:5432
 
+  cloudbeaver:
+    image: dbeaver/cloudbeaver
+    container_name: cloudbeaver
+    restart: always
+    depends_on:
+      - drive-database
+    networks:
+      - internxt
+    ports:
+      - 8080:8978
+    volumes:
+      - ./volumes/dbeaver_logs:/opt/cloudbeaver/logs
+      - ./volumes/dbeaver_workspace:/opt/cloudbeaver/workspace
 
   redis:
     image: redis:latest
