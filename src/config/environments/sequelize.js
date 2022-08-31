@@ -16,12 +16,6 @@ module.exports = {
     password: process.env.RDS_PASSWORD,
     port: process.env.RDS_PORT,
     logging: true,
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false,
-      },
-    },
   },
   test: {
     username: 'root',
