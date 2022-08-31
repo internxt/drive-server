@@ -4,7 +4,7 @@ import request from 'supertest';
 import { HttpStatus } from '@nestjs/common';
 import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
 import { Sign } from '../../src/app/middleware/passport';
-import { applicationInitialization } from './setup';
+import { applicationInitialization, databaseConnection } from './setup';
 import { FileModel } from '../../src/app/models/file';
 import sequelize from 'sequelize';
 const { Op } = sequelize;
@@ -67,6 +67,7 @@ describe('Storage controller (e2e)', () => {
       }
 
       await applicationInitialization(app);
+      await databaseConnection(server.database);
       const email = `test${Date.now()}@internxt.com`;
       const user = await createTestUser(email);
 
