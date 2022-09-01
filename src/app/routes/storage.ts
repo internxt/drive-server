@@ -5,15 +5,12 @@ import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
-import createHttpError from 'http-errors';
+import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
-import { HttpError } from 'http-errors';
-
-import axios from 'axios';
 
 interface Services {
   Files: any;
@@ -258,29 +255,10 @@ export class StorageController {
       });
   }
 
-  public async getTrash(req: Request, res: Response): Promise<any> {
-    const token = req.headers.authorization;
-    const clientId = req.headers['internxt-client-id'];
-    const version = req.headers['internxt-version'];
-    const response: any = await axios({
-      url: `${process.env.DRIVE_SERVER_WIP_URL}/api/storage/trash`,
-      method: 'get',
-      headers: {
-        'Authorization': `${token}`,
-        'internxt-client-id': `${clientId}`,
-        'internxt-version': `${version}`,
-      },
-    }).catch((err) => {
-      return res.status(err.response.data.statusCode).json(err.response.data);
-    });
-    return res.status(200).json(response.data);
-  }
-
   public async getFolderContents(req: Request, res: Response): Promise<void> {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
-    const trash = req.query?.trash || null;
-    const deleted = trash === 'true' ? 1 : 0;
+    const deleted = req.query?.trash === 'true';
 
     if (Validator.isInvalidPositiveNumber(id)) {
       throw createHttpError(400, 'Folder ID is not valid');
@@ -358,26 +336,6 @@ export class StorageController {
         }
         res.sendStatus(500);
       });
-  }
-
-  public async moveItemsToTrash(req: Request, res: Response): Promise<any> {
-    const token = req.headers.authorization;
-    const clientId = req.headers['internxt-client-id'];
-    const version = req.headers['internxt-version'];
-    const response: any = await axios({
-      url: `${process.env.DRIVE_SERVER_WIP_URL}/api/storage/trash/add`,
-      method: 'post',
-      headers: {
-        'Authorization': `${token}`,
-        'internxt-client-id': `${clientId}`,
-        'internxt-version': `${version}`,
-      },
-      data: req.body
-    })
-    .catch((err) => {
-      return res.status(err.response.data.statusCode).json(err.response.data);
-    });
-    return res.status(200).json(response.data);
   }
 
   public async updateFile(req: Request, res: Response): Promise<void> {

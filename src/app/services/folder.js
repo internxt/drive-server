@@ -265,7 +265,7 @@ module.exports = (Model, App) => {
     };
   };
 
-  const getFolders = (parentFolderId, userId, deleted = 0) => {
+  const getFolders = (parentFolderId, userId, deleted = false) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
@@ -413,7 +413,7 @@ module.exports = (Model, App) => {
       where: {
         name: { [Op.eq]: destinationName },
         parent_id: { [Op.eq]: destination },
-        id: { [Op.ne]: folderId }
+        id: { [Op.ne]: folderId },
       },
     });
 
@@ -427,8 +427,8 @@ module.exports = (Model, App) => {
     const result = await folder.update({
       parentId: parseInt(destination, 10),
       name: destinationName,
-      deleted: 0,
-      deletedAt: null
+      deleted: false,
+      deletedAt: null,
     });
     // we don't want ecrypted name on front
     folder.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
@@ -441,7 +441,7 @@ module.exports = (Model, App) => {
     };
 
     return response;
-  };
+  };;
 
   const GetBucket = (user, folderId) =>
     Model.folder.findOne({

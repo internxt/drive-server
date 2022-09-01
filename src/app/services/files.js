@@ -233,8 +233,8 @@ module.exports = (Model, App) => {
     const result = await file.update({
       folder_id: parseInt(destination, 10),
       name: destinationName,
-      deleted: 0,
-      deletedAt: null
+      deleted: false,
+      deletedAt: null,
     });
 
     // we don't want ecrypted name on front
@@ -294,7 +294,7 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getByFolderAndUserId = (folderId, userId, deleted = 0) => {
+  const getByFolderAndUserId = (folderId, userId, deleted = false) => {
     return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
       if (!files) {
         throw new Error('Not found');
