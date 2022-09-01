@@ -441,8 +441,8 @@ module.exports = (Model, App) => {
     };
 
     return response;
-  };;
-
+  };
+  
   const GetBucket = (user, folderId) =>
     Model.folder.findOne({
       where: {
