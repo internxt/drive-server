@@ -1,4 +1,4 @@
-import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
+import { DataTypes, ModelDefined, Sequelize } from 'sequelize';
 
 export interface UserAttributes {
   id: number;
@@ -10,7 +10,7 @@ export interface UserAttributes {
   bridgeUser: string;
   password: string;
   mnemonic: string;
-  root_folder_id: number;
+  rootFolderId: number;
   hKey: Buffer;
   secret_2FA: string;
   errorLoginCount: number;
