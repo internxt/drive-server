@@ -20,7 +20,7 @@ services:
     container_name: postgres
     restart: always
     volumes:
-      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+      - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example

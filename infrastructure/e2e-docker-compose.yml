@@ -139,7 +139,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+      - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_PASSWORD: example
       POSTGRES_DB: xCloud
