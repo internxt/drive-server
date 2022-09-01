@@ -94,8 +94,9 @@ module.exports = (Model, App) => {
 
   // Requires stored procedure
   const DeleteOrphanFolders = async (userId) => {
-    const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId)', { replacements: { userId } });
-
+    const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId, :output)', {
+      replacements: { userId, output: null },
+    });
     const totalLeft = clear[0].total_left;
 
     if (totalLeft > 0) {
@@ -531,6 +532,62 @@ module.exports = (Model, App) => {
     if (!res) throw new Error();
   };
 
+  const acquireOrRefreshLock = async (userId, folderId, lockId) => {
+    const redis = Redis.getInstance();
+
+    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+
+    if (!res) throw new Error();
+  };
+
+  const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {
+    const rawFiles = await Model.file.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        folder_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const files = [];
+
+    for (const file of rawFiles) {
+      files.push({
+        ...file,
+        name: App.services.Crypt.decryptName(file.name, file.folder_id),
+      });
+    }
+
+    return { files, last: limit > rawFiles.length };
+  };
+
+  const getUserDirectoryFolders = async (userId, directoryId, offset, limit) => {
+    const rawFolders = await Model.folder.findAll({
+      raw: true,
+      where: {
+        user_id: userId,
+        parent_id: { [Op.eq]: directoryId },
+      },
+      offset,
+      limit,
+      order: [['id', 'ASC']],
+    });
+
+    const folders = [];
+
+    for (const folder of rawFolders) {
+      folders.push({
+        ...folder,
+        name: App.services.Crypt.decryptName(folder.name, folder.parentId),
+      });
+    }
+
+    return { folders, last: limit > rawFolders.length };
+  };
+
   /**
    * Get directory files paginated
    * @param {number} directoryId Folder id
@@ -609,7 +666,10 @@ module.exports = (Model, App) => {
     acquireLock,
     releaseLock,
     refreshLock,
+    acquireOrRefreshLock,
     getDirectoryFiles,
     getDirectoryFolders,
+    getUserDirectoryFiles,
+    getUserDirectoryFolders
   };
 };

@@ -27,6 +27,7 @@ export interface UserAttributes {
   sharedWorkspace: boolean;
   tempKey: string;
   avatar: string;
+  emailVerified: boolean;
 }
 
 export type UserModel = ModelDefined<UserAttributes, UserAttributes>;
@@ -138,6 +139,10 @@ export default (database: Sequelize): UserModel => {
       avatar: {
         type: DataTypes.STRING,
         allowNull: true,
+      },
+      emailVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
       },
     },
     {

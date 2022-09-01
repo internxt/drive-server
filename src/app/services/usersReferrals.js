@@ -106,7 +106,7 @@ module.exports = (Model, App) => {
     }
 
     const userReferral = await Model.users_referrals.findOne({
-      where: { user_id: userId, referral_id: referral.id, applied: 0 },
+      where: { user_id: userId, referral_id: referral.id, applied: false },
     });
     if (!userReferral) {
       return;
@@ -117,7 +117,7 @@ module.exports = (Model, App) => {
       throw new ReferralsNotAvailableError();
     }
 
-    await update({ referred, applied: 1 }, userReferral.id);
+    await update({ referred, applied: true }, userReferral.id);
     await redeemUserReferral(user.bridgeUser, userId, referral.type, referral.credit);
 
     AnalyticsService.trackReferralRedeemed(userId, referralKey);

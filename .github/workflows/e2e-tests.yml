@@ -1,0 +1,64 @@
+name: e2e-tests
+on: 
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      matrix:
+        node-version: [14.x]
+    services:
+      drive-database: 
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: example
+          POSTGRES_DB: xCloud
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      NODE_ENV: e2e
+      RDS_HOSTNAME: localhost
+      RDS_DBNAME: xCloud
+      RDS_USERNAME: postgres
+      RDS_PASSWORD: example
+      RDS_PORT: 5432
+      JWT_SECRET: 38FTANE5LY90NHYZ
+      CAPTCHA_SECRET: 6Lf4_xsURABVAMlnlRzIRtzkiOtdklEsvZfZ9JIk
+      CRYPTO_SECRET: 6KYQBP847D4ATSFA
+      STRIPE_SK: sk_test_F3Ny2VGUnPga9FtyXkl7mzPc
+      MAGIC_SALT: 38dce0391b49efba88dbc8c39ebf868f0267eb110bb0012ab27dc52a528d61b1d1ed9d76f400ff58e3240028442b1eab9bb84e111d9dadd997982dbde9dbd25e
+      MAGIC_IV: d139cb9a2cd17092e79e1861cf9d7023
+      CRYPTO_SECRET2: 8Q8VMUE3BJZV87GT
+      AVATAR_BUCKET: avatars
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://npm.pkg.github.com'
+      - run: echo "registry=https://registry.yarnpkg.com/" > .npmrc
+      - run: echo "@internxt:registry=https://npm.pkg.github.com" >> .npmrc
+      # You cannot read packages from other private repos with GITHUB_TOKEN
+      # You have to use a PAT instead https://github.com/actions/setup-node/issues/49
+      - run: echo //npm.pkg.github.com/:_authToken=${{ secrets.PERSONAL_ACCESS_TOKEN }} >> .npmrc
+      - run: echo "always-auth=true" >> .npmrc
+      - run: yarn install
+      - run: yarn run migrate
+      - run: yarn run test:e2e --testTimeout=60000

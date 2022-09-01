@@ -10,6 +10,8 @@ const createHttpError = require('http-errors');
 const uuid = require('uuid');
 const { default: AvatarS3 } = require('../../config/initializers/avatarS3');
 
+const config = require('../../config/config').default.getInstance();
+const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
@@ -41,7 +43,7 @@ module.exports = (Model, App) => {
   const mailService = MailService(Model, App);
   const utilsService = UtilsService();
 
-  const FindOrCreate = (user) => {
+  const FindOrCreate = async (user) => {
     // Create password hashed pass only when a pass is given
     const userPass = user.password ? App.services.Crypt.decryptText(user.password) : null;
     const userSalt = user.salt ? App.services.Crypt.decryptText(user.salt) : null;
@@ -51,8 +53,10 @@ module.exports = (Model, App) => {
       throw Error('Wrong user registration data');
     }
 
-    return Model.users.sequelize.transaction(async (t) =>
-      Model.users
+    const transaction = await Model.users.sequelize.transaction();
+
+    try {
+      const [userResult, isNewRecord] = await Model.users
         .findOrCreate({
           where: { username: user.email },
           defaults: {
@@ -71,69 +75,65 @@ module.exports = (Model, App) => {
             username: user.username,
             bridgeUser: user.bridgeUser,
           },
-          transaction: t,
-        })
-        .then(async ([userResult, isNewRecord]) => {
-          if (isNewRecord) {
-            if (user.publicKey && user.privateKey && user.revocationKey) {
-              Model.keyserver.findOrCreate({
-                where: { user_id: userResult.id },
-                defaults: {
-                  user_id: user.id,
-                  private_key: user.privateKey,
-                  public_key: user.publicKey,
-                  revocation_key: user.revocationKey,
-                  encrypt_version: null,
-                },
-                transaction: t,
-              });
-            }
+          transaction
+        });
 
-            // Create bridge pass using email (because id is unconsistent)
-            const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+      if (isNewRecord) {
+        if (user.publicKey && user.privateKey && user.revocationKey) {
+          await Model.keyserver.findOrCreate({
+            where: { user_id: userResult.id },
+            defaults: {
+              user_id: user.id,
+              private_key: user.privateKey,
+              public_key: user.publicKey,
+              revocation_key: user.revocationKey,
+              encrypt_version: null,
+            },
+            transaction,
+          });
+        }
 
-            const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
-            if (
-              bridgeUser &&
-              bridgeUser.response &&
-              (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)
-            ) {
-              throw Error(bridgeUser.response.data.error);
-            }
+        // Create bridge pass using email (because id is unconsistent)
+        const bcryptId = await App.services.Inxt.IdToBcrypt(userResult.email);
+        const bridgeUser = await App.services.Inxt.RegisterBridgeUser(userResult.email, bcryptId);
 
-            if (!bridgeUser.data) {
-              throw Error('Error creating bridge user');
-            }
+        if (
+          bridgeUser &&
+          bridgeUser.response &&
+          (bridgeUser.response.status === 500 || bridgeUser.response.status === 400)
+        ) {
+          throw Error(bridgeUser.response.data.error);
+        }
 
-            logger.info('User Service | created brigde user: %s', userResult.email);
+        if (!bridgeUser.data) {
+          throw Error('Error creating bridge user');
+        }
 
-            // Store bcryptid on user register
-            await userResult.update(
-              {
-                userId: bcryptId,
-                uuid: bridgeUser.data.uuid,
-              },
-              { transaction: t },
-            );
+        logger.info('User Service | created brigde user: %s', userResult.email);
 
-            // Set created flag for Frontend management
-            Object.assign(userResult, { isNewRecord });
-          }
+        await userResult.update(
+          {
+            userId: bcryptId,
+            uuid: bridgeUser.data.uuid,
+          },
+          { transaction },
+        );
 
-          // TODO: proveriti userId kao pass
-          return userResult;
-        })
-        .catch((err) => {
-          if (err.response) {
-            // This happens when email is registered in bridge
-            logger.error(err.response.data);
-          } else {
-            logger.error(err.stack);
-          }
+        // Set created flag for Frontend management
+        Object.assign(userResult, { isNewRecord });
+      }
 
-          throw Error(err);
-        }),
-    ); // end transaction
+      await transaction.commit();
+
+      // TODO: Move on wip to the repository
+      userResult.mnemonic = userResult.mnemonic.toString();
+
+      return userResult;
+    } catch (err) {
+      await transaction.rollback();
+
+      throw err;
+    }    
   };
 
   const InitializeUser = (user) =>
@@ -427,7 +427,7 @@ module.exports = (Model, App) => {
     });
 
     if (!userData) {
-      throw Error('User can not be created');
+      throw createHttpError(409, 'Email adress already used');
     }
 
     if (!userData.isNewRecord) {
@@ -509,7 +509,7 @@ module.exports = (Model, App) => {
       raw: true,
     });
 
-    const driveUsage = usage[0].total;
+    const driveUsage = parseInt(usage[0].total);
 
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },
@@ -517,7 +517,7 @@ module.exports = (Model, App) => {
       raw: true,
     });
 
-    const backupsUsage = backupsQuery[0].total ? backupsQuery[0].total : 0;
+    const backupsUsage = parseInt(backupsQuery[0].total ? backupsQuery[0].total : 0);
 
     return {
       total: driveUsage + backupsUsage,
@@ -714,6 +714,36 @@ module.exports = (Model, App) => {
     return Model.FriendInvitation.findAll({ where: { host: id } });
   };
 
+  const sendEmailVerification = async (user) => {
+    const secret = config.get('secrets').JWT;
+    const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
+
+    const verificationTokenEncoded = encodeURIComponent(verificationToken);
+
+    const url = `${process.env.HOST_DRIVE_WEB}/verify-email/${verificationTokenEncoded}`;
+
+    await mailService.sendVerifyEmailMail(user.email, { firstName: user.name, url });
+  };
+
+  const verifyEmail = async (verificationToken) => {
+    const secret = config.get('secrets').JWT;
+
+    let uuid;
+
+    try {
+      uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
+    } catch (err) {
+      logger.error(`Error while validating verificationToken (verifyEmail) ${err.message}`);
+      throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
+    }
+
+    try {
+      await Model.users.update({ emailVerified: true }, { where: { uuid } });
+    } catch (err) {
+      logger.error(`Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+    }
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -750,5 +780,7 @@ module.exports = (Model, App) => {
     deleteAvatar,
     getSignedAvatarUrl,
     getFriendInvites,
+    sendEmailVerification,
+    verifyEmail,
   };
 };

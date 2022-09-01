@@ -40,7 +40,7 @@ module.exports = {
         allowNull: true
       },
       applied: {
-        type: Sequelize.INTEGER,
+        type: Sequelize.BOOLEAN,
         allowNull: false,
         defaultValue: false
       },
