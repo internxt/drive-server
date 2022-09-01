@@ -110,7 +110,8 @@ services:
     ports:
       - 7000:8000
     depends_on:
-      - drive-database
+      - bridge
+      - postgres
       - redis
     volumes:
       - ../src:/usr/app/src
@@ -132,15 +133,16 @@ services:
   #   volumes:
   #     - ../../notifications/src:/usr/app/src
 
-  drive-database:
+  postgres:
     image: postgres:14
-    container_name: drive-database
+    container_name: postgres
     restart: always
     ports:
       - 5432:5432
     volumes:
       - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: xCloud
     networks:
@@ -151,7 +153,7 @@ services:
     container_name: cloudbeaver
     restart: always
     depends_on:
-      - drive-database
+      - postgres
     networks:
       - internxt
     ports:
