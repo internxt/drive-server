@@ -5,18 +5,19 @@ import sinon, { SinonStub } from 'sinon';
 import { expect } from 'chai';
 
 describe('Storage controller', () => {
-
   describe('Create file', () => {
-
     it('should fail if `fileId` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
+      const controller = getController(
+        {},
+        {
+          error: loggerError,
+        },
+      );
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -24,19 +25,19 @@ describe('Storage controller', () => {
             size: '--',
             folder_id: '--',
             name: '--',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -50,12 +51,15 @@ describe('Storage controller', () => {
     it('should fail if `bucket` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
+      const controller = getController(
+        {},
+        {
+          error: loggerError,
+        },
+      );
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -63,19 +67,19 @@ describe('Storage controller', () => {
             size: '--',
             folder_id: '--',
             name: '--',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -89,12 +93,15 @@ describe('Storage controller', () => {
     it('should fail if `size` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
+      const controller = getController(
+        {},
+        {
+          error: loggerError,
+        },
+      );
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -102,19 +109,19 @@ describe('Storage controller', () => {
             bucket: '--',
             folder_id: '--',
             name: '--',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -128,12 +135,15 @@ describe('Storage controller', () => {
     it('should fail if `folder_id` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
+      const controller = getController(
+        {},
+        {
+          error: loggerError,
+        },
+      );
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -141,19 +151,19 @@ describe('Storage controller', () => {
             bucket: '--',
             size: '--',
             name: '--',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -167,12 +177,15 @@ describe('Storage controller', () => {
     it('should fail if `name` is not given', async () => {
       // Arrange
       const loggerError = sinon.spy();
-      const controller = getController({}, {
-        error: loggerError
-      });
+      const controller = getController(
+        {},
+        {
+          error: loggerError,
+        },
+      );
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -180,19 +193,19 @@ describe('Storage controller', () => {
             bucket: '--',
             size: '--',
             folder_id: '--',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -207,23 +220,22 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          CreateFile: sinon.spy()
+          CreateFile: sinon.spy(),
         },
         Analytics: {
-          trackUploadCompleted: sinon.spy()
+          trackUploadCompleted: sinon.spy(),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([{}, {}])
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileCreated: sinon.spy()
-        }
+          fileCreated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
-          email: ''
+          email: '',
         },
         body: {
           file: {
@@ -232,19 +244,19 @@ describe('Storage controller', () => {
             size: '3',
             folder_id: '4',
             name: '5',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -262,24 +274,23 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          CreateFile: sinon.spy()
+          CreateFile: sinon.spy(),
         },
         Analytics: {
-          trackUploadCompleted: sinon.spy()
+          trackUploadCompleted: sinon.spy(),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([{}, {}])
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileCreated: sinon.spy()
-        }
+          fileCreated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
           email: '',
-          id: ''
+          id: '',
         },
         body: {
           file: {
@@ -288,19 +299,19 @@ describe('Storage controller', () => {
             size: '3',
             folder_id: '4',
             name: '5',
-          }
+          },
         },
         headers: {
           'internxt-client': '',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -318,28 +329,26 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          CreateFile: sinon.spy()
+          CreateFile: sinon.spy(),
         },
         Analytics: {
-          trackUploadCompleted: sinon.spy()
+          trackUploadCompleted: sinon.spy(),
         },
         UsersReferrals: {
-          applyUserReferral: stubOf('applyUserReferral')
-            .resolves()
+          applyUserReferral: stubOf('applyUserReferral').resolves(),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([{}, {}])
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileCreated: sinon.spy()
-        }
+          fileCreated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
           email: 'email',
-          id: 'id'
+          id: 'id',
         },
         body: {
           file: {
@@ -348,19 +357,19 @@ describe('Storage controller', () => {
             size: '3',
             folder_id: '4',
             name: '5',
-          }
+          },
         },
         headers: {
           'internxt-client': 'drive-mobile',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -380,28 +389,26 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          CreateFile: sinon.spy()
+          CreateFile: sinon.spy(),
         },
         Analytics: {
-          trackUploadCompleted: sinon.spy()
+          trackUploadCompleted: sinon.spy(),
         },
         UsersReferrals: {
-          applyUserReferral: stubOf('applyUserReferral')
-            .resolves()
+          applyUserReferral: stubOf('applyUserReferral').resolves(),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([{}, {}])
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileCreated: sinon.spy()
-        }
+          fileCreated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
           email: 'email',
-          id: 'id'
+          id: 'id',
         },
         body: {
           file: {
@@ -410,19 +417,19 @@ describe('Storage controller', () => {
             size: '3',
             folder_id: '4',
             name: '5',
-          }
+          },
         },
         headers: {
           'internxt-client': 'drive-desktop',
-        }
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -437,24 +444,21 @@ describe('Storage controller', () => {
       expect(services.UsersReferrals.applyUserReferral.calledOnce).to.be.true;
       expect(services.UsersReferrals.applyUserReferral.args[0]).to.deep.equal(['id', 'install-desktop-app']);
     });
-
-
   });
 
   describe('Create folder', () => {
-
     it('should fail if folder name is not valid', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         user: {
-          email: ''
+          email: '',
         },
         body: {
           folderName: '',
-          parentFolderId: 10
+          parentFolderId: 10,
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -473,13 +477,13 @@ describe('Storage controller', () => {
       const controller = getController({});
       const request = getRequest({
         user: {
-          email: ''
+          email: '',
         },
         body: {
           folderName: 'name',
-          parentFolderId: 0
+          parentFolderId: 0,
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -497,30 +501,29 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Create: stubOf('Create')
-            .rejects({
-              message: 'my-error'
-            })
-        }
+          Create: stubOf('Create').rejects({
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          email: ''
+          email: '',
         },
         body: {
           folderName: 'name',
-          parentFolderId: 10
+          parentFolderId: 10,
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -529,46 +532,46 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.Create.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute successful complete creation when everything is fine', async () => {
       // Arrange
       const services = {
         Folder: {
-          Create: stubOf('Create')
-            .resolves({
-              data: 'some'
-            })
+          Create: stubOf('Create').resolves({
+            data: 'some',
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([{}, {}])
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          folderCreated: sinon.spy()
-        }
+          folderCreated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          email: ''
+          email: '',
         },
         body: {
           folderName: 'name',
-          parentFolderId: 10
+          parentFolderId: 10,
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -579,23 +582,22 @@ describe('Storage controller', () => {
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderCreated.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        data: 'some'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          data: 'some',
+        },
+      ]);
     });
-
   });
 
   describe('Generate folder tree', () => {
-
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: stubOf('GetTree')
-            .rejects({
-              message: 'my-error'
-            })
+          GetTree: stubOf('GetTree').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
@@ -607,9 +609,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -618,19 +620,20 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.GetTree.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: stubOf('GetTree')
-            .resolves({
-              value: 'any'
-            })
+          GetTree: stubOf('GetTree').resolves({
+            value: 'any',
+          }),
         },
       };
       const controller = getController(services);
@@ -642,9 +645,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -653,23 +656,23 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.GetTree.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        value: 'any'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          value: 'any',
+        },
+      ]);
     });
-
   });
 
   describe('Generate folder tree of a specific folder', () => {
-
     it('should fail if `folderId` is not valid', async () => {
       // Arrange
       const controller = getController();
       const finalParams = {
         user: {},
         params: {
-          folderId: ''
-        }
+          folderId: '',
+        },
       };
       const request = getRequest(finalParams);
       const response = getResponse();
@@ -688,27 +691,26 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: stubOf('GetTree')
-            .rejects({
-              message: 'my-error'
-            })
+          GetTree: stubOf('GetTree').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const finalParams = {
         user: {},
         params: {
-          folderId: '1'
-        }
+          folderId: '1',
+        },
       };
       const request = getRequest(finalParams);
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -717,38 +719,38 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.GetTree.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Folder: {
-          GetTree: stubOf('GetTree')
-            .resolves({
-              value: 'any'
-            }),
-          GetTreeSize: stubOf('GetTreeSize')
-            .returns(999),
+          GetTree: stubOf('GetTree').resolves({
+            value: 'any',
+          }),
+          GetTreeSize: stubOf('GetTreeSize').returns(999),
         },
       };
       const controller = getController(services);
       const finalParams = {
         user: {},
         params: {
-          folderId: '1'
-        }
+          folderId: '1',
+        },
       };
       const request = getRequest(finalParams);
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -756,30 +758,28 @@ describe('Storage controller', () => {
 
       // Assert
       expect(services.Folder.GetTree.calledOnce).to.be.true;
-      expect(services.Folder.GetTree.args[0]).to.deep.equal([
-        {}, '1'
-      ]);
+      expect(services.Folder.GetTree.args[0]).to.deep.equal([{}, '1']);
       expect(services.Folder.GetTreeSize.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        tree: {
-          value: 'any'
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          tree: {
+            value: 'any',
+          },
+          size: 999,
         },
-        size: 999
-      }]);
+      ]);
     });
-
   });
 
   describe('Delete folder', () => {
-
     it('should fail if missing param `id`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: ''
+          id: '',
         },
       });
       const response = getResponse();
@@ -798,27 +798,26 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          Delete: stubOf('Delete')
-            .rejects({
-              message: 'my-error'
-            }),
-        }
+          Delete: stubOf('Delete').rejects({
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '1'
+          id: '1',
         },
-        headers: {}
+        headers: {},
       });
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -827,45 +826,43 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.Delete.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Folder: {
-          Delete: stubOf('Delete')
-            .resolves({
-              some: 'data'
-            }),
+          Delete: stubOf('Delete').resolves({
+            some: 'data',
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          folderDeleted: sinon.spy()
-        }
+          folderDeleted: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '1'
+          id: '1',
         },
-        headers: {}
+        headers: {},
       });
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -876,15 +873,15 @@ describe('Storage controller', () => {
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderDeleted.calledTwice).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        some: 'data'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          some: 'data',
+        },
+      ]);
     });
-
   });
 
   describe('Move folder', () => {
-
     it('should fail if missing param `folderId`', async () => {
       // Arrange
       const controller = getController({});
@@ -892,7 +889,7 @@ describe('Storage controller', () => {
         behalfUser: {},
         body: {
           folderId: '',
-          destination: '2'
+          destination: '2',
         },
       });
       const response = getResponse();
@@ -914,7 +911,7 @@ describe('Storage controller', () => {
         behalfUser: {},
         body: {
           folderId: '2',
-          destination: ''
+          destination: '',
         },
       });
       const response = getResponse();
@@ -933,24 +930,23 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          MoveFolder: stubOf('MoveFolder')
-            .rejects({
-              message: 'my-error'
-            }),
-        }
+          MoveFolder: stubOf('MoveFolder').rejects({
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         body: {
           folderId: '1',
-          destination: '2'
+          destination: '2',
         },
-        headers: {}
+        headers: {},
       });
       const sendStatusSpy = sinon.spy();
       const response = getResponse({
-        sendStatus: sendStatusSpy
+        sendStatus: sendStatusSpy,
       });
 
       // Act
@@ -966,42 +962,38 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          MoveFolder: stubOf('MoveFolder')
-            .resolves({
-              result: {
-                some: 'data'
-              },
-              other: {
-                some: 'more'
-              }
-            }),
+          MoveFolder: stubOf('MoveFolder').resolves({
+            result: {
+              some: 'data',
+            },
+            other: {
+              some: 'more',
+            },
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          folderUpdated: sinon.spy()
-        }
+          folderUpdated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         body: {
           folderId: '1',
-          destination: '2'
+          destination: '2',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1012,27 +1004,27 @@ describe('Storage controller', () => {
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        result: {
-          some: 'data'
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          result: {
+            some: 'data',
+          },
+          other: {
+            some: 'more',
+          },
         },
-        other: {
-          some: 'more'
-        }
-      }]);
+      ]);
     });
-
   });
 
   describe('Update folder', () => {
-
     it('should fail if missing param `folderId`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         behalfUser: {},
         params: {
-          folderid: ''
+          folderid: '',
         },
         body: {
           metadata: {},
@@ -1054,30 +1046,29 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          UpdateMetadata: stubOf('UpdateMetadata')
-            .rejects({
-              message: 'my-error'
-            }),
-        }
+          UpdateMetadata: stubOf('UpdateMetadata').rejects({
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          folderid: '2'
+          folderid: '2',
         },
         body: {
           metadata: {},
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1093,41 +1084,37 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          UpdateMetadata: stubOf('UpdateMetadata')
-            .resolves({
-              result: {
-                some: 'data'
-              }
-            }),
+          UpdateMetadata: stubOf('UpdateMetadata').resolves({
+            result: {
+              some: 'data',
+            },
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          folderUpdated: sinon.spy()
-        }
+          folderUpdated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          folderid: '2'
+          folderid: '2',
         },
         body: {
           metadata: {},
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1138,24 +1125,24 @@ describe('Storage controller', () => {
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        result: {
-          some: 'data'
-        }
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          result: {
+            some: 'data',
+          },
+        },
+      ]);
     });
-
   });
 
   describe('Get folder contents', () => {
-
     it('should fail if missing param `id`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: ''
+          id: '',
         },
       });
       const response = getResponse();
@@ -1175,28 +1162,28 @@ describe('Storage controller', () => {
       const services = {
         Folder: {
           getById: stubOf('getById').rejects({
-            message: 'my-error'
+            message: 'my-error',
           }),
           getFolders: stubOf('getById').resolves(),
         },
         Files: {
-          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
-        }
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '2'
+          id: '2',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1204,9 +1191,11 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should fail if second method fails', async () => {
@@ -1215,27 +1204,27 @@ describe('Storage controller', () => {
         Folder: {
           getById: stubOf('getById').resolves(),
           getFolders: stubOf('getById').rejects({
-            message: 'my-error'
+            message: 'my-error',
           }),
         },
         Files: {
-          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves()
-        }
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '2'
+          id: '2',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1243,9 +1232,11 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should fail if third method fails', async () => {
@@ -1257,24 +1248,24 @@ describe('Storage controller', () => {
         },
         Files: {
           getByFolderAndUserId: stubOf('getByFolderAndUserId').rejects({
-            message: 'my-error'
-          })
-        }
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '2'
+          id: '2',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1282,9 +1273,11 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
@@ -1292,32 +1285,28 @@ describe('Storage controller', () => {
       const services = {
         Folder: {
           getById: stubOf('getById').resolves({
-            data: 'some'
+            data: 'some',
           }),
-          getFolders: stubOf('getById').resolves([
-            {}, {}
-          ]),
+          getFolders: stubOf('getById').resolves([{}, {}]),
         },
         Files: {
-          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([
-            {}
-          ])
-        }
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([{}]),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          id: '2'
+          id: '2',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1325,23 +1314,73 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        data: 'some',
-        children: [{}, {}],
-        files: [{}]
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          data: 'some',
+          children: [{}, {}],
+          files: [{}],
+        },
+      ]);
     });
 
+    it('should execute fine when no error with trash', async () => {
+      // Arrange
+      const services = {
+        Folder: {
+          getById: stubOf('getById').resolves({
+            data: 'some',
+          }),
+          getFolders: stubOf('getById').resolves([{}, {}]),
+        },
+        Files: {
+          getByFolderAndUserId: stubOf('getByFolderAndUserId').resolves([{}]),
+        },
+      };
+      const controller = getController(services);
+      const request = getRequest({
+        behalfUser: {
+          id: 'id1',
+        },
+        params: {
+          id: '2',
+        },
+        query: {
+          trash: 'true',
+        },
+      });
+      const jsonSpy = sinon.spy();
+      const response = getResponse({
+        status: () => {
+          return {
+            json: jsonSpy,
+          };
+        },
+      });
+
+      // Act
+      await controller.getFolderContents(request, response);
+
+      // Assert
+      expect(services.Folder.getFolders.calledWith('2', 'id1', true)).to.equal(true);
+      expect(services.Files.getByFolderAndUserId.calledWith('2', 'id1', true)).to.equal(true);
+      expect(jsonSpy.calledOnce).to.be.true;
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          data: 'some',
+          children: [{}, {}],
+          files: [{}],
+        },
+      ]);
+    });
   });
 
   describe('Get folder size', () => {
-
     it('should fail if missing param `id`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         params: {
-          id: ''
+          id: '',
         },
       });
       const response = getResponse();
@@ -1360,25 +1399,25 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Share: {
-          getFolderSize: stubOf('getFolderSize').resolves(5)
-        }
+          getFolderSize: stubOf('getFolderSize').resolves(5),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
-          id: '2'
+          id: '2',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1386,15 +1425,15 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        size: 5
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          size: 5,
+        },
+      ]);
     });
-
   });
 
   describe('Move file', () => {
-
     it('should fail if missing param `fileId`', async () => {
       // Arrange
       const controller = getController({});
@@ -1402,7 +1441,7 @@ describe('Storage controller', () => {
         behalfUser: {},
         body: {
           fileId: '',
-          destination: '2'
+          destination: '2',
         },
       });
       const response = getResponse();
@@ -1423,7 +1462,7 @@ describe('Storage controller', () => {
         behalfUser: {},
         body: {
           fileId: '2',
-          destination: ''
+          destination: '',
         },
       });
       const response = getResponse();
@@ -1441,20 +1480,19 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          MoveFile: stubOf('MoveFile')
-            .rejects({
-              message: 'my-error'
-            }),
-        }
+          MoveFile: stubOf('MoveFile').rejects({
+            message: 'my-error',
+          }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         body: {
           fileId: '1',
-          destination: '2'
+          destination: '2',
         },
-        headers: {}
+        headers: {},
       });
       const sendStatusSpy = sinon.spy();
       const response = getResponse({
@@ -1474,42 +1512,38 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          MoveFile: stubOf('MoveFile')
-            .resolves({
-              result: {
-                some: 'data'
-              },
-              other: {
-                some: 'more'
-              }
-            }),
+          MoveFile: stubOf('MoveFile').resolves({
+            result: {
+              some: 'data',
+            },
+            other: {
+              some: 'more',
+            },
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileUpdated: sinon.spy()
-        }
+          fileUpdated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         body: {
           fileId: '1',
-          destination: '2'
+          destination: '2',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1520,32 +1554,32 @@ describe('Storage controller', () => {
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileUpdated.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        result: {
-          some: 'data'
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          result: {
+            some: 'data',
+          },
+          other: {
+            some: 'more',
+          },
         },
-        other: {
-          some: 'more'
-        }
-      }]);
+      ]);
     });
-
   });
 
   describe('Update file', () => {
-
     it('should fail if missing param `fileId`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         behalfUser: {},
         params: {
-          fileid: ''
+          fileid: '',
         },
         body: {
           metadata: {},
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -1565,14 +1599,14 @@ describe('Storage controller', () => {
       const request = getRequest({
         behalfUser: {},
         params: {
-          fileid: '1'
+          fileid: '1',
         },
         body: {
           metadata: {},
           bucketId: '',
           relativePath: 'sss',
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -1592,14 +1626,14 @@ describe('Storage controller', () => {
       const request = getRequest({
         behalfUser: {},
         params: {
-          fileid: '1'
+          fileid: '1',
         },
         body: {
           metadata: {},
           bucketId: 'ss',
           relativePath: '',
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -1619,14 +1653,14 @@ describe('Storage controller', () => {
       const request = getRequest({
         behalfUser: {},
         params: {
-          fileid: '1'
+          fileid: '1',
         },
         body: {
           metadata: {},
           bucketId: 'ss',
           relativePath: 'sss',
         },
-        headers: {}
+        headers: {},
       });
       const response = getResponse();
 
@@ -1644,17 +1678,16 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          UpdateMetadata: stubOf('UpdateMetadata')
-            .rejects({
-              message: 'my-error'
-            }),
+          UpdateMetadata: stubOf('UpdateMetadata').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         params: {
-          fileid: '1'
+          fileid: '1',
         },
         body: {
           metadata: {},
@@ -1662,16 +1695,16 @@ describe('Storage controller', () => {
           relativePath: 'sss',
         },
         headers: {
-          'internxt-mnemonic': 'nemo'
-        }
+          'internxt-mnemonic': 'nemo',
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1687,28 +1720,24 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          UpdateMetadata: stubOf('UpdateMetadata')
-            .resolves({
-              data: 'some'
-            }),
+          UpdateMetadata: stubOf('UpdateMetadata').resolves({
+            data: 'some',
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileUpdated: sinon.spy()
-        }
+          fileUpdated: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
-          bridgeUser: ''
+          bridgeUser: '',
         },
         params: {
-          fileid: '1'
+          fileid: '1',
         },
         body: {
           metadata: {},
@@ -1716,16 +1745,16 @@ describe('Storage controller', () => {
           relativePath: 'sss',
         },
         headers: {
-          'internxt-mnemonic': 'nemo'
-        }
+          'internxt-mnemonic': 'nemo',
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1734,31 +1763,31 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.UpdateMetadata.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        data: 'some'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          data: 'some',
+        },
+      ]);
     });
-
   });
 
   describe('Delete file (bridge)', () => {
-
     it('should fail if missing param `bucketid`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         behalfUser: {},
         params: {
-          bucketid: 'null'
+          bucketid: 'null',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1766,9 +1795,11 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'No bucket ID provided'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'No bucket ID provided',
+        },
+      ]);
     });
 
     it('should fail if missing param `fileid`', async () => {
@@ -1778,16 +1809,16 @@ describe('Storage controller', () => {
         behalfUser: {},
         params: {
           bucketid: 'lala',
-          fileid: 'null'
+          fileid: 'null',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1795,19 +1826,20 @@ describe('Storage controller', () => {
 
       // Assert
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'No file ID provided'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'No file ID provided',
+        },
+      ]);
     });
 
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
         Files: {
-          Delete: stubOf('Delete')
-            .rejects({
-              message: 'my-error'
-            }),
+          Delete: stubOf('Delete').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
@@ -1815,16 +1847,16 @@ describe('Storage controller', () => {
         behalfUser: {},
         params: {
           bucketid: 'lala',
-          fileid: 'lolo'
+          fileid: 'lolo',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1833,38 +1865,39 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.Delete.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Files: {
-          Delete: stubOf('Delete')
-            .resolves({
-              data: 'some'
-            }),
+          Delete: stubOf('Delete').resolves({
+            data: 'some',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
-          bridgeUser: ''
+          bridgeUser: '',
         },
         params: {
           bucketid: 'lala',
-          fileid: 'lolo'
+          fileid: 'lolo',
         },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1873,14 +1906,15 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.Delete.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        deleted: true
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          deleted: true,
+        },
+      ]);
     });
   });
 
   describe('Delete file (database)', () => {
-
     it('should fail if missing param `fileid`', async () => {
       // Arrange
       const controller = getController({});
@@ -1890,15 +1924,15 @@ describe('Storage controller', () => {
           fileid: '',
           folderid: '2',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       try {
@@ -1920,15 +1954,15 @@ describe('Storage controller', () => {
           fileid: '2',
           folderid: '',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       try {
@@ -1945,10 +1979,9 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          DeleteFile: stubOf('DeleteFile')
-            .rejects({
-              message: 'my-error'
-            }),
+          DeleteFile: stubOf('DeleteFile').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
@@ -1958,15 +1991,15 @@ describe('Storage controller', () => {
           fileid: '2',
           folderid: '2',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -1975,32 +2008,30 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.DeleteFile.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Files: {
-          DeleteFile: stubOf('DeleteFile')
-            .resolves({
-              data: 'some'
-            }),
+          DeleteFile: stubOf('DeleteFile').resolves({
+            data: 'some',
+          }),
         },
         User: {
-          findWorkspaceMembers: stubOf('findWorkspaceMembers')
-            .resolves([
-              {}, {}
-            ]),
+          findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
         },
         Notifications: {
-          fileDeleted: sinon.spy()
+          fileDeleted: sinon.spy(),
         },
         Analytics: {
-          trackFileDeleted: sinon.spy()
-        }
+          trackFileDeleted: sinon.spy(),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
@@ -2009,15 +2040,15 @@ describe('Storage controller', () => {
           fileid: '2',
           folderid: '2',
         },
-        headers: {}
+        headers: {},
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2027,14 +2058,15 @@ describe('Storage controller', () => {
       expect(services.Files.DeleteFile.calledOnce).to.be.true;
       expect(services.Analytics.trackFileDeleted.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        deleted: true
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          deleted: true,
+        },
+      ]);
     });
   });
 
   describe('Get recent files', () => {
-
     // it('should fail if missing param `limit`', async () => {
     //   // Arrange
     //   const controller = getController({});
@@ -2067,17 +2099,16 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Files: {
-          getRecentFiles: stubOf('getRecentFiles')
-            .rejects({
-              message: 'my-error'
-            }),
+          getRecentFiles: stubOf('getRecentFiles').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         user: {
-          email: ''
+          email: '',
         },
         query: {
           limit: '2',
@@ -2087,9 +2118,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2098,24 +2129,25 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.getRecentFiles.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        error: 'Can not get recent files'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          error: 'Can not get recent files',
+        },
+      ]);
     });
 
     it('should fail when no files found', async () => {
       // Arrange
       const services = {
         Files: {
-          getRecentFiles: stubOf('getRecentFiles')
-            .resolves(),
+          getRecentFiles: stubOf('getRecentFiles').resolves(),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         user: {
-          email: ''
+          email: '',
         },
         query: {
           limit: '3',
@@ -2125,9 +2157,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2136,36 +2168,37 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Files.getRecentFiles.calledOnce).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
-      expect(sendSpy.args[0]).to.deep.equal([{
-        error: 'Files not found'
-      }]);
+      expect(sendSpy.args[0]).to.deep.equal([
+        {
+          error: 'Files not found',
+        },
+      ]);
     });
 
     it('should excute correct when everything is fine', async () => {
       // Arrange
       const services = {
         Files: {
-          getRecentFiles: stubOf('getRecentFiles')
-            .resolves([
-              {
-                name: '1',
-                folderId: '2',
-              },
-              {
-                name: '3',
-                folderId: '4',
-              }
-            ]),
+          getRecentFiles: stubOf('getRecentFiles').resolves([
+            {
+              name: '1',
+              folderId: '2',
+            },
+            {
+              name: '3',
+              folderId: '4',
+            },
+          ]),
         },
         Crypt: {
-          decryptName: stubOf('decryptName').returns('lala')
-        }
+          decryptName: stubOf('decryptName').returns('lala'),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {},
         user: {
-          email: ''
+          email: '',
         },
         query: {
           limit: '3',
@@ -2175,9 +2208,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2196,20 +2229,19 @@ describe('Storage controller', () => {
           {
             name: 'lala',
             folderId: '4',
-          }
-        ]
+          },
+        ],
       ]);
     });
   });
 
   describe('Acquire folder lock', () => {
-
     it('should fail if missing param `folderId`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '',
@@ -2231,16 +2263,15 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          acquireLock: stubOf('acquireLock')
-            .rejects({
-              message: 'my-error'
-            }),
+          acquireLock: stubOf('acquireLock').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2251,9 +2282,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2268,14 +2299,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          acquireLock: stubOf('acquireLock')
-            .resolves(),
+          acquireLock: stubOf('acquireLock').resolves(),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2286,9 +2316,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2298,17 +2328,15 @@ describe('Storage controller', () => {
       expect(services.Folder.acquireLock.calledOnce).to.be.true;
       expect(endSpy.calledOnce).to.be.true;
     });
-
   });
 
   describe('Refresh folder lock', () => {
-
     it('should fail if missing param `folderId`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '',
@@ -2330,16 +2358,15 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          refreshLock: stubOf('refreshLock')
-            .rejects({
-              message: 'my-error'
-            }),
+          refreshLock: stubOf('refreshLock').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2350,9 +2377,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2367,14 +2394,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          refreshLock: stubOf('refreshLock')
-            .resolves(),
+          refreshLock: stubOf('refreshLock').resolves(),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2385,9 +2411,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2397,17 +2423,15 @@ describe('Storage controller', () => {
       expect(services.Folder.refreshLock.calledOnce).to.be.true;
       expect(endSpy.calledOnce).to.be.true;
     });
-
   });
 
   describe('Release folder lock', () => {
-
     it('should fail if missing param `folderId`', async () => {
       // Arrange
       const controller = getController({});
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '',
@@ -2430,16 +2454,15 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          releaseLock: stubOf('releaseLock')
-            .rejects({
-              message: 'my-error'
-            }),
+          releaseLock: stubOf('releaseLock').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2450,9 +2473,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2467,14 +2490,13 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          releaseLock: stubOf('releaseLock')
-            .resolves(),
+          releaseLock: stubOf('releaseLock').resolves(),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         user: {
-          id: ''
+          id: '',
         },
         params: {
           folderId: '2',
@@ -2485,9 +2507,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            end: endSpy
+            end: endSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2497,11 +2519,9 @@ describe('Storage controller', () => {
       expect(services.Folder.releaseLock.calledOnce).to.be.true;
       expect(endSpy.calledOnce).to.be.true;
     });
-
   });
 
   describe('Rename file in network', () => {
-
     it('should fail if missing param `fileId`', async () => {
       // Arrange
       const controller = getController({});
@@ -2513,8 +2533,8 @@ describe('Storage controller', () => {
           relativePath: '2',
         },
         headers: {
-          'internxt-mnemonic': '4'
-        }
+          'internxt-mnemonic': '4',
+        },
       });
       const response = getResponse();
 
@@ -2539,8 +2559,8 @@ describe('Storage controller', () => {
           relativePath: '2',
         },
         headers: {
-          'internxt-mnemonic': '4'
-        }
+          'internxt-mnemonic': '4',
+        },
       });
       const response = getResponse();
 
@@ -2565,8 +2585,8 @@ describe('Storage controller', () => {
           relativePath: '',
         },
         headers: {
-          'internxt-mnemonic': '4'
-        }
+          'internxt-mnemonic': '4',
+        },
       });
       const response = getResponse();
 
@@ -2591,8 +2611,8 @@ describe('Storage controller', () => {
           relativePath: '2',
         },
         headers: {
-          'internxt-mnemonic': ''
-        }
+          'internxt-mnemonic': '',
+        },
       });
       const response = getResponse();
 
@@ -2610,10 +2630,9 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Inxt: {
-          renameFile: stubOf('renameFile')
-            .rejects({
-              message: 'my-error'
-            }),
+          renameFile: stubOf('renameFile').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
@@ -2625,16 +2644,16 @@ describe('Storage controller', () => {
           relativePath: '2',
         },
         headers: {
-          'internxt-mnemonic': 'wever'
-        }
+          'internxt-mnemonic': 'wever',
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2643,26 +2662,27 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Inxt.renameFile.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        error: 'my-error'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          error: 'my-error',
+        },
+      ]);
     });
 
     it('should execute fine when no error', async () => {
       // Arrange
       const services = {
         Inxt: {
-          renameFile: stubOf('renameFile')
-            .resolves({
-              data: 'some'
-            }),
+          renameFile: stubOf('renameFile').resolves({
+            data: 'some',
+          }),
         },
       };
       const controller = getController(services);
       const request = getRequest({
         behalfUser: {
           email: '',
-          userId: ''
+          userId: '',
         },
         body: {
           fileId: '2',
@@ -2670,16 +2690,16 @@ describe('Storage controller', () => {
           relativePath: '2',
         },
         headers: {
-          'internxt-mnemonic': 'wever'
-        }
+          'internxt-mnemonic': 'wever',
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2688,23 +2708,22 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Inxt.renameFile.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        message: 'File renamed in network: 2'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          message: 'File renamed in network: 2',
+        },
+      ]);
     });
-
   });
 
   describe('Fix duplicated folder', () => {
-
     it('should return error when execution fails', async () => {
       // Arrange
       const services = {
         Folder: {
-          changeDuplicateName: stubOf('changeDuplicateName')
-            .rejects({
-              message: 'my-error'
-            }),
+          changeDuplicateName: stubOf('changeDuplicateName').rejects({
+            message: 'my-error',
+          }),
         },
       };
       const controller = getController(services);
@@ -2715,9 +2734,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2733,10 +2752,9 @@ describe('Storage controller', () => {
       // Arrange
       const services = {
         Folder: {
-          changeDuplicateName: stubOf('changeDuplicateName')
-            .resolves({
-              data: 'some'
-            }),
+          changeDuplicateName: stubOf('changeDuplicateName').resolves({
+            data: 'some',
+          }),
         },
       };
       const controller = getController(services);
@@ -2747,9 +2765,9 @@ describe('Storage controller', () => {
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -2758,11 +2776,12 @@ describe('Storage controller', () => {
       // Assert
       expect(services.Folder.changeDuplicateName.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
-      expect(jsonSpy.args[0]).to.deep.equal([{
-        data: 'some'
-      }]);
+      expect(jsonSpy.args[0]).to.deep.equal([
+        {
+          data: 'some',
+        },
+      ]);
     });
-
   });
 });
 

@@ -5,13 +5,12 @@ import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
-import createHttpError from 'http-errors';
+import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
-import { HttpError } from 'http-errors';
 
 interface Services {
   Files: any;
@@ -259,6 +258,7 @@ export class StorageController {
   public async getFolderContents(req: Request, res: Response): Promise<void> {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
+    const deleted = req.query?.trash === 'true';
 
     if (Validator.isInvalidPositiveNumber(id)) {
       throw createHttpError(400, 'Folder ID is not valid');
@@ -266,8 +266,8 @@ export class StorageController {
 
     return Promise.all([
       this.services.Folder.getById(id),
-      this.services.Folder.getFolders(id, behalfUser.id),
-      this.services.Files.getByFolderAndUserId(id, behalfUser.id),
+      this.services.Folder.getFolders(id, behalfUser.id, deleted),
+      this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
       .then(([currentFolder, childrenFolders, childrenFiles]) => {
         if (!currentFolder || !childrenFolders || !childrenFiles) {

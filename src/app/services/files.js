@@ -220,6 +220,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
+        fileId: { [Op.ne]: fileId }
       },
     });
 
@@ -232,6 +233,8 @@ module.exports = (Model, App) => {
     const result = await file.update({
       folder_id: parseInt(destination, 10),
       name: destinationName,
+      deleted: false,
+      deletedAt: null,
     });
 
     // we don't want ecrypted name on front
@@ -245,6 +248,7 @@ module.exports = (Model, App) => {
       moved: true,
     };
   };
+
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
@@ -290,8 +294,8 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getByFolderAndUserId = (folderId, userId) => {
-    return Model.file.findAll({ where: { folderId, userId } }).then((files) => {
+  const getByFolderAndUserId = (folderId, userId, deleted = false) => {
+    return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
       if (!files) {
         throw new Error('Not found');
       }

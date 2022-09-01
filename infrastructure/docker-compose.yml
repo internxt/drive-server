@@ -148,7 +148,6 @@ services:
     ports:
       - 5432:5432
 
-
   redis:
     image: redis:latest
     container_name: drive-server-redis

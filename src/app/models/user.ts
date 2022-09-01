@@ -1,4 +1,4 @@
-import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
+import { DataTypes, ModelDefined, Sequelize } from 'sequelize';
 
 export interface UserAttributes {
   id: number;

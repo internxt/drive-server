@@ -9,27 +9,33 @@ services:
     ports:
       - 3000:8000
     depends_on:
-      - maria
+      - postgres
       - redis
       - s3
     volumes:
       - ../src:/usr/app/src
 
-  maria:
-    image: mariadb
-    container_name: drive-server-maria
+  postgres:
+    image: postgres:14
+    container_name: postgres
     restart: always
     volumes:
       - ./maria-init-scripts:/docker-entrypoint-initdb.d
     environment:
-      MYSQL_ROOT_PASSWORD: example
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: xCloud
+    networks:
+      - internxt
+    ports:
+      - 5432:5432
 
   cloudbeaver:
     image: dbeaver/cloudbeaver
     container_name: cloudbeaver
     restart: always
     depends_on:
-      - maria
+      - postgres
     ports:
       - 8080:8978
 
