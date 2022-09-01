@@ -7,20 +7,22 @@ services:
       dockerfile: infrastructure/development.Dockerfile
     container_name: drive-server
     ports:
-      - 3000:8000
+      - 7000:8000
     depends_on:
       - postgres
       - redis
       - s3
     volumes:
       - ../src:/usr/app/src
+    networks:
+      - internxt
 
   postgres:
     image: postgres:14
     container_name: postgres
     restart: always
     volumes:
-      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+      - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
@@ -36,13 +38,21 @@ services:
     restart: always
     depends_on:
       - postgres
+    networks:
+      - internxt
     ports:
       - 8080:8978
+    volumes:
+      - ./volumes/dbeaver_logs:/opt/cloudbeaver/logs
+      - ./volumes/dbeaver_workspace:/opt/cloudbeaver/workspace
 
   redis:
     image: redis:latest
     container_name: drive-server-redis
     restart: always
+    networks:
+      - internxt
+
   s3:
     image: quay.io/minio/minio
     container_name: s3
@@ -51,6 +61,8 @@ services:
     ports:
       - 9000:9000
       - 9001:9001
+    networks:
+      - internxt
 
   initialize_s3:
     image: minio/mc
@@ -61,9 +73,16 @@ services:
       /bin/sh -c "
       sleep 10;
       /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
+      /usr/bin/mc mb --ignore-existing myminio/internxt;
       /usr/bin/mc mb --ignore-existing myminio/avatars;
-      /usr/bin/mc policy set public myminio/avatars;
+      /usr/bin/mc policy set public myminio/internxt;
       /usr/bin/mc admin user add myminio internxt internxt;
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
       exit 0;
       "
+    networks:
+      - internxt
+
+networks:
+  internxt:
+    name: internxt

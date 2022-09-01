@@ -18,7 +18,7 @@ services:
       - internxt
 
   mongo:
-    image: mongo:latest
+    image: mongo:5
     container_name: mongo
     restart: always
     environment:
@@ -109,7 +109,7 @@ services:
       dockerfile: infrastructure/development.Dockerfile
     container_name: drive-server
     ports:
-      - 3000:8000
+      - 7000:8000
     depends_on:
       - bridge
       - postgres
@@ -138,7 +138,7 @@ services:
     container_name: postgres
     restart: always
     volumes:
-      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+      - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example

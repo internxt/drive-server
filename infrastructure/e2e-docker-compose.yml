@@ -18,7 +18,7 @@ services:
       - internxt
 
   mongo:
-    image: mongo:latest
+    image: mongo:5
     container_name: mongo
     restart: always
     environment:
@@ -94,6 +94,7 @@ services:
       sleep 10;
       /usr/bin/mc config host add myminio http://s3:9000 minioadmin minioadmin;
       /usr/bin/mc mb --ignore-existing myminio/internxt;
+      /usr/bin/mc mb --ignore-existing myminio/avatars;
       /usr/bin/mc policy set public myminio/internxt;
       /usr/bin/mc admin user add myminio internxt internxt;
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
@@ -108,9 +109,10 @@ services:
       dockerfile: infrastructure/development.Dockerfile
     container_name: drive-server
     ports:
-      - 8000:8000
+      - 7000:8000
     depends_on:
-      - drive-database
+      - bridge
+      - postgres
       - redis
     volumes:
       - ../src:/usr/app/src
@@ -132,15 +134,16 @@ services:
   #   volumes:
   #     - ../../notifications/src:/usr/app/src
 
-  drive-database:
+  postgres:
     image: postgres:14
-    container_name: drive-database
+    container_name: postgres
     restart: always
     ports:
       - 5432:5432
     volumes:
-      - ./maria-init-scripts:/docker-entrypoint-initdb.d
+      - ./database-init-scripts:/docker-entrypoint-initdb.d
     environment:
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: example
       POSTGRES_DB: xCloud
     networks:
@@ -151,7 +154,7 @@ services:
     container_name: cloudbeaver
     restart: always
     depends_on:
-      - drive-database
+      - postgres
     networks:
       - internxt
     ports:
