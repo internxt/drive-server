@@ -109,7 +109,7 @@ services:
       dockerfile: infrastructure/development.Dockerfile
     container_name: drive-server
     ports:
-      - 3000:8000
+      - 7000:8000
     depends_on:
       - bridge
       - postgres
