@@ -14,6 +14,8 @@ services:
       - s3
     volumes:
       - ../src:/usr/app/src
+    networks:
+      - internxt
 
   postgres:
     image: postgres:14
@@ -36,13 +38,21 @@ services:
     restart: always
     depends_on:
       - postgres
+    networks:
+      - internxt
     ports:
       - 8080:8978
+    volumes:
+      - ./volumes/dbeaver_logs:/opt/cloudbeaver/logs
+      - ./volumes/dbeaver_workspace:/opt/cloudbeaver/workspace
 
   redis:
     image: redis:latest
     container_name: drive-server-redis
     restart: always
+    networks:
+      - internxt
+
   s3:
     image: quay.io/minio/minio
     container_name: s3
@@ -51,6 +61,8 @@ services:
     ports:
       - 9000:9000
       - 9001:9001
+    networks:
+      - internxt
 
   initialize_s3:
     image: minio/mc
@@ -68,3 +80,9 @@ services:
       /usr/bin/mc admin policy set myminio readwrite user=internxt;
       exit 0;
       "
+    networks:
+      - internxt
+
+networks:
+  internxt:
+    name: internxt
