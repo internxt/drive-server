@@ -541,7 +541,7 @@ module.exports = (Model, App) => {
 
     const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
 
-    if (!res) throw new Error();
+    if (!res) throw new Error(`Unable to obtain lock for ${userId}`);
   };
 
   const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {
