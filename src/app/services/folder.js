@@ -535,6 +535,10 @@ module.exports = (Model, App) => {
   const acquireOrRefreshLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
+    if(redis.status !== 'ready') {
+      logger.warn('Redis is not ready to accept commands');
+    }
+
     const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
 
     if (!res) throw new Error();
