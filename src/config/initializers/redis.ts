@@ -21,6 +21,8 @@ export default class Redis {
     Redis.instance.on('connect', () => logger.info('Connected to Redis'));
     Redis.instance.on('ready', () => logger.info('Redis is ready'));
     Redis.instance.on('error', (err) => logger.error('Redis error', err));
+    Redis.instance.on('reconnecting', () => logger.info('Reconnecting to redis'));
+    Redis.instance.on('close', () => logger.warn('Redis connection was closed'));
 
     Redis.instance.defineCommand('refreshLock', {
       numberOfKeys: 1,
