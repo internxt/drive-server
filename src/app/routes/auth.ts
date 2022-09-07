@@ -41,7 +41,7 @@ export class AuthController {
     }
     try {
       const result = await this.service.User.RegisterUser(req.body);
-      const GROUP_ID = '103406410';
+      const GROUP_ID = process.env.MAILERLITE_GROUP_ID;
       await this.service.Newsletter.subscribe(result.email, GROUP_ID);
 
       res.status(200).send(result);
