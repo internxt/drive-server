@@ -519,7 +519,7 @@ export class StorageController {
         if (err instanceof LockNotAvaliableError) res.status(404).end();
 
         this.logger.error('Error releasing a lock', err.message);
-        res.sendStatus(500);
+        res.status(500).end();
       });
   }
 
