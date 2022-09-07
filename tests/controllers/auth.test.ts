@@ -253,7 +253,10 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.spy()
+          FindUserByEmail: sinon.stub({
+            FindUserByEmail: null
+          }, 'FindUserByEmail')
+            .rejects()
         }
       };
       const controller = getController(services);
