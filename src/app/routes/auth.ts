@@ -20,6 +20,7 @@ interface Services {
   Team: any;
   AppSumo: any;
   UsersReferrals: any;
+  Newsletter: any;
 }
 
 export class AuthController {
@@ -40,6 +41,9 @@ export class AuthController {
     }
     try {
       const result = await this.service.User.RegisterUser(req.body);
+      const GROUP_ID = '103406410';
+      await this.service.Newsletter.subscribe(result.email, GROUP_ID);
+
       res.status(200).send(result);
 
       this.service.Analytics.trackSignUp(req, result.user);
