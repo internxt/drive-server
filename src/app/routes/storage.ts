@@ -56,18 +56,7 @@ export class StorageController {
 
     const result = await this.services.Files.CreateFile(behalfUser, file);
 
-    // TODO: If user has referrals, then apply. Do not catch everything
-    if (internxtClient === 'drive-mobile') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
-    }
-
-    if (internxtClient === 'drive-desktop') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
-    }
+    
 
     res.status(200).json(result);
 
@@ -648,17 +637,7 @@ export class StorageController {
     });
   }
 
-  private logReferralError(userId: unknown, err: Error) {
-    if (!err.message) {
-      return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
-    }
-
-    if (err instanceof ReferralsNotAvailableError) {
-      return;
-    }
-
-    return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
-  }
+  
 }
 
 export default (router: Router, service: any) => {

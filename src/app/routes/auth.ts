@@ -8,7 +8,9 @@ import { AuthorizedUser } from './types';
 import { HttpError } from 'http-errors';
 import Logger from '../../lib/logger';
 import winston from 'winston';
+import { ReferralsNotAvailableError } from '../services/errors/referrals';
 
+type SharedRequest = Request & { behalfUser: UserAttributes };
 interface Services {
   User: any;
   Analytics: any;
@@ -18,6 +20,7 @@ interface Services {
   Team: any;
   AppSumo: any;
   UsersReferrals: any;
+  Newsletter: any;
 }
 
 export class AuthController {
@@ -38,6 +41,9 @@ export class AuthController {
     }
     try {
       const result = await this.service.User.RegisterUser(req.body);
+      const GROUP_ID = process.env.MAILERLITE_GROUP_ID;
+      await this.service.Newsletter.subscribe(result.email, GROUP_ID);
+
       res.status(200).send(result);
 
       this.service.Analytics.trackSignUp(req, result.user);
@@ -53,6 +59,9 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const internxtClient = req.headers['internxt-client'];
+
     if (!req.body.email) {
       throw createHttpError(400, 'Missing email param');
     }
@@ -75,7 +84,33 @@ export class AuthController {
 
     const hasKeys = await this.service.KeyServer.keysExists(user);
 
+
+    // TODO: If user has referrals, then apply. Do not catch everything
+    if (internxtClient === 'drive-mobile') {
+      this.service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err: Error) => {
+        this.logReferralError(behalfUser.id, err);
+      });
+    }
+
+    if (internxtClient === 'drive-desktop') {
+      this.service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err: Error) => {
+        this.logReferralError(behalfUser.id, err);
+      });
+    }
+
     res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
+  }
+
+  private logReferralError(userId: unknown, err: Error) {
+    if (!err.message) {
+      return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
+    }
+
+    if (err instanceof ReferralsNotAvailableError) {
+      return;
+    }
+
+    return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
   }
 
   async access(req: Request, res: Response) {
@@ -178,6 +213,9 @@ export class AuthController {
     // }
     return res.status(200).json({ user, token, userTeam, newToken });
   }
+
+
+
   async getNewToken(req: Request, res: Response) {
     const authRequest = req as Request & { user: UserAttributes };
     const newToken = Sign(this.getNewTokenPayload(authRequest.user), this.config.get('secrets').JWT);
