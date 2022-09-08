@@ -41,7 +41,7 @@ jobs:
         uses: steebchen/kubectl@v2.0.0
         with: # defaults to latest kubectl binary version
           config: ${{ secrets.KUBE_CONFIG_DATA_DEVELOPMENT }}
-          command: set image --record deployment/drive-server-dev drive-server=${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:${{ github.sha }}
+          command: set image --record deployment/drive-server-dev drive-server-dev=${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:${{ github.sha }}
       - name: Verify drive-server-dev deployment
         uses: steebchen/kubectl@v2.0.0
         with:
