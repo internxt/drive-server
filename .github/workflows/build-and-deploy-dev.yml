@@ -34,7 +34,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: production
+      name: develop
     steps:
       - uses: actions/checkout@master
       - name: Update drive-server-dev image
