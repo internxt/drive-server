@@ -47,14 +47,16 @@ export class AuthController {
       res.status(200).send(result);
 
       this.service.Analytics.trackSignUp(req, result.user);
-    } catch (err) {
+    } catch (err: any) {
       if (err instanceof HttpError) {
-        res.status(err.status).send({
+        return res.status(err.status).send({
           error: err.message,
         });
       }
-
-      res.sendStatus(500);
+      this.logger.error('[REGISTER]: %s', err.message);
+      return res.status(500).send({
+        error: err.message
+      });
     }
   }
 
