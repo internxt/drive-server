@@ -32,10 +32,10 @@ export class AuthController {
   }
 
   async register(req: Request<{ email: string }>, res: Response) {
-    if (req.headers['internxt-client'] !== 'drive-mobile') {
-      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-      await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
-    }
+    // if (req.headers['internxt-client'] !== 'drive-mobile') {
+    //   const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+    //   await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
+    // }
     try {
       const result = await this.service.User.RegisterUser(req.body);
       res.status(200).send(result);
