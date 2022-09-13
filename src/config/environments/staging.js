@@ -18,6 +18,7 @@ exports.data = {
       },
       replication: {
         read: [
+          { host: process.env.RDS_HOSTNAME, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD },
           { host: process.env.RDS_HOSTNAME2, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD },
           { host: process.env.RDS_HOSTNAME3, username: process.env.RDS_USERNAME, password: process.env.RDS_PASSWORD },
         ],
