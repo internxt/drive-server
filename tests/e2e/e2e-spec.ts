@@ -964,22 +964,24 @@ describe('E2E TEST', () => {
 
       const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
 
-      expect(response.body.files[0]).toHaveProperty('id');
-      expect(response.body.files[0]).toHaveProperty('created_at');
-      expect(response.body.files[0]).toHaveProperty('fileId');
-      expect(response.body.files[0]).toHaveProperty('name');
-      expect(response.body.files[0]).toHaveProperty('type');
-      expect(response.body.files[0]).toHaveProperty('size');
-      expect(response.body.files[0]).toHaveProperty('bucket');
-      expect(response.body.files[0]).toHaveProperty('folder_id');
-      expect(response.body.files[0]).toHaveProperty('encrypt_version');
-      expect(response.body.files[0]).toHaveProperty('deleted');
-      expect(response.body.files[0]).toHaveProperty('deletedAt');
-      expect(response.body.files[0]).toHaveProperty('userId');
-      expect(response.body.files[0]).toHaveProperty('modificationTime');
-      expect(response.body.files[0]).toHaveProperty('createdAt');
-      expect(response.body.files[0]).toHaveProperty('updatedAt');
-      expect(response.body.files[0]).toHaveProperty('folderId');
+      const file = response.body.files[0];
+
+      expect(file).toHaveProperty('id');
+      expect(file).toHaveProperty('created_at');
+      expect(file).toHaveProperty('fileId');
+      expect(file).toHaveProperty('name');
+      expect(file).toHaveProperty('type');
+      expect(file).toHaveProperty('size');
+      expect(file).toHaveProperty('bucket');
+      expect(file).toHaveProperty('folder_id');
+      expect(file).toHaveProperty('encrypt_version');
+      expect(file).toHaveProperty('deleted');
+      expect(file).toHaveProperty('deletedAt');
+      expect(file).toHaveProperty('userId');
+      expect(file).toHaveProperty('modificationTime');
+      expect(file).toHaveProperty('createdAt');
+      expect(file).toHaveProperty('updatedAt');
+      expect(file).toHaveProperty('folderId');
     });
 
     it('should return the folders and files of a user', async () => {
