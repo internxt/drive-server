@@ -33,56 +33,55 @@ describe('E2E TEST', () => {
     await server.stop();
   });
 
+  const createFileOnFolder = async (folderId: number, name: string, authToken: string): Promise<request.Response> =>
+    await request(app)
+      .post('/api/storage/file')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        file: {
+          fileId: uuid.v4().substring(0, 24),
+          type: 'jpg',
+          bucket: '01fa78f686158a14f8f7009b',
+          size: 57,
+          folder_id: folderId,
+          name: name,
+          encrypt_version: '03-aes',
+        },
+      });
+
+  const createFolder = async (body: any, authToken: string): Promise<request.Response> =>
+    await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${authToken}`).send(body);
+
+  const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
+    const files = await server.models.file.findAll({ where: { user_id: userId } });
+    for (const file of files) {
+      await file.destroy();
+    }
+  };
+
+  const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
+    const folders = await server.models.folder.findAll({ where: { user_id: userId } });
+    for (const dolder of folders) {
+      await dolder.destroy();
+    }
+  };
+
+  const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
+    await deleteAllUserFilesFromDatabase(userId);
+
+    const folders = await server.models.folder.findAll({
+      where: { user_id: userId, id: { [Op.not]: rootFolderId } },
+    });
+    await Promise.all(folders.map((folder: FileModel) => folder.destroy()));
+
+    await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
+      replacements: { userId },
+    });
+  };
   describe('Storage', () => {
     let token: string;
     let userId: number;
     let rootFolderId: number;
-
-    const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
-      const files = await server.models.file.findAll({ where: { user_id: userId } });
-      for (const file of files) {
-        await file.destroy();
-      }
-    };
-
-    const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
-      const folders = await server.models.folder.findAll({ where: { user_id: userId } });
-      for (const dolder of folders) {
-        await dolder.destroy();
-      }
-    };
-
-    const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
-      await deleteAllUserFilesFromDatabase(userId);
-
-      const folders = await server.models.folder.findAll({
-        where: { user_id: userId, id: { [Op.not]: rootFolderId } },
-      });
-      await Promise.all(folders.map((folder: FileModel) => folder.destroy()));
-
-      await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
-        replacements: { userId },
-      });
-    };
-
-    const createFolder = async (body: any, authToken: string): Promise<request.Response> =>
-      await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${authToken}`).send(body);
-
-    const createFileOnFolder = async (folderId: number, name: string, authToken: string): Promise<request.Response> =>
-      await request(app)
-        .post('/api/storage/file')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          file: {
-            fileId: uuid.v4().substring(0, 24),
-            type: 'jpg',
-            bucket: '01fa78f686158a14f8f7009b',
-            size: 57,
-            folder_id: folderId,
-            name: name,
-            encrypt_version: '03-aes',
-          },
-        });
 
     beforeAll(async () => {
       try {
@@ -921,6 +920,92 @@ describe('E2E TEST', () => {
         expect(status).toBe(HttpStatus.OK);
         expect(body).toHaveProperty('newToken');
       });
+    });
+  });
+
+  describe('Desktop', () => {
+    let token: string;
+    let userId: number;
+    let rootFolderId: number;
+
+    beforeAll(async () => {
+      try {
+        const email = `test${Date.now()}@internxt.com`;
+        const user = await createTestUser(email);
+
+        if (!user.dataValues.id || !user.dataValues.root_folder_id) {
+          process.exit();
+        }
+
+        userId = user.dataValues.id;
+        rootFolderId = user.dataValues.root_folder_id;
+        token = Sign({ email }, server.config.get('secrets').JWT);
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error setting up storage e2e tests: %s', err.message);
+        process.exit(1);
+      }
+    });
+
+    afterAll(async () => {
+      try {
+        await deleteTestUser(userId);
+        await deleteAllUserFilesFromDatabase(userId);
+        await deleteAllUserFoldersFromDatabase(userId);
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error after storage e2e tests: %s', err.message);
+      }
+    });
+
+    it('should return all the info from a file', async () => {
+      const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+      await createFileOnFolder(rootFolderId, fileName, token);
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      expect(response.body.files[0]).toHaveProperty('id');
+      expect(response.body.files[0]).toHaveProperty('created_at');
+      expect(response.body.files[0]).toHaveProperty('fileId');
+      expect(response.body.files[0]).toHaveProperty('name');
+      expect(response.body.files[0]).toHaveProperty('type');
+      expect(response.body.files[0]).toHaveProperty('size');
+      expect(response.body.files[0]).toHaveProperty('bucket');
+      expect(response.body.files[0]).toHaveProperty('folder_id');
+      expect(response.body.files[0]).toHaveProperty('encrypt_version');
+      expect(response.body.files[0]).toHaveProperty('deleted');
+      expect(response.body.files[0]).toHaveProperty('deletedAt');
+      expect(response.body.files[0]).toHaveProperty('userId');
+      expect(response.body.files[0]).toHaveProperty('modificationTime');
+      expect(response.body.files[0]).toHaveProperty('createdAt');
+      expect(response.body.files[0]).toHaveProperty('updatedAt');
+      expect(response.body.files[0]).toHaveProperty('folderId');
+    });
+
+    it('should return the folders and files of a user', async () => {
+      const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+      const { body: fileOnRoot } = await createFileOnFolder(rootFolderId, fileName, token);
+      const { body: folderOnRoot } = await createFolder(
+        {
+          folderName: 'folderOnRoot',
+          parentFolderId: rootFolderId,
+        },
+        token,
+      );
+      const { body: fileOnFolder } = await createFileOnFolder(
+        folderOnRoot.id,
+        encryptFilename(`test-${Date.now()}`, folderOnRoot.id),
+        token,
+      );
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      const filesId = response.body.files.map((file: { id: number }) => file.id);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body.folders[0].id).toBe(folderOnRoot.id);
+      expect(filesId).toContain(fileOnRoot.id);
+      expect(filesId).toContain(fileOnFolder.id);
     });
   });
 });
