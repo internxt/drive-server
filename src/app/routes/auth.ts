@@ -48,7 +48,15 @@ export class AuthController {
         });
       }
 
-      this.logger.error(`[AUTH/REGISTER] ERROR: ${(err as Error).message}, STACK: ${(err as Error).stack}`);
+      this.logger.error(
+        `[AUTH/REGISTER] ERROR: ${
+          (err as Error).message
+        }, BODY ${
+          req.body
+        }, STACK: ${
+          (err as Error).stack
+        }`
+      );
 
       res.sendStatus(500);
     }
