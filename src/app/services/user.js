@@ -431,7 +431,7 @@ module.exports = (Model, App) => {
     }
 
     if (!userData.isNewRecord) {
-      throw Error('This account already exists');
+      throw createHttpError(409, 'This account already exists');
     }
 
     if (hasReferrer) {
