@@ -9,7 +9,7 @@ module.exports = (Router, Service) => {
   Router.post('/newsletter/subscribe', passportAuth, async (req, res) => {
     const { email } = req.body;
     const { user } = req;
-    const mailerLiteGroupId = 103406410;
+    const mailerLiteGroupId = '51650193869768251';
 
     try {
       await Service.Newsletter.subscribe(email, mailerLiteGroupId);
