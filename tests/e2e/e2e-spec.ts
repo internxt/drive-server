@@ -980,6 +980,29 @@ describe('E2E TEST', () => {
       expect(file).toHaveProperty('folderId');
     });
 
+    it('should return all the info from a folder', async () => {
+      const { body: folder } = await createFolder(
+        {
+          folderName: 'folderOnRoot',
+          parentFolderId: rootFolderId,
+        },
+        token,
+      );
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      const result = response.body.folders[0];
+
+      expect(result.id).toBe(folder.id);
+
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('parent_id');
+      expect(result).toHaveProperty('name');
+      expect(result).toHaveProperty('bucket');
+      expect(result).toHaveProperty('updated_at');
+      expect(result).toHaveProperty('created_at');
+    });
+
     it('should return the folders and files of a user', async () => {
       const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
       const { body: fileOnRoot } = await createFileOnFolder(rootFolderId, fileName, token);
