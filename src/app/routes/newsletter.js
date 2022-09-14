@@ -7,11 +7,12 @@ module.exports = (Router, Service) => {
   const logger = Logger.getInstance();
 
   Router.post('/newsletter/subscribe', passportAuth, async (req, res) => {
-    const { email, groupId } = req.body;
+    const { email } = req.body;
     const { user } = req;
+    const mailerLiteGroupId = 103406410;
 
     try {
-      await Service.Newsletter.subscribe(email, groupId);
+      await Service.Newsletter.subscribe(email, mailerLiteGroupId);
 
       await Service.UsersReferrals.applyUserReferral(user.id, 'subscribe-to-newsletter');
 
