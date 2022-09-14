@@ -2,27 +2,13 @@
 
 ## Prerrequisites
 
-* Node v10
+* Node v16
 
-  ```nvm install v10```
-  
-  (Cannot be upgraded to higher version until [node-lib](https://github.com/internxt/node-lib) bindings fixed).
+  ```nvm install 16```
 
 * Yarn
 
   ```npm i -g yarn```
-
-* PM2
-
-  ```npm i -g pm2```
-
-* Node-gyp essentials
-
-  Ubuntu: ```sudo apt install python build-essential```
-
-  Windows: ```npm i -g windows-build-tools```
-
-  Mac: ```xcode-select --install```
 
 # Install
 
