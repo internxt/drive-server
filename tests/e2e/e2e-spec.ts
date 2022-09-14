@@ -5,7 +5,6 @@ import { HttpStatus } from '@nestjs/common';
 import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
 import { Sign } from '../../src/app/middleware/passport';
 import { applicationInitialization } from './setup';
-import { FileModel } from '../../src/app/models/file';
 import sequelize from 'sequelize';
 import speakeasy from 'speakeasy';
 import sinon from 'sinon';
@@ -53,26 +52,19 @@ describe('E2E TEST', () => {
     await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${authToken}`).send(body);
 
   const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
-    const files = await server.models.file.findAll({ where: { user_id: userId } });
-    for (const file of files) {
-      await file.destroy();
-    }
+    await server.models.file.destroy({ where: { user_id: userId } });
   };
 
   const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
-    const folders = await server.models.folder.findAll({ where: { user_id: userId } });
-    for (const dolder of folders) {
-      await dolder.destroy();
-    }
+    await server.models.folder.destroy({ where: { user_id: userId } });
   };
 
   const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
     await deleteAllUserFilesFromDatabase(userId);
 
-    const folders = await server.models.folder.findAll({
+    await server.models.folder.destroy({
       where: { user_id: userId, id: { [Op.not]: rootFolderId } },
     });
-    await Promise.all(folders.map((folder: FileModel) => folder.destroy()));
 
     await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
       replacements: { userId },
@@ -956,6 +948,10 @@ describe('E2E TEST', () => {
         // eslint-disable-next-line no-console
         console.error('Error after storage e2e tests: %s', err.message);
       }
+    });
+
+    afterEach(async () => {
+      await clearUserDrive(userId, rootFolderId);
     });
 
     it('should return all the info from a file', async () => {
