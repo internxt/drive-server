@@ -63,7 +63,7 @@
     "migrate": "yarn run build && sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./src",
-    "lint:fix": "npm run lint --fix",
+    "lint:fix": "yarn run lint --fix",
     "build": "tsc",
     "postinstall": "yarn run prepare-hooks",
     "prepare-hooks": "husky install"
