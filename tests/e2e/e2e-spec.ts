@@ -5,7 +5,6 @@ import { HttpStatus } from '@nestjs/common';
 import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
 import { Sign } from '../../src/app/middleware/passport';
 import { applicationInitialization } from './setup';
-import { FileModel } from '../../src/app/models/file';
 import sequelize from 'sequelize';
 import speakeasy from 'speakeasy';
 import sinon from 'sinon';
@@ -33,56 +32,48 @@ describe('E2E TEST', () => {
     await server.stop();
   });
 
+  const createFileOnFolder = async (folderId: number, name: string, authToken: string): Promise<request.Response> =>
+    await request(app)
+      .post('/api/storage/file')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        file: {
+          fileId: uuid.v4().substring(0, 24),
+          type: 'jpg',
+          bucket: '01fa78f686158a14f8f7009b',
+          size: 57,
+          folder_id: folderId,
+          name: name,
+          encrypt_version: '03-aes',
+        },
+      });
+
+  const createFolder = async (body: any, authToken: string): Promise<request.Response> =>
+    await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${authToken}`).send(body);
+
+  const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
+    await server.models.file.destroy({ where: { user_id: userId } });
+  };
+
+  const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
+    await server.models.folder.destroy({ where: { user_id: userId } });
+  };
+
+  const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
+    await deleteAllUserFilesFromDatabase(userId);
+
+    await server.models.folder.destroy({
+      where: { user_id: userId, id: { [Op.not]: rootFolderId } },
+    });
+
+    await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
+      replacements: { userId },
+    });
+  };
   describe('Storage', () => {
     let token: string;
     let userId: number;
     let rootFolderId: number;
-
-    const deleteAllUserFilesFromDatabase = async (userId: number): Promise<void> => {
-      const files = await server.models.file.findAll({ where: { user_id: userId } });
-      for (const file of files) {
-        await file.destroy();
-      }
-    };
-
-    const deleteAllUserFoldersFromDatabase = async (userId: number): Promise<void> => {
-      const folders = await server.models.folder.findAll({ where: { user_id: userId } });
-      for (const dolder of folders) {
-        await dolder.destroy();
-      }
-    };
-
-    const clearUserDrive = async (userId: number, rootFolderId: number): Promise<void> => {
-      await deleteAllUserFilesFromDatabase(userId);
-
-      const folders = await server.models.folder.findAll({
-        where: { user_id: userId, id: { [Op.not]: rootFolderId } },
-      });
-      await Promise.all(folders.map((folder: FileModel) => folder.destroy()));
-
-      await server.database.query('DELETE FROM deleted_files WHERE user_id = (:userId)', {
-        replacements: { userId },
-      });
-    };
-
-    const createFolder = async (body: any, authToken: string): Promise<request.Response> =>
-      await request(app).post('/api/storage/folder').set('Authorization', `Bearer ${authToken}`).send(body);
-
-    const createFileOnFolder = async (folderId: number, name: string, authToken: string): Promise<request.Response> =>
-      await request(app)
-        .post('/api/storage/file')
-        .set('Authorization', `Bearer ${authToken}`)
-        .send({
-          file: {
-            fileId: uuid.v4().substring(0, 24),
-            type: 'jpg',
-            bucket: '01fa78f686158a14f8f7009b',
-            size: 57,
-            folder_id: folderId,
-            name: name,
-            encrypt_version: '03-aes',
-          },
-        });
 
     beforeAll(async () => {
       try {
@@ -921,6 +912,121 @@ describe('E2E TEST', () => {
         expect(status).toBe(HttpStatus.OK);
         expect(body).toHaveProperty('newToken');
       });
+    });
+  });
+
+  describe('Desktop', () => {
+    let token: string;
+    let userId: number;
+    let rootFolderId: number;
+
+    beforeAll(async () => {
+      try {
+        const email = `test${Date.now()}@internxt.com`;
+        const user = await createTestUser(email);
+
+        if (!user.dataValues.id || !user.dataValues.root_folder_id) {
+          process.exit();
+        }
+
+        userId = user.dataValues.id;
+        rootFolderId = user.dataValues.root_folder_id;
+        token = Sign({ email }, server.config.get('secrets').JWT);
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error setting up storage e2e tests: %s', err.message);
+        process.exit(1);
+      }
+    });
+
+    afterAll(async () => {
+      try {
+        await deleteTestUser(userId);
+        await deleteAllUserFilesFromDatabase(userId);
+        await deleteAllUserFoldersFromDatabase(userId);
+      } catch (err: any) {
+        // eslint-disable-next-line no-console
+        console.error('Error after storage e2e tests: %s', err.message);
+      }
+    });
+
+    afterEach(async () => {
+      await clearUserDrive(userId, rootFolderId);
+    });
+
+    it('should return all the info from a file', async () => {
+      const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+      await createFileOnFolder(rootFolderId, fileName, token);
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      const file = response.body.files[0];
+
+      expect(file).toHaveProperty('id');
+      expect(file).toHaveProperty('created_at');
+      expect(file).toHaveProperty('fileId');
+      expect(file).toHaveProperty('name');
+      expect(file).toHaveProperty('type');
+      expect(file).toHaveProperty('size');
+      expect(file).toHaveProperty('bucket');
+      expect(file).toHaveProperty('folder_id');
+      expect(file).toHaveProperty('encrypt_version');
+      expect(file).toHaveProperty('deleted');
+      expect(file).toHaveProperty('deletedAt');
+      expect(file).toHaveProperty('userId');
+      expect(file).toHaveProperty('modificationTime');
+      expect(file).toHaveProperty('createdAt');
+      expect(file).toHaveProperty('updatedAt');
+      expect(file).toHaveProperty('folderId');
+    });
+
+    it('should return all the info from a folder', async () => {
+      const { body: folder } = await createFolder(
+        {
+          folderName: 'folderOnRoot',
+          parentFolderId: rootFolderId,
+        },
+        token,
+      );
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      const result = response.body.folders[0];
+
+      expect(result.id).toBe(folder.id);
+
+      expect(result).toHaveProperty('id');
+      expect(result).toHaveProperty('parent_id');
+      expect(result).toHaveProperty('name');
+      expect(result).toHaveProperty('bucket');
+      expect(result).toHaveProperty('updated_at');
+      expect(result).toHaveProperty('created_at');
+    });
+
+    it('should return the folders and files of a user', async () => {
+      const fileName = encryptFilename(`test-${Date.now()}`, rootFolderId);
+      const { body: fileOnRoot } = await createFileOnFolder(rootFolderId, fileName, token);
+      const { body: folderOnRoot } = await createFolder(
+        {
+          folderName: 'folderOnRoot',
+          parentFolderId: rootFolderId,
+        },
+        token,
+      );
+      const { body: fileOnFolder } = await createFileOnFolder(
+        folderOnRoot.id,
+        encryptFilename(`test-${Date.now()}`, folderOnRoot.id),
+        token,
+      );
+
+      const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
+
+      const filesId = response.body.files.map((file: { id: number }) => file.id);
+
+      expect(response.status).toBe(HttpStatus.OK);
+      expect(response.body.folders[0].id).toBe(folderOnRoot.id);
+      expect(filesId).toContain(fileOnRoot.id);
+      expect(filesId).toContain(fileOnFolder.id);
     });
   });
 });
