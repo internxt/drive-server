@@ -402,7 +402,7 @@ module.exports = (Model, App) => {
   };
 
   const RegisterUser = async (newUserData) => {
-    logger.warn('Register request for %s', newUserData.email);
+    logger.warn('[AUTH/REGISTER] Register request for %s', newUserData.email);
 
     if (!(newUserData.email && newUserData.password)) {
       throw createHttpError(400, 'You must provide registration data');
@@ -734,14 +734,14 @@ module.exports = (Model, App) => {
     try {
       uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
     } catch (err) {
-      logger.error(`Error while validating verificationToken (verifyEmail) ${err.message}`);
+      logger.error(`[AUTH] Error while validating verificationToken (verifyEmail) ${err.message}`);
       throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
     }
 
     try {
       await Model.users.update({ emailVerified: true }, { where: { uuid } });
     } catch (err) {
-      logger.error(`Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+      logger.error(`[AUTH] Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
     }
   };
 
