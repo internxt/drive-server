@@ -734,14 +734,16 @@ module.exports = (Model, App) => {
     try {
       uuid = AesUtil.decrypt(verificationToken, Buffer.from(secret));
     } catch (err) {
-      logger.error(`[AUTH] Error while validating verificationToken (verifyEmail) ${err.message}`);
+      logger.error(`[AUTH/VERIFICATION] Error while validating verificationToken (verifyEmail) ${err.message}`);
       throw createHttpError(400, `Could not verify this verificationToken: "${verificationToken}"`);
     }
 
     try {
       await Model.users.update({ emailVerified: true }, { where: { uuid } });
     } catch (err) {
-      logger.error(`[AUTH] Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`);
+      logger.error(
+        `[AUTH/VERIFICATION] Error while trying to set verifyEmail to true for user ${uuid}: ${err.message}`,
+      );
     }
   };
 
