@@ -52,7 +52,7 @@ export class AuthController {
         `[AUTH/REGISTER] ERROR: ${
           (err as Error).message
         }, BODY ${
-          req.body
+          JSON.stringify(req.body)
         }, STACK: ${
           (err as Error).stack
         }`
