@@ -135,7 +135,7 @@ export default (router: Router, service: any, App: any): Router => {
         `[AUTH/INITIALIZE] ERROR: ${
           (err as Error).message
         }, BODY ${
-          req.body
+          JSON.stringify(req.body)
         }, STACK: ${
           (err as Error).stack
         }`
