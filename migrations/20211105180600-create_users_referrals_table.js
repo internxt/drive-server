@@ -5,55 +5,55 @@ module.exports = {
         type: Sequelize.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        allowNull: false
+        allowNull: false,
       },
       user_id: {
         type: Sequelize.INTEGER,
         references: {
           model: 'users',
-          key: 'id'
+          key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
-        allowNull: false
+        allowNull: false,
       },
       referral_id: {
         type: Sequelize.INTEGER,
         references: {
           model: 'referrals',
-          key: 'id'
+          key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE',
-        allowNull: false
+        allowNull: false,
       },
       referred: {
         type: Sequelize.STRING,
-        allowNull: true
+        allowNull: true,
       },
       start_date: {
         type: Sequelize.DATE,
-        allowNull: false
+        allowNull: false,
       },
       expiration_date: {
         type: Sequelize.DATE,
-        allowNull: true
+        allowNull: true,
       },
       applied: {
         type: Sequelize.BOOLEAN,
         allowNull: false,
-        defaultValue: false
+        defaultValue: false,
       },
       created_at: {
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
       },
       updated_at: {
-        type: Sequelize.DATE
-      }
+        type: Sequelize.DATE,
+      },
     });
   },
 
   down: async (queryInterface) => {
     await queryInterface.dropTable('users_referrals');
-  }
+  },
 };
