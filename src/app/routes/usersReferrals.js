@@ -18,8 +18,18 @@ module.exports = (Router, Service) => {
     }
   });
 
-  Router.post('/apply-referral', async (req, res) => {
-    let {userId, email, key} = req.body;
+  Router.post('/apply-referral/:type?', async (req, res) => {
+    const type = req.params.type;
+    let userId, email, key;
+    if(type === 'typeform') {
+      key = 'complete-survey';
+      userId = null;
+      email = req.body.form_response.hidden.email;
+    }else {
+      userId = req.body.userId;
+      email = req.body.email;
+      key = req.body.key;
+    }
     if(!key) {
       return res.status(400).send({error: 'Missing referral key'});
     }
@@ -32,7 +42,7 @@ module.exports = (Router, Service) => {
     }
     try {
       Service.UsersReferrals.applyUserReferral(userId,  key).catch((err) => {
-        this.logReferralError(userId, err);
+       logger.error(err);
       });
       res.status(200).send();
     } catch (err) {
@@ -42,4 +52,6 @@ module.exports = (Router, Service) => {
       res.status(400).send({ error: errMessage });
     }
   });
+
+
 };
