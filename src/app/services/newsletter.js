@@ -1,7 +1,7 @@
 const { default: axios } = require('axios');
-
+const GROUP_ID = process.env.MAILERLITE_GROUP_ID;
 module.exports = () => {
-  const subscribe = async (email, groupId) => {
+  const subscribe = async (email, groupId = GROUP_ID) => {
     await axios.post(
       `https://api.mailerlite.com/api/v2/groups/${groupId}/subscribers`,
       { email, resubscribe: true, autoresponders: true },
