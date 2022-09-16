@@ -35,10 +35,10 @@ export class AuthController {
   }
 
   async register(req: Request<{ email: string }>, res: Response) {
-    if (req.headers['internxt-client'] !== 'drive-mobile') {
-      const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
-      await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
-    }
+    // if (req.headers['internxt-client'] !== 'drive-mobile') {
+    //   const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
+    //   await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
+    // }
     try {
       const result = await this.service.User.RegisterUser(req.body);
 
@@ -51,10 +51,18 @@ export class AuthController {
           error: err.message,
         });
       }
-      this.logger.error('[REGISTER]: %s', err.message);
-      return res.status(500).send({
-        error: err.message
-      });
+
+      this.logger.error(
+        `[AUTH/REGISTER] ERROR: ${
+          (err as Error).message
+        }, BODY ${
+          req.body
+        }, STACK: ${
+          (err as Error).stack
+        }`
+      );
+
+      res.sendStatus(500);
     }
   }
 

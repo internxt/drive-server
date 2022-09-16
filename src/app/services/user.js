@@ -431,7 +431,7 @@ module.exports = (Model, App) => {
     }
 
     if (!userData.isNewRecord) {
-      throw Error('This account already exists');
+      throw createHttpError(409, 'This account already exists');
     }
 
     if (hasReferrer) {
@@ -472,6 +472,7 @@ module.exports = (Model, App) => {
       user.publicKey = keys.public_key;
       user.revocationKey = keys.revocation_key;
     } catch (e) {
+      logger.error(`[AUTH/REGISTER] ERROR GETTING KEYS: ${e.message}. STACK ${e.stack}`);
       // no op
     }
 

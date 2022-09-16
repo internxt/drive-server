@@ -112,30 +112,36 @@ export default (router: Router, service: any, App: any): Router => {
   });
 
   router.post('/initialize', async (req, res) => {
-    const userData: any = await service.User.InitializeUser(req.body);
-
-    if (!userData.root_folder_id) {
-      throw createHttpError(500, 'Account can not be initialized');
-    }
-
-    const user = {
-      email: userData.email,
-      bucket: userData.bucket,
-      mnemonic: userData.mnemonic,
-      root_folder_id: userData.root_folder_id,
-    };
-
     try {
+      const userData: any = await service.User.InitializeUser(req.body);
+
+      if (!userData.root_folder_id) {
+        throw createHttpError(500, 'Account can not be initialized');
+      }
+  
+      const user = {
+        email: userData.email,
+        bucket: userData.bucket,
+        mnemonic: userData.mnemonic,
+        root_folder_id: userData.root_folder_id,
+      };
+
       (await service.Folder.Create(userData, 'Family', user.root_folder_id)).save();
       (await service.Folder.Create(userData, 'Personal', user.root_folder_id)).save();
+
+      res.status(200).send({ user });
     } catch (err) {
       Logger.error(
-        '[/initialize]: ERROR initializing welcome folders for user %s: %s',
-        userData.email,
-        (err as Error).message,
+        `[AUTH/INITIALIZE] ERROR: ${
+          (err as Error).message
+        }, BODY ${
+          JSON.stringify(req.body)
+        }, STACK: ${
+          (err as Error).stack
+        }`
       );
-    } finally {
-      res.status(200).send({ user });
+
+      return res.status(500).send({ error: 'Internal Server Error' });
     }
   });
 
