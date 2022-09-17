@@ -36,7 +36,20 @@ export class AuthController {
     //   const ipaddress = req.header('x-forwarded-for') || req.socket.remoteAddress;
     //   await this.service.ReCaptcha.verify(req.body.captcha, ipaddress);
     // }
+
     try {
+      /* REQUIRED FIELDS  */
+      if (!req.body.email) {
+        throw createHttpError(400, 'Missing required field "email"');
+      }
+
+      if (!req.body.password) {
+        throw createHttpError(400, 'Missing required field "password"');
+      }
+      /* FORMAT */
+      req.body.email = req.body.email.toLowerCase().trim();
+
+
       const result = await this.service.User.RegisterUser(req.body);
       res.status(200).send(result);
 
