@@ -404,10 +404,6 @@ module.exports = (Model, App) => {
   const RegisterUser = async (newUserData) => {
     logger.warn('[AUTH/REGISTER] Register request for %s', newUserData.email);
 
-    if (!(newUserData.email && newUserData.password)) {
-      throw createHttpError(400, 'You must provide registration data');
-    }
-
     const hasReferrer = !!newUserData.referrer;
     const referrer = hasReferrer
       ? await Model.users.findOne({ where: { referralCode: { [Op.eq]: newUserData.referrer } } })
@@ -417,7 +413,7 @@ module.exports = (Model, App) => {
       throw createHttpError(400, 'The referral code used is not correct');
     }
 
-    const email = newUserData.email.toLowerCase().trim();
+    const { email } = newUserData;
     const userData = await FindOrCreate({
       ...newUserData,
       email,
