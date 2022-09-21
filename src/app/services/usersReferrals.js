@@ -47,20 +47,21 @@ module.exports = (Model, App) => {
 
       if (userReferralGroup) {
         userReferralGroup.completedSteps += userReferral.applied ? 1 : 0;
+        userReferralGroup.steps += 1;
       } else {
         userReferralGroups.push({
           key: userReferral.referral.key,
           type: userReferral.referral.type,
           credit: userReferral.referral.credit,
-          steps: userReferral.referral.steps,
           completedSteps: userReferral.applied ? 1 : 0,
+          steps: 1,
         });
       }
     });
 
     return userReferralGroups.map((group) => ({
       ...group,
-      isCompleted: group.steps === group.completedSteps,
+      isCompleted: group.completedSteps === group.steps,
     }));
   };
 
@@ -129,6 +130,6 @@ module.exports = (Model, App) => {
     getByUserId,
     applyUserReferral,
     hasReferralsProgram,
-    redeemUserReferral
+    redeemUserReferral,
   };
 };
