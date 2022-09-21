@@ -74,12 +74,12 @@ module.exports = (Model, App) => {
     );
   };
 
-  const redeemUserReferral = async (userEmail, userId, type, credit) => {
+  const redeemUserReferral = async (uuid, userId, type, credit) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
     if (type === 'storage') {
       if (GATEWAY_USER && GATEWAY_PASS) {
-        await App.services.Inxt.addStorage(userEmail, credit);
+        await App.services.Inxt.addStorageByUUID(uuid, credit);
       } else {
         App.logger.warn(
           '(usersReferralsService.redeemUserReferral) GATEWAY_USER\
@@ -90,7 +90,7 @@ module.exports = (Model, App) => {
 
     App.logger.info(
       `(usersReferralsService.redeemUserReferral)\
-       The user '${userEmail}' (id: ${userId}) has redeemed a referral: ${type} - ${credit}`,
+       The user '${uuid}' (id: ${userId}) has redeemed a referral: ${type} - ${credit}`,
     );
   };
 
@@ -119,7 +119,7 @@ module.exports = (Model, App) => {
     }
 
     await update({ referred, applied: true }, userReferral.id);
-    await redeemUserReferral(user.bridgeUser, userId, referral.type, referral.credit);
+    await redeemUserReferral(user.uuid, userId, referral.type, referral.credit);
 
     AnalyticsService.trackReferralRedeemed(userId, referralKey);
   };
