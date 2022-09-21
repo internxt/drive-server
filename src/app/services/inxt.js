@@ -151,6 +151,22 @@ module.exports = (Model, App) => {
     );
   };
 
+  const addStorageByUUID = (uuid, bytes) => {
+    const { GATEWAY_USER, GATEWAY_PASS } = process.env;
+
+    return axios.put(
+      `${App.config.get('STORJ_BRIDGE')}/gateway/increment-storage-by-uuid`,
+      {
+        uuid,
+        bytes,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+        auth: { username: GATEWAY_USER, password: GATEWAY_PASS },
+      },
+    );
+  };
+
   const DeleteFile = (user, bucket, bucketEntry) => {
     const pwd = user.userId;
     const pwdHash = pwdToHex(pwd);
@@ -177,5 +193,6 @@ module.exports = (Model, App) => {
     DeleteFile,
     renameFile,
     addStorage,
+    addStorageByUUID,
   };
 };
