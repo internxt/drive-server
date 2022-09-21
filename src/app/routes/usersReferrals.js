@@ -36,14 +36,18 @@ module.exports = (Router, Service) => {
     }
     if (!userId && uuid) {
       const user = await Service.User.FindUserByUuid(uuid);
-      userId = user.id;
+      if (user) {
+        userId = user.id;
+      }
     }
     if (!userId && email) {
       const user = await Service.User.FindUserByEmail(email);
-      userId = user.id;
+      if (user) {
+        userId = user.id;
+      }
     }
-    if (!userId && !email) {
-      return res.status(400).send({ error: 'UserId, Email or UUID are required' });
+    if (!userId) {
+      return res.status(400).send({ error: "User couldn't be found" });
     }
     try {
       Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
