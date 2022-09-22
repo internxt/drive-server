@@ -63,7 +63,7 @@
     "migrate": "yarn run build && sequelize db:migrate",
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./src",
-    "lint:fix": "npm run lint --fix",
+    "lint:fix": "yarn run lint --fix",
     "build": "tsc"
   },
   "devDependencies": {
@@ -94,10 +94,12 @@
     "commander": "^9.2.0",
     "cross-env": "^7.0.3",
     "eslint": "^7.10.0",
+    "husky": "^8.0.1",
     "jest": "^28.1.3",
     "mocha": "8.0.0",
     "nodemon": "^2.0.4",
     "prettier": "^2.5.0",
+    "pretty-quick": "^3.1.3",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.5.6",
     "sequelize-cli": "^6.2.0",
