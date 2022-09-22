@@ -69,6 +69,7 @@ module.exports = (Model, App) => {
       where: {
         parentId: { [Op.eq]: parentFolderId },
         name: { [Op.eq]: cryptoFolderName },
+        deleted: { [Op.eq]: false },
       },
     });
 

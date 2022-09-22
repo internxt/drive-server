@@ -28,6 +28,7 @@ module.exports = (Model, App) => {
             folder_id: { [Op.eq]: folder.id },
             type: { [Op.eq]: file.type },
             userId: { [Op.eq]: user.id },
+            deleted: { [Op.eq]: false },
           },
         });
 
