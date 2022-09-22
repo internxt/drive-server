@@ -56,27 +56,26 @@ module.exports = (Model, App) => {
     const transaction = await Model.users.sequelize.transaction();
 
     try {
-      const [userResult, isNewRecord] = await Model.users
-        .findOrCreate({
-          where: { username: user.email },
-          defaults: {
-            email: user.email,
-            name: user.name,
-            lastname: user.lastname,
-            password: userPass,
-            mnemonic: user.mnemonic,
-            hKey: userSalt,
-            referrer: user.referrer,
-            referralCode: uuid.v4(),
-            uuid: null,
-            credit: user.credit,
-            welcomePack: true,
-            registerCompleted: user.registerCompleted,
-            username: user.username,
-            bridgeUser: user.bridgeUser,
-          },
-          transaction
-        });
+      const [userResult, isNewRecord] = await Model.users.findOrCreate({
+        where: { username: user.email },
+        defaults: {
+          email: user.email,
+          name: user.name,
+          lastname: user.lastname,
+          password: userPass,
+          mnemonic: user.mnemonic,
+          hKey: userSalt,
+          referrer: user.referrer,
+          referralCode: uuid.v4(),
+          uuid: null,
+          credit: user.credit,
+          welcomePack: true,
+          registerCompleted: user.registerCompleted,
+          username: user.username,
+          bridgeUser: user.bridgeUser,
+        },
+        transaction,
+      });
 
       if (isNewRecord) {
         if (user.publicKey && user.privateKey && user.revocationKey) {
@@ -133,7 +132,7 @@ module.exports = (Model, App) => {
       await transaction.rollback();
 
       throw err;
-    }    
+    }
   };
 
   const InitializeUser = (user) =>
@@ -448,7 +447,7 @@ module.exports = (Model, App) => {
 
     const user = {
       userId: userData.userId,
-      mnemonic: userData.mnemonic,
+      mnemonic: userData.mnemonic.toString(),
       root_folder_id: userData.root_folder_id,
       name: userData.name,
       lastname: userData.lastname,
