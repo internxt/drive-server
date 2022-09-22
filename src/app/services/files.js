@@ -192,12 +192,12 @@ module.exports = (Model, App) => {
           : '';
 
         // Check if there is a file with the same name
-        Model.file
-          .findOne({
+        Model.file.findOne({
             where: {
               folder_id: { [Op.eq]: file.folder_id },
               name: { [Op.eq]: cryptoFileName },
               type: { [Op.eq]: file.type },
+              deleted: { [Op.eq]: false },
             },
           })
           .then((duplicateFile) => {
@@ -249,6 +249,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
+        deleted: { [Op.eq]: false },
       },
     });
 
@@ -279,8 +280,7 @@ module.exports = (Model, App) => {
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
-      Model.file
-        .findOne({
+      Model.file.findOne({
           where: {
             file_id: { [Op.eq]: fileId },
           },
@@ -363,6 +363,7 @@ module.exports = (Model, App) => {
     orderByName,
   ) => {
     const filesLimit = originalPagination.limit - folders.length;
+
 
     if (filesLimit <= 0) return [];
 

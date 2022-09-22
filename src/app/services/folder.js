@@ -337,19 +337,16 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder
-      .findOne({
-        where: {
-          id: { [Op.eq]: folderId },
-        },
-      })
-      .then((folder) => {
-        if (!folder) {
-          throw Error('Folder not found on database, please refresh');
-        }
-
-        return folder;
-      });
+    return Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+      },
+    }).then((folder) => {
+      if (!folder) {
+        throw Error('Folder not found on database, please refresh');
+      }
+      return folder;
+    });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -372,13 +369,12 @@ module.exports = (Model, App) => {
       },
       (next) => {
         // Get the target folder from database
-        Model.folder
-          .findOne({
-            where: {
-              id: { [Op.eq]: folderId },
-              user_id: { [Op.eq]: user.id },
-            },
-          })
+        Model.folder.findOne({
+          where: {
+            id: { [Op.eq]: folderId },
+            user_id: { [Op.eq]: user.id },
+          },
+        })
           .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
@@ -392,13 +388,13 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder
-            .findOne({
-              where: {
-                parentId: { [Op.eq]: folder.parentId },
-                name: { [Op.eq]: cryptoFolderName },
-              },
-            })
+          Model.folder.findOne({
+            where: {
+              parentId: { [Op.eq]: folder.parentId },
+              name: { [Op.eq]: cryptoFolderName },
+              deleted: { [Op.eq]: false },
+            },
+          })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
@@ -468,6 +464,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         parent_id: { [Op.eq]: destination },
         id: { [Op.ne]: folderId },
+        deleted: { [Op.eq]: false },
       },
     });
 
@@ -513,7 +510,10 @@ module.exports = (Model, App) => {
     while (duplicateName.length !== 0) {
       // eslint-disable-next-line no-await-in-loop
       duplicateName = await Model.folder.findAll({
-        where: { user_id: { [Op.eq]: userObject.id } },
+        where: {
+          user_id: { [Op.eq]: userObject.id },
+          deleted: { [Op.eq]: false },
+        },
         attributes: ['name', [fn('COUNT', col('*')), 'count_name']],
         group: ['name'],
         having: {
@@ -537,6 +537,7 @@ module.exports = (Model, App) => {
             [Op.eq]: userObject.id,
           },
           name: { [Op.in]: duplicateName },
+          deleted: { [Op.eq]: false },
         },
         attributes: ['id', 'name', 'parent_id'],
       });
