@@ -21,6 +21,10 @@ module.exports = (Router, Service) => {
   Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
     let userId, email, key, uuid;
+    const clientId = req.headers['internxt-client-id'] ? 
+      String(req.headers['internxt-client-id']) :
+      null;
+
     if (type === 'typeform') {
       key = 'complete-survey';
       userId = null;
@@ -53,6 +57,9 @@ module.exports = (Router, Service) => {
       Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
         logger.error(err);
       });
+      if (clientId && uuid) {
+        await Service.Notifications.userStorageUpdated({ uuid, clientId });
+      }
       res.status(200).send();
     } catch (err) {
       const errMessage = `Error applying user referral for user with id: ${userId}, error: ${err}`;
