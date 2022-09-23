@@ -20,15 +20,13 @@ module.exports = (Router, Service) => {
 
   Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
-    let userId, email, key, uuid;
-    const clientId = req.headers['internxt-client-id'] ? 
-      String(req.headers['internxt-client-id']) :
-      null;
+    let clientId, userId, email, key, uuid;
 
     if (type === 'typeform') {
       key = 'complete-survey';
       userId = null;
-      email = req.body.form_response?.hidden?.email;
+      // TODO: Is not the email, but TypeForm is not chaging the hidden fields.
+      clientId = String(req.body.form_response?.hidden?.email);
       uuid = req.body.form_response?.hidden?.uuid;
     } else {
       userId = req.body.userId;
