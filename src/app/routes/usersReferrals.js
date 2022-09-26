@@ -1,10 +1,10 @@
-const { passportAuth } = require("../middleware/passport");
-const { getInstance } = require("../../lib/logger").default;
+const { passportAuth } = require('../middleware/passport');
+const { getInstance } = require('../../lib/logger').default;
 
 const logger = getInstance();
 
 module.exports = (Router, Service) => {
-  Router.get("/users-referrals", passportAuth, async (req, res) => {
+  Router.get('/users-referrals', passportAuth, async (req, res) => {
     const { user } = req;
 
     try {
@@ -18,15 +18,13 @@ module.exports = (Router, Service) => {
     }
   });
 
-  Router.post("/apply-referral/:type?", async (req, res) => {
+  Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
     let userId, email, key, uuid;
-    const clientId = req.headers["internxt-client-id"]
-      ? String(req.headers["internxt-client-id"])
-      : null;
+    const clientId = req.headers['internxt-client-id'] ? String(req.headers['internxt-client-id']) : null;
 
-    if (type === "typeform") {
-      key = "complete-survey";
+    if (type === 'typeform') {
+      key = 'complete-survey';
       userId = null;
       email = req.body.form_response?.hidden?.email;
       uuid = req.body.form_response?.hidden?.uuid;
@@ -36,7 +34,7 @@ module.exports = (Router, Service) => {
       key = req.body.key;
     }
     if (!key) {
-      return res.status(400).send({ error: "Missing referral key" });
+      return res.status(400).send({ error: 'Missing referral key' });
     }
     if (!userId && uuid) {
       const user = await Service.User.FindUserByUuid(uuid);
