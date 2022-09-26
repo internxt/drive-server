@@ -67,7 +67,6 @@ export class AuthController {
   }
 
   async login(req: Request, res: Response) {
-    const { behalfUser } = req as SharedRequest;
     const internxtClient = req.headers['internxt-client'];
 
     if (!req.body.email) {
@@ -92,18 +91,17 @@ export class AuthController {
 
     const hasKeys = await this.service.KeyServer.keysExists(user);
 
+    try { 
+      // TODO: If user has referrals, then apply. Do not catch everything
+      if (internxtClient === 'drive-mobile') {
+        this.service.UsersReferrals.applyUserReferral(user.id, 'install-mobile-app');
+      }
 
-    // TODO: If user has referrals, then apply. Do not catch everything
-    if (internxtClient === 'drive-mobile') {
-      this.service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
-    }
-
-    if (internxtClient === 'drive-desktop') {
-      this.service.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
+      if (internxtClient === 'drive-desktop') {
+        this.service.UsersReferrals.applyUserReferral(user.id, 'install-desktop-app');
+      }
+    } catch (err) {
+      this.logReferralError(user.id, err as Error);
     }
 
     res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
