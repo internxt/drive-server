@@ -21,9 +21,7 @@ module.exports = (Router, Service) => {
   Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
     let userId, email, key, uuid;
-    const clientId = req.headers['internxt-client-id'] ? 
-      String(req.headers['internxt-client-id']) :
-      null;
+    const clientId = req.headers['internxt-client-id'] ? String(req.headers['internxt-client-id']) : null;
 
     if (type === 'typeform') {
       key = 'complete-survey';
