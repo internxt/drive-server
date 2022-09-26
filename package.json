@@ -67,7 +67,7 @@
     "build": "tsc"
   },
   "devDependencies": {
-    "@internxt/eslint-config-internxt": "^1.0.3",
+    "@internxt/eslint-config-internxt": "^1.0.9",
     "@internxt/prettier-config": "^1.0.1",
     "@nestjs/common": "^9.0.8",
     "@types/analytics-node": "^3.1.7",

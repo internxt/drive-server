@@ -361,10 +361,10 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/object-schema/-/object-schema-1.2.1.tgz#b520529ec21d8e5945a1851dfd1c32e94e39ff45"
   integrity sha512-ZnQMnLV4e7hDlUvw8H+U8ASL02SS2Gn6+9Ac3wGGLIe7+je2AeAOxPY+izIPJDfFDb7eDjev0Us8MO1iFRN8hA==
 
-"@internxt/eslint-config-internxt@^1.0.3":
-  version "1.0.3"
-  resolved "https://npm.pkg.github.com/download/@internxt/eslint-config-internxt/1.0.3/47d2647952b8635a8d47b8de133a0d8e28fc1a03c3cdde140f6965f8df4b4d36#78475058ce7ebb84be22faeb1c8352f016c780f6"
-  integrity sha512-BCb4wHAecxVF3QwTXhbZNzLuqm+jNzWfgi7yO3yMHdVVF3OvUO4HX3mk/E8qEdR4UDUqUOszgOkZWuh8YuXVZA==
+"@internxt/eslint-config-internxt@^1.0.9":
+  version "1.0.9"
+  resolved "https://npm.pkg.github.com/download/@internxt/eslint-config-internxt/1.0.9/d2dddb6a5809873ce717507f8d9dbc5964f6d0f4#d2dddb6a5809873ce717507f8d9dbc5964f6d0f4"
+  integrity sha512-e1VCBhXnGcaWZq4viz2MJ1jsgLObw4BgDKMF7F4oDEktOybe+4Bty69+oezuj+q3LAf2M7JZSgkhpLBiP7vrpw==
   dependencies:
     "@typescript-eslint/eslint-plugin" "^5.4.0"
     "@typescript-eslint/parser" "^5.4.0"
