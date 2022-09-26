@@ -106,8 +106,8 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
-        this.logger.warn(err);
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -142,9 +142,8 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
-        res.status(500).send({
-          error: err.message,
-        });
+        this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -173,7 +172,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ error: err.message });
+        res.status(500).send();
       });
   }
 
@@ -244,7 +243,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -274,7 +273,9 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+
+        res.status(500).send();
       });
   }
 
@@ -369,7 +370,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
