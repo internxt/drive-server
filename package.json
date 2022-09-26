@@ -64,7 +64,9 @@
     "migrate:undo": "sequelize db:migrate:undo",
     "lint": "eslint ./src",
     "lint:fix": "yarn run lint --fix",
-    "build": "tsc"
+    "build": "tsc",
+    "postinstall": "yarn run prepare-hooks",
+    "prepare-hooks": "husky install"
   },
   "devDependencies": {
     "@internxt/eslint-config-internxt": "^1.0.3",
