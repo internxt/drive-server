@@ -51,11 +51,11 @@ module.exports = (Router, Service) => {
       return res.status(400).send({ error: "User couldn't be found" });
     }
     try {
-      Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
+      await Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
         logger.error(err);
       });
       if (clientId && uuid) {
-        await Service.Notifications.userStorageUpdated({ uuid, clientId });
+        Service.Notifications.userStorageUpdated({ uuid, clientId });
       }
       res.status(200).send();
     } catch (err) {
