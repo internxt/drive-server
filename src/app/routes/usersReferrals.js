@@ -49,7 +49,7 @@ module.exports = (Router, Service) => {
       }
     }
     if (!userId) {
-      return res.status(400).send({ error: "User couldn't be found" });
+      return res.status(400).send({ error: 'User couldn\'t be found' });
     }
     try {
       Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
