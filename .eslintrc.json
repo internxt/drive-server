@@ -3,7 +3,8 @@
   // Rules needed while migrating from js
   "rules": {
     "@typescript-eslint/no-var-requires": "off",
-    "@typescript-eslint/no-explicit-any": "off"
+    "@typescript-eslint/no-explicit-any": "off",
+    "quotes": ["error", "single", { "avoidEscape": false }]
   },
   "env": {
     "node": true
