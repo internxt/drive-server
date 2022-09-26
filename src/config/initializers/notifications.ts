@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { FileAttributes } from '../../app/models/file';
 import { FolderAttributes } from '../../app/models/folder';
+import { UserAttributes } from '../../app/models/user';
 import Logger from '../../lib/logger';
 
 type RequestData = {
@@ -8,6 +9,7 @@ type RequestData = {
   payload: Record<string, any>;
   email: string;
   clientId: string;
+  userId?: UserAttributes['uuid'];
 };
 
 export default class Notifications {
@@ -64,6 +66,13 @@ export default class Notifications {
 
   folderDeleted({ id, email, clientId }: { id: number } & Pick<RequestData, 'email' | 'clientId'>): Promise<void> {
     return this.post({ event: 'FOLDER_DELETED', payload: { id }, email, clientId });
+  }
+
+  userStorageUpdated(
+    { uuid, clientId }: { uuid: UserAttributes['uuid'] } & Pick<RequestData, 'clientId'>
+  ): Promise<void> {
+
+    return this.post({ event: 'USER_STORAGE_UPDATED', payload: {}, userId: uuid, email: '', clientId });
   }
   
   private async post(data: RequestData): Promise<void> {
