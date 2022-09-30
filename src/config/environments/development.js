@@ -24,7 +24,7 @@ exports.data = {
     CRYPTO_SECRET2: process.env.CRYPTO_SECRET2,
   },
   logger: {
-    level: 2,
+    level: 'info',
   },
   STORJ_BRIDGE: 'https://api.internxt.com',
 };
