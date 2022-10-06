@@ -295,7 +295,16 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
-    return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
+    return Model.file.findAll({
+      where: { folderId, userId, deleted },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ]
+    }).then((files) => {
       if (!files) {
         throw new Error('Not found');
       }
@@ -307,15 +316,28 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getRecentFiles = async (user, limit) => {
-    const results = await Model.file.findAll({
+  const getRecentFiles = (user, limit) => {
+    return Model.file.findAll({
       order: [['updatedAt', 'DESC']],
       limit,
-      raw: true,
       where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
-    });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        }
+      ]
+    }).then((files) => {
+      if (!files) {
+        throw new Error('Not found');
+      }
+      return files.map((file) => {
+        file.name = App.services.Crypt.decryptName(file.name, file.folderId);
 
-    return results;
+        return file;
+      });
+    });
   };
 
   return {
