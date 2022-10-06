@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -529,7 +530,7 @@ module.exports = (Model, App) => {
     const redis = Redis.getInstance();
     const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
 
-    if (!res) throw new Error();
+    if (!res) throw new LockNotAvaliableError(folderId);
   };
 
   const acquireOrRefreshLock = async (userId, folderId, lockId) => {
@@ -540,8 +541,8 @@ module.exports = (Model, App) => {
     }
 
     const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
-
-    if (!res) throw new Error(`Unable to obtain lock for ${userId}`);
+    
+    if (!res) throw new LockNotAvaliableError(folderId);
   };
 
   const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {

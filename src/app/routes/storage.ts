@@ -11,6 +11,7 @@ import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
+import { LockNotAvaliableError } from '../services/errors/locks';
 
 interface Services {
   Files: any;
@@ -503,8 +504,11 @@ export class StorageController {
       .then(() => {
         res.status(200).end();
       })
-      .catch(() => {
-        res.status(404).end();
+      .catch((err: any) => {
+        if (err instanceof LockNotAvaliableError) res.status(404).end();
+
+        this.logger.error('Error releasing a lock', err.message);
+        res.status(500).end();
       });
   }
 
@@ -520,8 +524,11 @@ export class StorageController {
       .then(() => {
         res.status(200).end();
       })
-      .catch(() => {
-        res.status(409).end();
+      .catch((err: any) => {
+        if (err instanceof LockNotAvaliableError) res.status(409).end();
+
+        this.logger.error('Error adquiring or refreshing a lock', err.message);
+        res.sendStatus(500);
       });
   }
 
