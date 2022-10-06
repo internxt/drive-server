@@ -113,6 +113,21 @@ module.exports = (Model, App) => {
         throw err;
       }
     }
+
+    const thumbnails = await Model.thumbnail.findAll({
+      where: { file_id: fileId }
+    });
+
+    if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
+      thumbnails.forEach(async (thumbnail) => {
+        try {
+          await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
+        } catch (err) {
+          /*log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s', 
+          user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);*/
+        }
+      });
+    }
     await file.destroy();
   };
 
