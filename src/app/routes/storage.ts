@@ -4,7 +4,6 @@ import passport from '../middleware/passport';
 import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
-import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
@@ -40,7 +39,6 @@ export class StorageController {
   public async createFile(req: Request, res: Response) {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
-    const internxtClient = req.headers['internxt-client'];
     const clientId = String(req.headers['internxt-client-id']);
 
     if (!file.fileId && file.file_id) {
@@ -56,8 +54,6 @@ export class StorageController {
     }
 
     const result = await this.services.Files.CreateFile(behalfUser, file);
-
-    
 
     res.status(200).json(result);
 
@@ -319,7 +315,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(err);
-        if(err instanceof HttpError) {
+        if (err instanceof HttpError) {
           res.status(err.status).json({
             error: err.message,
           });
@@ -592,23 +588,15 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFiles(
-      user.id, 
-      folderId, 
-      Number(offset), 
-      Number(limit)
-    ).then((content: { files: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFiles: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+    this.services.Folder.getUserDirectoryFiles(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { files: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
+      .catch((err: Error) => {
+        this.logger.error('getDirectoryFiles: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
 
   getDirectoryFolders(req: Request, res: Response): void {
@@ -625,26 +613,16 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFolders(
-      user.id, 
-      folderId, 
-      Number(offset), 
-      Number(limit)
-    ).then((content: { folders: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFolders: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+    this.services.Folder.getUserDirectoryFolders(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { folders: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
+      .catch((err: Error) => {
+        this.logger.error('getDirectoryFolders: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
-
-  
 }
 
 export default (router: Router, service: any) => {

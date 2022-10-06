@@ -20,6 +20,7 @@ module.exports = (Router, Service) => {
 
   Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
+
     let userId, email, key, uuid, clientId;
 
     if (type === 'typeform') {
@@ -48,7 +49,7 @@ module.exports = (Router, Service) => {
       }
     }
     if (!userId) {
-      return res.status(400).send({ error: "User couldn't be found" });
+      return res.status(400).send({ error: 'User couldn\'t be found' });
     }
     try {
       await Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
