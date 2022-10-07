@@ -9,6 +9,8 @@ const invalidName = /[/\\]|^\s*$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const log = App.logger;
+
   const CreateFile = async (user, file) => {
     return Model.folder
       .findOne({
@@ -124,6 +126,8 @@ module.exports = (Model, App) => {
           await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
         } catch (err) {
           //ignore error and keep deleting the remaining thumbnails
+          log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
+            user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);
         }
       });
     }

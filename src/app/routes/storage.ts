@@ -444,7 +444,7 @@ export class StorageController {
         if (!files) {
           return res.status(404).send({ error: 'Files not found' });
         }
-        return res.status(200).send(files);
+        return res.status(200).json(files);
       })
       .catch((err: Error) => {
         this.logger.error(`Can not get recent files: ${user.email} : ${err.message}`);
