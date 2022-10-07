@@ -25,10 +25,20 @@ export default (database: Sequelize): ThumbnailModel => {
         allowNull: false
       },
       file_id: {
-        type: DataTypes.INTEGER
+        type: DataTypes.INTEGER,
+        allowNull: false
+      },
+      max_width: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+      },
+      max_height: {
+        type: DataTypes.INTEGER,
+        allowNull: false
       },
       type: {
-        type: DataTypes.STRING
+        type: DataTypes.STRING,
+        allowNull: false
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED

@@ -642,8 +642,8 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { thumbnail } = req.body;
 
-    if (!thumbnail || !thumbnail.file_id || !thumbnail.type || !thumbnail.size || !thumbnail.bucket_id
-      || !thumbnail.bucket_file || !thumbnail.encrypt_version) {
+    if (!thumbnail || !thumbnail.file_id || !thumbnail.max_width || !thumbnail.max_height || !thumbnail.type
+      || !thumbnail.size || !thumbnail.bucket_id || !thumbnail.bucket_file || !thumbnail.encrypt_version) {
       this.logger.error(
         `Invalid metadata trying to create a thumbnail for user 
           ${behalfUser.email}: ${JSON.stringify(thumbnail, null, 2)}`,

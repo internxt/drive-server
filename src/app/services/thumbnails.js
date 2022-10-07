@@ -14,6 +14,8 @@ module.exports = (Model, App) => {
     const thumbnailInfo = {
       file_id: thumbnail.file_id,
       type: thumbnail.type,
+      max_width: thumbnail.max_width,
+      max_height: thumbnail.max_height,
       size: thumbnail.size,
       bucket_id: thumbnail.bucket_id,
       bucket_file: thumbnail.bucket_file,
@@ -30,6 +32,8 @@ module.exports = (Model, App) => {
         {
           where: {
             file_id: { [Op.eq]: thumbnail.file_id },
+            max_width: { [Op.eq]: thumbnail.max_width },
+            max_height: { [Op.eq]: thumbnail.max_height },
             type: { [Op.eq]: thumbnail.type },
           }
         },
@@ -37,6 +41,8 @@ module.exports = (Model, App) => {
       return await Model.thumbnail.findOne({
         where: {
           file_id: { [Op.eq]: thumbnail.file_id },
+          max_width: { [Op.eq]: thumbnail.max_width },
+          max_height: { [Op.eq]: thumbnail.max_height },
           type: { [Op.eq]: thumbnail.type },
         },
       });

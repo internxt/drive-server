@@ -123,8 +123,7 @@ module.exports = (Model, App) => {
         try {
           await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
         } catch (err) {
-          /*log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s', 
-          user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);*/
+          //ignore error and keep deleting the remaining thumbnails
         }
       });
     }
