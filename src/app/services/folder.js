@@ -221,6 +221,13 @@ module.exports = (Model, App) => {
         folder_id: {
           [Op.eq]: folderId,
         },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+        ]
       },
     });
   };
@@ -259,6 +266,13 @@ module.exports = (Model, App) => {
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
       where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ]
     });
     return {
       folders,
@@ -443,7 +457,7 @@ module.exports = (Model, App) => {
 
     return response;
   };
-  
+
   const GetBucket = (user, folderId) =>
     Model.folder.findOne({
       where: {
@@ -536,7 +550,7 @@ module.exports = (Model, App) => {
   const acquireOrRefreshLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
-    if(redis.status !== 'ready') {
+    if (redis.status !== 'ready') {
       logger.warn('Redis is not ready to accept commands');
     }
 
@@ -552,6 +566,13 @@ module.exports = (Model, App) => {
         user_id: userId,
         folder_id: { [Op.eq]: directoryId },
       },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ],
       offset,
       limit,
       order: [['id', 'ASC']],
@@ -606,6 +627,13 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.eq]: directoryId },
       },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ],
       offset,
       limit,
       order: [['id', 'ASC']],

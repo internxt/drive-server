@@ -9,6 +9,8 @@ const invalidName = /[/\\]|^\s*$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const log = App.logger;
+
   const CreateFile = async (user, file) => {
     return Model.folder
       .findOne({
@@ -112,6 +114,22 @@ module.exports = (Model, App) => {
       if (!resourceNotFoundPattern.exec(err.message)) {
         throw err;
       }
+    }
+
+    const thumbnails = await Model.thumbnail.findAll({
+      where: { file_id: fileId }
+    });
+
+    if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
+      await Promise.all(thumbnails.map(async (thumbnail) => {
+        try {
+          await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
+        } catch (err) {
+          //ignore error and keep deleting the remaining thumbnails
+          log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
+            user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);
+        }
+      }));
     }
     await file.destroy();
   };
@@ -295,7 +313,16 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
-    return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
+    return Model.file.findAll({
+      where: { folderId, userId, deleted },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ]
+    }).then((files) => {
       if (!files) {
         throw new Error('Not found');
       }
@@ -307,15 +334,28 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getRecentFiles = async (user, limit) => {
-    const results = await Model.file.findAll({
+  const getRecentFiles = (user, limit) => {
+    return Model.file.findAll({
       order: [['updatedAt', 'DESC']],
       limit,
-      raw: true,
       where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
-    });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        }
+      ]
+    }).then((files) => {
+      if (!files) {
+        throw new Error('Not found');
+      }
+      return files.map((file) => {
+        file.name = App.services.Crypt.decryptName(file.name, file.folderId);
 
-    return results;
+        return file;
+      });
+    });
   };
 
   return {

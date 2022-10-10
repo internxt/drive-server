@@ -4,7 +4,6 @@ import passport from '../middleware/passport';
 import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
-import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
@@ -15,6 +14,7 @@ import { LockNotAvaliableError } from '../services/errors/locks';
 
 interface Services {
   Files: any;
+  Thumbnails: any;
   Folder: any;
   UsersReferrals: any;
   Analytics: any;
@@ -56,8 +56,6 @@ export class StorageController {
     }
 
     const result = await this.services.Files.CreateFile(behalfUser, file);
-
-    
 
     res.status(200).json(result);
 
@@ -319,7 +317,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(err);
-        if(err instanceof HttpError) {
+        if (err instanceof HttpError) {
           res.status(err.status).json({
             error: err.message,
           });
@@ -446,10 +444,6 @@ export class StorageController {
         if (!files) {
           return res.status(404).send({ error: 'Files not found' });
         }
-        files = files.map((file) => ({
-          ...file,
-          name: this.services.Crypt.decryptName(file.name, file.folderId),
-        }));
         return res.status(200).json(files);
       })
       .catch((err: Error) => {
@@ -593,22 +587,22 @@ export class StorageController {
     }
 
     this.services.Folder.getUserDirectoryFiles(
-      user.id, 
-      folderId, 
-      Number(offset), 
+      user.id,
+      folderId,
+      Number(offset),
       Number(limit)
     ).then((content: { files: any[], last: boolean }) => {
       res.status(200).send(content);
     })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFiles: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+      .catch((err: Error) => {
+        this.logger.error(
+          'getDirectoryFiles: %s. STACK %s',
+          err.message,
+          err.stack || 'NO STACK'
+        );
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
 
   getDirectoryFolders(req: Request, res: Response): void {
@@ -626,25 +620,41 @@ export class StorageController {
     }
 
     this.services.Folder.getUserDirectoryFolders(
-      user.id, 
-      folderId, 
-      Number(offset), 
+      user.id,
+      folderId,
+      Number(offset),
       Number(limit)
     ).then((content: { folders: any[], last: boolean }) => {
       res.status(200).send(content);
     })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFolders: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+      .catch((err: Error) => {
+        this.logger.error(
+          'getDirectoryFolders: %s. STACK %s',
+          err.message,
+          err.stack || 'NO STACK'
+        );
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
 
-  
+  public async createThumbnail(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const { thumbnail } = req.body;
+
+    if (!thumbnail || !thumbnail.file_id || !thumbnail.max_width || !thumbnail.max_height || !thumbnail.type
+      || !thumbnail.size || !thumbnail.bucket_id || !thumbnail.bucket_file || !thumbnail.encrypt_version) {
+      this.logger.error(
+        `Invalid metadata trying to create a thumbnail for user 
+          ${behalfUser.email}: ${JSON.stringify(thumbnail, null, 2)}`,
+      );
+      return res.status(400).json({ error: 'Invalid metadata for new thumbnail' });
+    }
+
+    const result = await this.services.Thumbnails.CreateThumbnail(behalfUser, thumbnail);
+
+    res.status(200).json(result);
+  }
 }
 
 export default (router: Router, service: any) => {
@@ -655,6 +665,7 @@ export default (router: Router, service: any) => {
   const controller = new StorageController(service, Logger);
 
   router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
+  router.post('/storage/thumbnail', passportAuth, sharedAdapter, controller.createThumbnail.bind(controller));
   router.post('/storage/folder', passportAuth, controller.createFolder.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
