@@ -13,17 +13,11 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const getById = (id) => {
-    return Model.folder
-      .findOne({
-        where: { id },
-        include: [{ model: Model.shares, attributes: ['id'], as: 'shares' }],
-        raw: true,
-      })
-      .then((folder) => {
-        folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+    return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
+      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
-        return folder;
-      });
+      return folder;
+    });
   };
 
   // Create folder entry, for desktop
@@ -290,7 +284,6 @@ module.exports = (Model, App) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
-        include: [{ model: Model.shares, attributes: ['id'], as: 'shares' }],
       })
       .then((folders) => {
         if (!folders) {
@@ -710,6 +703,6 @@ module.exports = (Model, App) => {
     getDirectoryFiles,
     getDirectoryFolders,
     getUserDirectoryFiles,
-    getUserDirectoryFolders,
+    getUserDirectoryFolders
   };
 };

@@ -238,7 +238,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
-        fileId: { [Op.ne]: fileId },
+        fileId: { [Op.ne]: fileId }
       },
     });
 
@@ -266,6 +266,7 @@ module.exports = (Model, App) => {
       moved: true,
     };
   };
+
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
@@ -312,9 +313,7 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
-    return Model.file
-      .findAll({
-       
+    return Model.file.findAll({
       where: { folderId, userId, deleted },
       include: [
         {
@@ -322,19 +321,17 @@ module.exports = (Model, App) => {
           as: 'thumbnails',
           required: false,
         },
-        { model: Model.shares, attributes: ['id'], as: 'shares', required: false }],
-      ],
-    })
-      .then((files) => {
-        if (!files) {
-          throw new Error('Not found');
-        }
-        return files.map((file) => {
-          file.name = App.services.Crypt.decryptName(file.name, folderId);
+      ]
+    }).then((files) => {
+      if (!files) {
+        throw new Error('Not found');
+      }
+      return files.map((file) => {
+        file.name = App.services.Crypt.decryptName(file.name, folderId);
 
-          return file;
-        });
+        return file;
       });
+    });
   };
 
   const getRecentFiles = (user, limit) => {

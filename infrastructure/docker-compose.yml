@@ -39,9 +39,6 @@ services:
     container_name: bridge
     networks:
       - internxt
-    volumes:
-      - ../../bridge:/app
-      - /app/node_modules/
     depends_on:
       - mongo
       - rabbit
@@ -75,9 +72,6 @@ services:
       - internxt
     ports:
       - 43758:43758
-    volumes:
-      - ../../farmer:/farmer
-      # - /farmer/node_modules/
 
   s3:
     image: quay.io/minio/minio
@@ -160,23 +154,6 @@ services:
     restart: always
     networks:
       - internxt
-
-  # drive-server-wip:
-  #   build: 
-  #     context: ../../drive-server-wip
-  #     dockerfile: development.Dockerfile
-  #   volumes:
-  #     - ../../drive-server-wip:/usr/app
-  #     - ../../drive-server-wip/.env.development:/usr/app/.env.development
-  #     - /usr/app/node_modules
-  #   ports:
-  #     - 3004:3000
-  #   networks:
-  #     - internxt
-  #   environment: 
-  #     NODE_ENV: development
-  #   env_file:
-  #     - ../../drive-server-wip/.env.development
 
 networks:
   internxt:
