@@ -121,7 +121,7 @@ module.exports = (Model, App) => {
     });
 
     if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
-      thumbnails.forEach(async (thumbnail) => {
+      await Promise.all(thumbnails.map(async (thumbnail) => {
         try {
           await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
         } catch (err) {
@@ -129,7 +129,7 @@ module.exports = (Model, App) => {
           log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
             user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);
         }
-      });
+      }));
     }
     await file.destroy();
   };
