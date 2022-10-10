@@ -20,13 +20,12 @@ module.exports = (Router, Service) => {
 
   Router.post('/apply-referral/:type?', async (req, res) => {
     const type = req.params.type;
-    let clientId, userId, email, key, uuid;
+    let userId, email, key, uuid, clientId;
 
     if (type === 'typeform') {
       key = 'complete-survey';
       userId = null;
-      // TODO: Is not the email, but TypeForm is not chaging the hidden fields.
-      clientId = String(req.body.form_response?.hidden?.email);
+      clientId = req.body.form_response?.hidden?.clientid;
       uuid = req.body.form_response?.hidden?.uuid;
     } else {
       userId = req.body.userId;
@@ -52,11 +51,11 @@ module.exports = (Router, Service) => {
       return res.status(400).send({ error: "User couldn't be found" });
     }
     try {
-      Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
+      await Service.UsersReferrals.applyUserReferral(userId, key).catch((err) => {
         logger.error(err);
       });
       if (clientId && uuid) {
-        await Service.Notifications.userStorageUpdated({ uuid, clientId });
+        Service.Notifications.userStorageUpdated({ uuid, clientId });
       }
       res.status(200).send();
     } catch (err) {
