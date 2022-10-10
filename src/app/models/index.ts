@@ -69,7 +69,7 @@ export default (database: Sequelize) => {
 
   File.belongsTo(Folder);
   File.belongsTo(User);
-  File.hasMany(Share, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
+  File.hasMany(Share, { as: 'shares', foreignKey: 'file_id', sourceKey: 'id' });
   File.hasMany(Thumbnail);
 
   Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
@@ -77,6 +77,7 @@ export default (database: Sequelize) => {
   Folder.hasMany(File);
   Folder.belongsTo(User);
   Folder.hasMany(Folder, { foreignKey: 'parent_id', as: 'children' });
+  Folder.hasMany(Share, { as: 'shares', foreignKey: 'folder_id', sourceKey: 'id' });
 
   Invitation.belongsTo(User, { foreignKey: 'host', targetKey: 'id' });
   Invitation.belongsTo(User, { foreignKey: 'guest', targetKey: 'id' });
@@ -87,7 +88,8 @@ export default (database: Sequelize) => {
 
   Referral.belongsToMany(User, { through: UserReferral });
 
-  Share.hasOne(File, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
+  Share.hasOne(File, { as: 'fileInfo', foreignKey: 'id', sourceKey: 'file_id' });
+  Share.hasOne(Folder, { as: 'folderInfo', foreignKey: 'id', sourceKey: 'folder_id' });
 
   User.hasMany(Folder);
   User.hasMany(File);

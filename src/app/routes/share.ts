@@ -11,9 +11,9 @@ import { Logger } from 'winston';
 type AuthorizedRequest = Request & { behalfUser: UserAttributes };
 
 interface Services {
-  Share: any
-  UsersReferrals: any
-  Analytics: any
+  Share: any;
+  UsersReferrals: any;
+  Analytics: any;
 }
 
 export class ShareController {
@@ -31,7 +31,7 @@ export class ShareController {
     res.status(200).send(list);
   }
 
-  public async getSharedFolderSize(req: Request<{ shareId: string, folderId: string }>, res: Response) {
+  public async getSharedFolderSize(req: Request<{ shareId: string; folderId: string }>, res: Response) {
     const { shareId, folderId } = req.params;
 
     if (Validator.isInvalidString(folderId)) {
@@ -79,10 +79,9 @@ export class ShareController {
       views,
     );
 
-    await this.services.UsersReferrals.applyUserReferral(user.id, 'share-file')
-      .catch((err: Error) => {
-        this.logReferralError(user.id, err);
-      });
+    await this.services.UsersReferrals.applyUserReferral(user.id, 'share-file').catch((err: Error) => {
+      this.logReferralError(user.id, err);
+    });
 
     res.status(200).send({ token: result });
 
@@ -113,14 +112,7 @@ export class ShareController {
     if (Validator.isInvalidString(bucket)) {
       throw createHttpError(400, 'Bucket identifier must be a valid string');
     }
-    const token = await this.services.Share.GenerateFolderToken(
-      user,
-      folderId,
-      bucket,
-      mnemonic,
-      bucketToken,
-      views
-    );
+    const token = await this.services.Share.GenerateFolderToken(user, folderId, bucket, mnemonic, bucketToken, views);
 
     res.status(200).send({
       token: token,
@@ -143,7 +135,7 @@ export class ShareController {
       })
       .catch((err: Error) => {
         res.status(500).send({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -161,7 +153,7 @@ export class ShareController {
       })
       .catch((err: Error) => {
         res.status(500).send({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -195,7 +187,7 @@ export class ShareController {
       })
       .catch((err: Error) => {
         res.status(500).json({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -225,7 +217,7 @@ export class ShareController {
       })
       .catch((err: Error) => {
         res.status(500).json({
-          error: err.message
+          error: err.message,
         });
       });
   }
@@ -240,36 +232,30 @@ export class ShareController {
     }
 
     return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
-  };
+  }
 }
 
-export default (router: Router, service: any,) => {
+export default (router: Router, service: any) => {
   const Logger = logger.getInstance();
   const controller = new ShareController(service, Logger);
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
 
-  router.get('/share/list', passportAuth, sharedAdapter,
-    controller.listShares.bind(controller)
+  router.get('/share/list', passportAuth, sharedAdapter, controller.listShares.bind(controller));
+  router.get('/share/:shareId/folder/:folderId', controller.getSharedFolderSize.bind(controller));
+  router.post(
+    '/storage/share/file/:id',
+    passportAuth,
+    sharedAdapter,
+    controller.generateShareFileToken.bind(controller),
   );
-  router.get('/share/:shareId/folder/:folderId',
-    controller.getSharedFolderSize.bind(controller)
+  router.post(
+    '/storage/share/folder/:id',
+    passportAuth,
+    sharedAdapter,
+    controller.generateShareFolderToken.bind(controller),
   );
-  router.post('/storage/share/file/:id', passportAuth, sharedAdapter,
-    controller.generateShareFileToken.bind(controller)
-  );
-  router.post('/storage/share/folder/:id', passportAuth, sharedAdapter,
-    controller.generateShareFolderToken.bind(controller)
-  );
-  router.get('/storage/share/:token',
-    controller.getShareFileInfo.bind(controller)
-  );
-  router.get('/storage/shared-folder/:token',
-    controller.getShareFolderInfo.bind(controller)
-  );
-  router.get('/storage/share/down/files',
-    controller.getSharedDirectoryFiles.bind(controller)
-  );
-  router.get('/storage/share/down/folders',
-    controller.getSharedDirectoryFolders.bind(controller)
-  );
+  router.get('/storage/share/:token', controller.getShareFileInfo.bind(controller));
+  router.get('/storage/shared-folder/:token', controller.getShareFolderInfo.bind(controller));
+  router.get('/storage/share/down/files', controller.getSharedDirectoryFiles.bind(controller));
+  router.get('/storage/share/down/folders', controller.getSharedDirectoryFolders.bind(controller));
 };
