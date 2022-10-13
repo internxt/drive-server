@@ -16,7 +16,14 @@ module.exports = (Model, App) => {
     return Model.folder
       .findOne({
         where: { id },
-        include: [{ model: Model.shares, attributes: ['id'], as: 'shares' }],
+        include: [
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password'],
+            as: 'shares',
+            required: false,
+          },
+        ],
         raw: true,
       })
       .then((folder) => {
@@ -233,7 +240,7 @@ module.exports = (Model, App) => {
             as: 'thumbnails',
             required: false,
           },
-        ]
+        ],
       },
     });
   };
@@ -278,7 +285,7 @@ module.exports = (Model, App) => {
           as: 'thumbnails',
           required: false,
         },
-      ]
+      ],
     });
     return {
       folders,
@@ -290,7 +297,15 @@ module.exports = (Model, App) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
-        include: [{ model: Model.shares, attributes: ['id'], as: 'shares' }],
+        include: [
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password'],
+            as: 'shares',
+            where: { active: true },
+            required: false,
+          },
+        ],
       })
       .then((folders) => {
         if (!folders) {
@@ -562,7 +577,7 @@ module.exports = (Model, App) => {
     }
 
     const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
-    
+
     if (!res) throw new LockNotAvaliableError(folderId);
   };
 
