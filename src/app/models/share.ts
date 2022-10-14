@@ -56,6 +56,14 @@ export default (database: Sequelize): ShareModel => {
         type: DataTypes.INTEGER,
         defaultValue: 1,
       },
+      hashed_password: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      code: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
     },
     {
       underscored: true,
