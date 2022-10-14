@@ -1,11 +1,18 @@
-import AnalyticsSegment from 'analytics-node';
+import AnalyticsRudder from '@rudderstack/rudder-sdk-node';
 import { logError } from './utils';
 
 class Analytics {
-  analytics: AnalyticsSegment;
+  analytics!: AnalyticsRudder;
 
   constructor() {
-    this.analytics = new AnalyticsSegment(process.env.APP_SEGMENT_KEY || 'xxx');
+    try {
+      this.analytics = new AnalyticsRudder(
+        process.env.ANALYTICS_RUDDER_KEY || '',
+        process.env.ANALYTICS_RUDDER_PLAN_URL || '',
+      );
+    } catch (err: any) {
+      logError(`Error initializing analytics: ${err.message}`);
+    }
   }
 
   track(params: any) {

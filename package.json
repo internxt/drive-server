@@ -6,6 +6,7 @@
   "dependencies": {
     "@internxt/inxt-js": "=1.6.0",
     "@internxt/lib": "^1.1.4",
+    "@rudderstack/rudder-sdk-node": "^1.1.4",
     "@sendgrid/mail": "^7.2.1",
     "@types/pg": "^8.6.5",
     "analytics-node": "^5.1.0",
