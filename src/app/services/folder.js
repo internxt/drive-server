@@ -16,14 +16,6 @@ module.exports = (Model, App) => {
     return Model.folder
       .findOne({
         where: { id },
-        include: [
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
         raw: true,
       })
       .then((folder) => {
