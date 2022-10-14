@@ -17,8 +17,8 @@ module.exports = (Model, App) => {
     return Model.shares.findOne({
       where: {
         token: {
-          [Op.eq]: token
-        }
+          [Op.eq]: token,
+        },
       },
     });
   };
@@ -33,11 +33,11 @@ module.exports = (Model, App) => {
     return Model.shares.findOne({
       where: {
         file: {
-          [Op.eq]: resourceId
+          [Op.eq]: resourceId,
         },
         user: {
-          [Op.eq]: userEmail
-        }
+          [Op.eq]: userEmail,
+        },
       },
     });
   };
@@ -74,7 +74,7 @@ module.exports = (Model, App) => {
 
     return {
       ...share.get({ plain: true }),
-      fileMeta: file.get({ plain: true })
+      fileMeta: file.get({ plain: true }),
     };
   };
 
@@ -101,7 +101,7 @@ module.exports = (Model, App) => {
     const sharedFolder = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
-      }
+      },
     });
 
     if (!sharedFolder) {
@@ -115,16 +115,16 @@ module.exports = (Model, App) => {
       bucketToken: share.fileToken,
       // TODO: Remove this from SDK and then remove it from here
       size: 0,
-      shareId: share.id
+      shareId: share.id,
     };
   };
 
   const getSharedFolderSize = async (shareId, folderId) => {
-
     const share = await Model.shares.findOne({
       where: {
-        id: shareId, file: folderId
-      }
+        id: shareId,
+        file: folderId,
+      },
     });
 
     if (!share) {
@@ -133,8 +133,8 @@ module.exports = (Model, App) => {
 
     const folder = await Model.folder.findOne({
       where: {
-        id: folderId
-      }
+        id: folderId,
+      },
     });
 
     if (!folder) {
@@ -187,17 +187,16 @@ module.exports = (Model, App) => {
     const files = [];
     for (const file of directoryFiles) {
       const { index } = await network.getFileInfo(share.bucket, file.fileId);
-      const fileEncryptionKey = await Environment.utils
-        .generateFileKey(
-          mnemonic,
-          share.bucket,
-          Buffer.from(index, 'hex')
-        );
+      const fileEncryptionKey = await Environment.utils.generateFileKey(
+        mnemonic,
+        share.bucket,
+        Buffer.from(index, 'hex'),
+      );
       files.push({
         ...file,
         /* TODO: This is not the file.id, this could be confusing */
         id: file.fileId,
-        encryptionKey: fileEncryptionKey.toString('hex')
+        encryptionKey: fileEncryptionKey.toString('hex'),
       });
     }
 
@@ -216,7 +215,7 @@ module.exports = (Model, App) => {
       where: {
         email: { [Op.eq]: email },
       },
-      attributes: ['user_id', 'bridge_user']
+      attributes: ['user_id', 'bridge_user'],
     });
     return new Environment({
       bridgePass: user_id,
@@ -310,19 +309,12 @@ module.exports = (Model, App) => {
    * @returns {Promise<string|*>}
    * @constructor
    */
-  const GenerateFolderToken = async (
-    user,
-    folderId,
-    bucket,
-    encryptedMnemonic,
-    bucketToken,
-    views = 1,
-  ) => {
+  const GenerateFolderToken = async (user, folderId, bucket, encryptedMnemonic, bucketToken, views = 1) => {
     const itemExists = await Model.folder.findOne({
       where: {
         id: { [Op.eq]: folderId },
         user_id: { [Op.eq]: user.id },
-      }
+      },
     });
 
     if (!itemExists) {
@@ -347,9 +339,9 @@ module.exports = (Model, App) => {
         {
           where: {
             id: {
-              [Op.eq]: share.id
-            }
-          }
+              [Op.eq]: share.id,
+            },
+          },
         },
       );
     } else {
@@ -404,19 +396,18 @@ module.exports = (Model, App) => {
       // Sum files size from this level
       const [filesSize, folders] = await Promise.all([
         getFilesTotalSizeFromFolder(currentFolderId),
-        Model.folder
-          .findAll({
-            attributes: ['id'],
-            raw: true,
-            where: {
-              parent_id: { [Op.eq]: currentFolderId },
-              user_id: userId
-            },
-          })
+        Model.folder.findAll({
+          attributes: ['id'],
+          raw: true,
+          where: {
+            parent_id: { [Op.eq]: currentFolderId },
+            user_id: userId,
+          },
+        }),
       ]);
       totalSize += filesSize;
 
-      folders.forEach(folder => foldersToCheck.push(folder.id));
+      folders.forEach((folder) => foldersToCheck.push(folder.id));
     }
 
     return totalSize;
@@ -429,9 +420,7 @@ module.exports = (Model, App) => {
    */
   const getFilesTotalSizeFromFolder = async (folderId) => {
     const result = await Model.file.findAll({
-      attributes: [
-        [sequelize.fn('sum', sequelize.col('size')), 'total']
-      ],
+      attributes: [[sequelize.fn('sum', sequelize.col('size')), 'total']],
       raw: true,
       where: {
         folderId: { [Op.eq]: folderId },
@@ -455,6 +444,6 @@ module.exports = (Model, App) => {
     GenerateFolderToken,
     getFolderSize,
     getSharedDirectoryFolders,
-    getSharedDirectoryFiles
+    getSharedDirectoryFiles,
   };
 };

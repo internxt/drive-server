@@ -87,6 +87,12 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
+    const parentFolder = await this.services.Folder.getById(parentFolderId);
+
+    if (parentFolder.userId !== user.id) {
+      throw createHttpError(403, 'Parent folder does not belong to user');
+    }
+
     return this.services.Folder.Create(user, folderName, parentFolderId)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
@@ -101,8 +107,8 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
-        this.logger.warn(err);
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -137,9 +143,8 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
-        res.status(500).send({
-          error: err.message,
-        });
+        this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -168,7 +173,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ error: err.message });
+        res.status(500).send();
       });
   }
 
@@ -239,7 +244,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -269,7 +274,9 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+
+        res.status(500).send();
       });
   }
 
@@ -364,7 +371,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -586,20 +593,12 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFiles(
-      user.id,
-      folderId,
-      Number(offset),
-      Number(limit)
-    ).then((content: { files: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
+    this.services.Folder.getUserDirectoryFiles(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { files: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
       .catch((err: Error) => {
-        this.logger.error(
-          'getDirectoryFiles: %s. STACK %s',
-          err.message,
-          err.stack || 'NO STACK'
-        );
+        this.logger.error('getDirectoryFiles: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
         res.status(500).send({ error: 'Internal Server Error' });
       });
@@ -619,20 +618,12 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFolders(
-      user.id,
-      folderId,
-      Number(offset),
-      Number(limit)
-    ).then((content: { folders: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
+    this.services.Folder.getUserDirectoryFolders(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { folders: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
       .catch((err: Error) => {
-        this.logger.error(
-          'getDirectoryFolders: %s. STACK %s',
-          err.message,
-          err.stack || 'NO STACK'
-        );
+        this.logger.error('getDirectoryFolders: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
         res.status(500).send({ error: 'Internal Server Error' });
       });
@@ -642,8 +633,17 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { thumbnail } = req.body;
 
-    if (!thumbnail || !thumbnail.file_id || !thumbnail.max_width || !thumbnail.max_height || !thumbnail.type
-      || !thumbnail.size || !thumbnail.bucket_id || !thumbnail.bucket_file || !thumbnail.encrypt_version) {
+    if (
+      !thumbnail ||
+      !thumbnail.file_id ||
+      !thumbnail.max_width ||
+      !thumbnail.max_height ||
+      !thumbnail.type ||
+      !thumbnail.size ||
+      !thumbnail.bucket_id ||
+      !thumbnail.bucket_file ||
+      !thumbnail.encrypt_version
+    ) {
       this.logger.error(
         `Invalid metadata trying to create a thumbnail for user 
           ${behalfUser.email}: ${JSON.stringify(thumbnail, null, 2)}`,
