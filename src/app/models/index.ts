@@ -15,6 +15,7 @@ import initShare, { ShareModel } from './share';
 import initTeam, { TeamModel } from './team';
 import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
 import initTeamMember, { TeamMemberModel } from './teammember';
+import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
 
@@ -23,6 +24,7 @@ export type ModelType =
   | BackupModel
   | DeviceModel
   | FileModel
+  | ThumbnailModel
   | FolderModel
   | InvitationModel
   | KeyServerModel
@@ -42,6 +44,7 @@ export default (database: Sequelize) => {
   const Backup = initBackup(database);
   const Device = initDevice(database);
   const File = initFile(database);
+  const Thumbnail = initThumbnail(database);
   const Folder = initFolder(database);
   const Invitation = initInvitation(database);
   const KeyServer = initKeyServer(database);
@@ -67,6 +70,9 @@ export default (database: Sequelize) => {
   File.belongsTo(Folder);
   File.belongsTo(User);
   File.hasMany(Share, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
+  File.hasMany(Thumbnail);
+
+  Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
 
   Folder.hasMany(File);
   Folder.belongsTo(User);
@@ -102,6 +108,7 @@ export default (database: Sequelize) => {
     [Backup.name]: Backup,
     [Device.name]: Device,
     [File.name]: File,
+    [Thumbnail.name]: Thumbnail,
     [Folder.name]: Folder,
     [Invitation.name]: Invitation,
     [KeyServer.name]: KeyServer,

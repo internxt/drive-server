@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -221,6 +222,13 @@ module.exports = (Model, App) => {
         folder_id: {
           [Op.eq]: folderId,
         },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+        ]
       },
     });
   };
@@ -259,6 +267,13 @@ module.exports = (Model, App) => {
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
       where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ]
     });
     return {
       folders,
@@ -530,7 +545,7 @@ module.exports = (Model, App) => {
     const redis = Redis.getInstance();
     const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
 
-    if (!res) throw new Error();
+    if (!res) throw new LockNotAvaliableError(folderId);
   };
 
   const acquireOrRefreshLock = async (userId, folderId, lockId) => {
@@ -541,8 +556,8 @@ module.exports = (Model, App) => {
     }
 
     const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
-
-    if (!res) throw new Error(`Unable to obtain lock for ${userId}`);
+    
+    if (!res) throw new LockNotAvaliableError(folderId);
   };
 
   const getUserDirectoryFiles = async (userId, directoryId, offset, limit) => {
@@ -552,6 +567,13 @@ module.exports = (Model, App) => {
         user_id: userId,
         folder_id: { [Op.eq]: directoryId },
       },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ],
       offset,
       limit,
       order: [['id', 'ASC']],
@@ -606,6 +628,13 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.eq]: directoryId },
       },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+      ],
       offset,
       limit,
       order: [['id', 'ASC']],
