@@ -19,7 +19,7 @@ module.exports = (Model, App) => {
         include: [
           {
             model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password'],
+            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
             as: 'shares',
             required: false,
           },
@@ -240,6 +240,12 @@ module.exports = (Model, App) => {
             as: 'thumbnails',
             required: false,
           },
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+            as: 'shares',
+            required: false,
+          },
         ],
       },
     });
@@ -285,6 +291,12 @@ module.exports = (Model, App) => {
           as: 'thumbnails',
           required: false,
         },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
       ],
     });
     return {
@@ -300,7 +312,7 @@ module.exports = (Model, App) => {
         include: [
           {
             model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password'],
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
             as: 'shares',
             where: { active: true },
             required: false,
@@ -592,6 +604,12 @@ module.exports = (Model, App) => {
         {
           model: Model.thumbnail,
           as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+          as: 'shares',
           required: false,
         },
       ],

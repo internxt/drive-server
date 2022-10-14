@@ -330,7 +330,7 @@ module.exports = (Model, App) => {
           },
           {
             model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password'],
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
             as: 'shares',
             required: false,
           },
