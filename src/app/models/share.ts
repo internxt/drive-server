@@ -11,6 +11,8 @@ interface ShareAttributes {
   fileToken: string;
   isFolder: boolean;
   views: number;
+  is_folder: boolean;
+  active: boolean;
 }
 
 export type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
@@ -48,7 +50,11 @@ export default (database: Sequelize): ShareModel => {
         type: DataTypes.STRING(64),
         allowNull: false,
       },
-      isFolder: {
+      is_folder: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      active: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
