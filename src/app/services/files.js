@@ -37,6 +37,7 @@ module.exports = (Model, App) => {
 
         const fileInfo = {
           name: file.name,
+          plain_name: file.plain_name,
           type: file.type,
           size: file.size,
           folder_id: folder.id,
@@ -178,6 +179,7 @@ module.exports = (Model, App) => {
               return next(Error('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
+            newMeta.plain_name = metadata.itemName;
             return next(null, file);
           })
           .catch(next);
@@ -220,7 +222,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
-        fileId: { [Op.ne]: fileId }
+        fileId: { [Op.ne]: fileId },
       },
     });
 
@@ -248,7 +250,6 @@ module.exports = (Model, App) => {
       moved: true,
     };
   };
-
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {

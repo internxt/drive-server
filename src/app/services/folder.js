@@ -84,6 +84,7 @@ module.exports = (Model, App) => {
 
     const folder = await user.createFolder({
       name: cryptoFolderName,
+      plain_name: folderName,
       bucket: null,
       parentId: parentFolderId || null,
       id_team: teamId,
@@ -442,7 +443,7 @@ module.exports = (Model, App) => {
 
     return response;
   };
-  
+
   const GetBucket = (user, folderId) =>
     Model.folder.findOne({
       where: {
@@ -535,7 +536,7 @@ module.exports = (Model, App) => {
   const acquireOrRefreshLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
-    if(redis.status !== 'ready') {
+    if (redis.status !== 'ready') {
       logger.warn('Redis is not ready to accept commands');
     }
 
@@ -674,6 +675,6 @@ module.exports = (Model, App) => {
     getDirectoryFiles,
     getDirectoryFolders,
     getUserDirectoryFiles,
-    getUserDirectoryFolders
+    getUserDirectoryFolders,
   };
 };
