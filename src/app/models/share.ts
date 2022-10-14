@@ -56,7 +56,7 @@ export default (database: Sequelize): ShareModel => {
       },
       active: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: true,
       },
       views: {
         type: DataTypes.INTEGER,
