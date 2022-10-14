@@ -13,6 +13,7 @@ interface ShareAttributes {
   views: number;
   is_folder: boolean;
   active: boolean;
+  hashed_password: string;
 }
 
 export type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
@@ -56,7 +57,7 @@ export default (database: Sequelize): ShareModel => {
       },
       active: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false,
+        defaultValue: true,
       },
       views: {
         type: DataTypes.INTEGER,

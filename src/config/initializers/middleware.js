@@ -16,37 +16,37 @@ module.exports = (App, Config) => {
   App.express.use(addRequestId());
   App.express.use((req, res, next) => {
     const meta = {
-      requestId: req.id
+      requestId: req.id,
     };
     req.logger = {
       info: (...content) => {
         logger.log({
           level: 'info',
           message: util.format(...content),
-          meta
+          meta,
         });
       },
       warn: (...content) => {
         logger.log({
           level: 'warn',
           message: util.format(...content),
-          meta
+          meta,
         });
       },
       error: (...content) => {
         logger.log({
           level: 'error',
           message: util.format(...content),
-          meta
+          meta,
         });
       },
       debug: (...content) => {
         logger.log({
           level: 'debug',
           message: util.format(...content),
-          meta
+          meta,
         });
-      }
+      },
     };
     next();
   });
@@ -117,6 +117,7 @@ module.exports = (App, Config) => {
         'internxt-version',
         'internxt-client',
         'internxt-mnemonic',
+        'x-share-password',
       ],
       exposedHeaders: ['sessionId'],
       origin: '*',
