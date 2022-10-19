@@ -991,6 +991,8 @@ describe('E2E TEST', () => {
 
       const response = await request(app).get('/api/desktop/list/0').set('Authorization', `Bearer ${token}`);
 
+      expect(response.status).toBe(HttpStatus.OK);
+
       const result = response.body.folders[0];
 
       expect(result.id).toBe(folder.id);
