@@ -118,19 +118,26 @@ module.exports = (Model, App) => {
     }
 
     const thumbnails = await Model.thumbnail.findAll({
-      where: { file_id: fileId }
+      where: { file_id: fileId },
     });
 
     if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
-      await Promise.all(thumbnails.map(async (thumbnail) => {
-        try {
-          await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
-        } catch (err) {
-          //ignore error and keep deleting the remaining thumbnails
-          log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
-            user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);
-        }
-      }));
+      await Promise.all(
+        thumbnails.map(async (thumbnail) => {
+          try {
+            await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
+          } catch (err) {
+            //ignore error and keep deleting the remaining thumbnails
+            log.info(
+              '[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
+              user.bridgeUser,
+              thumbnail.bucket_id,
+              thumbnail.bucket_file,
+              err,
+            );
+          }
+        }),
+      );
     }
     await file.destroy();
   };
@@ -316,17 +323,21 @@ module.exports = (Model, App) => {
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
     return Model.file
       .findAll({
-       
-      where: { folderId, userId, deleted },
-      include: [
-        {
-          model: Model.thumbnail,
-          as: 'thumbnails',
-          required: false,
-        },
-        { model: Model.shares, attributes: ['id'], as: 'shares', required: false }],
-      ],
-    })
+        where: { folderId, userId, deleted },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+            as: 'shares',
+            required: false,
+          },
+        ],
+      })
       .then((files) => {
         if (!files) {
           throw new Error('Not found');
@@ -340,27 +351,29 @@ module.exports = (Model, App) => {
   };
 
   const getRecentFiles = (user, limit) => {
-    return Model.file.findAll({
-      order: [['updatedAt', 'DESC']],
-      limit,
-      where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
-      include: [
-        {
-          model: Model.thumbnail,
-          as: 'thumbnails',
-          required: false,
+    return Model.file
+      .findAll({
+        order: [['updatedAt', 'DESC']],
+        limit,
+        where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+        ],
+      })
+      .then((files) => {
+        if (!files) {
+          throw new Error('Not found');
         }
-      ]
-    }).then((files) => {
-      if (!files) {
-        throw new Error('Not found');
-      }
-      return files.map((file) => {
-        file.name = App.services.Crypt.decryptName(file.name, file.folderId);
+        return files.map((file) => {
+          file.name = App.services.Crypt.decryptName(file.name, file.folderId);
 
-        return file;
+          return file;
+        });
       });
-    });
   };
 
   return {
