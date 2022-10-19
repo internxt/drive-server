@@ -353,7 +353,6 @@ describe('E2E TEST', () => {
 
             expect(firstFolderResponse.status).toBe(HttpStatus.CREATED);
             expect(secondFolderResponse.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-            expect(secondFolderResponse.body.error).toBe('Folder with the same name already exists');
           });
         });
 
