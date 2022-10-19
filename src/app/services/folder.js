@@ -272,6 +272,14 @@ module.exports = (Model, App) => {
       where: { user_id: { [Op.eq]: userObject.id } },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
       order: [['id', 'DESC']],
+      include: [
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
       limit: 5000,
       offset: index,
     });
