@@ -4,6 +4,7 @@ export interface FileAttributes {
   id: number;
   fileId: string;
   name: string;
+  plain_name: string;
   type: string;
   size: number;
   bucket: string;
@@ -32,6 +33,9 @@ export default (database: Sequelize): FileModel => {
         type: DataTypes.STRING(24),
       },
       name: {
+        type: DataTypes.STRING,
+      },
+      plain_name: {
         type: DataTypes.STRING,
       },
       type: {

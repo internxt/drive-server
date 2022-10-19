@@ -13,6 +13,18 @@ const { Op } = sequelize;
 const server = require('../../src/app');
 const app = server.express;
 
+function enforcePropertiesInObject(object: Record<string, any>, expectedProperties: string[]) {
+  expectedProperties.forEach((property) => {
+    expect(object).toHaveProperty(property);
+  });
+
+  Object.keys(object).forEach((property) => {
+    if (!expectedProperties.includes(property)) {
+      throw new Error(`Property ${property} not expected`);
+    }
+  });
+}
+
 describe('E2E TEST', () => {
   beforeAll(async () => {
     try {
@@ -962,22 +974,28 @@ describe('E2E TEST', () => {
 
       const file = response.body.files[0];
 
-      expect(file).toHaveProperty('id');
-      expect(file).toHaveProperty('created_at');
-      expect(file).toHaveProperty('fileId');
-      expect(file).toHaveProperty('name');
-      expect(file).toHaveProperty('type');
-      expect(file).toHaveProperty('size');
-      expect(file).toHaveProperty('bucket');
-      expect(file).toHaveProperty('folder_id');
-      expect(file).toHaveProperty('encrypt_version');
-      expect(file).toHaveProperty('deleted');
-      expect(file).toHaveProperty('deletedAt');
-      expect(file).toHaveProperty('userId');
-      expect(file).toHaveProperty('modificationTime');
-      expect(file).toHaveProperty('createdAt');
-      expect(file).toHaveProperty('updatedAt');
-      expect(file).toHaveProperty('folderId');
+      const expectedProperties = [
+        'id',
+        'created_at',
+        'fileId',
+        'name',
+        'type',
+        'size',
+        'bucket',
+        'folder_id',
+        'encrypt_version',
+        'deleted',
+        'deletedAt',
+        'userId',
+        'modificationTime',
+        'createdAt',
+        'updatedAt',
+        'folderId',
+        'plain_name',
+        'thumbnails',
+        'shares',
+      ];
+      enforcePropertiesInObject(file, expectedProperties);
     });
 
     it('should return all the info from a folder', async () => {
@@ -995,12 +1013,8 @@ describe('E2E TEST', () => {
 
       expect(result.id).toBe(folder.id);
 
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('parent_id');
-      expect(result).toHaveProperty('name');
-      expect(result).toHaveProperty('bucket');
-      expect(result).toHaveProperty('updated_at');
-      expect(result).toHaveProperty('created_at');
+      const expectedPropertis = ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at', 'shares'];
+      enforcePropertiesInObject(result, expectedPropertis);
     });
 
     it('should return the folders and files of a user', async () => {

@@ -33,6 +33,9 @@ export default (database: Sequelize): FolderModel => {
       name: {
         type: DataTypes.STRING,
       },
+      plain_name: {
+        type: DataTypes.STRING,
+      },
       bucket: {
         type: DataTypes.STRING(24),
       },

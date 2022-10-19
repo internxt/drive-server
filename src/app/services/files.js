@@ -39,6 +39,7 @@ module.exports = (Model, App) => {
 
         const fileInfo = {
           name: file.name,
+          plain_name: file.plain_name,
           type: file.type,
           size: file.size,
           folder_id: folder.id,
@@ -196,6 +197,7 @@ module.exports = (Model, App) => {
               return next(Error('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
+            newMeta.plain_name = metadata.itemName;
             return next(null, file);
           })
           .catch(next);
