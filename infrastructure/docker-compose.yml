@@ -121,7 +121,7 @@ services:
       - postgres
       - redis
     volumes:
-      - ../src:/usr/app/src
+      - ../:/usr/app/
     networks:
       - internxt
 
