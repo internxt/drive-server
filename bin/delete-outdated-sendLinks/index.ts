@@ -111,7 +111,9 @@ async function start(bucket: string) {
     });
 
   for (const sendLinkItem of outdatedSendLinkItems as DeleteSendLinkItem[]) {
-    outdatedLinksIds.indexOf(sendLinkItem.link_id) === -1 && outdatedLinksIds.push(sendLinkItem.link_id);
+    if (!outdatedLinksIds.includes(sendLinkItem.link_id)) {
+      outdatedLinksIds.push(sendLinkItem.link_id);
+    }
 
     await db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) 
       VALUES (:file_id, :user_id, :folder_id, :bucket)`,
@@ -133,22 +135,22 @@ async function start(bucket: string) {
       });
   }
 
-  outdatedLinksIds.forEach((outdatedLinkId) => {
-    db.query('DELETE FROM send_links_items WHERE link_id=:link_id',
+  for (const outdatedLinkId of outdatedLinksIds) {
+    await db.query('DELETE FROM send_links_items WHERE link_id=:link_id',
       {
         type: QueryTypes.DELETE,
         replacements: {
           link_id: outdatedLinkId
         }
       });
-    db.query('DELETE FROM send_links WHERE id=:id',
+    await db.query('DELETE FROM send_links WHERE id=:id',
       {
         type: QueryTypes.DELETE,
         replacements: {
           id: outdatedLinkId
         }
       });
-  });
+  }
 }
 
 start(String(opts.bucket))
