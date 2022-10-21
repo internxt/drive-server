@@ -93,25 +93,56 @@ async function start() {
   const BUCKET = 'GET BUCKET';
   const outdatedLinksIds = [] as string[];
   const outdatedSendLinkItems = await db.query(`
-    SELECT sli.network_id AS "file_id", -1 AS "user_id", -1 AS "folder_id", ${BUCKET} AS "bucket",
+    SELECT sli.network_id AS "file_id", -1 AS "user_id", -1 AS "folder_id", :bucket AS "bucket",
       sli.id as id, sli.link_id as link_id
     FROM send_links_items sli 
     INNER JOIN send_links sl ON sl.id=sli.link_id
-    WHERE sl.expiration_at<=NOW() AND sli.type='file'`, { type: QueryTypes.SELECT });
+    WHERE sl.expiration_at<=NOW() AND sli.type='file'`,
+    {
+      type: QueryTypes.SELECT,
+      replacements: {
+        bucket: BUCKET
+      }
+    });
 
   for (const sendLinkItem of outdatedSendLinkItems as DeleteSendLinkItem[]) {
     outdatedLinksIds.indexOf(sendLinkItem.link_id) === -1 && outdatedLinksIds.push(sendLinkItem.link_id);
 
-    await db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) VALUES (
-      '${sendLinkItem.file_id}', ${sendLinkItem.user_id}, ${sendLinkItem.folder_id}, '${sendLinkItem.bucket}')`,
-      { type: QueryTypes.INSERT });
-    await db.query(`DELETE FROM send_links_items WHERE id=${sendLinkItem.id}`,
-      { type: QueryTypes.DELETE });
+    await db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) 
+      VALUES (':file_id', :user_id, :folder_id, ':bucket)'`,
+      {
+        type: QueryTypes.INSERT,
+        replacements: {
+          file_id: sendLinkItem.file_id,
+          user_id: sendLinkItem.user_id,
+          folder_id: sendLinkItem.folder_id,
+          bucket: sendLinkItem.bucket,
+        }
+      });
+    await db.query('DELETE FROM send_links_items WHERE id=:id',
+      {
+        type: QueryTypes.DELETE,
+        replacements: {
+          id: sendLinkItem.id
+        }
+      });
   }
 
   outdatedLinksIds.forEach((outdatedLinkId) => {
-    db.query(`DELETE FROM send_links_items WHERE link_id=${outdatedLinkId}`, { type: QueryTypes.DELETE });
-    db.query(`DELETE FROM send_links WHERE id=${outdatedLinkId}`, { type: QueryTypes.DELETE });
+    db.query('DELETE FROM send_links_items WHERE link_id=:link_id',
+      {
+        type: QueryTypes.DELETE,
+        replacements: {
+          link_id: outdatedLinkId
+        }
+      });
+    db.query('DELETE FROM send_links WHERE id=:id',
+      {
+        type: QueryTypes.DELETE,
+        replacements: {
+          id: outdatedLinkId
+        }
+      });
   });
 }
 
