@@ -109,7 +109,7 @@ async function start() {
     outdatedLinksIds.indexOf(sendLinkItem.link_id) === -1 && outdatedLinksIds.push(sendLinkItem.link_id);
 
     await db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) 
-      VALUES (':file_id', :user_id, :folder_id, ':bucket)'`,
+      VALUES (:file_id, :user_id, :folder_id, :bucket)`,
       {
         type: QueryTypes.INSERT,
         replacements: {
