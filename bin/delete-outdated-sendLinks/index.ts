@@ -86,25 +86,28 @@ interface DeleteSendLinkItem {
   folder_id: number;
   bucket: string;
   id: string;
+  link_id: string;
 };
 
 async function start() {
   const BUCKET = 'GET BUCKET';
-  const outdatedLinksIds = await db.query('SELECT DISTINCT(id) AS id FROM send_links WHERE expiration_at<=NOW()',
-    { type: QueryTypes.SELECT }) as unknown as string[];
+  const outdatedLinksIds = [] as string[];
   const outdatedSendLinkItems = await db.query(`
-    SELECT network_id AS "file_id", -1 AS "user_id", -1 AS "folder_id", ${BUCKET} AS "bucket", id
-    FROM send_links_items
-    WHERE type='file' AND link_id IN (${outdatedLinksIds.join('\',\'')})`, { type: QueryTypes.SELECT });
+    SELECT sli.network_id AS "file_id", -1 AS "user_id", -1 AS "folder_id", ${BUCKET} AS "bucket",
+      sli.id as id, sli.link_id as link_id
+    FROM send_links_items sli 
+    INNER JOIN send_links sl ON sl.id=sli.link_id
+    WHERE sl.expiration_at<=NOW() AND sli.type='file'`, { type: QueryTypes.SELECT });
 
-  outdatedSendLinkItems.forEach((sendLinkitem) => {
-    db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) VALUES (
-      '${(sendLinkitem as DeleteSendLinkItem).file_id}', ${(sendLinkitem as DeleteSendLinkItem).user_id},
-      ${(sendLinkitem as DeleteSendLinkItem).folder_id}, '${(sendLinkitem as DeleteSendLinkItem).bucket}')`,
+  for (const sendLinkItem of outdatedSendLinkItems as DeleteSendLinkItem[]) {
+    outdatedLinksIds.indexOf(sendLinkItem.link_id) === -1 && outdatedLinksIds.push(sendLinkItem.link_id);
+
+    await db.query(`INSERT INTO deleted_files (file_id, user_id, folder_id, bucket) VALUES (
+      '${sendLinkItem.file_id}', ${sendLinkItem.user_id}, ${sendLinkItem.folder_id}, '${sendLinkItem.bucket}')`,
       { type: QueryTypes.INSERT });
-    db.query(`DELETE FROM send_links_items WHERE id=${(sendLinkitem as DeleteSendLinkItem).id}`,
+    await db.query(`DELETE FROM send_links_items WHERE id=${sendLinkItem.id}`,
       { type: QueryTypes.DELETE });
-  });
+  }
 
   outdatedLinksIds.forEach((outdatedLinkId) => {
     db.query(`DELETE FROM send_links_items WHERE link_id=${outdatedLinkId}`, { type: QueryTypes.DELETE });
