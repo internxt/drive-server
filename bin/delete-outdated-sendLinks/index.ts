@@ -9,6 +9,7 @@ type CommandOptions = {
   dbName: string;
   dbUsername: string;
   dbPassword: string;
+  bucket: string;
 };
 
 const commands: { flags: string; description: string; required: boolean }[] = [
@@ -35,6 +36,11 @@ const commands: { flags: string; description: string; required: boolean }[] = [
   {
     flags: '--db-port <database_port>',
     description: 'The database port',
+    required: true,
+  },
+  {
+    flags: '-b, --bucket <bucket>',
+    description: 'The bucket ID currently used on SEND',
     required: true,
   },
 ];
@@ -89,8 +95,7 @@ interface DeleteSendLinkItem {
   link_id: string;
 };
 
-async function start() {
-  const BUCKET = 'GET BUCKET';
+async function start(bucket: string) {
   const outdatedLinksIds = [] as string[];
   const outdatedSendLinkItems = await db.query(`
     SELECT sli.network_id AS "file_id", -1 AS "user_id", -1 AS "folder_id", :bucket AS "bucket",
@@ -101,7 +106,7 @@ async function start() {
     {
       type: QueryTypes.SELECT,
       replacements: {
-        bucket: BUCKET
+        bucket: bucket
       }
     });
 
@@ -146,7 +151,7 @@ async function start() {
   });
 }
 
-start()
+start(String(opts.bucket))
   .catch((err) => {
     console.log('err', err);
   })
