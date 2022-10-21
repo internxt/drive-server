@@ -107,6 +107,7 @@ async function start() {
   });
 
   outdatedLinksIds.forEach((outdatedLinkId) => {
+    db.query(`DELETE FROM send_links_items WHERE link_id=${outdatedLinkId}`, { type: QueryTypes.DELETE });
     db.query(`DELETE FROM send_links WHERE id=${outdatedLinkId}`, { type: QueryTypes.DELETE });
   });
 }
