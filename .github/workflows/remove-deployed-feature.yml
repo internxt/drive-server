@@ -1,0 +1,27 @@
+name: Deploy feature
+on:
+  workflow_dispatch:
+    inputs:
+      pr:
+        type: string
+jobs:
+  remove:
+    needs: [build,retrive-pr]
+    runs-on: ubuntu-latest
+    environment:
+      name: develop
+    steps:
+      - uses: actions/checkout@v2
+      - name: Remove featuare container
+        run: echo "Would remove the container with the image drive-server-dev:${{ github.sha }}-pr${{ github.event.inputs.pr }}"
+      #   uses: steebchen/kubectl@v2.0.0
+      #   with: # defaults to latest kubectl binary version
+      #     config: ${{ secrets.KUBE_CONFIG_DATA_DEVELOPMENT }}
+      #     version: v1.22.2
+      #     command: set image --record deployment/drive-server-dev drive-server-dev=${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:${{ github.sha }}-pr${{ github.event.inputs.pr }}
+      # - name: Verify drive-server deployment
+      #   uses: steebchen/kubectl@v2.0.0
+      #   with:
+      #     config: ${{ secrets.KUBE_CONFIG_DATA_DEVELOPMENT }}
+      #     version: v1.22.2 # specify kubectl binary version explicitly
+      #     command: rollout status deployment/drive-server-dev
