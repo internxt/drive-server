@@ -118,8 +118,8 @@ module.exports = (Model, App) => {
       throw new ReferralsNotAvailableError();
     }
 
-    await update({ referred, applied: true }, userReferral.id);
     await redeemUserReferral(user.uuid, userId, referral.type, referral.credit);
+    await update({ referred, applied: true }, userReferral.id);
 
     AnalyticsService.trackReferralRedeemed(userId, referralKey);
   };
