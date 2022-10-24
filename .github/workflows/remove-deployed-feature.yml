@@ -1,4 +1,4 @@
-name: Deploy feature
+name: Remove Deployed feature
 on:
   workflow_dispatch:
     inputs:
