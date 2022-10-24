@@ -6,7 +6,6 @@ on:
         type: string
 jobs:
   remove:
-    needs: [build,retrive-pr]
     runs-on: ubuntu-latest
     environment:
       name: develop
