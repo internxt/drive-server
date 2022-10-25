@@ -274,7 +274,7 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`, err.stack);
 
         res.status(500).send();
       });
