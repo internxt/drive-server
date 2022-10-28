@@ -128,14 +128,14 @@ process.on('SIGINT', () => finishProgram());
 async function start(limit = 20, concurrency = 5) {
   const deletedFile = initDeletedFileModel(db);
 
-  let fileIds = [];
+  let fileIds: string[] = [];
 
   do {
     const files = await getFilesToDelete(deletedFile, limit);
 
     fileIds = files.map((f) => f.fileId);
 
-    const promises = [];
+    const promises: Promise<DeleteFilesResponse>[] = [];
     const chunksOf = Math.ceil(limit / concurrency);
 
     console.time('df-network-req');
