@@ -42,18 +42,22 @@ const winstonDevOptions: winston.LoggerOptions = {
   transports: [new winston.transports.Console()],
 };
 
+type LoggerConfig = {
+  level: string;
+}
+
 export default class Logger {
   private static instance: winston.Logger;
 
-  static getInstance(): winston.Logger {
+  static getInstance(config?: LoggerConfig): winston.Logger {
     if (!Logger.instance) {
-      Logger.instance = loggerInstance();
+      Logger.instance = loggerInstance(config);
     }
 
     return Logger.instance;
   }
 }
 
-const loggerInstance = (): winston.Logger => {
-  return winston.createLogger(isProduction() ? winstonProdOptions : winstonDevOptions);
+const loggerInstance = (config?: LoggerConfig): winston.Logger => {
+  return winston.createLogger(isProduction() ? winstonProdOptions : {...winstonDevOptions, ...config});
 };

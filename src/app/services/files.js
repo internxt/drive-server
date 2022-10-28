@@ -9,6 +9,8 @@ const invalidName = /[/\\]|^\s*$/;
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
+  const log = App.logger;
+
   const CreateFile = async (user, file) => {
     return Model.folder
       .findOne({
@@ -114,6 +116,29 @@ module.exports = (Model, App) => {
         throw err;
       }
     }
+
+    const thumbnails = await Model.thumbnail.findAll({
+      where: { file_id: fileId },
+    });
+
+    if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
+      await Promise.all(
+        thumbnails.map(async (thumbnail) => {
+          try {
+            await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
+          } catch (err) {
+            //ignore error and keep deleting the remaining thumbnails
+            log.info(
+              '[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
+              user.bridgeUser,
+              thumbnail.bucket_id,
+              thumbnail.bucket_file,
+              err,
+            );
+          }
+        }),
+      );
+    }
     await file.destroy();
   };
 
@@ -167,13 +192,13 @@ module.exports = (Model, App) => {
 
         // Check if there is a file with the same name
         Model.file.findOne({
-            where: {
-              folder_id: { [Op.eq]: file.folder_id },
-              name: { [Op.eq]: cryptoFileName },
-              type: { [Op.eq]: file.type },
-              deleted: { [Op.eq]: false },
-            },
-          })
+          where: {
+            folder_id: { [Op.eq]: file.folder_id },
+            name: { [Op.eq]: cryptoFileName },
+            type: { [Op.eq]: file.type },
+            deleted: { [Op.eq]: false },
+          },
+        })
           .then((duplicateFile) => {
             if (duplicateFile) {
               return next(Error('File with this name exists'));
@@ -251,22 +276,21 @@ module.exports = (Model, App) => {
     };
   };
 
-
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
       Model.file.findOne({
-          where: {
-            file_id: { [Op.eq]: fileId },
-          },
-          include: [
-            {
-              model: Model.folder,
-              where: {
-                id_team: { [Op.ne]: null },
-              },
+        where: {
+          file_id: { [Op.eq]: fileId },
+        },
+        include: [
+          {
+            model: Model.folder,
+            where: {
+              id_team: { [Op.ne]: null },
             },
-          ],
-        })
+          },
+        ],
+      })
         .then((file) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
@@ -296,28 +320,65 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
-    return Model.file.findAll({ where: { folderId, userId, deleted } }).then((files) => {
-      if (!files) {
-        throw new Error('Not found');
-      }
-      return files.map((file) => {
-        file.name = App.services.Crypt.decryptName(file.name, folderId);
+    return Model.file
+      .findAll({
+        where: { folderId, userId, deleted },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+            as: 'shares',
+            required: false,
+          },
+        ],
+      })
+      .then((files) => {
+        if (!files) {
+          throw new Error('Not found');
+        }
+        return files.map((file) => {
+          file.name = App.services.Crypt.decryptName(file.name, folderId);
 
-        return file;
+          return file;
+        });
       });
-    });
   };
 
-  const getRecentFiles = async (user, limit) => {
-    const results = await Model.file.findAll({
-      order: [['updatedAt', 'DESC']],
-      limit,
-      raw: true,
-      where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
-      deleted: { [Op.eq]: false },
-    });
+  const getRecentFiles = (user, limit) => {
+    return Model.file
+      .findAll({
+        order: [['updatedAt', 'DESC']],
+        limit,
+        where: {
+          userId: user.id,
+          bucket: {
+            [Op.ne]: user.backupsBucket
+          },
+          deleted: { [Op.eq]: false }
+        },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+        ],
+      })
+      .then((files) => {
+        if (!files) {
+          throw new Error('Not found');
+        }
+        return files.map((file) => {
+          file.name = App.services.Crypt.decryptName(file.name, file.folderId);
 
-    return results;
+          return file;
+        });
+      });
   };
 
   return {

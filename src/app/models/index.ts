@@ -15,6 +15,7 @@ import initShare, { ShareModel } from './share';
 import initTeam, { TeamModel } from './team';
 import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
 import initTeamMember, { TeamMemberModel } from './teammember';
+import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
 
@@ -23,6 +24,7 @@ export type ModelType =
   | BackupModel
   | DeviceModel
   | FileModel
+  | ThumbnailModel
   | FolderModel
   | InvitationModel
   | KeyServerModel
@@ -42,6 +44,7 @@ export default (database: Sequelize) => {
   const Backup = initBackup(database);
   const Device = initDevice(database);
   const File = initFile(database);
+  const Thumbnail = initThumbnail(database);
   const Folder = initFolder(database);
   const Invitation = initInvitation(database);
   const KeyServer = initKeyServer(database);
@@ -66,11 +69,15 @@ export default (database: Sequelize) => {
 
   File.belongsTo(Folder);
   File.belongsTo(User);
-  File.hasMany(Share, { as: 'shares', foreignKey: 'file', sourceKey: 'fileId' });
+  File.hasMany(Share, { as: 'shares', foreignKey: 'file_id', sourceKey: 'id' });
+  File.hasMany(Thumbnail);
+
+  Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
 
   Folder.hasMany(File);
   Folder.belongsTo(User);
   Folder.hasMany(Folder, { foreignKey: 'parent_id', as: 'children' });
+  Folder.hasMany(Share, { as: 'shares', foreignKey: 'folder_id', sourceKey: 'id' });
 
   Invitation.belongsTo(User, { foreignKey: 'host', targetKey: 'id' });
   Invitation.belongsTo(User, { foreignKey: 'guest', targetKey: 'id' });
@@ -81,7 +88,8 @@ export default (database: Sequelize) => {
 
   Referral.belongsToMany(User, { through: UserReferral });
 
-  Share.hasOne(File, { as: 'fileInfo', foreignKey: 'fileId', sourceKey: 'file' });
+  Share.hasOne(File, { as: 'fileInfo', foreignKey: 'id', sourceKey: 'file_id' });
+  Share.hasOne(Folder, { as: 'folderInfo', foreignKey: 'id', sourceKey: 'folder_id' });
 
   User.hasMany(Folder);
   User.hasMany(File);
@@ -102,6 +110,7 @@ export default (database: Sequelize) => {
     [Backup.name]: Backup,
     [Device.name]: Device,
     [File.name]: File,
+    [Thumbnail.name]: Thumbnail,
     [Folder.name]: Folder,
     [Invitation.name]: Invitation,
     [KeyServer.name]: KeyServer,

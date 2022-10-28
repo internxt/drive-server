@@ -4,16 +4,17 @@ import passport from '../middleware/passport';
 import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
-import { ReferralsNotAvailableError } from '../services/errors/referrals';
 import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
+import { LockNotAvaliableError } from '../services/errors/locks';
 
 interface Services {
   Files: any;
+  Thumbnails: any;
   Folder: any;
   UsersReferrals: any;
   Analytics: any;
@@ -56,19 +57,6 @@ export class StorageController {
 
     const result = await this.services.Files.CreateFile(behalfUser, file);
 
-    // TODO: If user has referrals, then apply. Do not catch everything
-    if (internxtClient === 'drive-mobile') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-mobile-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
-    }
-
-    if (internxtClient === 'drive-desktop') {
-      this.services.UsersReferrals.applyUserReferral(behalfUser.id, 'install-desktop-app').catch((err: Error) => {
-        this.logReferralError(behalfUser.id, err);
-      });
-    }
-
     res.status(200).json(result);
 
     const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
@@ -99,6 +87,12 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
+    const parentFolder = await this.services.Folder.getById(parentFolderId);
+
+    if (parentFolder.userId !== user.id) {
+      throw createHttpError(403, 'Parent folder does not belong to user');
+    }
+
     return this.services.Folder.Create(user, folderName, parentFolderId)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
@@ -113,8 +107,8 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
-        this.logger.warn(err);
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -149,9 +143,8 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
-        res.status(500).send({
-          error: err.message,
-        });
+        this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -180,7 +173,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ error: err.message });
+        res.status(500).send();
       });
   }
 
@@ -251,7 +244,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -281,7 +274,9 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
+
+        res.status(500).send();
       });
   }
 
@@ -329,7 +324,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(err);
-        if(err instanceof HttpError) {
+        if (err instanceof HttpError) {
           res.status(err.status).json({
             error: err.message,
           });
@@ -376,7 +371,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -456,10 +451,6 @@ export class StorageController {
         if (!files) {
           return res.status(404).send({ error: 'Files not found' });
         }
-        files = files.map((file) => ({
-          ...file,
-          name: this.services.Crypt.decryptName(file.name, file.folderId),
-        }));
         return res.status(200).json(files);
       })
       .catch((err: Error) => {
@@ -514,8 +505,11 @@ export class StorageController {
       .then(() => {
         res.status(200).end();
       })
-      .catch(() => {
-        res.status(404).end();
+      .catch((err: any) => {
+        if (err instanceof LockNotAvaliableError) res.status(404).end();
+
+        this.logger.error('Error releasing a lock', err.message);
+        res.status(500).end();
       });
   }
 
@@ -531,8 +525,11 @@ export class StorageController {
       .then(() => {
         res.status(200).end();
       })
-      .catch(() => {
-        res.status(409).end();
+      .catch((err: any) => {
+        if (err instanceof LockNotAvaliableError) res.status(409).end();
+
+        this.logger.error('Error adquiring or refreshing a lock', err.message);
+        res.sendStatus(500);
       });
   }
 
@@ -596,23 +593,15 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFiles(
-      user.id, 
-      folderId, 
-      Number(offset), 
-      Number(limit)
-    ).then((content: { files: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFiles: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+    this.services.Folder.getUserDirectoryFiles(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { files: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
+      .catch((err: Error) => {
+        this.logger.error('getDirectoryFiles: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
 
   getDirectoryFolders(req: Request, res: Response): void {
@@ -629,35 +618,42 @@ export class StorageController {
       throw createHttpError(400, 'Limit should be positive');
     }
 
-    this.services.Folder.getUserDirectoryFolders(
-      user.id, 
-      folderId, 
-      Number(offset), 
-      Number(limit)
-    ).then((content: { folders: any[], last: boolean }) => {
-      res.status(200).send(content);
-    })
-    .catch((err: Error) => {
-      this.logger.error(
-        'getDirectoryFolders: %s. STACK %s', 
-        err.message, 
-        err.stack || 'NO STACK'
-      );
+    this.services.Folder.getUserDirectoryFolders(user.id, folderId, Number(offset), Number(limit))
+      .then((content: { folders: any[]; last: boolean }) => {
+        res.status(200).send(content);
+      })
+      .catch((err: Error) => {
+        this.logger.error('getDirectoryFolders: %s. STACK %s', err.message, err.stack || 'NO STACK');
 
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+        res.status(500).send({ error: 'Internal Server Error' });
+      });
   }
 
-  private logReferralError(userId: unknown, err: Error) {
-    if (!err.message) {
-      return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
+  public async createThumbnail(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const { thumbnail } = req.body;
+
+    if (
+      !thumbnail ||
+      !thumbnail.file_id ||
+      !thumbnail.max_width ||
+      !thumbnail.max_height ||
+      !thumbnail.type ||
+      !thumbnail.size ||
+      !thumbnail.bucket_id ||
+      !thumbnail.bucket_file ||
+      !thumbnail.encrypt_version
+    ) {
+      this.logger.error(
+        `Invalid metadata trying to create a thumbnail for user 
+          ${behalfUser.email}: ${JSON.stringify(thumbnail, null, 2)}`,
+      );
+      return res.status(400).json({ error: 'Invalid metadata for new thumbnail' });
     }
 
-    if (err instanceof ReferralsNotAvailableError) {
-      return;
-    }
+    const result = await this.services.Thumbnails.CreateThumbnail(behalfUser, thumbnail);
 
-    return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
+    res.status(200).json(result);
   }
 }
 
@@ -669,6 +665,7 @@ export default (router: Router, service: any) => {
   const controller = new StorageController(service, Logger);
 
   router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
+  router.post('/storage/thumbnail', passportAuth, sharedAdapter, controller.createThumbnail.bind(controller));
   router.post('/storage/folder', passportAuth, controller.createFolder.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
