@@ -722,7 +722,7 @@ module.exports = (Model, App) => {
 
     const url = `${process.env.HOST_DRIVE_WEB}/verify-email/${verificationTokenEncoded}`;
 
-    await mailService.sendVerifyEmailMail(user.email, { firstName: user.name, url });
+    await mailService.sendVerifyEmailMail(user.email, { url });
   };
 
   const verifyEmail = async (verificationToken) => {
