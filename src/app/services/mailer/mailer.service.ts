@@ -14,8 +14,8 @@ export class MailerService {
         name: process.env.SENDGRID_NAME || 'Internxt',
       },
       subject: '',
-      text: 'test',
-      html: 'test',
+      text: 'email text',
+      html: 'email text',
       personalizations: [
         {
           to: [
