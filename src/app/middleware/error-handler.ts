@@ -24,9 +24,9 @@ export default function errorHandler(
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
   if (user) {
-    req.logger?.error('%s ERROR for user %s: %s', handlerPath, user.email, err.message);
+    req.logger?.error('%s ERROR for user %s: %s Stack: %s', handlerPath, user.email, err.message, err.stack);
   } else {
-    req.logger?.error('%s ERROR %s', handlerPath, err.message);
+    req.logger?.error('%s ERROR %s Stack: %s', handlerPath, err.message, err.stack);
   }
 
   if (res.headersSent) {
