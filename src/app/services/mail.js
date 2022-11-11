@@ -73,27 +73,13 @@ module.exports = (Model) => {
     });
   };
 
-  const sendInviteFriendMail = async (email, { inviteEmail, hostEmail, hostFullName, registerUrl }) => {
-    const mailer = mailInstance();
-
-    return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        email,
-        'invite-friend',
-        {
-          inviteEmail,
-          hostEmail,
-          hostFullName,
-          registerUrl,
-        },
-        (err) => {
-          if (err) {
-            return reject(Error(`Cannot send invite friend mail: ${err}`));
-          }
-
-          return resolve();
-        },
-      );
+  const sendInviteFriendMail = async ({ inviteEmail, hostEmail, hostFullName, registerUrl }) => {
+    const maile = new MailerService();
+    const inviteTemplateID = process.env.DRIVE_INVITE_FRIEND_TEMPLATE_ID;
+    return maile.send(inviteEmail, inviteTemplateID, {
+      sender_fullname: hostFullName,
+      sender_email: hostEmail,
+      referral_url: registerUrl,
     });
   };
 
