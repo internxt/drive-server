@@ -27,6 +27,11 @@ export class MailerService {
         },
       ],
       template_id: templateId,
+      mail_settings: {
+        sandbox_mode: {
+          enable: process.env.NODE_ENV !== 'production',
+        },
+      },
     };
     await sendgrid.send(msg);
   }
