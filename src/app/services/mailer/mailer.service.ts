@@ -29,7 +29,7 @@ export class MailerService {
       template_id: templateId,
       mail_settings: {
         sandbox_mode: {
-          enable: process.env.NODE_ENV !== 'production',
+          enable: process.env.SENDGRID_MODE_SANDBOX === 'true' || false,
         },
       },
     };
