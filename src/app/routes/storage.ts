@@ -5,7 +5,7 @@ import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
 import createHttpError, { HttpError } from 'http-errors';
-import { FolderAttributes } from '../models/folder';
+import { FolderAttributes, FolderModel } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
@@ -252,25 +252,57 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
     const deleted = req.query?.trash === 'true';
+    const rawIndex = req.query?.index || 0;
+    const rawLimit = req.query?.limit || 50;
 
     if (Validator.isInvalidPositiveNumber(id)) {
       throw createHttpError(400, 'Folder ID is not valid');
     }
+    if (Validator.isInvalidUnsignedNumber(rawIndex)) {
+      throw createHttpError(400, 'Pagination index is not valid');
+    }
+    if (Validator.isInvalidPositiveNumber(rawLimit)) {
+      throw createHttpError(400, 'Pagination limit is not valid');
+    }
 
-    return Promise.all([
-      this.services.Folder.getById(id),
-      this.services.Folder.getFolders(id, behalfUser.id, deleted),
-      this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
-    ])
-      .then(([currentFolder, childrenFolders, childrenFiles]) => {
-        if (!currentFolder || !childrenFolders || !childrenFiles) {
+    const limit = Number(rawLimit);
+    const index = Number(rawIndex);
+
+    const childrenElementsPromise = this.services.Folder.getFolders(id, behalfUser.id, {index, limit }, deleted).then(
+      async (folders: Array<FolderModel>) => {
+        const filesLimit = limit - folders.length;
+
+        if (filesLimit <= 0) return { folders, files: [] };
+
+        const nFolders = await this.services.Folder.getNumberOfDirectories(id);
+
+        const filesIndex = nFolders <= index ? limit - nFolders : 0;
+
+        const files = await this.services.Files.getByFolderAndUserId(
+          id,
+          behalfUser.id,
+          { index: filesIndex, limit: filesLimit },
+          deleted,
+        );
+
+        return {
+          folders,
+          files,
+        };
+      },
+    );
+
+    return Promise.all([this.services.Folder.getById(id), childrenElementsPromise])
+      .then(([currentFolder, { folders, files }]) => {
+        if (!currentFolder || !folders || !files) {
           res.status(400).send();
         }
 
         res.status(200).json({
           ...currentFolder,
-          children: childrenFolders,
-          files: childrenFiles,
+          children: folders,
+          files,
+          finished: folders.length === 0 && files.length < limit,
         });
       })
       .catch((err) => {

@@ -320,7 +320,7 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getByFolderAndUserId = (folderId, userId, deleted = false) => {
+  const getByFolderAndUserId = (folderId, userId, pagination, deleted = false) => {
     return Model.file
       .findAll({
         where: { folderId, userId, deleted },
@@ -337,6 +337,9 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
+        order: [['plain_name', 'DESC']],
+        limit: pagination.limit,
+        offset: pagination.index,
       })
       .then((files) => {
         if (!files) {
