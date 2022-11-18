@@ -229,6 +229,7 @@ module.exports = (Model, App) => {
           [Op.eq]: folderId,
         },
         deleted,
+      },
         include: [
           {
             model: Model.thumbnail,
@@ -242,8 +243,7 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
-      },
-    });
+      });
   };
 
   const GetFoldersPagination = async (user, index) => {
