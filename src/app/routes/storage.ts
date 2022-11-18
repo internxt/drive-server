@@ -114,8 +114,9 @@ export class StorageController {
 
   public async getTree(req: Request, res: Response): Promise<void> {
     const { user } = req as PassportRequest;
+    const deleted = req.query?.trash === 'true';
 
-    return this.services.Folder.GetTree(user)
+    return this.services.Folder.GetTree(user, user.rootFolderId, deleted)
       .then((result: unknown) => {
         res.status(200).send(result);
       })
