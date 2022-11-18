@@ -337,7 +337,7 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
-        order: [['plain_name', 'DESC']],
+        order: [['plain_name', 'ASC']],
         limit: pagination.limit,
         offset: pagination.index,
       })

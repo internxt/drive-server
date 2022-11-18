@@ -276,7 +276,7 @@ export class StorageController {
 
         const nFolders = await this.services.Folder.getNumberOfDirectories(id);
 
-        const filesIndex = nFolders <= index ? limit - nFolders : 0;
+        const filesIndex = nFolders <= index ? index - nFolders : 0;
 
         const files = await this.services.Files.getByFolderAndUserId(
           id,
@@ -302,7 +302,7 @@ export class StorageController {
           ...currentFolder,
           children: folders,
           files,
-          finished: folders.length === 0 && files.length < limit,
+          finished: folders.length + files.length < limit,
         });
       })
       .catch((err) => {

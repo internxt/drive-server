@@ -364,8 +364,8 @@ describe('E2E TEST', () => {
 
         describe('Retrive folder paginated', () => {
           const MAX_ITEMS_RETURNED = 50;
-          const folders = Array(60).fill(randomFileName(10));
-          const files = Array(70).fill(randomFileName(10));
+          const folders = Array.from({ length: 60 }, () => randomFileName(10).toLocaleLowerCase());
+          const files = Array.from({ length: 70 }, () => randomFileName(10).toLocaleLowerCase());
 
           const createFixtures = async () => {
             jest.setTimeout(10000);
@@ -455,9 +455,9 @@ describe('E2E TEST', () => {
             expect(body.children).toHaveLength(30);
             expect(body.files).toHaveLength(30);
 
-            const originalTop30Files = files.sort().slice(0, 30);
-            const origianlBottom30Folders = folders.sort().slice(-30);
-
+            const originalTop30Files = [...files].sort().slice(0, 30);
+            const origianlBottom30Folders = [...folders].sort().slice(-30);
+            
             const fileNames = body.files.map((f: any) => f.plain_name);
             expect(fileNames).toStrictEqual(originalTop30Files);
 
@@ -466,30 +466,41 @@ describe('E2E TEST', () => {
           });
 
           it('returns finished true when there are no more files', async () => {
-            const limit = 2;
-            const index = folders.length + files.length - limit;
+            const index = folders.length + files.length +1;
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=${index}`)
+              .get(`/api/storage/v2/folder/${rootFolderId}?index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
-            expect(body.children).toBe([]);
-            expect(body.files).toHaveLength(limit);
+            expect(body.children).toHaveLength(0);
+            expect(body.files).toHaveLength(0);
             expect(body.finished).toBe(true);
           });
 
-          it('returns finished false when there is at least one more file', async () => {
-            const limit = 2;
-            const index = folders.length + files.length - limit - 1 ;
+          it('returns finished true when has retrived all items', async () => {
+            const limit = folders.length + files.length + 1;
+            const { body } = await request(app)
+              .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=0`)
+              .set('Authorization', `Bearer ${token}`);
+
+            expect(body.finished).toBe(true);
+          });
+
+          it('returns finished false when there can be more file', async () => {
+            const limit = 1;
+            const index = folders.length + files.length - 1;
             const { body } = await request(app)
               .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
-            expect(body.children).toBe([]);
+            const lastOriginalFile = [...files].sort().slice(-1)[0];
+            
+            expect(body.children).toHaveLength(0);
             expect(body.files).toHaveLength(limit);
+            
+            expect(body.files.slice(-1)[0].plain_name).toBe(lastOriginalFile);
+
             expect(body.finished).toBe(false);
           });
-
-          // TODO: CHECK WHY CHILDREN IS UNDEFINED BUT CHILDREN.LENTH IS OK
         });
 
         describe('Folder deletion', () => {
