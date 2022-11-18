@@ -168,7 +168,7 @@ module.exports = (Model, App) => {
     return treeSize;
   };
 
-  const GetTree = async (user, rootFolderId = null) => {
+  const GetTree = async (user, rootFolderId = null, deleted = false) => {
     const rootElements = [];
     const pendingFolders = [
       {
@@ -180,10 +180,10 @@ module.exports = (Model, App) => {
     while (pendingFolders.length) {
       const { folderId, elements } = pendingFolders.shift();
       const folder = await getFolderByFolderId(folderId);
-      folder.files = await getFilesByFolderId(folderId);
+      folder.files = await getFilesByFolderId(folderId, deleted);
       folder.children = [];
 
-      const folders = await getChildrenFoldersByFolderId(folderId);
+      const folders = await getChildrenFoldersByFolderId(folderId, deleted);
 
       folders.forEach((f) => {
         pendingFolders.push({
@@ -209,24 +209,26 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getChildrenFoldersByFolderId = (folderId) => {
+  const getChildrenFoldersByFolderId = (folderId, deleted) => {
     return Model.folder.findAll({
       raw: true,
       where: {
         parent_id: {
           [Op.eq]: folderId,
         },
+        deleted,
       },
     });
   };
 
-  const getFilesByFolderId = (folderId) => {
+  const getFilesByFolderId = (folderId, deleted) => {
     return Model.file.findAll({
       raw: true,
       where: {
         folder_id: {
           [Op.eq]: folderId,
         },
+        deleted,
         include: [
           {
             model: Model.thumbnail,
