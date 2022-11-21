@@ -252,6 +252,38 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
     const deleted = req.query?.trash === 'true';
+
+    if (Validator.isInvalidPositiveNumber(id)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+
+    return Promise.all([
+      this.services.Folder.getById(id),
+      this.services.Folder.getFolders(id, behalfUser.id, deleted),
+      this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
+    ])
+      .then(([currentFolder, childrenFolders, childrenFiles]) => {
+        if (!currentFolder || !childrenFolders || !childrenFiles) {
+          res.status(400).send();
+        }
+
+        res.status(200).json({
+          ...currentFolder,
+          children: childrenFolders,
+          files: childrenFiles,
+        });
+      })
+      .catch((err) => {
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
+
+        res.status(500).send();
+      });
+  }
+
+  public async getFolderContentsByName(req: Request, res: Response): Promise<void> {
+    const { behalfUser } = req as SharedRequest;
+    const { id } = req.params;
+    const deleted = req.query?.trash === 'true';
     const rawIndex = req.query?.index || 0;
     const rawLimit = req.query?.limit || 50;
 
@@ -268,7 +300,7 @@ export class StorageController {
     const limit = Number(rawLimit);
     const index = Number(rawIndex);
 
-    const childrenElementsPromise = this.services.Folder.getFolders(id, behalfUser.id, {index, limit }, deleted).then(
+    const childrenElementsPromise = this.services.Folder.getFolders(id, behalfUser.id, { index, limit }, deleted).then(
       async (folders: Array<FolderModel>) => {
         const filesLimit = limit - folders.length;
 
@@ -710,6 +742,13 @@ export default (router: Router, service: any) => {
     sharedAdapter,
     teamsAdapter,
     controller.getFolderContents.bind(controller),
+  );
+  router.get(
+    '/storage/name-sorted/folder/:id/:idTeam?',
+    passportAuth,
+    sharedAdapter,
+    teamsAdapter,
+    controller.getFolderContentsByName  .bind(controller),
   );
   router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
