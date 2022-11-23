@@ -306,7 +306,7 @@ module.exports = (Model, App) => {
     };
   };
 
-  const getFolders = (parentFolderId, userId, { index, limit }, deleted = false) => {
+  const getFolders = (parentFolderId, userId, { index, limit }, deleted = false, orderByName = false) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
@@ -319,8 +319,8 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
-        order: [['plain_name', 'ASC']],
-        limit: limit || 5000,
+        order: orderByName ? [['plain_name', 'ASC']] : [],
+        limit: limit,
         offset: index,
       })
       .then((folders) => {

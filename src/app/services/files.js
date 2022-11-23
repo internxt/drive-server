@@ -320,7 +320,7 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getByFolderAndUserId = (folderId, userId, pagination, deleted = false) => {
+  const getByFolderAndUserId = (folderId, userId, pagination, deleted = false, orderByName = false) => {
     return Model.file
       .findAll({
         where: { folderId, userId, deleted },
@@ -337,7 +337,7 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
-        order: [['plain_name', 'ASC']],
+        order: orderByName ? [['plain_name', 'ASC']] : [],
         limit: pagination.limit,
         offset: pagination.index,
       })
@@ -351,6 +351,31 @@ module.exports = (Model, App) => {
           return file;
         });
       });
+  };
+
+  const getPaginatedFilesWithFoldersOffset = async (
+    rootFolderId,
+    userId,
+    originalPagination,
+    folders,
+    deleted,
+    orderByName,
+  ) => {
+    const filesLimit = originalPagination.limit - folders.length;
+
+    if (filesLimit <= 0) return [];
+
+    const totalFolders = await App.services.Folder.getNumberOfDirectories(rootFolderId);
+
+    const filesIndex = totalFolders <= originalPagination.index ? originalPagination.index - totalFolders : 0;
+
+    return getByFolderAndUserId(
+      rootFolderId,
+      userId,
+      { index: filesIndex, limit: filesLimit },
+      deleted,
+      orderByName,
+    );
   };
 
   const getRecentFiles = (user, limit) => {
@@ -390,5 +415,6 @@ module.exports = (Model, App) => {
     getRecentFiles,
     getFileByFolder,
     getByFolderAndUserId,
+    getPaginatedFilesWithFoldersOffset,
   };
 };
