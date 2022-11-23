@@ -391,9 +391,12 @@ describe('E2E TEST', () => {
             await createFixtures();
           });
 
+          const getPaginatedAndNameSortedFolderContentURL = (rootFolderId: number) =>
+            `/api/storage/name-sorted/folder/${rootFolderId}?orderByName=true`;
+
           it('retrives first 50 elements when the limit is not specified', async () => {
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}`)
               .set('Authorization', `Bearer ${token}`);
 
             expect(body.children).toHaveLength(MAX_ITEMS_RETURNED);
@@ -401,12 +404,12 @@ describe('E2E TEST', () => {
             expect(body.finished).toBe(false);
           });
 
-          const indexes = [0, 10, 11, 20];
+          const indexes = [10, 11, 20];
 
           it.each(indexes)('retrives all the folders and fills the rest of the limit with files', async (index) => {
-            const limit = 70;
+            const limit = 50;
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=${index}`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&limit=${limit}&index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
             const { children, files } = body;
@@ -423,7 +426,7 @@ describe('E2E TEST', () => {
           it('retrives only the remanining files when the index is greater than the number of folders', async () => {
             const index = 100;
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=100&index=${index}`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
             expect(body.children).toHaveLength(0);
@@ -432,11 +435,11 @@ describe('E2E TEST', () => {
 
           it('retrives all elements by alphabetical order on plain_name', async () => {
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=60&index=30`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&index=30`)
               .set('Authorization', `Bearer ${token}`);
 
             expect(body.children).toHaveLength(30);
-            expect(body.files).toHaveLength(30);
+            expect(body.files).toHaveLength(20);
 
             const folderNames = body.children.map((f: any) => f.plain_name);
             const sortedFolderNames = folderNames.sort();
@@ -449,26 +452,26 @@ describe('E2E TEST', () => {
 
           it('retrives the first files after there are no more folders', async () => {
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=60&index=30`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&index=30`)
               .set('Authorization', `Bearer ${token}`);
 
             expect(body.children).toHaveLength(30);
-            expect(body.files).toHaveLength(30);
+            expect(body.files).toHaveLength(20);
 
-            const originalTop30Files = [...files].sort().slice(0, 30);
-            const origianlBottom30Folders = [...folders].sort().slice(-30);
-            
+            const originalBottom30Folders = [...folders].sort().slice(-30);
+            const originalTop20Files = [...files].sort().slice(0, 20);
+
+            const folderNames = body.children.map((f: any) => f.plain_name).sort();
+            expect(folderNames).toStrictEqual(originalBottom30Folders);
+
             const fileNames = body.files.map((f: any) => f.plain_name);
-            expect(fileNames).toStrictEqual(originalTop30Files);
-
-            const folderNames = body.children.map((f: any) => f.plain_name);
-            expect(folderNames).toStrictEqual(origianlBottom30Folders);
+            expect(fileNames).toStrictEqual(originalTop20Files);
           });
 
           it('returns finished true when there are no more files', async () => {
-            const index = folders.length + files.length +1;
+            const index = folders.length + files.length + 1;
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?index=${index}`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
             expect(body.children).toHaveLength(0);
@@ -476,27 +479,18 @@ describe('E2E TEST', () => {
             expect(body.finished).toBe(true);
           });
 
-          it('returns finished true when has retrived all items', async () => {
-            const limit = folders.length + files.length + 1;
-            const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=0`)
-              .set('Authorization', `Bearer ${token}`);
-
-            expect(body.finished).toBe(true);
-          });
-
-          it('returns finished false when there can be more file', async () => {
+          it('returns finished false when there can be more files', async () => {
             const limit = 1;
             const index = folders.length + files.length - 1;
             const { body } = await request(app)
-              .get(`/api/storage/v2/folder/${rootFolderId}?limit=${limit}&index=${index}`)
+              .get(`${getPaginatedAndNameSortedFolderContentURL(rootFolderId)}&limit=${limit}&index=${index}`)
               .set('Authorization', `Bearer ${token}`);
 
             const lastOriginalFile = [...files].sort().slice(-1)[0];
-            
+
             expect(body.children).toHaveLength(0);
             expect(body.files).toHaveLength(limit);
-            
+
             expect(body.files.slice(-1)[0].plain_name).toBe(lastOriginalFile);
 
             expect(body.finished).toBe(false);

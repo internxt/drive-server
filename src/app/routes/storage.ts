@@ -8,7 +8,7 @@ import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes, FolderModel } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
-import { FileAttributes } from '../models/file';
+import { FileAttributes, FileModel } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 
@@ -281,9 +281,11 @@ export class StorageController {
   }
 
   public async getFolderContentsByName(req: Request, res: Response): Promise<void> {
+    const MAX_ITMES_PER_PAGE = 50;
     const { behalfUser } = req as SharedRequest;
     const { id } = req.params;
     const deleted = req.query?.trash === 'true';
+    const orderByName = req.query?.orderByName;
     const rawIndex = req.query?.index || 0;
     const rawLimit = req.query?.limit || 50;
 
@@ -296,52 +298,49 @@ export class StorageController {
     if (Validator.isInvalidPositiveNumber(rawLimit)) {
       throw createHttpError(400, 'Pagination limit is not valid');
     }
-
+    
     const limit = Number(rawLimit);
     const index = Number(rawIndex);
 
-    const childrenElementsPromise = this.services.Folder.getFolders(id, behalfUser.id, { index, limit }, deleted).then(
-      async (folders: Array<FolderModel>) => {
-        const filesLimit = limit - folders.length;
+    if (limit > MAX_ITMES_PER_PAGE) {
+      throw createHttpError(400, `Pagination limit to high, the maximum is ${MAX_ITMES_PER_PAGE}`);
+    }
 
-        if (filesLimit <= 0) return { folders, files: [] };
+    try {
+      const currentFolder = await this.services.Folder.getById(id);
 
-        const nFolders = await this.services.Folder.getNumberOfDirectories(id);
+      const folders: Array<FolderModel> = await this.services.Folder.getFolders(
+        id,
+        behalfUser.id,
+        { index, limit },
+        deleted,
+        orderByName,
+      );
 
-        const filesIndex = nFolders <= index ? index - nFolders : 0;
+      const files: Array<FileModel> = await this.services.Files.getPaginatedFilesWithFoldersOffset(
+        id,
+        behalfUser.id,
+        { index, limit },
+        folders,
+        deleted,
+        orderByName,
+      );
 
-        const files = await this.services.Files.getByFolderAndUserId(
-          id,
-          behalfUser.id,
-          { index: filesIndex, limit: filesLimit },
-          deleted,
-        );
+      if (!currentFolder || !folders || !files) {
+        res.status(400).send();
+      }
 
-        return {
-          folders,
-          files,
-        };
-      },
-    );
-
-    return Promise.all([this.services.Folder.getById(id), childrenElementsPromise])
-      .then(([currentFolder, { folders, files }]) => {
-        if (!currentFolder || !folders || !files) {
-          res.status(400).send();
-        }
-
-        res.status(200).json({
-          ...currentFolder,
-          children: folders,
-          files,
-          finished: folders.length + files.length < limit,
-        });
-      })
-      .catch((err) => {
-        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
-
-        res.status(500).send();
+      res.status(200).json({
+        ...currentFolder,
+        children: folders,
+        files,
+        finished: folders.length + files.length < limit,
       });
+    } catch (err) {
+      this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+
+      res.status(500).send();
+    }
   }
 
   public async getFolderSize(req: Request, res: Response): Promise<void> {
@@ -748,7 +747,7 @@ export default (router: Router, service: any) => {
     passportAuth,
     sharedAdapter,
     teamsAdapter,
-    controller.getFolderContentsByName  .bind(controller),
+    controller.getFolderContentsByName.bind(controller),
   );
   router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
