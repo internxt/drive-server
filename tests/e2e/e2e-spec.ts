@@ -362,7 +362,47 @@ describe('E2E TEST', () => {
           });
         });
 
-        describe('Retrive folder paginated', () => {
+        describe('Retive folder content', () => {
+          const numberOfFolders = 60;
+          const numberOfFiles = 70;
+          const folders = Array.from({ length: numberOfFolders }, () => randomFileName(10).toLocaleLowerCase());
+          const files = Array.from({ length: numberOfFiles }, () => randomFileName(10).toLocaleLowerCase());
+
+          const createFixtures = async () => {
+            jest.setTimeout(10000);
+            const foldersPromise = folders.map((plainName) =>
+              createFolder(
+                {
+                  folderName: plainName,
+                  parentFolderId: rootFolderId,
+                },
+                token,
+              ),
+            );
+
+            const filesPromise = files.map((plainName) => {
+              const ecnryptedName = encryptFilename(plainName, rootFolderId);
+              return createFileOnFolder(rootFolderId, ecnryptedName, token, plainName);
+            });
+
+            await Promise.all([...foldersPromise, ...filesPromise]);
+          };
+
+          beforeEach(async () => {
+            await createFixtures();
+          });
+
+          test('retrives all folders and files at once', async () => {
+            const { body } = await request(app)
+              .get(`/api/storage/v2/folder/${rootFolderId}?orderByName=true`)
+              .set('Authorization', `Bearer ${token}`);
+
+            expect(body.children).toHaveLength(numberOfFolders);
+            expect(body.files).toHaveLength(numberOfFiles);
+          });
+        });
+
+        describe('Retrive folder content paginated by name', () => {
           const MAX_ITEMS_RETURNED = 50;
           const folders = Array.from({ length: 60 }, () => randomFileName(10).toLocaleLowerCase());
           const files = Array.from({ length: 70 }, () => randomFileName(10).toLocaleLowerCase());
