@@ -743,7 +743,7 @@ export default (router: Router, service: any) => {
     controller.getFolderContents.bind(controller),
   );
   router.get(
-    '/storage/name-sorted/folder/:id/:idTeam?',
+    '/storage/folder/:id/files',
     passportAuth,
     sharedAdapter,
     teamsAdapter,

@@ -392,7 +392,7 @@ describe('E2E TEST', () => {
           });
 
           const getPaginatedAndNameSortedFolderContentURL = (rootFolderId: number) =>
-            `/api/storage/name-sorted/folder/${rootFolderId}?orderByName=true`;
+            `/api/storage/folder/${rootFolderId}/files?orderByName=true`;
 
           it('retrives first 50 elements when the limit is not specified', async () => {
             const { body } = await request(app)
