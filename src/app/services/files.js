@@ -2,6 +2,8 @@ const sequelize = require('sequelize');
 const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
+import { FileCannotBeCreated } from './errors/files';
+import { UserHasNoOwnershipError } from './errors/auth';
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -21,7 +23,7 @@ module.exports = (Model, App) => {
       })
       .then(async (folder) => {
         if (!folder) {
-          throw Error('Folder not found / Is not your folder');
+          throw new UserHasNoOwnershipError('Folder not found / Is not your folder');
         }
 
         const fileExists = await Model.file.findOne({
@@ -35,7 +37,7 @@ module.exports = (Model, App) => {
         });
 
         if (fileExists) {
-          throw Error('File entry already exists');
+          throw new FileCannotBeCreated('File with the same name already exists');
         }
 
         const fileInfo = {
