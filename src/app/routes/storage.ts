@@ -14,6 +14,7 @@ import { LockNotAvaliableError } from '../services/errors/locks';
 import { HttpStatus } from '@nestjs/common';
 import { FileCannotBeCreated } from '../services/errors/files';
 import { UserHasNoOwnershipError } from '../services/errors/auth';
+import { FolderCannotBeCreatedError, InvalidFolderDataError } from '../services/errors/folders';
 
 interface Services {
   Files: any;
@@ -93,7 +94,6 @@ export class StorageController {
 
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
         error: err.message,
-        stack: err.stack,
       });
     }
   }
@@ -112,7 +112,9 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
-    const parentFolder = await this.services.Folder.getById(parentFolderId);
+    const parentFolder = await this.services.Folder.getById(parentFolderId).catch(() => {
+      throw createHttpError(403, 'Parent folder does not exists');
+    });
 
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
@@ -133,6 +135,24 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+
+        if (err instanceof FolderCannotBeCreatedError) {
+          res.status(HttpStatus.CONFLICT).send({ error: err.message }).end();
+        }
+
+        if (err instanceof InvalidFolderDataError) {
+          res.status(HttpStatus.BAD_REQUEST).send({ error: err.message }).end();
+        }
+
+        if (err instanceof UserHasNoOwnershipError) {
+          res
+            .status(HttpStatus.FORBIDDEN)
+            .send({
+              error: err.message,
+            })
+            .end();
+        }
+
         res.status(500).send();
       });
   }

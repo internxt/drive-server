@@ -6,6 +6,9 @@ const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { LockNotAvaliableError } from './errors/locks';
+import { InvalidFolderDataError } from './errors/folders';
+import { FolderCannotBeCreatedError } from './errors/folders';
+import { UserHasNoOwnershipError } from './errors/auth';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -28,7 +31,7 @@ module.exports = (Model, App) => {
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
-      throw Error('Invalid parent folder');
+      throw new InvalidFolderDataError('Invalid parent folder');
     }
     // parent folder is yours?
     const whereCondition = { where: null };
@@ -57,11 +60,11 @@ module.exports = (Model, App) => {
     const existsParentFolder = await Model.folder.findOne({ whereCondition });
 
     if (!existsParentFolder) {
-      throw Error('Parent folder is not yours');
+      throw new UserHasNoOwnershipError('Parent folder is not yours');
     }
 
     if (folderName === '' || invalidName.test(folderName)) {
-      throw Error('Invalid folder name');
+      throw new InvalidFolderDataError('Invalid folder name');
     }
 
     if (user.mnemonic === 'null') {
@@ -83,7 +86,7 @@ module.exports = (Model, App) => {
       // TODO: If the folder already exists,
       // return the folder data to make desktop
       // incorporate new info to its database
-      throw Error('Folder with the same name already exists');
+      throw new FolderCannotBeCreatedError('Folder with the same name already exists');
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
