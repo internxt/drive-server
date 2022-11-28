@@ -271,7 +271,7 @@ module.exports = (Model, App) => {
     const folders = await Model.folder.findAll({
       where: { user_id: { [Op.eq]: userObject.id } },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
-      order: [['id', 'DESC']],
+      order: [['plain_name', 'DESC']],
       include: [
         {
           model: Model.shares,
@@ -306,7 +306,7 @@ module.exports = (Model, App) => {
     };
   };
 
-  const getFolders = (parentFolderId, userId, deleted = false) => {
+  const getFolders = (parentFolderId, userId, { index, limit }, deleted = false, orderByName = false) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
@@ -319,6 +319,9 @@ module.exports = (Model, App) => {
             required: false,
           },
         ],
+        order: orderByName ? [['plain_name', 'ASC']] : [],
+        limit: limit,
+        offset: index,
       })
       .then((folders) => {
         if (!folders) {
@@ -616,7 +619,7 @@ module.exports = (Model, App) => {
       ],
       offset,
       limit,
-      order: [['id', 'ASC']],
+      order: [['name', 'ASC']],
     });
 
     const files = [];
@@ -722,6 +725,12 @@ module.exports = (Model, App) => {
     return { folders, last: limit > rawFolders.length };
   };
 
+  const getNumberOfDirectories = async (parentFolderId) => {
+    return Model.folder.count({
+      where: { parentId: parentFolderId },
+    });
+  };
+
   return {
     Name: 'Folder',
     getById,
@@ -745,5 +754,6 @@ module.exports = (Model, App) => {
     getDirectoryFolders,
     getUserDirectoryFiles,
     getUserDirectoryFolders,
+    getNumberOfDirectories,
   };
 };

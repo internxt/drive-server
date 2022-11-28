@@ -5,10 +5,10 @@ import { UserAttributes } from '../models/user';
 import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
 import createHttpError, { HttpError } from 'http-errors';
-import { FolderAttributes } from '../models/folder';
+import { FolderAttributes, FolderModel } from '../models/folder';
 import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
-import { FileAttributes } from '../models/file';
+import { FileAttributes, FileModel } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 
@@ -274,10 +274,73 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
 
         res.status(500).send();
       });
+  }
+
+  public async getFolderContentsByName(req: Request, res: Response): Promise<void> {
+    const MAX_ITMES_PER_PAGE = 50;
+    const { behalfUser } = req as SharedRequest;
+    const { id } = req.params;
+    const deleted = req.query?.trash === 'true';
+    const orderByName = req.query?.orderByName;
+    const rawIndex = req.query?.index || 0;
+    const rawLimit = req.query?.limit || 50;
+
+    if (Validator.isInvalidPositiveNumber(id)) {
+      throw createHttpError(400, 'Folder ID is not valid');
+    }
+    if (Validator.isInvalidUnsignedNumber(rawIndex)) {
+      throw createHttpError(400, 'Pagination index is not valid');
+    }
+    if (Validator.isInvalidPositiveNumber(rawLimit)) {
+      throw createHttpError(400, 'Pagination limit is not valid');
+    }
+    
+    const limit = Number(rawLimit);
+    const index = Number(rawIndex);
+
+    if (limit > MAX_ITMES_PER_PAGE) {
+      throw createHttpError(400, `Pagination limit to high, the maximum is ${MAX_ITMES_PER_PAGE}`);
+    }
+
+    try {
+      const currentFolder = await this.services.Folder.getById(id);
+
+      const folders: Array<FolderModel> = await this.services.Folder.getFolders(
+        id,
+        behalfUser.id,
+        { index, limit },
+        deleted,
+        orderByName,
+      );
+
+      const files: Array<FileModel> = await this.services.Files.getPaginatedFilesWithFoldersOffset(
+        id,
+        behalfUser.id,
+        { index, limit },
+        folders,
+        deleted,
+        orderByName,
+      );
+
+      if (!currentFolder || !folders || !files) {
+        res.status(400).send();
+      }
+
+      res.status(200).json({
+        ...currentFolder,
+        children: folders,
+        files,
+        finished: folders.length + files.length < limit,
+      });
+    } catch (err) {
+      this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}`);
+
+      res.status(500).send();
+    }
   }
 
   public async getFolderSize(req: Request, res: Response): Promise<void> {
@@ -678,6 +741,13 @@ export default (router: Router, service: any) => {
     sharedAdapter,
     teamsAdapter,
     controller.getFolderContents.bind(controller),
+  );
+  router.get(
+    '/storage/folder/:id/files',
+    passportAuth,
+    sharedAdapter,
+    teamsAdapter,
+    controller.getFolderContentsByName.bind(controller),
   );
   router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
