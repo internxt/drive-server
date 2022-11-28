@@ -11,6 +11,10 @@ import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
+import { HttpStatus } from '@nestjs/common';
+import { FileCannotBeCreated } from '../services/errors/files';
+import { UserHasNoOwnershipError } from '../services/errors/auth';
+import { FolderCannotBeCreatedError, InvalidFolderDataError } from '../services/errors/folders';
 
 interface Services {
   Files: any;
@@ -40,7 +44,6 @@ export class StorageController {
   public async createFile(req: Request, res: Response) {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
-    const internxtClient = req.headers['internxt-client'];
     const clientId = String(req.headers['internxt-client-id']);
 
     if (!file.fileId && file.file_id) {
@@ -54,23 +57,45 @@ export class StorageController {
       );
       return res.status(400).json({ error: 'Invalid metadata for new file' });
     }
+    try {
+      const result = await this.services.Files.CreateFile(behalfUser, file);
+      res.status(200).json(result).end();
 
-    const result = await this.services.Files.CreateFile(behalfUser, file);
+      const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
-    res.status(200).json(result);
+      workspaceMembers.forEach(
+        ({ email }: { email: string }) =>
+          void this.services.Notifications.fileCreated({
+            file: result,
+            email: email,
+            clientId: clientId,
+          }),
+      );
 
-    const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
+      this.services.Analytics.trackUploadCompleted(req, behalfUser);
+    } catch (err: any) {
+      if (err instanceof UserHasNoOwnershipError) {
+        res
+          .status(HttpStatus.FORBIDDEN)
+          .send({
+            error: err.message,
+          })
+          .end();
+      }
 
-    workspaceMembers.forEach(
-      ({ email }: { email: string }) =>
-        void this.services.Notifications.fileCreated({
-          file: result,
-          email: email,
-          clientId: clientId,
-        }),
-    );
+      if (err instanceof FileCannotBeCreated) {
+        res
+          .status(HttpStatus.CONFLICT)
+          .send({
+            error: err.message,
+          })
+          .end();
+      }
 
-    this.services.Analytics.trackUploadCompleted(req, behalfUser);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).send({
+        error: err.message,
+      });
+    }
   }
 
   public async createFolder(req: Request, res: Response): Promise<void> {
@@ -87,7 +112,9 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
-    const parentFolder = await this.services.Folder.getById(parentFolderId);
+    const parentFolder = await this.services.Folder.getById(parentFolderId).catch(() => {
+      throw createHttpError(403, 'Parent folder does not exists');
+    });
 
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
@@ -108,6 +135,24 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+
+        if (err instanceof FolderCannotBeCreatedError) {
+          res.status(HttpStatus.CONFLICT).send({ error: err.message }).end();
+        }
+
+        if (err instanceof InvalidFolderDataError) {
+          res.status(HttpStatus.BAD_REQUEST).send({ error: err.message }).end();
+        }
+
+        if (err instanceof UserHasNoOwnershipError) {
+          res
+            .status(HttpStatus.FORBIDDEN)
+            .send({
+              error: err.message,
+            })
+            .end();
+        }
+
         res.status(500).send();
       });
   }
