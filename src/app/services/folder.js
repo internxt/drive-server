@@ -227,20 +227,20 @@ module.exports = (Model, App) => {
         folder_id: {
           [Op.eq]: folderId,
         },
-        include: [
-          {
-            model: Model.thumbnail,
-            as: 'thumbnails',
-            required: false,
-          },
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
       },
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
     });
   };
 
