@@ -25,6 +25,30 @@ module.exports = (Model, App) => {
       });
   };
 
+  const getByIdAndUserIds = async (id, userIds = []) => {
+    const folder = await Model.folder
+      .findOne({
+        where: { id },
+        raw: true,
+      });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    const ownedFolder = userIds.some(userId => {
+      return userId === folder.userId;
+    });
+
+    if (!ownedFolder) {
+      throw new Error('Folder not owned');
+    }
+
+    folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+
+    return folder;
+  };
+
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null) => {
     if (parentFolderId >= 2147483648) {
@@ -753,6 +777,7 @@ module.exports = (Model, App) => {
     releaseLock,
     refreshLock,
     acquireOrRefreshLock,
+    getByIdAndUserIds,
     getDirectoryFiles,
     getDirectoryFolders,
     getUserDirectoryFiles,
