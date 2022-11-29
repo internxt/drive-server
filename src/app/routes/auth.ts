@@ -105,14 +105,14 @@ export class AuthController {
 
   private logReferralError(userId: unknown, err: Error) {
     if (!err.message) {
-      return this.logger.error('[STORAGE]: ERROR message undefined applying referral for user %s', userId);
+      return this.logger.error(`[STORAGE]: ERROR message undefined applying referral for user ${userId}`);
     }
 
     if (err instanceof ReferralsNotAvailableError) {
       return;
     }
 
-    return this.logger.error('[STORAGE]: ERROR applying referral for user %s: %s', userId, err.message);
+    return this.logger.error(`[STORAGE]: ERROR applying referral for user ${userId}: ${err.message}`);
   }
 
   async access(req: Request, res: Response) {
