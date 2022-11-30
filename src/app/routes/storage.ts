@@ -11,6 +11,7 @@ import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
+import { ConnectionTimedOutError } from 'sequelize';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -291,6 +292,10 @@ export class StorageController {
         }
 
         this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
+
+        if (err instanceof ConnectionTimedOutError) {
+          return res.status(504).send();
+        }
 
         res.status(500).send();
       });
