@@ -294,7 +294,7 @@ export class StorageController {
         this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
 
         if (err instanceof ConnectionTimedOutError) {
-          res.status(504).send();
+          return res.status(504).send();
         }
 
         res.status(500).send();
