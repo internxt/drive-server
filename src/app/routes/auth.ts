@@ -151,7 +151,7 @@ export class AuthController {
     }
 
     const internxtClient = req.headers['internxt-client'];
-    const token = Sign(userData.email, this.config.get('secrets').JWT, internxtClient === 'drive-web');
+    const token = Sign(userData.email, this.config.get('secrets').JWT, true);
     this.service.User.LoginFailed(req.body.email, false);
 
     this.service.User.UpdateAccountActivity(req.body.email);
