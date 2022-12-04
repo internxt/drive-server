@@ -146,6 +146,10 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
+        if (err.message === 'Forbidden') {
+          return res.status(403).send({ error: err.message });
+        }
+
         this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
         res.status(500).send();
       });

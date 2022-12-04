@@ -205,6 +205,12 @@ module.exports = (Model, App) => {
     while (pendingFolders.length) {
       const { folderId, elements } = pendingFolders.shift();
       const folder = await getFolderByFolderId(folderId);
+      const folderNotOwned = !(folder.userId === user.id);
+
+      if (folderNotOwned) {
+        throw new Error('Forbidden');
+      }
+
       folder.files = await getFilesByFolderId(folderId, deleted);
       folder.children = [];
 
