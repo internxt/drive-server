@@ -159,7 +159,17 @@ module.exports = (Model, App) => {
       throw Error('Token does not exist');
     }
 
-    return App.services.Folder.getDirectoryFolders(directoryId, offset, limit);
+    const sharedFolders = await App.services.Folder
+      .getDirectoryFolders(directoryId, offset, limit);
+
+    if (sharedFolders.folders && sharedFolders.folders.length > 0) {
+      const [firstFolder] = sharedFolders.folders;
+      if (firstFolder.userId !== share.userId) {
+        throw new Error('Forbidden');
+      }
+    }
+
+    return sharedFolders;
   };
 
   /**
