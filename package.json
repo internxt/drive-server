@@ -78,7 +78,7 @@
     "@types/express-request-id": "^1.4.3",
     "@types/geoip-lite": "^1.4.1",
     "@types/http-errors": "^1.8.1",
-    "@types/ioredis": "^4.28.1",
+    "@types/ioredis": "^5.0.0",
     "@types/jest": "^28.1.6",
     "@types/jsonwebtoken": "^8.5.5",
     "@types/lodash": "^4.14.182",
