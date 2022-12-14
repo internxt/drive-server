@@ -1,15 +1,15 @@
-import IORedis, { Redis as Rediss, RedisOptions } from 'ioredis';
+import IORedis, { Redis as RedisInstance, RedisOptions } from 'ioredis';
 import Logger from '../../lib/logger';
 
 export default class Redis {
-  private static instance: Rediss;
+  private static instance: RedisInstance;
   private static readonly LOCK_EXPIRATION_IN_SECONDS = 30;
 
   constructor() {
     Redis.getInstance();
   }
 
-  static getInstance(): Rediss {
+  static getInstance(): RedisInstance {
     if (Redis.instance) {
       return Redis.instance;
     }
