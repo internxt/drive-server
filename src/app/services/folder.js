@@ -612,8 +612,8 @@ module.exports = (Model, App) => {
   };
 
   const releaseLock = async (userId, folderId, lockId) => {
-    const redis = Redis.getInstance();
-    const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
+    Redis.getInstance();
+    const res = await Redis.releaseLock(`${userId}-${folderId}`, lockId);
 
     if (!res) throw new LockNotAvaliableError(folderId);
   };
@@ -625,7 +625,7 @@ module.exports = (Model, App) => {
       logger.warn('Redis is not ready to accept commands');
     }
 
-    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+    const res = await Redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
 
     if (!res) throw new LockNotAvaliableError(folderId);
   };

@@ -616,7 +616,7 @@ export class StorageController {
       .catch((err: any) => {
         if (err instanceof LockNotAvaliableError) res.status(409).end();
 
-        this.logger.error('Error adquiring or refreshing a lock', err.message);
+        this.logger.error('Error adquiring or refreshing a lock', err);
         res.sendStatus(500);
       });
   }
