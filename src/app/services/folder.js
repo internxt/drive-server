@@ -276,7 +276,7 @@ module.exports = (Model, App) => {
       });
   };
 
-  const GetFoldersPagination = async (user, index) => {
+  const GetFoldersPagination = async (user, index, filterOptions) => {
     let userObject = user.get({ plain: true });
 
     const isSharedWorkspace = user.bridgeUser !== user.email;
@@ -301,7 +301,7 @@ module.exports = (Model, App) => {
       throw new Error('root folder does not exists');
     }
     const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id } },
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
       order: [['id', 'DESC']],
       limit: 5000,
