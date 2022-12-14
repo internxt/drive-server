@@ -212,10 +212,14 @@ export class ShareController {
     }
 
     return this.services.Share.getSharedDirectoryFolders(directoryId, Number(offset), Number(limit), token)
-      .then((results: unknown) => {
+      .then((results: { folders: unknown[], last: boolean }) => {
         res.status(200).json(results);
       })
       .catch((err: Error) => {
+        if (err.message === 'Forbidden') {
+          return res.status(403).send({ error: err.message });
+        }
+
         res.status(500).json({
           error: err.message,
         });

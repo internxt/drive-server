@@ -11,7 +11,9 @@ import Validator from '../../lib/Validator';
 import { FileAttributes, FileModel } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
+import { ConnectionTimedOutError } from 'sequelize';
 
+type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
   Files: any;
   Thumbnails: any;
@@ -114,8 +116,9 @@ export class StorageController {
 
   public async getTree(req: Request, res: Response): Promise<void> {
     const { user } = req as PassportRequest;
+    const deleted = req.query?.trash === 'true';
 
-    return this.services.Folder.GetTree(user)
+    return this.services.Folder.GetTree(user, user.rootFolderId, deleted)
       .then((result: unknown) => {
         res.status(200).send(result);
       })
@@ -143,6 +146,10 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
+        if (err.message === 'Forbidden') {
+          return res.status(403).send({ error: err.message });
+        }
+
         this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
         res.status(500).send();
       });
@@ -257,8 +264,14 @@ export class StorageController {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
-    return Promise.all([
-      this.services.Folder.getById(id),
+    await Promise.all([
+      this.services.Folder.getByIdAndUserIds(
+        id, 
+        [
+          behalfUser.id,
+          (req as AuthorizedRequest).user.id
+        ]
+      ),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
@@ -274,7 +287,19 @@ export class StorageController {
         });
       })
       .catch((err) => {
+        if (err.message === 'Folder not found') {
+          return res.status(404).send({ error: err.message });
+        }
+
+        if (err.message === 'Folder not owned') {
+          return res.status(403).send({ error: err.message });
+        }
+
         this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
+
+        if (err instanceof ConnectionTimedOutError) {
+          return res.status(504).send();
+        }
 
         res.status(500).send();
       });
@@ -591,7 +616,7 @@ export class StorageController {
       .catch((err: any) => {
         if (err instanceof LockNotAvaliableError) res.status(409).end();
 
-        this.logger.error('Error adquiring or refreshing a lock', err.message);
+        this.logger.error('Error adquiring or refreshing a lock', err);
         res.sendStatus(500);
       });
   }

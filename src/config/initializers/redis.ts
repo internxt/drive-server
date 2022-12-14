@@ -1,21 +1,30 @@
-import IORedis from 'ioredis';
+import IORedis, { Redis as RedisInstance, RedisOptions } from 'ioredis';
 import Logger from '../../lib/logger';
 
 export default class Redis {
-  private static instance: IORedis.Redis;
+  private static instance: RedisInstance;
+  private static readonly LOCK_EXPIRATION_IN_SECONDS = 30;
 
-  static getInstance(): IORedis.Redis {
+  constructor() {
+    Redis.getInstance();
+  }
+
+  static getInstance(): RedisInstance {
     if (Redis.instance) {
       return Redis.instance;
     }
 
-    const config = {
-      host: process.env.REDIS_HOST,
-      password: process.env.REDIS_PASSWORD,
-      enableAutoPipelining: true
+    const config: RedisOptions = {
+      enableAutoPipelining: true,
     };
 
-    Redis.instance = new IORedis(config);
+    const uri = process.env.REDIS_CONNECTION_STRING;
+
+    if(!uri) {
+      throw new Error('[CONFIG]: REDIS_CONNECTION_STRING is missing');
+    }
+
+    Redis.instance = new IORedis(uri, config);
 
     const logger = Logger.getInstance();
 
@@ -25,40 +34,29 @@ export default class Redis {
     Redis.instance.on('reconnecting', () => logger.info('Reconnecting to redis'));
     Redis.instance.on('close', () => logger.warn('Redis connection was closed'));
 
-    Redis.instance.defineCommand('refreshLock', {
-      numberOfKeys: 1,
-      lua: `if redis.call("get", KEYS[1]) == ARGV[1]
-            then 
-              return redis.call("expire", KEYS[1], 15)
-            else
-              return 0
-            end`,
-    });
-
-    Redis.instance.defineCommand('releaseLock', {
-      numberOfKeys: 1,
-      lua: `if redis.call("get", KEYS[1]) == ARGV[1]
-            then 
-              return redis.call("del", KEYS[1])
-            else
-              return 0
-            end`,
-    });
-
-    Redis.instance.defineCommand('acquireOrRefreshLock', {
-      numberOfKeys: 1,
-      lua: `local current = redis.call("get", KEYS[1]);
-
-            if current == false then
-              return redis.call("set", KEYS[1], ARGV[1], "EX", 30, "NX");
-            elseif current == ARGV[1] then
-              return redis.call("expire", KEYS[1], 30);
-            else 
-              return 0;
-            end
-            `,
-    });
-
     return Redis.instance;
+  }
+
+  static async releaseLock(key: string) {
+    const r = Redis.instance;
+
+    const v = await r.get(key);
+
+    if (v !== null) {
+      return r.del(key);
+    }
+  }
+
+  static async acquireOrRefreshLock(key: string, lock: string) {
+    const r = Redis.instance;
+    const value = await r.get(key);
+
+    if (!value) {
+      return r.set(key, lock, 'EX', Redis.LOCK_EXPIRATION_IN_SECONDS, 'NX');
+    } else if (value === lock) {
+      return r.expire(key, Redis.LOCK_EXPIRATION_IN_SECONDS);
+    } else {
+      return 0;
+    }
   }
 }

@@ -15,11 +15,13 @@ module.exports = (Router, Service) => {
   Router.get('/desktop/list/:index', passportAuth, (req, res) => {
     const { user } = req;
     const index = parseInt(req.params.index, 10);
+    const deleted = req.query?.trash === 'true';
+
     if (Number.isNaN(index)) {
       return res.status(400).send({ error: 'Bad Index' });
     }
 
-    return Service.Folder.GetFoldersPagination(user, index)
+    return Service.Folder.GetFoldersPagination(user, index, { deleted })
       .then((result) => {
         res.status(200).send(result);
       })

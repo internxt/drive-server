@@ -14,6 +14,7 @@ interface ShareAttributes {
   is_folder: boolean;
   active: boolean;
   hashed_password: string;
+  userId: string;
 }
 
 export type ShareModel = ModelDefined<ShareAttributes, ShareAttributes>;
@@ -71,6 +72,9 @@ export default (database: Sequelize): ShareModel => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      userId: {
+        type:  DataTypes.INTEGER
+      }
     },
     {
       underscored: true,

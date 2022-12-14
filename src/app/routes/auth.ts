@@ -53,13 +53,9 @@ export class AuthController {
       }
 
       this.logger.error(
-        `[AUTH/REGISTER] ERROR: ${
-          (err as Error).message
-        }, BODY ${
-          JSON.stringify(req.body)
-        }, STACK: ${
+        `[AUTH/REGISTER] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(req.body)}, STACK: ${
           (err as Error).stack
-        }`
+        }`,
       );
 
       res.sendStatus(500);
@@ -91,17 +87,17 @@ export class AuthController {
 
     const hasKeys = await this.service.KeyServer.keysExists(user);
 
-    try { 
-      // TODO: If user has referrals, then apply. Do not catch everything
-      if (internxtClient === 'drive-mobile') {
-        this.service.UsersReferrals.applyUserReferral(user.id, 'install-mobile-app');
-      }
+    // TODO: If user has referrals, then apply. Do not catch everything
+    if (internxtClient === 'drive-mobile') {
+      this.service.UsersReferrals.applyUserReferral(user.id, 'install-mobile-app').catch((err: Error) => {
+        this.logReferralError(user.id, err);
+      });
+    }
 
-      if (internxtClient === 'drive-desktop') {
-        this.service.UsersReferrals.applyUserReferral(user.id, 'install-desktop-app');
-      }
-    } catch (err) {
-      this.logReferralError(user.id, err as Error);
+    if (internxtClient === 'drive-desktop') {
+      this.service.UsersReferrals.applyUserReferral(user.id, 'install-desktop-app').catch((err: Error) => {
+        this.logReferralError(user.id, err);
+      });
     }
 
     res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
@@ -155,7 +151,7 @@ export class AuthController {
     }
 
     const internxtClient = req.headers['internxt-client'];
-    const token = Sign(userData.email, this.config.get('secrets').JWT, internxtClient === 'drive-web');
+    const token = Sign(userData.email, this.config.get('secrets').JWT, true);
     this.service.User.LoginFailed(req.body.email, false);
 
     this.service.User.UpdateAccountActivity(req.body.email);
@@ -219,8 +215,6 @@ export class AuthController {
     // }
     return res.status(200).json({ user, token, userTeam, newToken });
   }
-
-
 
   async getNewToken(req: Request, res: Response) {
     const authRequest = req as Request & { user: UserAttributes };
