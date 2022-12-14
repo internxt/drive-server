@@ -10,7 +10,7 @@ import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
-import { LockNotAvaliableError } from '../services/errors/locks';
+import { LockNotAvaliableError, RedisCommandError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
@@ -265,13 +265,7 @@ export class StorageController {
     }
 
     await Promise.all([
-      this.services.Folder.getByIdAndUserIds(
-        id, 
-        [
-          behalfUser.id,
-          (req as AuthorizedRequest).user.id
-        ]
-      ),
+      this.services.Folder.getByIdAndUserIds(id, [behalfUser.id, (req as AuthorizedRequest).user.id]),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
@@ -531,7 +525,14 @@ export class StorageController {
         res.status(200).end();
       })
       .catch((err: any) => {
-        if (err instanceof LockNotAvaliableError) res.status(404).end();
+        if (err instanceof LockNotAvaliableError) {
+          res.sendStatus(409).end();
+          return;
+        }
+        if (err instanceof RedisCommandError) {
+          res.sendStatus(503).end();
+          return;
+        }
 
         this.logger.error('Error releasing a lock', err.message);
         res.status(500).end();
@@ -551,7 +552,14 @@ export class StorageController {
         res.status(200).end();
       })
       .catch((err: any) => {
-        if (err instanceof LockNotAvaliableError) res.status(409).end();
+        if (err instanceof LockNotAvaliableError) {
+          res.sendStatus(409).end();
+          return;
+        }
+        if (err instanceof RedisCommandError) {
+          res.sendStatus(503).end();
+          return;
+        }
 
         this.logger.error('Error adquiring or refreshing a lock', err.message);
         res.sendStatus(500);

@@ -5,7 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
-import { LockNotAvaliableError } from './errors/locks';
+import { LockNotAvaliableError, RedisCommandError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -26,17 +26,16 @@ module.exports = (Model, App) => {
   };
 
   const getByIdAndUserIds = async (id, userIds = []) => {
-    const folder = await Model.folder
-      .findOne({
-        where: { id },
-        raw: true,
-      });
+    const folder = await Model.folder.findOne({
+      where: { id },
+      raw: true,
+    });
 
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    const ownedFolder = userIds.some(userId => {
+    const ownedFolder = userIds.some((userId) => {
       return userId === folder.userId;
     });
 
@@ -260,20 +259,20 @@ module.exports = (Model, App) => {
         },
         deleted,
       },
-        include: [
-          {
-            model: Model.thumbnail,
-            as: 'thumbnails',
-            required: false,
-          },
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
-      });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
+    });
   };
 
   const GetFoldersPagination = async (user, index) => {
@@ -357,16 +356,18 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-      },
-    }).then((folder) => {
-      if (!folder) {
-        throw Error('Folder not found on database, please refresh');
-      }
-      return folder;
-    });
+    return Model.folder
+      .findOne({
+        where: {
+          id: { [Op.eq]: folderId },
+        },
+      })
+      .then((folder) => {
+        if (!folder) {
+          throw Error('Folder not found on database, please refresh');
+        }
+        return folder;
+      });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -389,12 +390,13 @@ module.exports = (Model, App) => {
       },
       (next) => {
         // Get the target folder from database
-        Model.folder.findOne({
-          where: {
-            id: { [Op.eq]: folderId },
-            user_id: { [Op.eq]: user.id },
-          },
-        })
+        Model.folder
+          .findOne({
+            where: {
+              id: { [Op.eq]: folderId },
+              user_id: { [Op.eq]: user.id },
+            },
+          })
           .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
@@ -408,13 +410,14 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder.findOne({
-            where: {
-              parentId: { [Op.eq]: folder.parentId },
-              name: { [Op.eq]: cryptoFolderName },
-              deleted: { [Op.eq]: false },
-            },
-          })
+          Model.folder
+            .findOne({
+              where: {
+                parentId: { [Op.eq]: folder.parentId },
+                name: { [Op.eq]: cryptoFolderName },
+                deleted: { [Op.eq]: false },
+              },
+            })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
@@ -587,7 +590,15 @@ module.exports = (Model, App) => {
   const acquireLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
-    const res = await redis.set(`${userId}-${folderId}`, lockId, 'EX', 15, 'NX');
+    const res = await redis.set(`${userId}-${folderId}`, lockId, 'EX', 15, 'NX').catch((err) => {
+      logger.error(`[REDIS] ${err}`);
+      throw new RedisCommandError({
+        action: 'ADQUIRE',
+        userId,
+        folderId,
+        lockId,
+      });
+    });
 
     if (!res) throw new Error();
   };
@@ -595,14 +606,30 @@ module.exports = (Model, App) => {
   const refreshLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
 
-    const res = await redis.refreshLock(`${userId}-${folderId}`, lockId);
+    const res = await redis.refreshLock(`${userId}-${folderId}`, lockId).catch((err) => {
+      logger.error(`[REDIS] ${err}`);
+      throw new RedisCommandError({
+        action: 'REFRESH',
+        userId,
+        folderId,
+        lockId,
+      });
+    });
 
     if (!res) throw new Error();
   };
 
   const releaseLock = async (userId, folderId, lockId) => {
     const redis = Redis.getInstance();
-    const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
+    const res = await redis.releaseLock(`${userId}-${folderId}`, lockId).catch((err) => {
+      logger.error(`[REDIS] ${err}`);
+      throw new RedisCommandError({
+        action: 'RELEASE',
+        userId,
+        folderId,
+        lockId,
+      });
+    });
 
     if (!res) throw new LockNotAvaliableError(folderId);
   };
@@ -614,7 +641,15 @@ module.exports = (Model, App) => {
       logger.warn('Redis is not ready to accept commands');
     }
 
-    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId).catch((err) => {
+      logger.error(`[REDIS] ${err}`);
+      throw new RedisCommandError({
+        action: 'ADQUIRE_OR_REFRESH',
+        userId,
+        folderId,
+        lockId,
+      });
+    });
 
     if (!res) throw new LockNotAvaliableError(folderId);
   };
