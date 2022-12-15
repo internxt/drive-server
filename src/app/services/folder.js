@@ -309,7 +309,7 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id },
+      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id, deleted: filterOptions.deleted || false },
       include: [
         {
           model: Model.thumbnail,
