@@ -30,7 +30,7 @@
     "http-errors": "^1.8.0",
     "inxt-service-mailer": "internxt/mailer",
     "ioredis": "^5.2.4",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "lodash": "^4.17.15",
     "mariadb": "^2.5.2",
     "memory-cache": "^0.2.0",
