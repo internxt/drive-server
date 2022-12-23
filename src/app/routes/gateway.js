@@ -121,4 +121,20 @@ module.exports = (Router, Service) => {
 
     res.status(200).send(session);
   });
+
+  Router.get('/gateway/files/:fileId', basicAuth, async (req, res) => {
+    const fileId = req.params.fileId;
+
+    try {
+      const file = await Service.Files.getFileByFileId(fileId);
+
+      res.status(200).send(file);
+    } catch (err) {
+      if (err.message === 'File not found') {
+        return res.status(404).send({ error: err.message });
+      }
+      Logger.error('[Gateway]: Failed to get file :%s', fileId, err.message);
+      res.status(500).send({ error: err.message });
+    }
+  });
 };
