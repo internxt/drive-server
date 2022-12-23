@@ -381,6 +381,18 @@ module.exports = (Model, App) => {
       });
   };
 
+  const getFileByFileId = async (fileId) => {
+    const file = await Model.file.findOne({
+      where: {
+        file_id: { [Op.eq]: fileId },
+      },
+    });
+
+    if (file) return file;
+
+    throw new Error('File not found');
+  };
+
   return {
     Name: 'Files',
     CreateFile,
@@ -392,5 +404,6 @@ module.exports = (Model, App) => {
     getRecentFiles,
     getFileByFolder,
     getByFolderAndUserId,
+    getFileByFileId,
   };
 };
