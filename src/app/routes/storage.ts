@@ -459,6 +459,7 @@ export class StorageController {
         this.services.Analytics.trackFileDeleted(req);
       })
       .catch((err: Error) => {
+        this.logger.error(`[STORAGE]: Error deleting file ${fileid} for user ${user.uuid} : ${err.message}`);
         res.status(500).json({ error: err.message });
       });
   }
