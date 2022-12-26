@@ -36,11 +36,11 @@ class DailyInvitationUsersLimitReached extends Error {
   }
 }
 
-class DailyEmiailVerificationLimitReached extends Error {
+class DailyEmailVerificationLimitReached extends Error {
   constructor() {
-    super('Mail invitation daily limit reached');
+    super('Mail verification daily limit reached');
 
-    Object.setPrototypeOf(this, DailyEmiailVerificationLimitReached.prototype);
+    Object.setPrototypeOf(this, DailyEmailVerificationLimitReached.prototype);
   }
 }
 
@@ -735,7 +735,7 @@ module.exports = (Model, App) => {
     });
 
     if (mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
-      throw new DailyEmiailVerificationLimitReached();
+      throw new DailyEmailVerificationLimitReached();
     }
 
     await Model.mailLimit.update(
