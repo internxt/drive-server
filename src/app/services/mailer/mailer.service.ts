@@ -6,7 +6,7 @@ export class MailerService {
     sendgrid.setApiKey(sendgridApiKey);
   }
 
-  async send(email: string, templateId: string, context: any) {
+  send(email: string, templateId: string, context: any) {
     const msg = {
       to: email,
       from: {
@@ -33,6 +33,6 @@ export class MailerService {
         },
       },
     };
-    await sendgrid.send(msg);
+    return sendgrid.send(msg);
   }
 }

@@ -201,9 +201,16 @@ module.exports = (Router, Service, App) => {
   Router.post('/user/sendVerificationEmail', passportAuth, async (req, res) => {
     const { user } = req;
 
-    await Service.User.sendEmailVerification(user);
+    try {
+      await Service.User.sendEmailVerification(user);
 
-    res.status(201).end();
+      res.status(201).end();
+    } catch (err) {
+      logger.error(
+        `[USER/VERIFICATION-EMAIL]: Error for user ${user.uuid}: ${err.message}. ${err.stack | 'NO STACK.'}`
+      );
+      res.status(500).send();
+    }
   });
 
   Router.post('/user/verifyEmail', async (req, res) => {
