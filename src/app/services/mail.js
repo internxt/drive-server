@@ -86,6 +86,9 @@ module.exports = (Model) => {
   const sendVerifyEmailMail = async (email, { url }) => {
     const maile = new MailerService();
     const verifyAccountTemplateId = process.env.DRIVE_VERIFY_ACCOUNT_TEMPLATE_ID;
+    
+    console.log('[MAIL/sendVerifyEmailMail]', { email, verifyAccountTemplateId, url });
+
     return maile.send(email, verifyAccountTemplateId, {
       verification_url: url,
     });
