@@ -1,5 +1,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import mail from './mail';
 const sequelize = require('sequelize');
 const bip39 = require('bip39');
 const { request } = require('@internxt/lib');
@@ -33,6 +34,14 @@ class DailyInvitationUsersLimitReached extends Error {
     super('Mail invitation daily limit reached');
 
     Object.setPrototypeOf(this, DailyInvitationUsersLimitReached.prototype);
+  }
+}
+
+class DailyDeactivationUserLimitReached extends Error {
+  constructor() {
+    super('Mail deactivation daily limit reached');
+
+    Object.setPrototypeOf(this, DailyDeactivationUserLimitReached.prototype);
   }
 }
 
@@ -201,6 +210,36 @@ module.exports = (Model, App) => {
     if (!user) {
       throw new Error('User not found');
     }
+
+    const [mailLimit] = await Model.mailLimit.findOrCreate({
+      where: {
+        userId: user.id,
+        mailType: 'deactivate_user',
+      },
+      default: {
+        attemptsCount: 0,
+        attemptsLimit: 10,
+      },
+    });
+
+    if (mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
+      throw new DailyDeactivationUserLimitReached();
+    }
+
+    const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
+
+    await Model.mailLimit.update(
+      {
+        attemptsCount,
+        lastMailSent: new Date(),
+      },
+      {
+        where: {
+          userId: user.id,
+          mailType: 'deactivate_user',
+        },
+      },
+    );
 
     const pass = crypto.createHash('sha256').update(user.userId).digest('hex');
     const auth = Buffer.from(`${user.email}:${pass}`).toString('base64');
