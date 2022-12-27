@@ -1,6 +1,5 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import mail from './mail';
 const sequelize = require('sequelize');
 const bip39 = require('bip39');
 const { request } = require('@internxt/lib');
