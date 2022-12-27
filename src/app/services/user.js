@@ -738,14 +738,17 @@ module.exports = (Model, App) => {
       throw new DailyEmailVerificationLimitReached();
     }
 
+    const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
+
     await Model.mailLimit.update(
       {
-        attemptsCount: mailLimit.attemptsCount + 1,
+        attemptsCount,
       },
       {
         where: {
           userId: user.id,
           mailType: 'email_verification',
+          lastMailSent: new Date(),
         },
       },
     );
