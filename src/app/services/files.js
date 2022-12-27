@@ -61,6 +61,8 @@ module.exports = (Model, App) => {
           fileInfo.createdAt = file.date;
         }
 
+        App.services.Folder.updateFolderLastModification(folder.id);
+
         return Model.file.create(fileInfo);
       });
   };
@@ -74,6 +76,7 @@ module.exports = (Model, App) => {
           if (file) {
             const isDestroyed = await file.destroy();
             if (isDestroyed) {
+              await App.services.Folder.updateFolderLastModification(file.folderId);
               return resolve('File deleted');
             }
             return reject(Error('Cannot delete file'));
@@ -109,6 +112,7 @@ module.exports = (Model, App) => {
 
     try {
       await App.services.Inxt.DeleteFile(user, file.bucket, file.fileId);
+      await App.services.Folder.updateFolderLastModification(file.folderId);
     } catch (err) {
       const resourceNotFoundPattern = /Resource not found/;
 
@@ -267,6 +271,8 @@ module.exports = (Model, App) => {
     // we don't want ecrypted name on front
     file.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
     file.setDataValue('folder_id', parseInt(destination, 10));
+
+    await App.services.Folder.updateFolderLastModification(destination);
 
     return {
       result: result,
