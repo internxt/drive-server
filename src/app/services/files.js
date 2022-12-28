@@ -61,7 +61,7 @@ module.exports = (Model, App) => {
           fileInfo.createdAt = file.date;
         }
 
-        App.services.Folder.updateFolderLastModification(folder.id);
+        await App.services.Folder.updateFolderLastModification(folder.id);
 
         return Model.file.create(fileInfo);
       });
