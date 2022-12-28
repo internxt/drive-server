@@ -119,6 +119,9 @@ module.exports = (Model, App) => {
       id_team: teamId,
     });
 
+    await updateFolderLastModification(parentFolderId);
+    await updateDeviceAsFolderLastModification(user, parentFolderId);
+
     return folder;
   };
 
@@ -155,6 +158,9 @@ module.exports = (Model, App) => {
     DeleteOrphanFolders(user.id).catch((err) => {
       logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
     });
+
+    await updateFolderLastModification(folder.parentId);
+    await updateDeviceAsFolderLastModification(user, folder.parentId);
 
     return removed;
   };
@@ -751,10 +757,45 @@ module.exports = (Model, App) => {
   };
 
   const updateFolderLastModification = async (folderId) => {
+    if (!folderId) {
+      return;
+    }
+
     const folder = await Model.folder.findOne({ where: { id: folderId } });
 
     folder.setDataValue('updatedAt', Date.now());
     await folder.save();
+  };
+
+  const searchRootFolder = async (folderId) => {
+    let folder = await Model.folder.findOne({ where: { id: folderId } });
+    let foundDeviceAsFolder = false;
+
+    while (!foundDeviceAsFolder) {
+
+      if (folder.bucket && !folder.parentId) {
+         foundDeviceAsFolder = true;
+      } else {
+        folder = await Model.folder.findOne({ where: { id: folder.parentId } });
+      }
+    }
+
+    return folder;
+  };
+
+  const updateDeviceAsFolderLastModification = async (user, folderId) => {
+
+    const rootFolder = await searchRootFolder(folderId);
+
+    if (rootFolder.userId !== user.id) {
+      return;
+    }
+
+    if (rootFolder.bucket !== user.backupsBucket) {
+      return;
+    }
+
+    return updateFolderLastModification(rootFolder.id);
   };
 
   return {
@@ -782,5 +823,6 @@ module.exports = (Model, App) => {
     getUserDirectoryFiles,
     getUserDirectoryFolders,
     updateFolderLastModification,
+    updateRootFolderLastModification: updateDeviceAsFolderLastModification,
   };
 };
