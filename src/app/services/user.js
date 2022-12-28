@@ -734,10 +734,10 @@ module.exports = (Model, App) => {
       },
     });
 
-    if (mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
+    if (utilsService.isToday(mailLimit.lastMailSent) && mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
       throw new DailyEmailVerificationLimitReached();
     }
-
+    
     const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
 
     await Model.mailLimit.update(
