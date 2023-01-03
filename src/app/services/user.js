@@ -36,6 +36,14 @@ class DailyInvitationUsersLimitReached extends Error {
   }
 }
 
+class DailyEmailVerificationLimitReached extends Error {
+  constructor() {
+    super('Mail verification daily limit reached');
+
+    Object.setPrototypeOf(this, DailyEmailVerificationLimitReached.prototype);
+  }
+}
+
 module.exports = (Model, App) => {
   const logger = Logger.getInstance();
   const KeyServer = KeyServerService(Model, App);
@@ -715,6 +723,36 @@ module.exports = (Model, App) => {
   };
 
   const sendEmailVerification = async (user) => {
+    const [mailLimit] = await Model.mailLimit.findOrCreate({
+      where: {
+        userId: user.id,
+        mailType: 'email_verification',
+      },
+      default: {
+        attemptsCount: 0,
+        attemptsLimit: 10,
+      },
+    });
+
+    if (utilsService.isToday(mailLimit.lastMailSent) && mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
+      throw new DailyEmailVerificationLimitReached();
+    }
+    
+    const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
+
+    await Model.mailLimit.update(
+      {
+        attemptsCount,
+      },
+      {
+        where: {
+          userId: user.id,
+          mailType: 'email_verification',
+          lastMailSent: new Date(),
+        },
+      },
+    );
+
     const secret = config.get('secrets').JWT;
     const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
 
