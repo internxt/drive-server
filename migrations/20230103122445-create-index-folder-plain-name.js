@@ -4,12 +4,13 @@
 module.exports = {
   up: (queryInterface) => {
     return queryInterface.addIndex('folders', {
-      fields: ['plain_name'],
-      name: 'folders_plain_name_idx',
+      fields: ['plain_name', 'parent_id'],
+      name: 'folders_plainname_parentid_key',
+      unique: true,
     });
   },
 
   down: (queryInterface) => {
-    return queryInterface.removeIndex('folders', 'folders_plain_name_idx');
+    return queryInterface.removeIndex('folders', 'folders_plainname_parentid_key');
   },
 };
