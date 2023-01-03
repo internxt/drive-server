@@ -771,6 +771,8 @@ module.exports = (Model, App) => {
     let folder = await Model.folder.findOne({ where: { id: folderId } });
     let foundDeviceAsFolder = false;
 
+    if (!folder) return;
+
     while (!foundDeviceAsFolder) {
 
       if (folder.bucket && !folder.parentId) {
@@ -786,6 +788,8 @@ module.exports = (Model, App) => {
   const updateDeviceAsFolderLastModification = async (user, folderId) => {
 
     const rootFolder = await searchRootFolder(folderId);
+
+    if (!rootFolder) return;
 
     if (rootFolder.userId !== user.id) {
       return;
@@ -823,6 +827,6 @@ module.exports = (Model, App) => {
     getUserDirectoryFiles,
     getUserDirectoryFolders,
     updateFolderLastModification,
-    updateRootFolderLastModification: updateDeviceAsFolderLastModification,
+    updateDeviceAsFolderLastModification,
   };
 };
