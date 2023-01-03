@@ -4,7 +4,7 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.addColumn('folders', 'plain_name', {
-      type: Sequelize.STRING,
+      type: Sequelize.STRING(650),
       allowNull: true,
     });
   },
