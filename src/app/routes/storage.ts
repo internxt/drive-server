@@ -11,7 +11,9 @@ import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
+import { ConnectionTimedOutError } from 'sequelize';
 
+type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
   Files: any;
   Thumbnails: any;
@@ -87,6 +89,12 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
+    const parentFolder = await this.services.Folder.getById(parentFolderId);
+
+    if (parentFolder.userId !== user.id) {
+      throw createHttpError(403, 'Parent folder does not belong to user');
+    }
+
     return this.services.Folder.Create(user, folderName, parentFolderId)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
@@ -101,15 +109,16 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
-        this.logger.warn(err);
-        res.status(500).json({ error: err.message });
+        this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
   public async getTree(req: Request, res: Response): Promise<void> {
     const { user } = req as PassportRequest;
+    const deleted = req.query?.trash === 'true';
 
-    return this.services.Folder.GetTree(user)
+    return this.services.Folder.GetTree(user, user.rootFolderId, deleted)
       .then((result: unknown) => {
         res.status(200).send(result);
       })
@@ -137,9 +146,12 @@ export class StorageController {
         });
       })
       .catch((err: Error) => {
-        res.status(500).send({
-          error: err.message,
-        });
+        if (err.message === 'Forbidden') {
+          return res.status(403).send({ error: err.message });
+        }
+
+        this.logger.error(`Error getting specific tree for user ${user.id}: ${err}`);
+        res.status(500).send();
       });
   }
 
@@ -168,7 +180,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send({ error: err.message });
+        res.status(500).send();
       });
   }
 
@@ -239,7 +251,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -252,8 +264,14 @@ export class StorageController {
       throw createHttpError(400, 'Folder ID is not valid');
     }
 
-    return Promise.all([
-      this.services.Folder.getById(id),
+    await Promise.all([
+      this.services.Folder.getByIdAndUserIds(
+        id, 
+        [
+          behalfUser.id,
+          (req as AuthorizedRequest).user.id
+        ]
+      ),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
@@ -269,7 +287,21 @@ export class StorageController {
         });
       })
       .catch((err) => {
-        res.status(500).json({ error: err.message });
+        if (err.message === 'Folder not found') {
+          return res.status(404).send({ error: err.message });
+        }
+
+        if (err.message === 'Folder not owned') {
+          return res.status(403).send({ error: err.message });
+        }
+
+        this.logger.error(`Error getting folder contents, folderId: ${id}: ${err}. Stack: ${err.stack}`);
+
+        if (err instanceof ConnectionTimedOutError) {
+          return res.status(504).send();
+        }
+
+        res.status(500).send();
       });
   }
 
@@ -364,7 +396,7 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
-        res.status(500).json(err.message);
+        res.status(500).send();
       });
   }
 
@@ -427,6 +459,7 @@ export class StorageController {
         this.services.Analytics.trackFileDeleted(req);
       })
       .catch((err: Error) => {
+        this.logger.error(`[STORAGE]: Error deleting file ${fileid} for user ${user.uuid} : ${err.message}`);
         res.status(500).json({ error: err.message });
       });
   }
@@ -521,7 +554,7 @@ export class StorageController {
       .catch((err: any) => {
         if (err instanceof LockNotAvaliableError) res.status(409).end();
 
-        this.logger.error('Error adquiring or refreshing a lock', err.message);
+        this.logger.error('Error adquiring or refreshing a lock', err);
         res.sendStatus(500);
       });
   }

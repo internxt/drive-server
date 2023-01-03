@@ -30,6 +30,7 @@ module.exports = (Model, App) => {
             folder_id: { [Op.eq]: folder.id },
             type: { [Op.eq]: file.type },
             userId: { [Op.eq]: user.id },
+            deleted: { [Op.eq]: false },
           },
         });
 
@@ -118,19 +119,26 @@ module.exports = (Model, App) => {
     }
 
     const thumbnails = await Model.thumbnail.findAll({
-      where: { file_id: fileId }
+      where: { file_id: fileId },
     });
 
     if (thumbnails && Array.isArray(thumbnails) && thumbnails.length > 0) {
-      await Promise.all(thumbnails.map(async (thumbnail) => {
-        try {
-          await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
-        } catch (err) {
-          //ignore error and keep deleting the remaining thumbnails
-          log.info('[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
-            user.bridgeUser, thumbnail.bucket_id, thumbnail.bucket_file, err);
-        }
-      }));
+      await Promise.all(
+        thumbnails.map(async (thumbnail) => {
+          try {
+            await App.services.Inxt.DeleteFile(user, thumbnail.bucket_id, thumbnail.bucket_file);
+          } catch (err) {
+            //ignore error and keep deleting the remaining thumbnails
+            log.info(
+              '[ERROR deleting thumbnail]: User: %s, Bucket: %s, File: %s, Error: %s',
+              user.bridgeUser,
+              thumbnail.bucket_id,
+              thumbnail.bucket_file,
+              err,
+            );
+          }
+        }),
+      );
     }
     await file.destroy();
   };
@@ -184,14 +192,14 @@ module.exports = (Model, App) => {
           : '';
 
         // Check if there is a file with the same name
-        Model.file
-          .findOne({
-            where: {
-              folder_id: { [Op.eq]: file.folder_id },
-              name: { [Op.eq]: cryptoFileName },
-              type: { [Op.eq]: file.type },
-            },
-          })
+        Model.file.findOne({
+          where: {
+            folder_id: { [Op.eq]: file.folder_id },
+            name: { [Op.eq]: cryptoFileName },
+            type: { [Op.eq]: file.type },
+            deleted: { [Op.eq]: false },
+          },
+        })
           .then((duplicateFile) => {
             if (duplicateFile) {
               return next(Error('File with this name exists'));
@@ -241,6 +249,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
+        deleted: { [Op.eq]: false },
       },
     });
 
@@ -271,20 +280,19 @@ module.exports = (Model, App) => {
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
-      Model.file
-        .findOne({
-          where: {
-            file_id: { [Op.eq]: fileId },
-          },
-          include: [
-            {
-              model: Model.folder,
-              where: {
-                id_team: { [Op.ne]: null },
-              },
+      Model.file.findOne({
+        where: {
+          file_id: { [Op.eq]: fileId },
+        },
+        include: [
+          {
+            model: Model.folder,
+            where: {
+              id_team: { [Op.ne]: null },
             },
-          ],
-        })
+          },
+        ],
+      })
         .then((file) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
@@ -314,49 +322,77 @@ module.exports = (Model, App) => {
   };
 
   const getByFolderAndUserId = (folderId, userId, deleted = false) => {
-    return Model.file.findAll({
-      where: { folderId, userId, deleted },
-      include: [
-        {
-          model: Model.thumbnail,
-          as: 'thumbnails',
-          required: false,
-        },
-      ]
-    }).then((files) => {
-      if (!files) {
-        throw new Error('Not found');
-      }
-      return files.map((file) => {
-        file.name = App.services.Crypt.decryptName(file.name, folderId);
+    return Model.file
+      .findAll({
+        where: { folderId, userId, deleted },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+            as: 'shares',
+            required: false,
+          },
+        ],
+      })
+      .then((files) => {
+        if (!files) {
+          throw new Error('Not found');
+        }
+        return files.map((file) => {
+          file.name = App.services.Crypt.decryptName(file.name, folderId);
 
-        return file;
+          return file;
+        });
       });
-    });
   };
 
   const getRecentFiles = (user, limit) => {
-    return Model.file.findAll({
-      order: [['updatedAt', 'DESC']],
-      limit,
-      where: { userId: user.id, bucket: { [Op.ne]: user.backupsBucket } },
-      include: [
-        {
-          model: Model.thumbnail,
-          as: 'thumbnails',
-          required: false,
+    return Model.file
+      .findAll({
+        order: [['updatedAt', 'DESC']],
+        limit,
+        where: {
+          userId: user.id,
+          bucket: {
+            [Op.ne]: user.backupsBucket
+          },
+          deleted: { [Op.eq]: false }
+        },
+        include: [
+          {
+            model: Model.thumbnail,
+            as: 'thumbnails',
+            required: false,
+          },
+        ],
+      })
+      .then((files) => {
+        if (!files) {
+          throw new Error('Not found');
         }
-      ]
-    }).then((files) => {
-      if (!files) {
-        throw new Error('Not found');
-      }
-      return files.map((file) => {
-        file.name = App.services.Crypt.decryptName(file.name, file.folderId);
+        return files.map((file) => {
+          file.name = App.services.Crypt.decryptName(file.name, file.folderId);
 
-        return file;
+          return file;
+        });
       });
+  };
+
+  const getFileByFileId = async (fileId) => {
+    const file = await Model.file.findOne({
+      where: {
+        file_id: { [Op.eq]: fileId },
+      },
     });
+
+    if (file) return file;
+
+    throw new Error('File not found');
   };
 
   return {
@@ -370,5 +406,6 @@ module.exports = (Model, App) => {
     getRecentFiles,
     getFileByFolder,
     getByFolderAndUserId,
+    getFileByFileId,
   };
 };

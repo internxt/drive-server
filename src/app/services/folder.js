@@ -13,11 +13,40 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const getById = (id) => {
-    return Model.folder.findOne({ where: { id }, raw: true }).then((folder) => {
-      folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+    return Model.folder
+      .findOne({
+        where: { id },
+        raw: true,
+      })
+      .then((folder) => {
+        folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
-      return folder;
+        return folder;
+      });
+  };
+
+  const getByIdAndUserIds = async (id, userIds = []) => {
+    const folder = await Model.folder
+      .findOne({
+        where: { id },
+        raw: true,
+      });
+
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
+
+    const ownedFolder = userIds.some(userId => {
+      return userId === folder.userId;
     });
+
+    if (!ownedFolder) {
+      throw new Error('Folder not owned');
+    }
+
+    folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
+
+    return folder;
   };
 
   // Create folder entry, for desktop
@@ -70,6 +99,7 @@ module.exports = (Model, App) => {
       where: {
         parentId: { [Op.eq]: parentFolderId },
         name: { [Op.eq]: cryptoFolderName },
+        deleted: { [Op.eq]: false },
       },
     });
 
@@ -163,7 +193,7 @@ module.exports = (Model, App) => {
     return treeSize;
   };
 
-  const GetTree = async (user, rootFolderId = null) => {
+  const GetTree = async (user, rootFolderId = null, deleted = false) => {
     const rootElements = [];
     const pendingFolders = [
       {
@@ -175,10 +205,16 @@ module.exports = (Model, App) => {
     while (pendingFolders.length) {
       const { folderId, elements } = pendingFolders.shift();
       const folder = await getFolderByFolderId(folderId);
-      folder.files = await getFilesByFolderId(folderId);
+      const folderNotOwned = !(folder.userId === user.id);
+
+      if (folderNotOwned) {
+        throw new Error('Forbidden');
+      }
+
+      folder.files = await getFilesByFolderId(folderId, deleted);
       folder.children = [];
 
-      const folders = await getChildrenFoldersByFolderId(folderId);
+      const folders = await getChildrenFoldersByFolderId(folderId, deleted);
 
       folders.forEach((f) => {
         pendingFolders.push({
@@ -204,36 +240,44 @@ module.exports = (Model, App) => {
     });
   };
 
-  const getChildrenFoldersByFolderId = (folderId) => {
+  const getChildrenFoldersByFolderId = (folderId, deleted) => {
     return Model.folder.findAll({
       raw: true,
       where: {
         parent_id: {
           [Op.eq]: folderId,
         },
+        deleted,
       },
     });
   };
 
-  const getFilesByFolderId = (folderId) => {
+  const getFilesByFolderId = (folderId, deleted) => {
     return Model.file.findAll({
       raw: true,
       where: {
         folder_id: {
           [Op.eq]: folderId,
         },
+        deleted,
+      },
         include: [
           {
             model: Model.thumbnail,
             as: 'thumbnails',
             required: false,
           },
-        ]
-      },
-    });
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+            as: 'shares',
+            required: false,
+          },
+        ],
+      });
   };
 
-  const GetFoldersPagination = async (user, index) => {
+  const GetFoldersPagination = async (user, index, filterOptions) => {
     let userObject = user.get({ plain: true });
 
     const isSharedWorkspace = user.bridgeUser !== user.email;
@@ -258,7 +302,7 @@ module.exports = (Model, App) => {
       throw new Error('root folder does not exists');
     }
     const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id } },
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
       order: [['id', 'DESC']],
       limit: 5000,
@@ -266,14 +310,20 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id },
+      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id, deleted: filterOptions.deleted || false },
       include: [
         {
           model: Model.thumbnail,
           as: 'thumbnails',
           required: false,
         },
-      ]
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
     });
     return {
       folders,
@@ -285,6 +335,15 @@ module.exports = (Model, App) => {
     return Model.folder
       .findAll({
         where: { parentId: parentFolderId, userId, deleted },
+        include: [
+          {
+            model: Model.shares,
+            attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+            as: 'shares',
+            where: { active: true },
+            required: false,
+          },
+        ],
       })
       .then((folders) => {
         if (!folders) {
@@ -299,19 +358,16 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder
-      .findOne({
-        where: {
-          id: { [Op.eq]: folderId },
-        },
-      })
-      .then((folder) => {
-        if (!folder) {
-          throw Error('Folder not found on database, please refresh');
-        }
-
-        return folder;
-      });
+    return Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: folderId },
+      },
+    }).then((folder) => {
+      if (!folder) {
+        throw Error('Folder not found on database, please refresh');
+      }
+      return folder;
+    });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -334,13 +390,12 @@ module.exports = (Model, App) => {
       },
       (next) => {
         // Get the target folder from database
-        Model.folder
-          .findOne({
-            where: {
-              id: { [Op.eq]: folderId },
-              user_id: { [Op.eq]: user.id },
-            },
-          })
+        Model.folder.findOne({
+          where: {
+            id: { [Op.eq]: folderId },
+            user_id: { [Op.eq]: user.id },
+          },
+        })
           .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
@@ -354,13 +409,13 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder
-            .findOne({
-              where: {
-                parentId: { [Op.eq]: folder.parentId },
-                name: { [Op.eq]: cryptoFolderName },
-              },
-            })
+          Model.folder.findOne({
+            where: {
+              parentId: { [Op.eq]: folder.parentId },
+              name: { [Op.eq]: cryptoFolderName },
+              deleted: { [Op.eq]: false },
+            },
+          })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
@@ -430,6 +485,7 @@ module.exports = (Model, App) => {
         name: { [Op.eq]: destinationName },
         parent_id: { [Op.eq]: destination },
         id: { [Op.ne]: folderId },
+        deleted: { [Op.eq]: false },
       },
     });
 
@@ -475,7 +531,10 @@ module.exports = (Model, App) => {
     while (duplicateName.length !== 0) {
       // eslint-disable-next-line no-await-in-loop
       duplicateName = await Model.folder.findAll({
-        where: { user_id: { [Op.eq]: userObject.id } },
+        where: {
+          user_id: { [Op.eq]: userObject.id },
+          deleted: { [Op.eq]: false },
+        },
         attributes: ['name', [fn('COUNT', col('*')), 'count_name']],
         group: ['name'],
         having: {
@@ -499,6 +558,7 @@ module.exports = (Model, App) => {
             [Op.eq]: userObject.id,
           },
           name: { [Op.in]: duplicateName },
+          deleted: { [Op.eq]: false },
         },
         attributes: ['id', 'name', 'parent_id'],
       });
@@ -542,8 +602,8 @@ module.exports = (Model, App) => {
   };
 
   const releaseLock = async (userId, folderId, lockId) => {
-    const redis = Redis.getInstance();
-    const res = await redis.releaseLock(`${userId}-${folderId}`, lockId);
+    Redis.getInstance();
+    const res = await Redis.releaseLock(`${userId}-${folderId}`, lockId);
 
     if (!res) throw new LockNotAvaliableError(folderId);
   };
@@ -555,8 +615,8 @@ module.exports = (Model, App) => {
       logger.warn('Redis is not ready to accept commands');
     }
 
-    const res = await redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
-    
+    const res = await Redis.acquireOrRefreshLock(`${userId}-${folderId}`, lockId);
+
     if (!res) throw new LockNotAvaliableError(folderId);
   };
 
@@ -571,6 +631,12 @@ module.exports = (Model, App) => {
         {
           model: Model.thumbnail,
           as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'code', 'token', 'is_folder'],
+          as: 'shares',
           required: false,
         },
       ],
@@ -701,6 +767,7 @@ module.exports = (Model, App) => {
     releaseLock,
     refreshLock,
     acquireOrRefreshLock,
+    getByIdAndUserIds,
     getDirectoryFiles,
     getDirectoryFolders,
     getUserDirectoryFiles,

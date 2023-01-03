@@ -1,5 +1,6 @@
 const InternxtMailer = require('inxt-service-mailer');
 const { isProduction } = require('../../config/environments/env');
+const { MailerService } = require('./mailer/mailer.service');
 
 module.exports = (Model) => {
   const mailInstance = () => {
@@ -72,49 +73,24 @@ module.exports = (Model) => {
     });
   };
 
-  const sendInviteFriendMail = async (email, { inviteEmail, hostEmail, hostFullName, registerUrl }) => {
-    const mailer = mailInstance();
-
-    return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        email,
-        'invite-friend',
-        {
-          inviteEmail,
-          hostEmail,
-          hostFullName,
-          registerUrl,
-        },
-        (err) => {
-          if (err) {
-            return reject(Error(`Cannot send invite friend mail: ${err}`));
-          }
-
-          return resolve();
-        },
-      );
+  const sendInviteFriendMail = async ({ inviteEmail, hostEmail, hostFullName, registerUrl }) => {
+    const maile = new MailerService();
+    const inviteTemplateID = process.env.DRIVE_INVITE_FRIEND_TEMPLATE_ID;
+    return maile.send(inviteEmail, inviteTemplateID, {
+      sender_fullname: hostFullName,
+      sender_email: hostEmail,
+      referral_url: registerUrl,
     });
   };
 
-  const sendVerifyEmailMail = async (email, { url, firstName }) => {
-    const mailer = mailInstance();
+  const sendVerifyEmailMail = async (email, { url }) => {
+    const maile = new MailerService();
+    const verifyAccountTemplateId = process.env.DRIVE_VERIFY_ACCOUNT_TEMPLATE_ID;
+    
+    console.log('[MAIL/sendVerifyEmailMail]', { email, verifyAccountTemplateId, url });
 
-    return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        email,
-        'verify-email',
-        {
-          url,
-          firstName,
-        },
-        (err) => {
-          if (err) {
-            return reject(Error(`Could not send verification mail: ${err}`));
-          }
-
-          return resolve();
-        },
-      );
+    return maile.send(email, verifyAccountTemplateId, {
+      verification_url: url,
     });
   };
 
