@@ -3,7 +3,8 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 enum MailTypes {
   InviteFriend = 'invite_friend',
   ResetPassword = 'reset_password',
-  RemoveAccount = 'remove_account'
+  RemoveAccount = 'remove_account',
+  EmailVerification = 'email_verification'
 }
 
 interface Attributes {
@@ -35,7 +36,8 @@ export default (database: Sequelize): MailLimitModel => {
         type: DataTypes.ENUM(
           MailTypes.InviteFriend, 
           MailTypes.RemoveAccount, 
-          MailTypes.ResetPassword
+          MailTypes.ResetPassword,
+          MailTypes.EmailVerification
         ),
         allowNull: false
       },
