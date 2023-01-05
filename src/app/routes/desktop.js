@@ -1,7 +1,16 @@
 const { passportAuth } = require('../middleware/passport');
 const logger = require('../../lib/logger').default;
-
 const Logger = logger.getInstance();
+
+function logError(context, user, err) {
+  Logger.error(
+    `[DESKTOP/${context}]: Error for user %s (UUID %s): %s. %s`, 
+    user.email, 
+    user.uuid, 
+    err.message, 
+    err.stack || 'NO STACK.'
+  );
+}
 
 module.exports = (Router, Service) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
