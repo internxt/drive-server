@@ -15,7 +15,6 @@ const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
-const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 const Logger = require('../../lib/logger').default;
 
 const { Op, col, fn } = sequelize;

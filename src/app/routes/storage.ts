@@ -42,7 +42,6 @@ export class StorageController {
   public async createFile(req: Request, res: Response) {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
-    const internxtClient = req.headers['internxt-client'];
     const clientId = String(req.headers['internxt-client-id']);
 
     if (!file.fileId && file.file_id) {
