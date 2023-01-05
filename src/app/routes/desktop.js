@@ -46,6 +46,7 @@ module.exports = (Router, Service) => {
         res.status(200).json({ data: result });
       })
       .catch((err) => {
+        logError('SYNC', user, err);
         res.status(500).json({ error: err.message });
       });
   });
@@ -67,7 +68,8 @@ module.exports = (Router, Service) => {
         });
       })
       .catch((err) => {
-        res.status(500).json({ error: err.message });
+        logError('SYNC', user, err);
+        res.status(500).json({ error: 'Internal Server Error' });
       });
   });
 
@@ -77,8 +79,9 @@ module.exports = (Router, Service) => {
       .then(() => {
         res.status(200).send();
       })
-      .catch(() => {
-        res.status(500).send();
+      .catch((err) => {
+        logError('SYNC', user, err);
+        res.status(500).send({ error: 'Internal Server Error' });
       });
   });
 
@@ -91,8 +94,8 @@ module.exports = (Router, Service) => {
         res.status(201).json(result);
       })
       .catch((err) => {
-        Logger.warn(err);
-        res.status(500).json({ error: err.message });
+        logError('FOLDERS', user, err);
+        res.status(500).json({ error: 'Internal Server Error' });
       });
   });
 };
