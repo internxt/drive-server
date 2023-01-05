@@ -14,11 +14,11 @@ function logError(context, user, err) {
 
 module.exports = (Router, Service) => {
   Router.get('/storage/tree', passportAuth, (req, res) => {
-    res.status(500).send({ error: 'Outdated desktop version' });
+    res.status(426).send({ error: 'Outdated desktop version' });
   });
 
   Router.get('/desktop/tree', passportAuth, (req, res) => {
-    res.status(500).send({ error: 'Outdated desktop version' });
+    res.status(426).send({ error: 'Outdated desktop version' });
   });
 
   /**
@@ -43,61 +43,6 @@ module.exports = (Router, Service) => {
       logError('LIST', user, err);
       res.status(500).send({ error: 'Internal Server Error' });
     });
-  });
-
-  /**
-   * TODO
-   */
-  Router.put('/user/sync', passportAuth, (req, res) => {
-    const { user, body } = req;
-    Service.User.UpdateUserSync(user, body.toNull)
-      .then((result) => {
-        res.status(200).json({ data: result });
-      })
-      .catch((err) => {
-        logError('SYNC', user, err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      });
-  });
-
-  const ENSURE = {
-    OFF: 0,
-    RANDOM: 1,
-    ALL: 2,
-  };
-
-  /**
-   * TODO
-   */
-  Router.get('/user/sync', passportAuth, (req, res) => {
-    const { user } = req;
-    res.setHeader('Content-Type', 'application/json');
-    Service.User.GetOrSetUserSync(user)
-      .then((result) => {
-        res.status(200).json({
-          data: result,
-          ensure: ENSURE.OFF,
-        });
-      })
-      .catch((err) => {
-        logError('SYNC', user, err);
-        res.status(500).json({ error: 'Internal Server Error' });
-      });
-  });
-
-  /**
-   * TODO
-   */
-  Router.delete('/user/sync', passportAuth, (req, res) => {
-    const { user } = req;
-    Service.User.UnlockSync(user)
-      .then(() => {
-        res.status(200).send();
-      })
-      .catch((err) => {
-        logError('SYNC', user, err);
-        res.status(500).send({ error: 'Internal Server Error' });
-      });
   });
 
   /**
