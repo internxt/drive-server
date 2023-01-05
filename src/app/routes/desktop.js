@@ -21,6 +21,9 @@ module.exports = (Router, Service) => {
     res.status(500).send({ error: 'Outdated desktop version' });
   });
 
+  /**
+   * TODO
+   */
   Router.get('/desktop/list/:index', passportAuth, (req, res) => {
     const { user } = req;
     const index = parseInt(req.params.index, 10);
@@ -42,6 +45,9 @@ module.exports = (Router, Service) => {
     });
   });
 
+  /**
+   * TODO
+   */
   Router.put('/user/sync', passportAuth, (req, res) => {
     const { user, body } = req;
     Service.User.UpdateUserSync(user, body.toNull)
@@ -60,6 +66,9 @@ module.exports = (Router, Service) => {
     ALL: 2,
   };
 
+  /**
+   * TODO
+   */
   Router.get('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
     res.setHeader('Content-Type', 'application/json');
@@ -76,6 +85,9 @@ module.exports = (Router, Service) => {
       });
   });
 
+  /**
+   * TODO
+   */
   Router.delete('/user/sync', passportAuth, (req, res) => {
     const { user } = req;
     Service.User.UnlockSync(user)
@@ -88,6 +100,9 @@ module.exports = (Router, Service) => {
       });
   });
 
+  /**
+   * TODO
+   */
   Router.post('/desktop/folders', passportAuth, (req, res) => {
     const folders = req.body;
     const { user } = req;
