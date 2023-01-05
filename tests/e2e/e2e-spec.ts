@@ -991,9 +991,7 @@ describe('E2E TEST', () => {
         'createdAt',
         'updatedAt',
         'folderId',
-        'plain_name',
-        'thumbnails',
-        'shares',
+        'plain_name'
       ];
       enforcePropertiesInObject(file, expectedProperties);
     });
@@ -1013,7 +1011,7 @@ describe('E2E TEST', () => {
 
       expect(result.id).toBe(folder.id);
 
-      const expectedPropertis = ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at', 'shares'];
+      const expectedPropertis = ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'];
       enforcePropertiesInObject(result, expectedPropertis);
     });
 
