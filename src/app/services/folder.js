@@ -115,6 +115,7 @@ module.exports = (Model, App) => {
 
     const folder = await user.createFolder({
       name: cryptoFolderName,
+      plain_name: folderName,
       bucket: null,
       parentId: parentFolderId || null,
       id_team: teamId,
