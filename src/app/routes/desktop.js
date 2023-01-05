@@ -30,13 +30,16 @@ module.exports = (Router, Service) => {
       return res.status(400).send({ error: 'Bad Index' });
     }
 
-    return Service.Folder.GetFoldersPagination(user, index, { deleted })
-      .then((result) => {
-        res.status(200).send(result);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
+    return Service.Folder.GetFoldersPaginationWithoutSharesNorThumbnails(
+      user, 
+      index, 
+      { deleted }
+    ).then((result) => {
+      res.status(200).send(result);
+    }).catch((err) => {
+      logError('LIST', user, err);
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
   });
 
   Router.put('/user/sync', passportAuth, (req, res) => {
