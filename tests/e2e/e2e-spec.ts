@@ -267,7 +267,7 @@ describe('E2E TEST', () => {
             expect(response.body.item.name).toBe(name);
           });
 
-          it('should fail if a file with te same name exist on the destianation folder', async () => {
+          it('should fail if a file with the same name exist on the destination folder', async () => {
             const name = 'my file';
             const encriptedFileName = encryptFilename(name, rootFolderId);
             const { body: file } = await createFileOnFolder(rootFolderId, encriptedFileName, token);
@@ -551,7 +551,7 @@ describe('E2E TEST', () => {
             expect(response.status).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
           });
 
-          it('should fail when the folder to move does not exists', async () => {
+          it('should fail when the folder to move does not exist', async () => {
             const folderId = 8800;
             const { body: destinationFolder } = await createFolder(
               {
@@ -643,7 +643,7 @@ describe('E2E TEST', () => {
       await deleteCreatedUsers();
     });
 
-    describe('user registration', () => {
+    describe('Sign up', () => {
       afterEach(async () => {
         server.services.Inxt.RegisterBridgeUser.restore();
       });
@@ -715,7 +715,7 @@ describe('E2E TEST', () => {
         }
       });
 
-      it('should rollback succecfully if fails after the user is insterted on the database', async () => {
+      it('should rollback successfully if fails after the user is created', async () => {
         const RegisterBridgeUserMock = sinon.stub(server.services.Inxt, 'RegisterBridgeUser');
         RegisterBridgeUserMock.returns({
           response: {
@@ -739,7 +739,7 @@ describe('E2E TEST', () => {
       });
     });
 
-    describe('user login', () => {
+    describe('Login', () => {
       // eslint-disable-next-block max-len
       const TEST_USER_LOGIN_BODY = {
         email: TEST_USER_EMAIL,
@@ -788,7 +788,7 @@ describe('E2E TEST', () => {
         expect(loginResponse.status).toBe(HttpStatus.OK);
       });
 
-      it('should be able to acces the account', async () => {
+      it('should be able to access the account', async () => {
         await request(app).post('/api/register').send(registrationBodyFor(TEST_USER_EMAIL));
 
         const accesResponse = await request(app).post('/api/access').send(TEST_USER_LOGIN_BODY);
@@ -796,7 +796,7 @@ describe('E2E TEST', () => {
         expect(accesResponse.status).toBe(HttpStatus.OK);
       });
 
-      it('should be able to acces with tfa', async () => {
+      it('should be able to access with TFA', async () => {
         const secret = speakeasy.generateSecret({ length: 20 });
 
         await request(app).post('/api/register').send(registrationBodyFor(TEST_USER_EMAIL));
@@ -819,7 +819,7 @@ describe('E2E TEST', () => {
         expect(accesResponse.status).toBe(HttpStatus.OK);
       });
 
-      it('should be fail to acces with an invalid tfa', async () => {
+      it('should fail to access with an invalid TFA', async () => {
         const secret = speakeasy.generateSecret({ length: 20 });
 
         await request(app).post('/api/register').send(registrationBodyFor(TEST_USER_EMAIL));
@@ -838,7 +838,7 @@ describe('E2E TEST', () => {
         expect(body.error).toBe('Wrong 2-factor auth code');
       });
 
-      it('should fail to login with a non registered email', async () => {
+      it('should fail to login with a non-existent email', async () => {
         await request(app).post('/api/register').send(registrationBodyFor(TEST_USER_EMAIL));
 
         const { status, body } = await request(app)
@@ -875,7 +875,7 @@ describe('E2E TEST', () => {
         expect(data[0].error_login_count).toBe(1);
       });
 
-      it('should reach the maximum login fail attempts', async () => {
+      it('should fail when the maximum login attempts is reached', async () => {
         const MAX_LOGIN_FAIL_ATTEMPTS = 10;
         await request(app).post('/api/register').send(registrationBodyFor(TEST_USER_EMAIL));
 
