@@ -26,17 +26,16 @@ module.exports = (Model, App) => {
   };
 
   const getByIdAndUserIds = async (id, userIds = []) => {
-    const folder = await Model.folder
-      .findOne({
-        where: { id },
-        raw: true,
-      });
+    const folder = await Model.folder.findOne({
+      where: { id },
+      raw: true,
+    });
 
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    const ownedFolder = userIds.some(userId => {
+    const ownedFolder = userIds.some((userId) => {
       return userId === folder.userId;
     });
 
@@ -121,6 +120,9 @@ module.exports = (Model, App) => {
       id_team: teamId,
     });
 
+    await updateFolderLastModification(parentFolderId);
+    await updateDeviceAsFolderLastModification(user, parentFolderId);
+
     return folder;
   };
 
@@ -157,6 +159,9 @@ module.exports = (Model, App) => {
     DeleteOrphanFolders(user.id).catch((err) => {
       logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
     });
+
+    await updateFolderLastModification(folder.parentId);
+    await updateDeviceAsFolderLastModification(user, folder.parentId);
 
     return removed;
   };
@@ -261,20 +266,20 @@ module.exports = (Model, App) => {
         },
         deleted,
       },
-        include: [
-          {
-            model: Model.thumbnail,
-            as: 'thumbnails',
-            required: false,
-          },
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
-      });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
+    });
   };
 
   const GetFoldersPagination = async (user, index, filterOptions) => {
@@ -358,16 +363,18 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-      },
-    }).then((folder) => {
-      if (!folder) {
-        throw Error('Folder not found on database, please refresh');
-      }
-      return folder;
-    });
+    return Model.folder
+      .findOne({
+        where: {
+          id: { [Op.eq]: folderId },
+        },
+      })
+      .then((folder) => {
+        if (!folder) {
+          throw Error('Folder not found on database, please refresh');
+        }
+        return folder;
+      });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -390,12 +397,13 @@ module.exports = (Model, App) => {
       },
       (next) => {
         // Get the target folder from database
-        Model.folder.findOne({
-          where: {
-            id: { [Op.eq]: folderId },
-            user_id: { [Op.eq]: user.id },
-          },
-        })
+        Model.folder
+          .findOne({
+            where: {
+              id: { [Op.eq]: folderId },
+              user_id: { [Op.eq]: user.id },
+            },
+          })
           .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
@@ -409,13 +417,14 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder.findOne({
-            where: {
-              parentId: { [Op.eq]: folder.parentId },
-              name: { [Op.eq]: cryptoFolderName },
-              deleted: { [Op.eq]: false },
-            },
-          })
+          Model.folder
+            .findOne({
+              where: {
+                parentId: { [Op.eq]: folder.parentId },
+                name: { [Op.eq]: cryptoFolderName },
+                deleted: { [Op.eq]: false },
+              },
+            })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
@@ -748,6 +757,52 @@ module.exports = (Model, App) => {
     return { folders, last: limit > rawFolders.length };
   };
 
+  const updateFolderLastModification = async (folderId) => {
+    if (!folderId) {
+      return;
+    }
+
+    const folder = await Model.folder.findOne({ where: { id: folderId } });
+
+    folder.setDataValue('updatedAt', Date.now());
+    await folder.save();
+  };
+
+  const searchRootFolder = async (folderId) => {
+    let folder = await Model.folder.findOne({ where: { id: folderId } });
+    let foundDeviceAsFolder = false;
+
+    if (!folder) return;
+
+    while (!foundDeviceAsFolder) {
+
+      if (folder.bucket && !folder.parentId) {
+         foundDeviceAsFolder = true;
+      } else {
+        folder = await Model.folder.findOne({ where: { id: folder.parentId } });
+      }
+    }
+
+    return folder;
+  };
+
+  const updateDeviceAsFolderLastModification = async (user, folderId) => {
+
+    const rootFolder = await searchRootFolder(folderId);
+
+    if (!rootFolder) return;
+
+    if (rootFolder.userId !== user.id) {
+      return;
+    }
+
+    if (rootFolder.bucket !== user.backupsBucket) {
+      return;
+    }
+
+    return updateFolderLastModification(rootFolder.id);
+  };
+
   return {
     Name: 'Folder',
     getById,
@@ -772,5 +827,7 @@ module.exports = (Model, App) => {
     getDirectoryFolders,
     getUserDirectoryFiles,
     getUserDirectoryFolders,
+    updateFolderLastModification,
+    updateDeviceAsFolderLastModification,
   };
 };
