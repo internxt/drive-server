@@ -409,18 +409,20 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder.findOne({
-            where: {
-              parentId: { [Op.eq]: folder.parentId },
-              name: { [Op.eq]: cryptoFolderName },
-              deleted: { [Op.eq]: false },
-            },
-          })
+          Model.folder
+            .findOne({
+              where: {
+                parentId: { [Op.eq]: folder.parentId },
+                name: { [Op.eq]: cryptoFolderName },
+                deleted: { [Op.eq]: false },
+              },
+            })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
+              newMeta.plain_name = metadata.itemName;
               try {
                 AesUtil.decrypt(cryptoFolderName, folder.parentId);
                 newMeta.encrypt_version = '03-aes';
