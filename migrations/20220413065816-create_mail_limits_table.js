@@ -20,7 +20,7 @@ module.exports = {
         onDelete: 'CASCADE'
       },
       mail_type: {
-        type: Sequelize.ENUM('invite_friend', 'reset_password', 'remove_account'),
+        type: Sequelize.ENUM('invite_friend', 'reset_password', 'remove_account', 'email_verification'),
         allowNull: false
       },
       attempts_count: {

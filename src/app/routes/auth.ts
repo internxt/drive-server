@@ -9,8 +9,6 @@ import { HttpError } from 'http-errors';
 import Logger from '../../lib/logger';
 import winston from 'winston';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
-
-type SharedRequest = Request & { behalfUser: UserAttributes };
 interface Services {
   User: any;
   Analytics: any;
@@ -150,7 +148,6 @@ export class AuthController {
       }
     }
 
-    const internxtClient = req.headers['internxt-client'];
     const token = Sign(userData.email, this.config.get('secrets').JWT, true);
     this.service.User.LoginFailed(req.body.email, false);
 

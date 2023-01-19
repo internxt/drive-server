@@ -331,6 +331,48 @@ module.exports = (Model, App) => {
     };
   };
 
+  const GetFoldersPaginationWithoutSharesNorThumbnails = async (
+    user, 
+    index, 
+    filterOptions
+  ) => {
+    let userObject = user.get({ plain: true });
+
+    const isSharedWorkspace = user.bridgeUser !== user.email;
+
+    if (isSharedWorkspace) {
+      const hostUser = await Model.users.findOne({
+        where: {
+          email: user.bridgeUser,
+        },
+      });
+
+      userObject = { ...userObject, id: hostUser.id };
+    }
+
+    const folders = await Model.folder.findAll({
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
+      order: [['id', 'DESC']],
+      limit: 5000,
+      offset: index,
+    });
+
+    const foldersId = folders.map((result) => result.id);
+    const files = await Model.file.findAll({
+      where: { 
+        folder_id: { [Op.in]: foldersId }, 
+        userId: userObject.id, 
+        deleted: filterOptions.deleted || false 
+      },
+    });
+
+    return {
+      folders,
+      files,
+    };
+  };
+
   const getFolders = (parentFolderId, userId, deleted = false) => {
     return Model.folder
       .findAll({
@@ -762,6 +804,7 @@ module.exports = (Model, App) => {
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
+    GetFoldersPaginationWithoutSharesNorThumbnails,
     changeDuplicateName,
     acquireLock,
     releaseLock,
