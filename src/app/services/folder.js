@@ -19,6 +19,10 @@ module.exports = (Model, App) => {
         raw: true,
       })
       .then((folder) => {
+        if (!folder) {
+          return null;
+        }
+
         folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
         return folder;
@@ -261,20 +265,20 @@ module.exports = (Model, App) => {
         },
         deleted,
       },
-        include: [
-          {
-            model: Model.thumbnail,
-            as: 'thumbnails',
-            required: false,
-          },
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
-      });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
+    });
   };
 
   const GetFoldersPagination = async (user, index, filterOptions) => {
@@ -332,8 +336,8 @@ module.exports = (Model, App) => {
   };
 
   const GetFoldersPaginationWithoutSharesNorThumbnails = async (
-    user, 
-    index, 
+    user,
+    index,
     filterOptions
   ) => {
     let userObject = user.get({ plain: true });
@@ -360,10 +364,10 @@ module.exports = (Model, App) => {
 
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { 
-        folder_id: { [Op.in]: foldersId }, 
-        userId: userObject.id, 
-        deleted: filterOptions.deleted || false 
+      where: {
+        folder_id: { [Op.in]: foldersId },
+        userId: userObject.id,
+        deleted: filterOptions.deleted || false
       },
     });
 
