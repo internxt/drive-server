@@ -19,6 +19,10 @@ module.exports = (Model, App) => {
         raw: true,
       })
       .then((folder) => {
+        if (!folder) {
+          return null;
+        }
+
         folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
         return folder;
