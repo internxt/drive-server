@@ -91,7 +91,7 @@ export class StorageController {
     const parentFolder = await this.services.Folder.getById(parentFolderId);
 
     if (!parentFolder) {
-      throw createHttpError(400, 'Parent folder does not exist');
+      throw createHttpError(400, `Parent folder ${parentFolderId} does not exist`);
     }
 
     if (parentFolder.userId !== user.id) {
