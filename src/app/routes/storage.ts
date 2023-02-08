@@ -83,12 +83,16 @@ export class StorageController {
     }
 
     if (!parentFolderId || parentFolderId <= 0) {
-      throw createHttpError(400, 'Parent folder ID is not valid');
+      throw createHttpError(400, 'Invalid parent folder id');
     }
 
     const clientId = String(req.headers['internxt-client-id']);
 
     const parentFolder = await this.services.Folder.getById(parentFolderId);
+
+    if (!parentFolder) {
+      throw createHttpError(400, 'Parent folder does not exist');
+    }
 
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
