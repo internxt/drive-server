@@ -133,7 +133,7 @@ module.exports = (Model, App) => {
     const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId, :output)', {
       replacements: { userId, output: null },
     });
-    const totalLeft = clear[0].total_left;
+    const totalLeft = clear[0][0].total_left;
 
     if (totalLeft > 0) {
       return DeleteOrphanFolders(userId);
@@ -821,5 +821,6 @@ module.exports = (Model, App) => {
     getDirectoryFolders,
     getUserDirectoryFiles,
     getUserDirectoryFolders,
+    DeleteOrphanFolders,
   };
 };
