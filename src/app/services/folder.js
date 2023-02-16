@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
@@ -116,12 +117,13 @@ module.exports = (Model, App) => {
 
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
+      uuid: v4(),
       bucket: null,
       parentId: parentFolderId || null,
+      parentUuid: existsParentFolder.uuid,
       id_team: teamId,
     });
 
