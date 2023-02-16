@@ -264,6 +264,7 @@ module.exports = (Model, App) => {
     // Move
     const result = await file.update({
       folder_id: parseInt(destination, 10),
+      folderUuid: folderTarget.uuid,
       name: destinationName,
       deleted: false,
       deletedAt: null,
