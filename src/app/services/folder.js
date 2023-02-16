@@ -83,18 +83,14 @@ module.exports = (Model, App) => {
       };
     }
 
-    const existsParentFolder = await Model.folder.findOne({ whereCondition });
+    const parentFolder = await Model.folder.findOne(whereCondition);
 
-    if (!existsParentFolder) {
+    if (!parentFolder) {
       throw Error('Parent folder is not yours');
     }
 
     if (folderName === '' || invalidName.test(folderName)) {
       throw Error('Invalid folder name');
-    }
-
-    if (user.mnemonic === 'null') {
-      // throw Error('Your mnemonic is invalid');
     }
 
     // Encrypt folder name, TODO: use versioning for encryption
@@ -123,7 +119,7 @@ module.exports = (Model, App) => {
       uuid: v4(),
       bucket: null,
       parentId: parentFolderId || null,
-      parentUuid: existsParentFolder.uuid,
+      parentUuid: parentFolder.uuid,
       id_team: teamId,
     });
 
