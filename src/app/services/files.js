@@ -2,6 +2,7 @@ const sequelize = require('sequelize');
 const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
+const { v4 } = require('uuid');
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -48,6 +49,8 @@ module.exports = (Model, App) => {
           bucket: file.bucket,
           encrypt_version: file.encrypt_version,
           userId: user.id,
+          uuid: v4(),
+          folderUuid: folder.uuid,
           modificationTime: file.modificationTime || new Date(),
         };
 
@@ -261,6 +264,7 @@ module.exports = (Model, App) => {
     // Move
     const result = await file.update({
       folder_id: parseInt(destination, 10),
+      folderUuid: folderTarget.uuid,
       name: destinationName,
       deleted: false,
       deletedAt: null,

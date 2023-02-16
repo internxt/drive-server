@@ -2,6 +2,7 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 export interface FileAttributes {
   id: number;
+  uuid: string;
   fileId: string;
   name: string;
   plain_name: string;
@@ -9,6 +10,7 @@ export interface FileAttributes {
   size: number;
   bucket: string;
   folderId: number;
+  folderUuid: string;
   createdAt: Date;
   encryptVersion: string;
   deleted: boolean;
@@ -28,6 +30,11 @@ export default (database: Sequelize): FileModel => {
         primaryKey: true,
         allowNull: false,
         autoIncrement: true,
+      },
+      uuid: {
+        type: DataTypes.UUIDV4,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
       },
       fileId: {
         type: DataTypes.STRING(24),
@@ -49,6 +56,13 @@ export default (database: Sequelize): FileModel => {
       },
       folder_id: {
         type: DataTypes.INTEGER,
+      },
+      folderUuid: {
+        type: DataTypes.UUIDV4,
+        references: {
+          model: 'folders',
+          key: 'uuid',
+        },
       },
       created_at: {
         type: DataTypes.VIRTUAL,

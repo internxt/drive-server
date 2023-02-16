@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
@@ -116,12 +117,13 @@ module.exports = (Model, App) => {
 
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
+      uuid: v4(),
       bucket: null,
       parentId: parentFolderId || null,
+      parentUuid: existsParentFolder.uuid,
       id_team: teamId,
     });
 
@@ -163,38 +165,6 @@ module.exports = (Model, App) => {
     });
 
     return removed;
-  };
-
-  const GetTreeSize = (tree) => {
-    let treeSize = 0;
-
-    function getFileSize(files) {
-      files.forEach((file) => {
-        treeSize += file.size;
-      });
-    }
-
-    function getChildrenSize(children) {
-      children.forEach((child) => {
-        if (child.files && child.files.length > 0) {
-          getFileSize(child.files);
-        }
-
-        if (child.children && child.children.length > 0) {
-          getChildrenSize(child.children);
-        }
-      });
-    }
-
-    if (tree.files && tree.files.length > 0) {
-      getFileSize(tree.files);
-    }
-
-    if (tree.children && tree.children.length > 0) {
-      getChildrenSize(tree.children);
-    }
-
-    return treeSize;
   };
 
   const GetTree = async (user, rootFolderId = null, deleted = false) => {
@@ -546,6 +516,7 @@ module.exports = (Model, App) => {
     // Move
     const result = await folder.update({
       parentId: parseInt(destination, 10),
+      parentUuid: destinationFolder.uuid,
       name: destinationName,
       deleted: false,
       deletedAt: null,
@@ -803,7 +774,6 @@ module.exports = (Model, App) => {
     Delete,
     GetChildren,
     GetTree,
-    GetTreeSize,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
