@@ -548,6 +548,7 @@ module.exports = (Model, App) => {
     // Move
     const result = await folder.update({
       parentId: parseInt(destination, 10),
+      parentUuid: destinationFolder.uuid,
       name: destinationName,
       deleted: false,
       deletedAt: null,
