@@ -167,38 +167,6 @@ module.exports = (Model, App) => {
     return removed;
   };
 
-  const GetTreeSize = (tree) => {
-    let treeSize = 0;
-
-    function getFileSize(files) {
-      files.forEach((file) => {
-        treeSize += file.size;
-      });
-    }
-
-    function getChildrenSize(children) {
-      children.forEach((child) => {
-        if (child.files && child.files.length > 0) {
-          getFileSize(child.files);
-        }
-
-        if (child.children && child.children.length > 0) {
-          getChildrenSize(child.children);
-        }
-      });
-    }
-
-    if (tree.files && tree.files.length > 0) {
-      getFileSize(tree.files);
-    }
-
-    if (tree.children && tree.children.length > 0) {
-      getChildrenSize(tree.children);
-    }
-
-    return treeSize;
-  };
-
   const GetTree = async (user, rootFolderId = null, deleted = false) => {
     const rootElements = [];
     const pendingFolders = [
@@ -806,7 +774,6 @@ module.exports = (Model, App) => {
     Delete,
     GetChildren,
     GetTree,
-    GetTreeSize,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
