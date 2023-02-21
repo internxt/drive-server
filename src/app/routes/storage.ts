@@ -708,7 +708,6 @@ export default (router: Router, service: any) => {
     teamsAdapter,
     controller.getFolderContents.bind(controller),
   );
-  router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
   router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
