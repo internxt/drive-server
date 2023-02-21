@@ -461,9 +461,8 @@ module.exports = (Model, App) => {
 
   const getUsage = async (user) => {
     const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
-    const usage = await Model.folder.findAll({
+    const usage = await Model.file.findAll({
       where: { user_id: targetUser.id },
-      include: [{ model: Model.file, attributes: [] }],
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true,
     });
@@ -688,7 +687,7 @@ module.exports = (Model, App) => {
     if (utilsService.isToday(mailLimit.lastMailSent) && mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
       throw new DailyEmailVerificationLimitReached();
     }
-    
+
     const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
 
     await Model.mailLimit.update(
