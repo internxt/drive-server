@@ -5,6 +5,7 @@ const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
+import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
@@ -19,6 +20,10 @@ module.exports = (Model, App) => {
         raw: true,
       })
       .then((folder) => {
+        if (!folder) {
+          return null;
+        }
+
         folder.name = App.services.Crypt.decryptName(folder.name, folder.parentId);
 
         return folder;
@@ -78,18 +83,14 @@ module.exports = (Model, App) => {
       };
     }
 
-    const existsParentFolder = await Model.folder.findOne({ whereCondition });
+    const parentFolder = await Model.folder.findOne(whereCondition);
 
-    if (!existsParentFolder) {
+    if (!parentFolder) {
       throw Error('Parent folder is not yours');
     }
 
     if (folderName === '' || invalidName.test(folderName)) {
       throw Error('Invalid folder name');
-    }
-
-    if (user.mnemonic === 'null') {
-      // throw Error('Your mnemonic is invalid');
     }
 
     // Encrypt folder name, TODO: use versioning for encryption
@@ -112,11 +113,13 @@ module.exports = (Model, App) => {
 
     // Since we upload everything in the same bucket, this line is no longer needed
     // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
-
     const folder = await user.createFolder({
       name: cryptoFolderName,
+      plain_name: folderName,
+      uuid: v4(),
       bucket: null,
       parentId: parentFolderId || null,
+      parentUuid: parentFolder.uuid,
       id_team: teamId,
     });
 
@@ -128,7 +131,7 @@ module.exports = (Model, App) => {
     const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId, :output)', {
       replacements: { userId, output: null },
     });
-    const totalLeft = clear[0].total_left;
+    const totalLeft = clear[0][0].total_left;
 
     if (totalLeft > 0) {
       return DeleteOrphanFolders(userId);
@@ -158,38 +161,6 @@ module.exports = (Model, App) => {
     });
 
     return removed;
-  };
-
-  const GetTreeSize = (tree) => {
-    let treeSize = 0;
-
-    function getFileSize(files) {
-      files.forEach((file) => {
-        treeSize += file.size;
-      });
-    }
-
-    function getChildrenSize(children) {
-      children.forEach((child) => {
-        if (child.files && child.files.length > 0) {
-          getFileSize(child.files);
-        }
-
-        if (child.children && child.children.length > 0) {
-          getChildrenSize(child.children);
-        }
-      });
-    }
-
-    if (tree.files && tree.files.length > 0) {
-      getFileSize(tree.files);
-    }
-
-    if (tree.children && tree.children.length > 0) {
-      getChildrenSize(tree.children);
-    }
-
-    return treeSize;
   };
 
   const GetTree = async (user, rootFolderId = null, deleted = false) => {
@@ -260,20 +231,20 @@ module.exports = (Model, App) => {
         },
         deleted,
       },
-        include: [
-          {
-            model: Model.thumbnail,
-            as: 'thumbnails',
-            required: false,
-          },
-          {
-            model: Model.shares,
-            attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
-            as: 'shares',
-            required: false,
-          },
-        ],
-      });
+      include: [
+        {
+          model: Model.thumbnail,
+          as: 'thumbnails',
+          required: false,
+        },
+        {
+          model: Model.shares,
+          attributes: ['id', 'active', 'hashed_password', 'token', 'code', 'is_folder'],
+          as: 'shares',
+          required: false,
+        },
+      ],
+    });
   };
 
   const GetFoldersPagination = async (user, index, filterOptions) => {
@@ -324,6 +295,48 @@ module.exports = (Model, App) => {
         },
       ],
     });
+    return {
+      folders,
+      files,
+    };
+  };
+
+  const GetFoldersPaginationWithoutSharesNorThumbnails = async (
+    user,
+    index,
+    filterOptions
+  ) => {
+    let userObject = user.get({ plain: true });
+
+    const isSharedWorkspace = user.bridgeUser !== user.email;
+
+    if (isSharedWorkspace) {
+      const hostUser = await Model.users.findOne({
+        where: {
+          email: user.bridgeUser,
+        },
+      });
+
+      userObject = { ...userObject, id: hostUser.id };
+    }
+
+    const folders = await Model.folder.findAll({
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
+      order: [['id', 'DESC']],
+      limit: 5000,
+      offset: index,
+    });
+
+    const foldersId = folders.map((result) => result.id);
+    const files = await Model.file.findAll({
+      where: {
+        folder_id: { [Op.in]: foldersId },
+        userId: userObject.id,
+        deleted: filterOptions.deleted || false
+      },
+    });
+
     return {
       folders,
       files,
@@ -408,18 +421,20 @@ module.exports = (Model, App) => {
         if (metadata.itemName) {
           const cryptoFolderName = App.services.Crypt.encryptName(metadata.itemName, folder.parentId);
 
-          Model.folder.findOne({
-            where: {
-              parentId: { [Op.eq]: folder.parentId },
-              name: { [Op.eq]: cryptoFolderName },
-              deleted: { [Op.eq]: false },
-            },
-          })
+          Model.folder
+            .findOne({
+              where: {
+                parentId: { [Op.eq]: folder.parentId },
+                name: { [Op.eq]: cryptoFolderName },
+                deleted: { [Op.eq]: false },
+              },
+            })
             .then((isDuplicated) => {
               if (isDuplicated) {
                 return next(Error('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
+              newMeta.plain_name = metadata.itemName;
               try {
                 AesUtil.decrypt(cryptoFolderName, folder.parentId);
                 newMeta.encrypt_version = '03-aes';
@@ -497,6 +512,7 @@ module.exports = (Model, App) => {
     // Move
     const result = await folder.update({
       parentId: parseInt(destination, 10),
+      parentUuid: destinationFolder.uuid,
       name: destinationName,
       deleted: false,
       deletedAt: null,
@@ -754,13 +770,13 @@ module.exports = (Model, App) => {
     Delete,
     GetChildren,
     GetTree,
-    GetTreeSize,
     UpdateMetadata,
     MoveFolder,
     GetBucket,
     getFolders,
     isFolderOfTeam,
     GetFoldersPagination,
+    GetFoldersPaginationWithoutSharesNorThumbnails,
     changeDuplicateName,
     acquireLock,
     releaseLock,
@@ -771,5 +787,6 @@ module.exports = (Model, App) => {
     getDirectoryFolders,
     getUserDirectoryFiles,
     getUserDirectoryFolders,
+    DeleteOrphanFolders,
   };
 };

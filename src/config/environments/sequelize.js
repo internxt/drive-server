@@ -35,6 +35,7 @@ module.exports = {
     database: process.env.RDS_DBNAME,
     username: process.env.RDS_USERNAME,
     password: process.env.RDS_PASSWORD,
+    port: process.env.RDS_PORT,
     dialect: 'postgres',
     dialectOptions: {
       ssl: {

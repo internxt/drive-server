@@ -42,7 +42,6 @@ export class StorageController {
   public async createFile(req: Request, res: Response) {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
-    const internxtClient = req.headers['internxt-client'];
     const clientId = String(req.headers['internxt-client-id']);
 
     if (!file.fileId && file.file_id) {
@@ -84,12 +83,16 @@ export class StorageController {
     }
 
     if (!parentFolderId || parentFolderId <= 0) {
-      throw createHttpError(400, 'Parent folder ID is not valid');
+      throw createHttpError(400, 'Invalid parent folder id');
     }
 
     const clientId = String(req.headers['internxt-client-id']);
 
     const parentFolder = await this.services.Folder.getById(parentFolderId);
+
+    if (!parentFolder) {
+      throw createHttpError(400, `Parent folder ${parentFolderId} does not exist`);
+    }
 
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
@@ -705,7 +708,6 @@ export default (router: Router, service: any) => {
     teamsAdapter,
     controller.getFolderContents.bind(controller),
   );
-  router.get('/storage/folder/size/:id', passportAuth, controller.getFolderSize.bind(controller));
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
   router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));

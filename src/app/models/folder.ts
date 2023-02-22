@@ -2,7 +2,9 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 export interface FolderAttributes {
   id: number;
+  uuid: string;
   parentId: number;
+  parentUuid: string;
   name: string;
   bucket: string;
   userId: number;
@@ -23,6 +25,11 @@ export default (database: Sequelize): FolderModel => {
         allowNull: false,
         autoIncrement: true,
       },
+      uuid: {
+        type: DataTypes.UUIDV4,
+        defaultValue: DataTypes.UUIDV4,
+        allowNull: false,
+      },
       parentId: {
         type: DataTypes.INTEGER,
         references: {
@@ -30,7 +37,17 @@ export default (database: Sequelize): FolderModel => {
           key: 'id',
         },
       },
+      parentUuid: {
+        type: DataTypes.UUIDV4,
+        references: {
+          model: 'folders',
+          key: 'uuid',
+        },
+      },
       name: {
+        type: DataTypes.STRING,
+      },
+      plain_name: {
         type: DataTypes.STRING,
       },
       bucket: {

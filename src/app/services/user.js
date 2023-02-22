@@ -15,7 +15,6 @@ const AesUtil = require('../../lib/AesUtil');
 const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
-const { SYNC_KEEPALIVE_INTERVAL_MS } = require('../constants');
 const Logger = require('../../lib/logger').default;
 
 const { Op, col, fn } = sequelize;
@@ -41,6 +40,14 @@ class DailyDeactivationUserLimitReached extends Error {
     super('Mail deactivation daily limit reached');
 
     Object.setPrototypeOf(this, DailyDeactivationUserLimitReached.prototype);
+  }
+}
+
+class DailyEmailVerificationLimitReached extends Error {
+  constructor() {
+    super('Mail verification daily limit reached');
+
+    Object.setPrototypeOf(this, DailyEmailVerificationLimitReached.prototype);
   }
 }
 
@@ -381,23 +388,6 @@ module.exports = (Model, App) => {
 
   const UpdateAccountActivity = (user) => Model.users.update({ updated_at: new Date() }, { where: { username: user } });
 
-  const getSyncDate = () => {
-    let syncDate = Date.now();
-    syncDate += SYNC_KEEPALIVE_INTERVAL_MS;
-    return new Date(syncDate);
-  };
-
-  const hasUserSyncEnded = (sync) => {
-    if (!sync) {
-      return true;
-    }
-
-    const now = Date.now();
-    const syncTime = sync.getTime();
-
-    return now - syncTime > SYNC_KEEPALIVE_INTERVAL_MS;
-  };
-
   const GetUserBucket = (userObject) =>
     Model.folder
       .findOne({
@@ -406,37 +396,6 @@ module.exports = (Model, App) => {
       })
       .then((folder) => folder.bucket)
       .catch(() => null);
-
-  const UpdateUserSync = async (user, toNull) => {
-    let sync = null;
-    if (!toNull) {
-      sync = getSyncDate();
-    }
-
-    try {
-      await Model.users.update({ syncDate: sync }, { where: { username: user.email } });
-    } catch (err) {
-      logger.error(err);
-      throw Error('Internal server error');
-    }
-
-    return sync;
-  };
-
-  const GetOrSetUserSync = async (user) => {
-    const currentSync = user.syncDate;
-    const userSyncEnded = hasUserSyncEnded(currentSync);
-    if (!currentSync || userSyncEnded) {
-      await UpdateUserSync(user, false);
-    }
-
-    return !userSyncEnded;
-  };
-
-  const UnlockSync = (user) => {
-    user.syncDate = null;
-    return user.save();
-  };
 
   const RegisterUser = async (newUserData) => {
     logger.warn('[AUTH/REGISTER] Register request for %s', newUserData.email);
@@ -540,9 +499,8 @@ module.exports = (Model, App) => {
 
   const getUsage = async (user) => {
     const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
-    const usage = await Model.folder.findAll({
+    const usage = await Model.file.findAll({
       where: { user_id: targetUser.id },
-      include: [{ model: Model.file, attributes: [] }],
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true,
     });
@@ -753,6 +711,36 @@ module.exports = (Model, App) => {
   };
 
   const sendEmailVerification = async (user) => {
+    const [mailLimit] = await Model.mailLimit.findOrCreate({
+      where: {
+        userId: user.id,
+        mailType: 'email_verification',
+      },
+      default: {
+        attemptsCount: 0,
+        attemptsLimit: 10,
+      },
+    });
+
+    if (utilsService.isToday(mailLimit.lastMailSent) && mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
+      throw new DailyEmailVerificationLimitReached();
+    }
+
+    const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
+
+    await Model.mailLimit.update(
+      {
+        attemptsCount,
+      },
+      {
+        where: {
+          userId: user.id,
+          mailType: 'email_verification',
+          lastMailSent: new Date(),
+        },
+      },
+    );
+
     const secret = config.get('secrets').JWT;
     const verificationToken = AesUtil.encrypt(user.uuid, Buffer.from(secret));
 
@@ -799,9 +787,6 @@ module.exports = (Model, App) => {
     LoginFailed,
     ResendActivationEmail,
     UpdateAccountActivity,
-    GetOrSetUserSync,
-    UpdateUserSync,
-    UnlockSync,
     GetUserBucket,
     UpdateUserStorage,
     CreateStaggingUser,
