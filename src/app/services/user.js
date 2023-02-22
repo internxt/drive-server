@@ -35,6 +35,14 @@ class DailyInvitationUsersLimitReached extends Error {
   }
 }
 
+class DailyDeactivationUserLimitReached extends Error {
+  constructor() {
+    super('Mail deactivation daily limit reached');
+
+    Object.setPrototypeOf(this, DailyDeactivationUserLimitReached.prototype);
+  }
+}
+
 class DailyEmailVerificationLimitReached extends Error {
   constructor() {
     super('Mail verification daily limit reached');
@@ -208,6 +216,36 @@ module.exports = (Model, App) => {
     if (!user) {
       throw new Error('User not found');
     }
+
+    const [mailLimit] = await Model.mailLimit.findOrCreate({
+      where: {
+        userId: user.id,
+        mailType: 'deactivate_user',
+      },
+      default: {
+        attemptsCount: 0,
+        attemptsLimit: 10,
+      },
+    });
+
+    if (utilsService.isToday(mailLimit.lastMailSent) && mailLimit.attemptsCount >= mailLimit.attemptsLimit) {
+      throw new DailyDeactivationUserLimitReached();
+    }
+
+    const attemptsCount = utilsService.isToday(mailLimit.lastMailSent) ? mailLimit.attemptsCount + 1 : 1;
+
+    await Model.mailLimit.update(
+      {
+        attemptsCount,
+        lastMailSent: new Date(),
+      },
+      {
+        where: {
+          userId: user.id,
+          mailType: 'deactivate_user',
+        },
+      },
+    );
 
     const pass = crypto.createHash('sha256').update(user.userId).digest('hex');
     const auth = Buffer.from(`${user.email}:${pass}`).toString('base64');
