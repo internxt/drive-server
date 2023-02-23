@@ -45,7 +45,7 @@
     "pg-hstore": "^2.3.4",
     "qrcode": "^1.4.4",
     "sanitize-filename": "^1.6.3",
-    "sequelize": "^6.3.5",
+    "sequelize": "^6.28.2",
     "socket.io": "^4.2.0",
     "speakeasy": "^2.0.0",
     "sql-formatter": "^8.2.0",
