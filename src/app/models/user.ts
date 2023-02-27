@@ -28,6 +28,7 @@ export interface UserAttributes {
   tempKey: string;
   avatar: string;
   emailVerified: boolean;
+  lastPasswordChangeAt: Date;
 }
 
 export type UserModel = ModelDefined<UserAttributes, UserAttributes>;
@@ -143,6 +144,11 @@ export default (database: Sequelize): UserModel => {
       emailVerified: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
+      },
+      lastPasswordChangeAt: {
+        type: DataTypes.DATE,
+        defaultValue: new Date(),
+        allowNull: true,
       },
     },
     {
