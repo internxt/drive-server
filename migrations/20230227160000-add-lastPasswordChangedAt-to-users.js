@@ -5,7 +5,8 @@ module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.addColumn('users', 'last_password_changed_at', {
       type: Sequelize.DATE,
-      allowNull: true,
+      allowNull: false,
+      defaultValue: 0,
     });
   },
 

@@ -148,7 +148,7 @@ export default (database: Sequelize): UserModel => {
       lastPasswordChangedAt: {
         type: DataTypes.DATE,
         defaultValue: new Date(),
-        allowNull: true,
+        allowNull: false,
       },
     },
     {
