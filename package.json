@@ -43,6 +43,7 @@
     "passport-jwt": "^4.0.0",
     "pg": "^8.7.3",
     "pg-hstore": "^2.3.4",
+    "prometheus-api-metrics": "^3.2.2",
     "qrcode": "^1.4.4",
     "sanitize-filename": "^1.6.3",
     "sequelize": "^6.3.5",
