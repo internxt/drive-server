@@ -10,10 +10,12 @@ const addRequestId = require('express-request-id');
 const util = require('util');
 const Logger = require('../../lib/logger').default;
 const logger = Logger.getInstance();
+const apiMetrics = require('prometheus-api-metrics');
 
 module.exports = (App, Config) => {
   App.express.use(helmet());
   App.express.use(addRequestId());
+  App.express.use(apiMetrics());
   App.express.use((req, res, next) => {
     const meta = {
       requestId: req.id,
