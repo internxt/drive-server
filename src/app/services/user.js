@@ -1,5 +1,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import { MailTypes } from '../models/mailLimit';
 const sequelize = require('sequelize');
 const bip39 = require('bip39');
 const { request } = require('@internxt/lib');
@@ -220,7 +221,7 @@ module.exports = (Model, App) => {
     const [mailLimit] = await Model.mailLimit.findOrCreate({
       where: {
         userId: user.id,
-        mailType: 'deactivate_user',
+        mailType: MailTypes.DeactivateUser,
       },
       default: {
         attemptsCount: 0,
@@ -242,7 +243,7 @@ module.exports = (Model, App) => {
       {
         where: {
           userId: user.id,
-          mailType: 'deactivate_user',
+          mailType: MailTypes.DeactivateUser,
         },
       },
     );
@@ -574,7 +575,7 @@ module.exports = (Model, App) => {
     let mailLimit = await Model.mailLimit.findOne({
       where: {
         userId: hostUserId,
-        mailType: 'invite_friend',
+        mailType: MailTypes.InviteFriend,
       },
     });
 
@@ -583,7 +584,7 @@ module.exports = (Model, App) => {
     if (!mailLimit) {
       mailLimit = await Model.mailLimit.create({
         userId: hostUserId,
-        mailType: 'invite_friend',
+        mailType: MailTypes.InviteFriend,
         attemptsCount: 0,
         attemptsLimit: 10,
       });
@@ -619,7 +620,7 @@ module.exports = (Model, App) => {
         {
           where: {
             userId: hostUserId,
-            mailType: 'invite_friend',
+            mailType: MailTypes.InviteFriend,
           },
         },
       );
@@ -714,7 +715,7 @@ module.exports = (Model, App) => {
     const [mailLimit] = await Model.mailLimit.findOrCreate({
       where: {
         userId: user.id,
-        mailType: 'email_verification',
+        mailType: MailTypes.EmailVerification,
       },
       default: {
         attemptsCount: 0,
@@ -735,7 +736,7 @@ module.exports = (Model, App) => {
       {
         where: {
           userId: user.id,
-          mailType: 'email_verification',
+          mailType: MailTypes.EmailVerification,
           lastMailSent: new Date(),
         },
       },
