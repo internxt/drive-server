@@ -1,6 +1,6 @@
 const openpgp = require('openpgp');
 const createHttpError = require('http-errors');
-const { passportAuth, Sign } = require('../middleware/passport');
+const { passportAuth, Sign, SignNewToken, SignWithOlderIAT } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const { default: uploadAvatar } = require('../middleware/upload-avatar');
@@ -16,7 +16,9 @@ module.exports = (Router, Service, App) => {
 
     Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey)
       .then(() => {
-        res.status(200).send({});
+        const token = SignWithOlderIAT(req.user.email, App.config.get('secrets').JWT);
+        const newToken = SignNewToken(req.user, App.config.get('secrets').JWT);
+        res.status(200).send({ token, newToken });
       })
       .catch((err) => {
         res.status(500).send({ error: err.message });
