@@ -9,6 +9,7 @@
     "@rudderstack/rudder-sdk-node": "^1.1.4",
     "@sendgrid/mail": "^7.2.1",
     "@types/pg": "^8.6.5",
+    "agentkeepalive": "^4.3.0",
     "analytics-node": "^5.1.0",
     "async": "^3.2.0",
     "aws-sdk": "^2.1138.0",
