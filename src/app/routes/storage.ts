@@ -500,7 +500,7 @@ export class StorageController {
       .then(() => {
         res.status(201).end();
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         this.logger.error(`Error acquiring lock for user ${user.email} : ${err.message}. ${err.stack || 'NO STACK'}`);
         res.status(409).end();
       });
