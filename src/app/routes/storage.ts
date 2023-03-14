@@ -696,7 +696,7 @@ export default (router: Router, service: any) => {
 
   router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
   router.post('/storage/thumbnail', passportAuth, sharedAdapter, controller.createThumbnail.bind(controller));
-  router.post('/storage/folder', passportAuth, controller.createFolder.bind(controller));
+  router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
