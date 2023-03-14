@@ -76,7 +76,7 @@ export class StorageController {
 
   public async createFolder(req: Request, res: Response): Promise<void> {
     const { folderName, parentFolderId } = req.body;
-    const { user } = req as PassportRequest;
+    const { behalfUser: user } = req as any;
 
     if (Validator.isInvalidString(folderName)) {
       throw createHttpError(400, 'Folder name must be a valid string');
