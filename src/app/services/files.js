@@ -217,9 +217,7 @@ module.exports = (Model, App) => {
         if (newMeta.name !== file.name) {
           file
             .update(newMeta)
-            .then(async (update) => {
-              await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
-
+            .then((update) => {
               next(null, update);
             })
             .catch(next);
