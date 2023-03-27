@@ -16,6 +16,7 @@ export default class Redis {
 
     const config: RedisOptions = {
       enableAutoPipelining: true,
+      showFriendlyErrorStack: true,
     };
 
     const uri = process.env.REDIS_CONNECTION_STRING;
