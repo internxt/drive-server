@@ -56,22 +56,31 @@ export class StorageController {
       return res.status(400).json({ error: 'Invalid metadata for new file' });
     }
 
-    const result = await this.services.Files.CreateFile(behalfUser, file);
+    try {
+      const result = await this.services.Files.CreateFile(behalfUser, file);
 
-    res.status(200).json(result);
+      res.status(200).json(result);
 
-    const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
+      this.services.Analytics.trackUploadCompleted(req, behalfUser);
 
-    workspaceMembers.forEach(
-      ({ email }: { email: string }) =>
-        void this.services.Notifications.fileCreated({
-          file: result,
-          email: email,
-          clientId: clientId,
-        }),
-    );
+      const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
-    this.services.Analytics.trackUploadCompleted(req, behalfUser);
+      workspaceMembers.forEach(
+        ({ email }: { email: string }) =>
+          void this.services.Notifications.fileCreated({
+            file: result,
+            email: email,
+            clientId: clientId,
+          }),
+      );      
+    } catch (err) {
+      this.logger.error(
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(
+          file,
+        )}, STACK: ${(err as Error).stack}`,
+      );
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
   }
 
   public async createFolder(req: Request, res: Response): Promise<void> {
