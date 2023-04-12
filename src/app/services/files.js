@@ -13,60 +13,65 @@ module.exports = (Model, App) => {
   const log = App.logger;
 
   const CreateFile = async (user, file) => {
-    return Model.folder
-      .findOne({
-        where: {
-          id: { [Op.eq]: file.folder_id },
-          user_id: { [Op.eq]: user.id },
-        },
-      })
-      .then(async (folder) => {
-        if (!folder) {
-          throw Error('Folder not found / Is not your folder');
-        }
+    const folder = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: file.folder_id },
+      },
+    });
 
-        const fileExists = await Model.file.findOne({
-          where: {
-            name: { [Op.eq]: file.name },
-            folder_id: { [Op.eq]: folder.id },
-            type: { [Op.eq]: file.type },
-            userId: { [Op.eq]: user.id },
-            deleted: { [Op.eq]: false },
-          },
-        });
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
 
-        if (fileExists) {
-          throw Error('File entry already exists');
-        }
+    const isTheFolderOwner = user.id === folder.user_id;
 
-        const fileInfo = {
-          name: file.name,
-          plain_name: file.plain_name,
-          type: file.type,
-          size: file.size,
-          folder_id: folder.id,
-          fileId: file.fileId,
-          bucket: file.bucket,
-          encrypt_version: file.encrypt_version,
-          userId: user.id,
-          uuid: v4(),
-          folderUuid: folder.uuid,
-          modificationTime: file.modificationTime || new Date(),
-        };
+    if (!isTheFolderOwner) {
+      throw new Error('Folder is not yours');
+    }
 
-        try {
-          AesUtil.decrypt(file.name, file.fileId);
-          fileInfo.encrypt_version = '03-aes';
-        } catch {
-          // eslint-disable-next-line no-empty
-        }
+    const maybeAlreadyExistentFile = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: file.name },
+        folder_id: { [Op.eq]: folder.id },
+        type: { [Op.eq]: file.type },
+        userId: { [Op.eq]: user.id },
+        deleted: { [Op.eq]: false },
+      },
+    });
 
-        if (file.date) {
-          fileInfo.createdAt = file.date;
-        }
+    const fileAlreadyExists = !!maybeAlreadyExistentFile;
 
-        return Model.file.create(fileInfo);
-      });
+    if (fileAlreadyExists) {
+      throw new Error('File already exists');
+    }
+
+    const fileInfo = {
+      name: file.name,
+      plain_name: file.plain_name,
+      type: file.type,
+      size: file.size,
+      folder_id: folder.id,
+      fileId: file.fileId,
+      bucket: file.bucket,
+      encrypt_version: file.encrypt_version,
+      userId: user.id,
+      uuid: v4(),
+      folderUuid: folder.uuid,
+      modificationTime: file.modificationTime || new Date(),
+    };
+
+    try {
+      AesUtil.decrypt(file.name, file.fileId);
+      fileInfo.encrypt_version = '03-aes';
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
+
+    if (file.date) {
+      fileInfo.createdAt = file.date;
+    }
+
+    return Model.file.create(fileInfo);
   };
 
   const Delete = (user, bucket, fileId) =>
