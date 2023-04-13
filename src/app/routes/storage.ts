@@ -49,7 +49,7 @@ export class StorageController {
       file.fileId = file.file_id;
     }
 
-    if (!file || !file.fileId || !file.bucket || !file.size || !file.folder_id || !file.name) {
+    if (!file || !file.fileId || !file.bucket || file.size === undefined || file.size === null || !file.folder_id || !file.name) {
       this.logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
