@@ -374,7 +374,6 @@ export class StorageController {
     const { behalfUser: user } = req as SharedRequest;
     const fileId = req.params.fileid;
     const { metadata, bucketId, relativePath } = req.body;
-    const mnemonic = req.headers['internxt-mnemonic'];
     const clientId = String(req.headers['internxt-client-id']);
 
     if (Validator.isInvalidString(fileId)) {
@@ -389,11 +388,7 @@ export class StorageController {
       throw createHttpError(400, 'Relative path is not valid');
     }
 
-    if (Validator.isInvalidString(mnemonic)) {
-      throw createHttpError(400, 'Mnemonic is not valid');
-    }
-
-    return this.services.Files.UpdateMetadata(user, fileId, metadata, mnemonic, bucketId, relativePath)
+    return this.services.Files.UpdateMetadata(user, fileId, metadata, '', bucketId, relativePath)
       .then(async (result: FileAttributes) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
