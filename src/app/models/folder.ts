@@ -9,6 +9,7 @@ export interface FolderAttributes {
   bucket: string;
   userId: number;
   encryptVersion: string;
+  plain_name: string | null;
   deleted: boolean;
   deletedAt: Date;
 }
