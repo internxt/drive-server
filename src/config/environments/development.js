@@ -10,12 +10,6 @@ exports.data = {
       host: process.env.RDS_HOSTNAME,
       dialect: 'postgres',
       port: process.env.RDS_PORT,
-      dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
-      }
     },
   },
   secrets: {
