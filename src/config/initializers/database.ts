@@ -60,7 +60,7 @@ export default class Database {
         logger.info('Connected to database');
       })
       .catch((err) => {
-        logger.error('Database connection error: %s', err);
+        logger.error('Database connection error:', err);
       });
 
     Database.instance = instance;
