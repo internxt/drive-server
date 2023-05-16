@@ -3,13 +3,19 @@ exports.data = {
     port: 8000,
   },
   database: {
+    host: process.env.RDS_HOSTNAME,
     name: process.env.RDS_DBNAME,
-    user: process.env.RDS_USERNAME || 'root',
-    password: process.env.RDS_PASSWORD || '',
+    user: process.env.RDS_USERNAME,
+    password: process.env.RDS_PASSWORD,
     sequelizeConfig: {
       dialect: 'postgres',
       port: process.env.RDS_PORT,
-      host: process.env.RDS_HOSTNAME || 'localhost',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false,
+        },
+      }
     },
   },
   secrets: {
