@@ -30,13 +30,6 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/drive-server:${{ github.sha }}
-      - name: Build and push to desktop-server
-        uses: docker/build-push-action@v2
-        with:
-          context: ./
-          file: ./Dockerfile
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }}
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -53,18 +46,5 @@ jobs:
         uses: steebchen/kubectl@v2.0.0
         with:
           config: ${{ secrets.KUBE_CONFIG_DATA }}
-          version: v1.20.2 # specify kubectl binary version explicitly
+          version: v1.25.9 # specify kubectl binary version explicitly
           command: rollout status deployment/drive-server
-
-      - uses: actions/checkout@master
-      - name: Update desktop-server image
-        uses: steebchen/kubectl@v2.0.0
-        with:
-          config: ${{ secrets.KUBE_CONFIG_DATA }}
-          command: set image --record deployment/desktop-server desktop-server=${{ secrets.DOCKERHUB_USERNAME }}/desktop-server:${{ github.sha }}
-      - name: Verify desktop-server deployment
-        uses: steebchen/kubectl@v2.0.0
-        with:
-          config: ${{ secrets.KUBE_CONFIG_DATA }}
-          version: v1.20.2
-          command: rollout status deployment/desktop-server
