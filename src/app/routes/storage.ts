@@ -72,7 +72,7 @@ export class StorageController {
             email: email,
             clientId: clientId,
           }),
-      );      
+      );
     } catch (err) {
       this.logger.error(
         `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(
@@ -167,7 +167,7 @@ export class StorageController {
       });
   }
 
-  public async deleteFolder(req: Request, res: Response): Promise<void> {
+  async deleteFolder(req: Request, res: Response) {
     const { behalfUser: user } = req as SharedRequest;
 
     const folderId = Number(req.params.id);
@@ -177,10 +177,12 @@ export class StorageController {
 
     const clientId = String(req.headers['internxt-client-id']);
 
-    return this.services.Folder.Delete(user, folderId)
-      .then(async (result: unknown) => {
-        res.status(204).send(result);
-        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
+    try {
+      const result = await this.services.Folder.Delete(user, folderId);
+
+      res.status(204).send(result);
+
+      this.services.User.findWorkspaceMembers(user.bridgeUser).then((workspaceMembers: any) => {
         workspaceMembers.forEach(
           ({ email }: { email: string }) =>
             void this.services.Notifications.folderDeleted({
@@ -189,11 +191,21 @@ export class StorageController {
               clientId: clientId,
             }),
         );
-      })
-      .catch((err: Error) => {
-        this.logger.error(`${err.message}\n${err.stack}`);
-        res.status(500).send();
       });
+    } catch (error) {
+      const err = error as Error;
+
+      if (err.message === 'Folder does not exist') {
+        return res.status(404).send({ error: err.message });
+      }
+
+      if (err.message === 'Cannot delete root folder') {
+        return res.status(406).send({ error: err.message });
+      }
+
+      this.logger.error(`[FOLDER/DELETE] ERROR: ${err.message}, STACK: ${err.stack || 'NO STACK'}`);
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
   }
 
   public async moveFolder(req: Request, res: Response): Promise<void> {
@@ -278,7 +290,7 @@ export class StorageController {
 
     await Promise.all([
       this.services.Folder.getByIdAndUserIds(
-        id, 
+        id,
         [
           behalfUser.id,
           (req as AuthorizedRequest).user.id
