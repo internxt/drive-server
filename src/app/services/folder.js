@@ -319,7 +319,7 @@ module.exports = (Model, App) => {
     }
 
     const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false, removed: false },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at', 'plain_name'],
       order: [['id', 'DESC']],
       limit: 5000,
@@ -331,7 +331,8 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.in]: foldersId },
         userId: userObject.id,
-        deleted: filterOptions.deleted || false
+        deleted: filterOptions.deleted || false,
+        removed: false,
       },
     });
 
