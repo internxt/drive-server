@@ -146,18 +146,16 @@ module.exports = (Model, App) => {
     });
 
     if (!folder) {
-      throw new Error('Folder does not exists');
+      throw new Error('Folder does not exist');
     }
 
     if (folder.id === user.root_folder_id) {
       throw new Error('Cannot delete root folder');
     }
 
-    // Destroy folder
-    const removed = await folder.destroy();
-
-    DeleteOrphanFolders(user.id).catch((err) => {
-      logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+    const removed = await folder.update({
+      removed: true,
+      removedAt: new Date(),
     });
 
     return removed;
@@ -321,7 +319,7 @@ module.exports = (Model, App) => {
     }
 
     const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false, removed: false },
       attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at', 'plain_name'],
       order: [['id', 'DESC']],
       limit: 5000,
@@ -333,7 +331,8 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.in]: foldersId },
         userId: userObject.id,
-        deleted: filterOptions.deleted || false
+        deleted: filterOptions.deleted || false,
+        removed: false,
       },
     });
 
