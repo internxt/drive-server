@@ -146,18 +146,16 @@ module.exports = (Model, App) => {
     });
 
     if (!folder) {
-      throw new Error('Folder does not exists');
+      throw new Error('Folder does not exist');
     }
 
     if (folder.id === user.root_folder_id) {
       throw new Error('Cannot delete root folder');
     }
 
-    // Destroy folder
-    const removed = await folder.destroy();
-
-    DeleteOrphanFolders(user.id).catch((err) => {
-      logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+    const removed = await folder.update({
+      removed: true,
+      removedAt: new Date(),
     });
 
     return removed;
