@@ -151,10 +151,9 @@ export class StorageController {
 
     return this.services.Folder.GetTree(user, folderId)
       .then((result: unknown) => {
-        const treeSize = this.services.Folder.GetTreeSize(result);
         res.status(200).send({
           tree: result,
-          size: treeSize,
+          size: 0,
         });
       })
       .catch((err: Error) => {
