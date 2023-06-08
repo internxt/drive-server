@@ -42,7 +42,7 @@ export class AuthController {
 
       res.status(200).send(result);
       await this.service.Newsletter.subscribe(result.user.email);
-      this.service.Analytics.trackSignUp(req, result.user);
+      this.service.Analytics.trackSignUp(req, result.user).catch(() => null);
     } catch (err: any) {
       if (err instanceof HttpError) {
         return res.status(err.status).send({

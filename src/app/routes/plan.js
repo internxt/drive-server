@@ -31,11 +31,10 @@ module.exports = (Router, Service) => {
 
       return res.status(200).json(plan);
     } catch (error) {
-      const statusCode = error.statusCode || 500;
       const errorMessage = error.message || '';
 
       Logger.error(`Error getting stripe individual plan ${req.user.email}: ${error.message}`);
-      return res.status(statusCode).send({ error: errorMessage });
+      return res.status(500).send({ error: errorMessage });
     }
   });
 
