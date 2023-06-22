@@ -154,6 +154,8 @@ module.exports = (Model, App) => {
     }
 
     const removed = await folder.update({
+      deleted: true,
+      deletedAt: new Date(),
       removed: true,
       removedAt: new Date(),
     });
