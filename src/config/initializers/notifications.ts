@@ -7,7 +7,7 @@ import Logger from '../../lib/logger';
 type RequestData = {
   event: string;
   payload: Record<string, any>;
-  email: string;
+  email?: string;
   clientId: string;
   userId?: UserAttributes['uuid'];
 };
@@ -30,10 +30,10 @@ export default class Notifications {
 
   fileCreated({
     file,
-    email,
+    uuid,
     clientId,
-  }: { file: FileAttributes } & Pick<RequestData, 'email' | 'clientId'>): Promise<void> {
-    return this.post({ event: 'FILE_CREATED', payload: file, email, clientId });
+  }: { file: FileAttributes, uuid: RequestData['userId'] } & Pick<RequestData, 'clientId'>): Promise<void> {
+    return this.post({ event: 'FILE_CREATED', payload: file, userId: uuid, clientId });
   }
 
   fileUpdated({

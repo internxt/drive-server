@@ -66,10 +66,10 @@ export class StorageController {
       const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
       workspaceMembers.forEach(
-        ({ email }: { email: string }) =>
+        ({ uuid }: { uuid: string }) =>
           void this.services.Notifications.fileCreated({
             file: result,
-            email: email,
+            uuid,
             clientId: clientId,
           }),
       );
