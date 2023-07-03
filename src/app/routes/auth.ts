@@ -256,10 +256,18 @@ export class AuthController {
 
 export default (router: Router, service: any, config: Config) => {
   const controller = new AuthController(service, config);
+  const logger = Logger.getInstance();
 
   router.post('/register', controller.register.bind(controller));
   router.post('/login', controller.login.bind(controller));
-  router.post('/access', controller.access.bind(controller));
+  router.post('/access', async (req, res) => {
+    try {
+      await controller.access(req, res);
+    } catch (err) {
+      logger.error('[AUTH/ACCESS]: ERROR for user %s: %s', req.body.email, (err as Error).message);
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
   router.get('/new-token', passportAuth, controller.getNewToken.bind(controller));
   router.get('/are-credentials-correct', passportAuth, controller.areCredentialsCorrect.bind(controller));
 };
