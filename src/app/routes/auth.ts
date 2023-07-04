@@ -264,7 +264,7 @@ export default (router: Router, service: any, config: Config) => {
     try {
       await controller.access(req, res);
     } catch (err) {
-      logger.error('[AUTH/ACCESS]: ERROR for user %s: %s', req.body.email, (err as Error).message);
+      logger.error(`[AUTH/ACCESS]: ERROR for user ${req.body.email}: ${(err as Error).message}`);
       res.status(500).send({ error: 'Internal Server Error' });
     }
   });
