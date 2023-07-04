@@ -368,7 +368,7 @@ module.exports = (Model, App) => {
           bucket: {
             [Op.ne]: user.backupsBucket
           },
-          deleted: { [Op.eq]: false }
+          status: { [Op.eq]: 'EXISTS' }
         },
         include: [
           {
