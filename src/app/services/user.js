@@ -223,7 +223,7 @@ module.exports = (Model, App) => {
         userId: user.id,
         mailType: MailTypes.DeactivateUser,
       },
-      default: {
+      defaults: {
         attemptsCount: 0,
         attemptsLimit: 10,
       },
@@ -717,7 +717,7 @@ module.exports = (Model, App) => {
         userId: user.id,
         mailType: MailTypes.EmailVerification,
       },
-      default: {
+      defaults: {
         attemptsCount: 0,
         attemptsLimit: 10,
       },
