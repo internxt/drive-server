@@ -1,5 +1,12 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
+
+enum FileStatus {
+  EXISTS = 'EXISTS',
+  DELETED = 'DELETED',
+  TRASHED = 'TRASHED',
+}
+
 export interface FileAttributes {
   id: number;
   uuid: string;
@@ -17,6 +24,7 @@ export interface FileAttributes {
   deletedAt: Date;
   userId: number;
   modificationTime: Date;
+  status: FileStatus;
 }
 
 export type FileModel = ModelDefined<FileAttributes, FileAttributes>;
@@ -86,6 +94,12 @@ export default (database: Sequelize): FileModel => {
       },
       modificationTime: {
         type: DataTypes.DATE,
+      },
+      status: {
+        type: DataTypes.ENUM,
+        values: Object.values(FileStatus),
+        defaultValue: FileStatus.EXISTS,
+        allowNull: false,
       },
     },
     {
