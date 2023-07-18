@@ -271,6 +271,7 @@ module.exports = (Model, App) => {
       name: destinationName,
       deleted: false,
       deletedAt: null,
+      status: 'EXISTS',
     });
 
     // we don't want ecrypted name on front
