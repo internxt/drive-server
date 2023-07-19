@@ -66,9 +66,10 @@ export class StorageController {
       const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
       workspaceMembers.forEach(
-        ({ uuid }: { uuid: string }) =>
+        ({ email, uuid }: { email: string; uuid: string }) =>
           void this.services.Notifications.fileCreated({
             file: result,
+            email,
             uuid,
             clientId: clientId,
           }),
@@ -112,10 +113,11 @@ export class StorageController {
         res.status(201).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { uuid: string; email: string }) =>
             void this.services.Notifications.folderCreated({
               folder: result,
               email: email,
+              uuid,
               clientId: clientId,
             }),
         );
@@ -183,10 +185,11 @@ export class StorageController {
 
       this.services.User.findWorkspaceMembers(user.bridgeUser).then((workspaceMembers: any) => {
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.folderDeleted({
               id: folderId,
               email: email,
+              uuid,
               clientId: clientId,
             }),
         );
@@ -230,10 +233,11 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.folderUpdated({
               folder: result.result,
               email: email,
+              uuid,
               clientId: clientId,
             }),
         );
@@ -264,10 +268,11 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.folderUpdated({
               folder: result,
               email: email,
+              uuid,
               clientId: clientId,
             }),
         );
@@ -362,10 +367,11 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.fileUpdated({
               file: result.result,
               email: email,
+              uuid,
               clientId: clientId,
             }),
         );
@@ -404,10 +410,11 @@ export class StorageController {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.fileUpdated({
               file: result,
               email,
+              uuid,
               clientId,
             }),
         );
@@ -466,10 +473,11 @@ export class StorageController {
         res.status(200).json({ deleted: true });
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
         workspaceMembers.forEach(
-          ({ email }: { email: string }) =>
+          ({ email, uuid }: { email: string; uuid: string }) =>
             void this.services.Notifications.fileDeleted({
               id: Number(fileid),
               email,
+              uuid,
               clientId,
             }),
         );
