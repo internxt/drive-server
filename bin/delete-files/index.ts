@@ -183,7 +183,7 @@ async function start(limit = 20, concurrency = 5) {
             console.warn('Something not going fine, no files deleted');
             lastId = Infinity;
         } else {
-            lastId = deletedFilesToDelete.sort((a, b) => b.id - a.id)[0].id;
+            lastId = deletedFilesToDelete.sort((a, b) => a.id - b.id)[0].id;
         }
 
         totalFilesRemoved += deletedFilesToDelete.length;
