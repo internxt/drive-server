@@ -18,6 +18,7 @@ import initTeamMember, { TeamMemberModel } from './teammember';
 import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
+import initLookUp, { LookUpModel } from './lookup';
 
 export type ModelType =
   | AppSumoModel
@@ -37,7 +38,8 @@ export type ModelType =
   | TeamMemberModel
   | UserModel
   | UserReferralModel
-  | FriendInvitationModel;
+  | FriendInvitationModel
+  | LookUpModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -58,6 +60,7 @@ export default (database: Sequelize) => {
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
+  const LookUp = initLookUp(database);
 
   AppSumo.belongsTo(User);
 
@@ -71,6 +74,7 @@ export default (database: Sequelize) => {
   File.belongsTo(User);
   File.hasMany(Share, { as: 'shares', foreignKey: 'file_id', sourceKey: 'id' });
   File.hasMany(Thumbnail);
+  File.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id '});
 
   Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
 
@@ -78,6 +82,7 @@ export default (database: Sequelize) => {
   Folder.belongsTo(User);
   Folder.hasMany(Folder, { foreignKey: 'parent_id', as: 'children' });
   Folder.hasMany(Share, { as: 'shares', foreignKey: 'folder_id', sourceKey: 'id' });
+  Folder.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id' });
 
   Invitation.belongsTo(User, { foreignKey: 'host', targetKey: 'id' });
   Invitation.belongsTo(User, { foreignKey: 'guest', targetKey: 'id' });
@@ -101,6 +106,7 @@ export default (database: Sequelize) => {
   User.belongsToMany(Referral, { through: UserReferral });
   User.hasMany(MailLimit, { foreignKey: 'user_id' });
   User.hasMany(FriendInvitation, { foreignKey: 'host' });
+  User.hasMany(LookUp, { sourceKey: 'uuid', foreignKey: 'user_id' });
 
   UserReferral.belongsTo(User, { foreignKey: 'user_id' });
   UserReferral.belongsTo(Referral, { foreignKey: 'referral_id' });
@@ -124,5 +130,6 @@ export default (database: Sequelize) => {
     [User.name]: User,
     [UserReferral.name]: UserReferral,
     [FriendInvitation.name]: FriendInvitation,
+    ['lookUp']: LookUp
   };
 };
