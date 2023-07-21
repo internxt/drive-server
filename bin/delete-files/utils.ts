@@ -1,14 +1,15 @@
 import { request } from '@internxt/lib';
+import { Op } from 'sequelize';
 import axios, { AxiosRequestConfig } from 'axios';
 import { sign } from 'jsonwebtoken';
-import { Attributes as DeletedFileAttributes, DeletedFileModel } from '../../src/app/models/deletedFile';
+import { FileAttributes, FileModel, FileStatus } from '../../src/app/models/file';
 
 type Timer = { start: () => void, end: () => number }
 
 export function signToken(duration: string, secret: string) {
   return sign(
-    {}, 
-    Buffer.from(secret, 'base64').toString('utf8'), 
+    {},
+    Buffer.from(secret, 'base64').toString('utf8'),
     {
       algorithm: 'RS256',
       expiresIn: duration
@@ -17,7 +18,7 @@ export function signToken(duration: string, secret: string) {
 }
 
 export const createTimer = (): Timer => {
-  let timeStart: [number,number];
+  let timeStart: [number, number];
 
   return {
     start: () => {
@@ -27,26 +28,40 @@ export const createTimer = (): Timer => {
       const NS_PER_SEC = 1e9;
       const NS_TO_MS = 1e6;
       const diff = process.hrtime(timeStart);
-    
+
       return (diff[0] * NS_PER_SEC + diff[1]) / NS_TO_MS;
     }
   };
 };
 
-export function getFilesToDelete(deletedFile: DeletedFileModel, limit: number): Promise<DeletedFileAttributes[]> {
-  return deletedFile.findAll({ 
-    limit, 
+export function getFilesToDelete(
+  files: FileModel, 
+  limit: number, 
+  updatedAt: Date,
+  lastId: number
+): Promise<FileAttributes[]> {
+  return files.findAll({
+    limit,
     raw: true,
+    where: {
+      status: FileStatus.DELETED,
+      id: {
+        [Op.lt]: lastId
+      },
+      updatedAt: {
+        [Op.gte]: updatedAt
+      },
+    },
     order: [['id', 'DESC']]
   }).then(res => {
-    return res as unknown as DeletedFileAttributes[];
+    return res as unknown as FileAttributes[];
   });
 }
 
-export type DeleteFilesResponse = { 
-  message: { 
-    confirmed: string[], 
-    notConfirmed: string [] 
+export type DeleteFilesResponse = {
+  message: {
+    confirmed: string[],
+    notConfirmed: string[]
   }
 }
 
