@@ -93,5 +93,6 @@
         "./build",
         "./tests",
         "./migrations",
+        "./bin"
     ]
 }
