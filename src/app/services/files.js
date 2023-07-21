@@ -71,39 +71,32 @@ module.exports = (Model, App) => {
       fileInfo.createdAt = file.date;
     }
 
-    return Model.file.create(fileInfo);
-  };
+    const newFile = await Model.file.create(fileInfo);
 
-  const Delete = (user, bucket, fileId) =>
-    new Promise((resolve, reject) => {
-      App.services.Inxt.DeleteFile(user, bucket, fileId)
-        .then(async () => {
-          const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } });
-
-          if (file) {
-            const isDestroyed = await file.destroy();
-            if (isDestroyed) {
-              return resolve('File deleted');
-            }
-            return reject(Error('Cannot delete file'));
-          }
-          return reject(Error('File not found'));
-        })
-        .catch(async (err) => {
-          if (err.message.includes('Resource not found')) {
-            const file = await Model.file.findOne({
-              where: { fileId: { [Op.eq]: fileId }, userId: user.id },
-            });
-            if (file) {
-              await file.destroy();
-            }
-
-            resolve();
-          } else {
-            reject(err);
-          }
-        });
+    console.log('lookup item', {
+      itemId: newFile.uuid,
+      itemType: 'FILE',
+      userId: user.uuid,
+      name: newFile.plainName,
+      tokenizedName: sequelize.literal(
+        `to_tsvector('simple', '${newFile.plainName}')`,
+      ),
     });
+
+    Model.lookUp.create({
+      itemId: newFile.uuid,
+      itemType: 'FILE',
+      userId: user.uuid,
+      name: newFile.plainName,
+      tokenizedName: sequelize.literal(
+        `to_tsvector('simple', '${newFile.plainName}')`,
+      ),
+    }).catch((err) => {
+      console.log(`[FILE/CREATE] ERROR indexing file ${newFile.uuid} ${err.message}`, err);
+    });
+
+    return newFile;
+  };
 
   const DeleteFile = async (user, folderId, fileId) => {
     const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
@@ -113,7 +106,7 @@ module.exports = (Model, App) => {
     });
 
     if (!file) {
-      throw Error('File/Folder not found');
+      throw Error('File not found');
     }
 
     try {
@@ -149,6 +142,7 @@ module.exports = (Model, App) => {
       );
     }
     await file.destroy();
+    await Model.lookUp.destroy({ where: { itemId: file.uuid }});
   };
 
   const UpdateMetadata = (user, fileId, metadata, mnemonic, bucketId, relativePath) => {
@@ -406,7 +400,6 @@ module.exports = (Model, App) => {
   return {
     Name: 'Files',
     CreateFile,
-    Delete,
     DeleteFile,
     UpdateMetadata,
     MoveFile,

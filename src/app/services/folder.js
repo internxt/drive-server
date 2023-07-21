@@ -111,8 +111,6 @@ module.exports = (Model, App) => {
       throw Error('Folder with the same name already exists');
     }
 
-    // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
@@ -121,6 +119,19 @@ module.exports = (Model, App) => {
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,
       id_team: teamId,
+    });
+
+
+    Model.lookUp.create({
+      itemId: folder.uuid,
+      itemType: 'FILE',
+      userId: user.uuid,
+      name: folder.plainName,
+      tokenizedName: sequelize.literal(
+        `to_tsvector('simple', '${folder.plainName}')`,
+      ),
+    }).catch((err) => {
+      console.log(`[FOLDER/CREATE] ERROR indexing folder ${folder.uuid} ${err.message}`, err);
     });
 
     return folder;
@@ -158,6 +169,10 @@ module.exports = (Model, App) => {
       deletedAt: new Date(),
       removed: true,
       removedAt: new Date(),
+    });
+
+    await Model.lookUp.destroy({
+      where: { itemId: removed.uuid }
     });
 
     return removed;
