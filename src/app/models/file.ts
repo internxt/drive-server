@@ -1,7 +1,6 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
-
-enum FileStatus {
+export enum FileStatus {
   EXISTS = 'EXISTS',
   DELETED = 'DELETED',
   TRASHED = 'TRASHED',
@@ -19,6 +18,7 @@ export interface FileAttributes {
   folderId: number;
   folderUuid: string;
   createdAt: Date;
+  updatedAt: Date;
   encryptVersion: string;
   deleted: boolean;
   deletedAt: Date;
