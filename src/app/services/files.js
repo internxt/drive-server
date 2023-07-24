@@ -73,23 +73,14 @@ module.exports = (Model, App) => {
 
     const newFile = await Model.file.create(fileInfo);
 
-    console.log('lookup item', {
-      itemId: newFile.uuid,
-      itemType: 'FILE',
-      userId: user.uuid,
-      name: newFile.plainName,
-      tokenizedName: sequelize.literal(
-        `to_tsvector('simple', '${newFile.plainName}')`,
-      ),
-    });
-
     Model.lookUp.create({
+      id: v4(),
       itemId: newFile.uuid,
       itemType: 'FILE',
       userId: user.uuid,
-      name: newFile.plainName,
+      name: newFile.plain_name,
       tokenizedName: sequelize.literal(
-        `to_tsvector('simple', '${newFile.plainName}')`,
+        `to_tsvector('simple', '${newFile.plain_name}')`,
       ),
     }).catch((err) => {
       console.log(`[FILE/CREATE] ERROR indexing file ${newFile.uuid} ${err.message}`, err);
