@@ -468,7 +468,29 @@ module.exports = (Model, App) => {
         // Perform the update
         folder
           .update(newMeta)
-          .then((result) => next(null, result))
+          .then((result) => {
+            const plainName = newMeta.plain_name;
+
+            Model.lookUp.update(
+              { 
+                name: plainName, 
+                tokenizedName: sequelize.literal(
+                  `to_tsvector('simple', '${plainName}')`,
+                ),
+              }, 
+              { where: { itemId: folder.uuid }}
+            ).catch((err) => {
+              logger.error(`[FOLDER/UPDATE]: ERROR indexing where updating name of folder ${
+                folder.uuid
+              } to ${
+                plainName
+              }: ${
+                err.message
+              }`, err);
+            });
+
+            next(null, result);
+          })
           .catch(next);
       },
     ]);
