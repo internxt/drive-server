@@ -141,7 +141,6 @@ module.exports = (Model, App) => {
 
     return async.waterfall([
       (next) => {
-        // Find the file in database
         Model.file
           .findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } })
           .then((file) => {
@@ -208,6 +207,26 @@ module.exports = (Model, App) => {
           file
             .update(newMeta)
             .then((update) => {
+              const plainName = newMeta.plain_name;
+
+              Model.lookUp.update(
+                { 
+                  name: plainName, 
+                  tokenizedName: sequelize.literal(
+                    `to_tsvector('simple', '${plainName}')`,
+                  ),
+                }, 
+                { where: { itemId: file.uuid }}
+              ).catch((err) => {
+                log.error(`[FILE/UPDATE]: ERROR indexing where updating name of file ${
+                  file.uuid
+                } to ${
+                  plainName
+                }: ${
+                  err.message
+                }`, err);
+              });
+
               next(null, update);
             })
             .catch(next);
