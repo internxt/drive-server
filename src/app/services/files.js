@@ -55,7 +55,7 @@ module.exports = (Model, App) => {
       bucket: file.bucket,
       encrypt_version: file.encrypt_version,
       userId: user.id,
-      uuid: v4(),
+      uuid: file.uuid || v4(),
       folderUuid: folder.uuid,
       modificationTime: file.modificationTime || new Date(),
     };

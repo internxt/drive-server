@@ -49,7 +49,14 @@ export class StorageController {
       file.fileId = file.file_id;
     }
 
-    if (!file || !file.fileId || !file.bucket || file.size === undefined || file.size === null || !file.folder_id || !file.name) {
+    if (!file.fileId && file.size !== null && file.size !== 0) {
+      this.logger.error(
+        `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
+      );
+      return res.status(400).json({ error: 'Invalid metadata for new file' });
+    }
+
+    if (!file || !file.bucket || file.size === undefined || file.size === null || !file.folder_id || !file.name) {
       this.logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
@@ -76,9 +83,7 @@ export class StorageController {
       );
     } catch (err) {
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(
-          file,
-        )}, STACK: ${(err as Error).stack}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
@@ -293,13 +298,7 @@ export class StorageController {
     }
 
     await Promise.all([
-      this.services.Folder.getByIdAndUserIds(
-        id,
-        [
-          behalfUser.id,
-          (req as AuthorizedRequest).user.id
-        ]
-      ),
+      this.services.Folder.getByIdAndUserIds(id, [behalfUser.id, (req as AuthorizedRequest).user.id]),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
