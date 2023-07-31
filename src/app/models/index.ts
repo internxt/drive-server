@@ -74,7 +74,7 @@ export default (database: Sequelize) => {
   File.belongsTo(User);
   File.hasMany(Share, { as: 'shares', foreignKey: 'file_id', sourceKey: 'id' });
   File.hasMany(Thumbnail);
-  File.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id '});
+  File.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id' });
 
   Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
 
