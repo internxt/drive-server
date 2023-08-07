@@ -211,7 +211,7 @@ module.exports = (Model, App) => {
         })
           .then((duplicateFile) => {
             if (duplicateFile) {
-              return next(new FileWithNameAlreadyExistsError());
+              return next(new FileWithNameAlreadyExistsError('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
             newMeta.plain_name = metadata.itemName;

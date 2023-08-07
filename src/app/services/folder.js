@@ -433,7 +433,7 @@ module.exports = (Model, App) => {
             })
             .then((isDuplicated) => {
               if (isDuplicated) {
-                return next(new FolderWithNameAlreadyExistsError());
+                return next(new FolderWithNameAlreadyExistsError('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
               newMeta.plain_name = metadata.itemName;

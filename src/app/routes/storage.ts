@@ -288,7 +288,7 @@ export class StorageController {
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
 
-        if (err.message === FolderWithNameAlreadyExistsError.message) {
+        if (err instanceof FolderWithNameAlreadyExistsError) {
           res.status(409).send().end();
         }
 
@@ -429,7 +429,7 @@ export class StorageController {
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
 
-        if (err.message === FileWithNameAlreadyExistsError.message) {
+        if (err instanceof FileWithNameAlreadyExistsError) {
           res.status(409).send().end();
         }
 

@@ -1,7 +1,7 @@
 export class FolderWithNameAlreadyExistsError extends Error {
-  static message = 'Folder with this name exists';
+  constructor(message: string) {
+    super(message);
 
-  constructor() {
-    super(FolderWithNameAlreadyExistsError.message);
+    Object.setPrototypeOf(this, FolderWithNameAlreadyExistsError.prototype);
   }
 }
