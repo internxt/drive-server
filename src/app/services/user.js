@@ -191,7 +191,7 @@ module.exports = (Model, App) => {
         .then((userData) => {
           if (!userData) {
             logger.error('ERROR user %s not found on database', email);
-            return reject(Error('Wrong email/password'));
+            return reject(Error('Wrong login credentials'));
           }
 
           const user = userData.dataValues;
