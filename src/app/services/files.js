@@ -3,6 +3,7 @@ const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const { v4 } = require('uuid');
+const { FileWithNameAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -210,7 +211,7 @@ module.exports = (Model, App) => {
         })
           .then((duplicateFile) => {
             if (duplicateFile) {
-              return next(Error('File with this name exists'));
+              return next(new FileWithNameAlreadyExistsError('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
             newMeta.plain_name = metadata.itemName;

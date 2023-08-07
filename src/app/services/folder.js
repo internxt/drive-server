@@ -7,6 +7,7 @@ const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
+import { FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -432,7 +433,7 @@ module.exports = (Model, App) => {
             })
             .then((isDuplicated) => {
               if (isDuplicated) {
-                return next(Error('Folder with this name exists'));
+                return next(new FolderWithNameAlreadyExistsError('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
               newMeta.plain_name = metadata.itemName;

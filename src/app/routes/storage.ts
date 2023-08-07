@@ -12,6 +12,8 @@ import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
+import { FileWithNameAlreadyExistsError } from '../services/errors/FileWithNameAlreadyExistsError';
+import { FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -49,7 +51,15 @@ export class StorageController {
       file.fileId = file.file_id;
     }
 
-    if (!file || !file.fileId || !file.bucket || file.size === undefined || file.size === null || !file.folder_id || !file.name) {
+    if (
+      !file ||
+      !file.fileId ||
+      !file.bucket ||
+      file.size === undefined ||
+      file.size === null ||
+      !file.folder_id ||
+      !file.name
+    ) {
       this.logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
@@ -76,9 +86,7 @@ export class StorageController {
       );
     } catch (err) {
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(
-          file,
-        )}, STACK: ${(err as Error).stack}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
@@ -279,6 +287,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
+
+        if (err instanceof FolderWithNameAlreadyExistsError) {
+          res.status(409).send().end();
+        }
+
         res.status(500).send();
       });
   }
@@ -293,13 +306,7 @@ export class StorageController {
     }
 
     await Promise.all([
-      this.services.Folder.getByIdAndUserIds(
-        id,
-        [
-          behalfUser.id,
-          (req as AuthorizedRequest).user.id
-        ]
-      ),
+      this.services.Folder.getByIdAndUserIds(id, [behalfUser.id, (req as AuthorizedRequest).user.id]),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
@@ -421,6 +428,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+
+        if (err instanceof FileWithNameAlreadyExistsError) {
+          res.status(409).send().end();
+        }
+
         res.status(500).send();
       });
   }
