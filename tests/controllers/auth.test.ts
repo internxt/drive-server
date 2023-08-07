@@ -104,11 +104,10 @@ describe('Auth controller', () => {
   });
 
   describe('/login', () => {
-
     it('should throw exception when no email on body', async () => {
       // Arrange
       const request = getRequest({
-        body: ''
+        body: '',
       });
       const response = getResponse();
       const controller = getController();
@@ -126,33 +125,37 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
             .returns({
               hKey: '',
-              secret_2FA: ''
-            })
+              secret_2FA: '',
+            }),
         },
         Crypt: {
-          encryptText: sinon.spy()
+          encryptText: sinon.spy(),
         },
         KeyServer: {
-          keysExists: sinon.spy()
-        }
+          keysExists: sinon.spy(),
+        },
       };
 
       const request = getRequest({
         body: {
-          email: 'CAPS@EMAIL.COM'
-        }
+          email: 'CAPS@EMAIL.COM',
+        },
       });
       const response = getResponse({
         status: () => {
           return {
-            send: sinon.spy()
+            send: sinon.spy(),
           };
-        }
+        },
       });
       const controller = getController(services);
 
@@ -167,24 +170,28 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
-            .rejects({})
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
+            .rejects({}),
         },
       };
 
       const request = getRequest({
         body: {
-          email: 'CAPS@EMAIL.COM'
-        }
+          email: 'CAPS@EMAIL.COM',
+        },
       });
       const response = getResponse({
         status: () => {
           return {
-            send: sinon.spy()
+            send: sinon.spy(),
           };
-        }
+        },
       });
       const controller = getController(services);
 
@@ -193,7 +200,7 @@ describe('Auth controller', () => {
         await controller.login(request, response);
       } catch ({ message }) {
         // Assert
-        expect(message).to.equal('Wrong email/password');
+        expect(message).to.equal('Wrong login credentials');
       }
     });
 
@@ -201,34 +208,38 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
             .returns({
               hKey: '',
-              secret_2FA: ''
-            })
+              secret_2FA: '',
+            }),
         },
         Crypt: {
-          encryptText: sinon.spy()
+          encryptText: sinon.spy(),
         },
         KeyServer: {
-          keysExists: sinon.spy()
-        }
+          keysExists: sinon.spy(),
+        },
       };
 
       const request = getRequest({
         body: {
-          email: 'CAPS@EMAIL.COM'
-        }
+          email: 'CAPS@EMAIL.COM',
+        },
       });
       const sendSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            send: sendSpy
+            send: sendSpy,
           };
-        }
+        },
       });
       const controller = getController(services);
 
@@ -244,11 +255,9 @@ describe('Auth controller', () => {
         tfa: '',
       });
     });
-
   });
 
   describe('/access', () => {
-
     it('should fail if no user data is found', async () => {
       // Arrange
       const services = {
@@ -259,8 +268,8 @@ describe('Auth controller', () => {
       const controller = getController(services);
       const request = getRequest({
         body: {
-          email: ''
-        }
+          email: '',
+        },
       });
       const response = getResponse();
 
@@ -268,7 +277,7 @@ describe('Auth controller', () => {
         // Act
         await controller.access(request, response);
       } catch ({ message }) {
-        expect(message).to.equal('Wrong email/password');
+        expect(message).to.equal('Wrong login credentials');
       }
     });
 
@@ -276,19 +285,23 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
             .resolves({
-              errorLoginCount: 10
-            })
-        }
+              errorLoginCount: 10,
+            }),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         body: {
-          email: ''
-        }
+          email: '',
+        },
       });
       const response = getResponse();
 
@@ -304,27 +317,35 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
             .resolves({
               errorLoginCount: 9,
-              password: 'stored_hash'
+              password: 'stored_hash',
             }),
-          LoginFailed: sinon.spy()
+          LoginFailed: sinon.spy(),
         },
         Crypt: {
-          decryptText: sinon.stub({
-            decryptText: null
-          }, 'decryptText')
-            .returns('given_hash')
-        }
+          decryptText: sinon
+            .stub(
+              {
+                decryptText: null,
+              },
+              'decryptText',
+            )
+            .returns('given_hash'),
+        },
       };
       const controller = getController(services);
       const request = getRequest({
         body: {
-          email: ''
-        }
+          email: '',
+        },
       });
       const response = getResponse();
 
@@ -332,7 +353,7 @@ describe('Auth controller', () => {
         // Act
         await controller.access(request, response);
       } catch ({ message }) {
-        expect(message).to.equal('Wrong email/password');
+        expect(message).to.equal('Wrong login credentials');
         expect(services.User.LoginFailed.calledOnce).to.be.true;
         expect(services.User.LoginFailed.args[0]).to.deep.equal(['', true]);
       }
@@ -342,58 +363,70 @@ describe('Auth controller', () => {
       // Arrange
       const services = {
         User: {
-          FindUserByEmail: sinon.stub({
-            FindUserByEmail: null
-          }, 'FindUserByEmail')
+          FindUserByEmail: sinon
+            .stub(
+              {
+                FindUserByEmail: null,
+              },
+              'FindUserByEmail',
+            )
             .resolves({
               errorLoginCount: 9,
-              password: 'stored_hash'
+              password: 'stored_hash',
             }),
           LoginFailed: sinon.spy(),
           UpdateAccountActivity: sinon.spy(),
-          GetUserBucket: sinon.spy()
+          GetUserBucket: sinon.spy(),
         },
         Crypt: {
-          decryptText: sinon.stub({
-            decryptText: null
-          }, 'decryptText')
-            .returns('stored_hash')
+          decryptText: sinon
+            .stub(
+              {
+                decryptText: null,
+              },
+              'decryptText',
+            )
+            .returns('stored_hash'),
         },
         KeyServer: {
           keysExists: sinon.spy(),
           getKeys: sinon.spy(),
         },
         Team: {
-          getTeamByMember: sinon.spy()
+          getTeamByMember: sinon.spy(),
         },
         AppSumo: {
-          GetDetails: sinon.stub({
-            GetDetails: null
-          }, 'GetDetails')
-            .returns(Promise.all([]))
+          GetDetails: sinon
+            .stub(
+              {
+                GetDetails: null,
+              },
+              'GetDetails',
+            )
+            .returns(Promise.all([])),
         },
         UsersReferrals: {
-          hasReferralsProgram: sinon.spy()
-        }
+          hasReferralsProgram: sinon.spy(),
+        },
       };
       const controller = getController(services, {
-        JWT: 'token'
+        JWT: 'token',
       });
       const request = getRequest({
         headers: {
-          'internxt-client': 'drive-web'
+          'internxt-client': 'drive-web',
         },
         body: {
-          email: ''
-        }
+          email: '',
+        },
       });
       const jsonSpy = sinon.spy();
       const response = getResponse({
         status: () => {
           return {
-            json: jsonSpy
+            json: jsonSpy,
           };
-        }
+        },
       });
 
       // Act
@@ -411,7 +444,6 @@ describe('Auth controller', () => {
       expect(services.UsersReferrals.hasReferralsProgram.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
     });
-
   });
 
 });

@@ -849,7 +849,7 @@ describe('E2E TEST', () => {
           });
 
         expect(status).toBe(HttpStatus.UNAUTHORIZED);
-        expect(body.error).toBe('Wrong email/password');
+        expect(body.error).toBe('Wrong login credentials');
       });
 
       it('should fail to login with a wrong password', async () => {
@@ -871,7 +871,7 @@ describe('E2E TEST', () => {
         });
 
         expect(status).toBe(HttpStatus.UNAUTHORIZED);
-        expect(body.error).toBe('Wrong email/password');
+        expect(body.error).toBe('Wrong login credentials');
         expect(data[0].error_login_count).toBe(1);
       });
 
