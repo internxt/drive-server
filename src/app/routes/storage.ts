@@ -13,6 +13,7 @@ import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
 import { FileWithNameAlreadyExistsError } from '../services/errors/FileWithNameAlreadyExistsError';
+import { FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -286,6 +287,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
+
+        if (err.message === FolderWithNameAlreadyExistsError.message) {
+          res.status(409).send().end();
+        }
+
         res.status(500).send();
       });
   }
