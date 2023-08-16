@@ -9,10 +9,10 @@ interface Attributes {
   updatedAt: Date;
 }
 
-export type PrivateSharingFolderRolesModel = ModelDefined<Attributes, Attributes>;
+export type PrivateSharingFolderRoleModel = ModelDefined<Attributes, Attributes>;
 
-export default (database: Sequelize): PrivateSharingFolderRolesModel => {
-  const PrivateSharingFolderRoles: PrivateSharingFolderRolesModel = database.define(
+export default (database: Sequelize): PrivateSharingFolderRoleModel => {
+  const PrivateSharingFolderRole: PrivateSharingFolderRoleModel = database.define(
     'private_sharing_folder_roles',
     {
       id: {
@@ -40,6 +40,5 @@ export default (database: Sequelize): PrivateSharingFolderRolesModel => {
     },
   );
 
-  return PrivateSharingFolderRoles;
+  return PrivateSharingFolderRole;
 };
-

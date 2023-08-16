@@ -8,7 +8,7 @@ interface RoleAttributes {
 }
 
 export type RoleModel = ModelDefined<
-  RoleAttributes, 
+  RoleAttributes,
   RoleAttributes
 >;
 
@@ -43,4 +43,3 @@ export default (database: Sequelize): RoleModel => {
 
   return Roles;
 };
-

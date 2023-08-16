@@ -47,4 +47,3 @@ export default (database: Sequelize): PrivateSharingFolderModel => {
 
   return PrivateSharingFolder;
 };
-
