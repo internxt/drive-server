@@ -731,16 +731,16 @@ export default (router: Router, service: any) => {
   const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file', 
-    passportAuth, 
-    resourceSharingAdapter.UploadFile, 
-    sharedAdapter, 
+  router.post('/storage/file',
+    passportAuth,
+    resourceSharingAdapter.UploadFile,
+    sharedAdapter,
     controller.createFile.bind(controller)
   );
-  router.post('/storage/thumbnail', 
-    passportAuth, 
+  router.post('/storage/thumbnail',
+    passportAuth,
     resourceSharingAdapter.UploadThumbnail,
-    sharedAdapter, 
+    sharedAdapter,
     controller.createThumbnail.bind(controller)
   );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
@@ -758,10 +758,10 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
   router.post(
-    '/storage/file/:fileid/meta', 
-    passportAuth, 
+    '/storage/file/:fileid/meta',
+    passportAuth,
     resourceSharingAdapter.RenameFile,
-    sharedAdapter, 
+    sharedAdapter,
     controller.updateFile.bind(controller)
   );
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
