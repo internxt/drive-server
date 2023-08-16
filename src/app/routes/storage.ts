@@ -14,6 +14,7 @@ import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
 import { FileWithNameAlreadyExistsError } from '../services/errors/FileWithNameAlreadyExistsError';
 import { FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
+import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -727,10 +728,21 @@ export default (router: Router, service: any) => {
   const { passportAuth } = passport;
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
   const teamsAdapter = teamsMiddlewareBuilder.build(service);
+  const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
-  router.post('/storage/thumbnail', passportAuth, sharedAdapter, controller.createThumbnail.bind(controller));
+  router.post('/storage/file', 
+    passportAuth, 
+    resourceSharingAdapter.UploadFile, 
+    sharedAdapter, 
+    controller.createFile.bind(controller)
+  );
+  router.post('/storage/thumbnail', 
+    passportAuth, 
+    resourceSharingAdapter.UploadThumbnail,
+    sharedAdapter, 
+    controller.createThumbnail.bind(controller)
+  );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
@@ -745,7 +757,13 @@ export default (router: Router, service: any) => {
     controller.getFolderContents.bind(controller),
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
-  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
+  router.post(
+    '/storage/file/:fileid/meta', 
+    passportAuth, 
+    resourceSharingAdapter.RenameFile,
+    sharedAdapter, 
+    controller.updateFile.bind(controller)
+  );
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
   router.delete(
     '/storage/folder/:folderid/file/:fileid',
