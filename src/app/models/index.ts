@@ -21,6 +21,7 @@ import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
 import initPrivateSharingFolderModel, { PrivateSharingFolderModel } from './privateSharingFolder';
+import initPrivateSharingFolderRolesModel, { PrivateSharingFolderRolesModel } from './privateSharingFolderRole';
 
 export type ModelType =
   | AppSumoModel
@@ -43,7 +44,8 @@ export type ModelType =
   | UserModel
   | UserReferralModel
   | FriendInvitationModel
-  | PrivateSharingFolderModel;
+  | PrivateSharingFolderModel
+  | PrivateSharingFolderRolesModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -67,6 +69,7 @@ export default (database: Sequelize) => {
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
   const PrivateSharingFolder = initPrivateSharingFolderModel(database);
+  const PrivateSharingFolderRoles = initPrivateSharingFolderRolesModel(database);
 
   AppSumo.belongsTo(User);
 
@@ -129,7 +132,8 @@ export default (database: Sequelize) => {
     [KeyServer.name]: KeyServer,
     ['mailLimit']: MailLimit,
     [Plan.name]: Plan,
-    ['privateSharingFolder']: PrivateSharingFolder,
+    [PrivateSharingFolder.name]: PrivateSharingFolder,
+    [PrivateSharingFolderRoles.name]: PrivateSharingFolderRoles,
     [Referral.name]: Referral,
     [Share.name]: Share,
     [Team.name]: Team,
