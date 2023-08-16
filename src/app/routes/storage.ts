@@ -747,7 +747,7 @@ export default (router: Router, service: any) => {
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
-  router.post('/storage/move/folder', passportAuth, sharedAdapter, controller.moveFolder.bind(controller));
+  router.post('/storage/move/folder', passportAuth, resourceSharingAdapter.MoveFolder, sharedAdapter, controller.moveFolder.bind(controller));
   router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, controller.updateFolder.bind(controller));
   router.get(
     '/storage/v2/folder/:id/:idTeam?',
@@ -756,7 +756,7 @@ export default (router: Router, service: any) => {
     teamsAdapter,
     controller.getFolderContents.bind(controller),
   );
-  router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
+  router.post('/storage/move/file', passportAuth, resourceSharingAdapter.MoveFile, sharedAdapter, controller.moveFile.bind(controller));
   router.post(
     '/storage/file/:fileid/meta',
     passportAuth,

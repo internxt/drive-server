@@ -10,9 +10,8 @@ type Middleware = (req: Request & { behalfUser?: User }, res: Response, next: Ne
 // This should match with the permissions table for the given user role.
 enum Actions {
   UPLOAD_FILE = 'UPLOAD_FILE',
-  SHARE_ITEMS = 'SHARE_ITEMS',
   RENAME_ITEMS = 'RENAME_ITEMS',
-  DOWNLOAD_ITEMS = 'DOWNLOAD_ITEMS',
+  MOVE_ITEMS = 'MOVE_ITEMS',
 }
 
 const build = (
@@ -76,9 +75,9 @@ const build = (
   return {
     UploadFile: mdBuilder(Actions.UPLOAD_FILE),
     UploadThumbnail: mdBuilder(Actions.UPLOAD_FILE),
-    ShareItem: mdBuilder(Actions.SHARE_ITEMS),
     RenameFile: mdBuilder(Actions.RENAME_ITEMS),
-    DownloadFile: mdBuilder(Actions.DOWNLOAD_ITEMS),
+    MoveFile: mdBuilder(Actions.MOVE_ITEMS),
+    MoveFolder: mdBuilder(Actions.MOVE_ITEMS),
   };
 };
 
