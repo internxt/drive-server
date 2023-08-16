@@ -1,10 +1,11 @@
 import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface Attributes {
-  id: number;
+  id: string;
   folderId: string;
   ownerId: string;
   sharedWith: string;
+  encryptionKey: string;
 }
 
 export type PrivateSharingFolderModel = ModelDefined<Attributes, Attributes>;
@@ -18,11 +19,11 @@ export default (database: Sequelize): PrivateSharingFolderModel => {
         primaryKey: true,
         allowNull: false,
       },
-      ownerId: {
+      folderId: {
         type: DataTypes.UUIDV4,
         allowNull: false
       },
-      folderId: {
+      ownerId: {
         type: DataTypes.UUIDV4,
         allowNull: false
       },
@@ -38,7 +39,7 @@ export default (database: Sequelize): PrivateSharingFolderModel => {
     {
       tableName: 'private_sharing_folder',
       underscored: true,
-      timestamps: false
+      timestamps: true
     },
   );
 
