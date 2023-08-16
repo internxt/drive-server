@@ -2,46 +2,42 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface Attributes {
   id: number;
+  userId: string;
   folderId: string;
-  ownerId: string;
-  sharedWith: string;
+  roleId: string;
 }
 
-export type PrivateSharingFolderRoleModel = ModelDefined<Attributes, Attributes>;
+export type PrivateSharingFolderRolesModel = ModelDefined<Attributes, Attributes>;
 
-export default (database: Sequelize): PrivateSharingFolderRoleModel => {
-  const PrivateSharingFolder: PrivateSharingFolderRoleModel = database.define(
-    'private_sharing_folder_role',
+export default (database: Sequelize): PrivateSharingFolderRolesModel => {
+  const PrivateSharingFolderRoles: PrivateSharingFolderRolesModel = database.define(
+    'private_sharing_folder_roles',
     {
       id: {
         type: DataTypes.UUIDV4,
         primaryKey: true,
         allowNull: false,
       },
-      ownerId: {
-        type: DataTypes.UUIDV4,
+      userId: {
+        type: DataTypes.STRING,
         allowNull: false
       },
       folderId: {
         type: DataTypes.UUIDV4,
         allowNull: false
       },
-      sharedWith: {
+      roleId: {
         type: DataTypes.UUIDV4,
-        allowNull: false
-      },
-      encryptionKey: {
-        type: DataTypes.STRING,
         allowNull: false
       },
     },
     {
-      tableName: 'private_sharing_folder',
+      tableName: 'private_sharing_folder_roles',
       underscored: true,
-      timestamps: false
+      timestamps: true
     },
   );
 
-  return PrivateSharingFolder;
+  return PrivateSharingFolderRoles;
 };
 
