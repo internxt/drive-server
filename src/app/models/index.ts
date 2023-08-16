@@ -20,6 +20,7 @@ import initTeamMember, { TeamMemberModel } from './teammember';
 import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
+import initPrivateSharingFolderModel, { PrivateSharingFolderModel } from './privateSharingFolder';
 
 export type ModelType =
   | AppSumoModel
@@ -41,7 +42,8 @@ export type ModelType =
   | TeamMemberModel
   | UserModel
   | UserReferralModel
-  | FriendInvitationModel;
+  | FriendInvitationModel
+  | PrivateSharingFolderModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -64,6 +66,7 @@ export default (database: Sequelize) => {
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
+  const PrivateSharingFolder = initPrivateSharingFolderModel(database);
 
   AppSumo.belongsTo(User);
 
