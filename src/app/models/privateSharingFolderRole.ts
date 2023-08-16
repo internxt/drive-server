@@ -5,6 +5,8 @@ interface Attributes {
   userId: string;
   folderId: string;
   roleId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export type PrivateSharingFolderRolesModel = ModelDefined<Attributes, Attributes>;

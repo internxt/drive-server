@@ -6,6 +6,8 @@ interface Attributes {
   ownerId: string;
   sharedWith: string;
   encryptionKey: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export type PrivateSharingFolderModel = ModelDefined<Attributes, Attributes>;
