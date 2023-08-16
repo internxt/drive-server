@@ -9,8 +9,10 @@ import initFriendInvitation, { FriendInvitationModel } from './friendinvitation'
 import initInvitation, { InvitationModel } from './invitation';
 import initKeyServer, { KeyServerModel } from './keyserver';
 import initMailLimit, { MailLimitModel } from './mailLimit';
+import initPermission, { PermissionModel } from './permissions';
 import initPlan, { PlanModel } from './plan';
 import initReferral, { ReferralModel } from './referral';
+import initRole, { RoleModel } from './roles';
 import initShare, { ShareModel } from './share';
 import initTeam, { TeamModel } from './team';
 import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
@@ -29,8 +31,10 @@ export type ModelType =
   | InvitationModel
   | KeyServerModel
   | MailLimitModel
+  | PermissionModel
   | PlanModel
   | ReferralModel
+  | RoleModel
   | ShareModel
   | TeamModel
   | TeamInvitationModel
@@ -49,8 +53,10 @@ export default (database: Sequelize) => {
   const Invitation = initInvitation(database);
   const KeyServer = initKeyServer(database);
   const MailLimit = initMailLimit(database);
+  const Permission = initPermission(database);
   const Plan = initPlan(database);
   const Referral = initReferral(database);
+  const Role = initReferral(database);
   const Share = initShare(database);
   const Team = initTeam(database);
   const TeamMember = initTeamMember(database);
@@ -84,9 +90,13 @@ export default (database: Sequelize) => {
 
   MailLimit.belongsTo(User);
 
+  Permission.belongsTo(Role, { foreignKey: 'role_id', targetKey: 'id' });
+
   Plan.belongsTo(User);
 
   Referral.belongsToMany(User, { through: UserReferral });
+  
+  Role.hasMany(Permission, { foreignKey: 'role_id', sourceKey: 'id' });
 
   Share.hasOne(File, { as: 'fileInfo', foreignKey: 'id', sourceKey: 'file_id' });
   Share.hasOne(Folder, { as: 'folderInfo', foreignKey: 'id', sourceKey: 'folder_id' });
@@ -116,6 +126,7 @@ export default (database: Sequelize) => {
     [KeyServer.name]: KeyServer,
     ['mailLimit']: MailLimit,
     [Plan.name]: Plan,
+    ['privateSharingFolder']: PrivateSharingFolder,
     [Referral.name]: Referral,
     [Share.name]: Share,
     [Team.name]: Team,
