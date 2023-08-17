@@ -13,7 +13,7 @@ export type PrivateSharingFolderRoleModel = ModelDefined<Attributes, Attributes>
 
 export default (database: Sequelize): PrivateSharingFolderRoleModel => {
   const PrivateSharingFolderRole: PrivateSharingFolderRoleModel = database.define(
-    'private_sharing_folder_roles',
+    'privateSharingFolderRole',
     {
       id: {
         type: DataTypes.UUIDV4,

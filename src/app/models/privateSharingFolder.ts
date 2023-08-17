@@ -14,7 +14,7 @@ export type PrivateSharingFolderModel = ModelDefined<Attributes, Attributes>;
 
 export default (database: Sequelize): PrivateSharingFolderModel => {
   const PrivateSharingFolder: PrivateSharingFolderModel = database.define(
-    'private_sharing_folder',
+    'privateSharingFolder',
     {
       id: {
         type: DataTypes.UUIDV4,
