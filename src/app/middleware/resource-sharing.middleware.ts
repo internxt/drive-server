@@ -11,7 +11,6 @@ type Middleware = (req: Request & { behalfUser?: User }, res: Response, next: Ne
 enum Actions {
   UPLOAD_FILE = 'UPLOAD_FILE',
   RENAME_ITEMS = 'RENAME_ITEMS',
-  MOVE_ITEMS = 'MOVE_ITEMS',
 }
 
 const build = (
@@ -81,8 +80,6 @@ const build = (
     UploadFile: mdBuilder(Actions.UPLOAD_FILE),
     UploadThumbnail: mdBuilder(Actions.UPLOAD_FILE),
     RenameFile: mdBuilder(Actions.RENAME_ITEMS),
-    MoveFile: mdBuilder(Actions.MOVE_ITEMS),
-    MoveFolder: mdBuilder(Actions.MOVE_ITEMS),
   };
 };
 
