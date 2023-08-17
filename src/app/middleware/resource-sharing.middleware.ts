@@ -48,6 +48,11 @@ const build = (
         return res.status(400).send('Unrecognized / Wrong token');
       }
 
+      if (decoded.owner.uuid === requester.uuid) {
+        req.behalfUser = requester;
+        return next();
+      }
+
       const userIsAllowedToPerfomAction = await Service.PrivateSharing.CanUserPerformAction(
         requester,
         decoded.sharedRootFolderId,
