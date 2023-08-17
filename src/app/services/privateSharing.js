@@ -23,7 +23,7 @@ module.exports = (Model) => {
       }
     });
 
-    if (!privateFolderRole) {
+    if (!privateFolderRole || !privateFolderRole.roleId) {
       throw new PrivateSharingFolderRoleNotFound();
     }
 
@@ -43,7 +43,12 @@ module.exports = (Model) => {
   const CanUserPerformAction = async (sharedWith, resourceId, action) => {
     const permissions = await FindUserPermissionsInsidePrivateSharing(sharedWith.uuid, resourceId);
 
-    return permissions.includes(action);
+    for (const permission of permissions) {
+      if (permission.type === action) {
+        return true;
+      }
+    }
+    return false;
   };
 
   return {
