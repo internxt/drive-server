@@ -733,14 +733,14 @@ export default (router: Router, service: any) => {
 
   router.post('/storage/file',
     passportAuth,
-    resourceSharingAdapter.UploadFile,
     sharedAdapter,
+    resourceSharingAdapter.UploadFile,
     controller.createFile.bind(controller)
   );
   router.post('/storage/thumbnail',
     passportAuth,
-    resourceSharingAdapter.UploadThumbnail,
     sharedAdapter,
+    resourceSharingAdapter.UploadThumbnail,
     controller.createThumbnail.bind(controller)
   );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
@@ -760,8 +760,8 @@ export default (router: Router, service: any) => {
   router.post(
     '/storage/file/:fileid/meta',
     passportAuth,
-    resourceSharingAdapter.RenameFile,
     sharedAdapter,
+    resourceSharingAdapter.RenameFile,
     controller.updateFile.bind(controller)
   );
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));

@@ -30,8 +30,8 @@ const build = (
   const mdBuilder = (action: Actions) => (async (req, res, next) => {
     try {
       const resourcesToken = req.headers['internxt-resources-token'];
-      const { user: requester } = (req as AuthorizedUser);
-      req.behalfUser = requester;
+      const requester = (req as any).behalfUser || (req as AuthorizedUser).user;
+      req.behalfUser =  requester;
 
       if (!resourcesToken || typeof resourcesToken !== 'string') {
         return next();
