@@ -31,6 +31,7 @@ const build = (
     try {
       const resourcesToken = req.headers['internxt-resources-token'];
       const { user: requester } = (req as AuthorizedUser);
+      req.behalfUser = requester;
 
       if (!resourcesToken || typeof resourcesToken !== 'string') {
         return next();
@@ -48,7 +49,6 @@ const build = (
       }
 
       if (decoded.owner.uuid === requester.uuid) {
-        req.behalfUser = requester;
         return next();
       }
 
