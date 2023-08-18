@@ -18,6 +18,10 @@ import initTeamMember, { TeamMemberModel } from './teammember';
 import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
+import initRole, { RoleModel } from './roles';
+import initPermission, { PermissionModel } from './permissions';
+import initPrivateSharingFolder, { PrivateSharingFolderModel } from './privateSharingFolder';
+import initPrivateSharingFolderRole, { PrivateSharingFolderRoleModel } from './privateSharingFolderRole';
 
 export type ModelType =
   | AppSumoModel
@@ -37,7 +41,11 @@ export type ModelType =
   | TeamMemberModel
   | UserModel
   | UserReferralModel
-  | FriendInvitationModel;
+  | FriendInvitationModel
+  | RoleModel
+  | PermissionModel
+  | PrivateSharingFolderModel
+  | PrivateSharingFolderRoleModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -58,6 +66,10 @@ export default (database: Sequelize) => {
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
+  const Role = initRole(database);
+  const Permission = initPermission(database);
+  const PrivateSharingFolder = initPrivateSharingFolder(database);
+  const PrivateSharingFolderRole = initPrivateSharingFolderRole(database);
 
   AppSumo.belongsTo(User);
 
@@ -78,6 +90,8 @@ export default (database: Sequelize) => {
   Folder.belongsTo(User);
   Folder.hasMany(Folder, { foreignKey: 'parent_id', as: 'children' });
   Folder.hasMany(Share, { as: 'shares', foreignKey: 'folder_id', sourceKey: 'id' });
+  Folder.hasMany(PrivateSharingFolderRole, { foreignKey: 'folder_id', sourceKey: 'uuid' });
+  Folder.hasMany(PrivateSharingFolder, { foreignKey: 'folder_id', sourceKey: 'uuid' });
 
   Invitation.belongsTo(User, { foreignKey: 'host', targetKey: 'id' });
   Invitation.belongsTo(User, { foreignKey: 'guest', targetKey: 'id' });
@@ -101,9 +115,26 @@ export default (database: Sequelize) => {
   User.belongsToMany(Referral, { through: UserReferral });
   User.hasMany(MailLimit, { foreignKey: 'user_id' });
   User.hasMany(FriendInvitation, { foreignKey: 'host' });
+  User.hasMany(PrivateSharingFolderRole, { foreignKey: 'user_id', sourceKey: 'uuid' });
+  User.hasMany(PrivateSharingFolder, { foreignKey: 'owner_id', sourceKey: 'uuid' });
+  User.hasMany(PrivateSharingFolder, { foreignKey: 'shared_with', sourceKey: 'uuid' });
 
   UserReferral.belongsTo(User, { foreignKey: 'user_id' });
   UserReferral.belongsTo(Referral, { foreignKey: 'referral_id' });
+
+
+  Role.hasMany(Permission, { foreignKey: 'role_id', sourceKey: 'id' });
+  Role.hasMany(PrivateSharingFolderRole, { foreignKey: 'role_id', sourceKey: 'id' });
+
+  Permission.belongsTo(Role, { foreignKey: 'role_id', targetKey: 'id' });
+
+  PrivateSharingFolderRole.belongsTo(Folder, { foreignKey: 'folder_id', targetKey: 'uuid' });
+  PrivateSharingFolderRole.belongsTo(User, { foreignKey: 'user_id', targetKey: 'uuid' });
+  PrivateSharingFolderRole.belongsTo(Role, { foreignKey: 'role_id', targetKey: 'id' });
+
+  PrivateSharingFolder.belongsTo(Folder, { foreignKey: 'folder_id', targetKey: 'uuid' });
+  PrivateSharingFolder.belongsTo(User, { foreignKey: 'owner_id', targetKey: 'uuid' });
+  PrivateSharingFolder.belongsTo(User, { foreignKey: 'shared_with', targetKey: 'uuid' });
 
   return {
     [AppSumo.name]: AppSumo,
@@ -124,5 +155,9 @@ export default (database: Sequelize) => {
     [User.name]: User,
     [UserReferral.name]: UserReferral,
     [FriendInvitation.name]: FriendInvitation,
+    [Role.name]: Role,
+    [Permission.name]: Permission,
+    [PrivateSharingFolder.name]: PrivateSharingFolder,
+    [PrivateSharingFolderRole.name]: PrivateSharingFolderRole,
   };
 };
