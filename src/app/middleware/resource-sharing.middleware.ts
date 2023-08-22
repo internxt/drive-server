@@ -80,6 +80,7 @@ const build = (
     UploadFile: mdBuilder(Actions.UPLOAD_FILE),
     UploadThumbnail: mdBuilder(Actions.UPLOAD_FILE),
     RenameFile: mdBuilder(Actions.RENAME_ITEMS),
+    RenameFolder: mdBuilder(Actions.RENAME_ITEMS),
   };
 };
 

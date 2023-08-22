@@ -748,7 +748,13 @@ export default (router: Router, service: any) => {
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
   router.post('/storage/move/folder', passportAuth, sharedAdapter, controller.moveFolder.bind(controller));
-  router.post('/storage/folder/:folderid/meta', passportAuth, sharedAdapter, controller.updateFolder.bind(controller));
+  router.post(
+    '/storage/folder/:folderid/meta',
+    passportAuth,
+    sharedAdapter,
+    resourceSharingAdapter.RenameFolder,
+    controller.updateFolder.bind(controller)
+  );
   router.get(
     '/storage/v2/folder/:id/:idTeam?',
     passportAuth,
