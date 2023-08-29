@@ -151,6 +151,7 @@ export default (database: Sequelize) => {
 
   Sharings.belongsTo(User, { foreignKey: 'owner_id', targetKey: 'uuid' });
   Sharings.belongsTo(User, { foreignKey: 'shared_with', targetKey: 'uuid' });
+  Sharings.hasMany(SharingRoles, { foreignKey: 'sharing_id', sourceKey: 'id' });
 
   SharingInvites.belongsTo(User, { foreignKey: 'shared_with', targetKey: 'uuid' });
 
