@@ -2,7 +2,7 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 
 interface RoleAttributes {
   id: string;
-  role: string;
+  name: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,7 +21,7 @@ export default (database: Sequelize): RoleModel => {
         primaryKey: true,
         allowNull: false
       },
-      role: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
