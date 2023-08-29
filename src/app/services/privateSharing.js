@@ -15,22 +15,22 @@ class PrivateSharingFolderPermissionsNotFound extends Error {
 }
 
 module.exports = (Model) => {
-  const FindUserPermissionsInsidePrivateSharing = async (sharedWithId, folderId) => {
-    const privateFolderRole = await Model.privateSharingFolderRole.findOne({
-      where: {
-        userId: sharedWithId,
-        folderId,
-      }
-    });
-
-    if (!privateFolderRole || !privateFolderRole.roleId) {
-      throw new PrivateSharingFolderRoleNotFound();
-    }
-
+  const FindUserPermissionsInsidePrivateSharing = async (sharedWithId, itemId) => {
     const permissions = await Model.permissions.findAll({
-      where: {
-        roleId: privateFolderRole.roleId
-      }
+      include: [
+        {
+          model: Model.sharingRoles,
+          include: [
+            {
+              model: Model.sharings,
+              where: {
+                sharedWith: sharedWithId,
+                itemId,
+              }
+            }
+          ]
+        }
+      ]
     });
 
     if (!permissions) {
