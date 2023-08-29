@@ -2,7 +2,7 @@ import { Sequelize, DataTypes, ModelDefined } from 'sequelize';
 
 interface PermissionsAttributes {
   id: string;
-  type: string;
+  name: string;
   roleId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -22,13 +22,17 @@ export default (database: Sequelize): PermissionModel => {
         primaryKey: true,
         allowNull: false
       },
-      type: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
       roleId: {
         type: DataTypes.UUIDV4,
         allowNull: false,
+        references: {
+          model: 'roles',
+          key: 'id',
+        }
       },
     },
     {
