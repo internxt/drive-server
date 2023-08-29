@@ -19,14 +19,19 @@ module.exports = (Model) => {
     const permissions = await Model.permissions.findAll({
       include: [
         {
-          model: Model.sharingRoles,
+          model: Model.roles,
           include: [
             {
-              model: Model.sharings,
-              where: {
-                sharedWith: sharedWithId,
-                itemId,
-              }
+              model: Model.sharingRoles,
+              include: [
+                {
+                  model: Model.sharings,
+                  where: {
+                    sharedWith: sharedWithId,
+                    itemId,
+                  }
+                }
+              ]
             }
           ]
         }
@@ -37,14 +42,14 @@ module.exports = (Model) => {
       throw new PrivateSharingFolderPermissionsNotFound();
     }
 
-    return permissions;
+    return permissions.map(p => p.get({ plain: true }));
   };
 
   const CanUserPerformAction = async (sharedWith, resourceId, action) => {
     const permissions = await FindUserPermissionsInsidePrivateSharing(sharedWith.uuid, resourceId);
 
     for (const permission of permissions) {
-      if (permission.type === action) {
+      if (permission.name === action) {
         return true;
       }
     }
