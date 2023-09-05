@@ -36,7 +36,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: folder.id },
         type: { [Op.eq]: file.type },
         userId: { [Op.eq]: user.id },
-        deleted: { [Op.eq]: false },
+        status: { [Op.eq]: 'EXISTS' },
       },
     });
 
@@ -206,7 +206,7 @@ module.exports = (Model, App) => {
             folder_id: { [Op.eq]: file.folder_id },
             name: { [Op.eq]: cryptoFileName },
             type: { [Op.eq]: file.type },
-            deleted: { [Op.eq]: false },
+            status: { [Op.eq]: 'EXISTS' },
           },
         })
           .then((duplicateFile) => {
@@ -256,7 +256,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
-        deleted: { [Op.eq]: false },
+        status: { [Op.eq]: 'EXISTS' },
       },
     });
 
@@ -270,8 +270,6 @@ module.exports = (Model, App) => {
       folder_id: parseInt(destination, 10),
       folderUuid: folderTarget.uuid,
       name: destinationName,
-      deleted: false,
-      deletedAt: null,
       status: 'EXISTS',
     });
 

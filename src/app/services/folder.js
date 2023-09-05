@@ -281,7 +281,11 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id, deleted: filterOptions.deleted || false },
+      where: { 
+        folder_id: { [Op.in]: foldersId }, 
+        userId: userObject.id, 
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS'
+      },
       include: [
         {
           model: Model.thumbnail,
@@ -334,8 +338,7 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.in]: foldersId },
         userId: userObject.id,
-        deleted: filterOptions.deleted || false,
-        removed: false,
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS',
       },
     });
 
