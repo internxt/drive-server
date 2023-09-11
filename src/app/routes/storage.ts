@@ -87,7 +87,7 @@ export class StorageController {
       );
     } catch (err) {
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
