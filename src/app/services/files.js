@@ -3,7 +3,7 @@ const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const { v4 } = require('uuid');
-const { FileWithNameAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
+const { FileWithNameAlreadyExistsError, FileAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -43,7 +43,7 @@ module.exports = (Model, App) => {
     const fileAlreadyExists = !!maybeAlreadyExistentFile;
 
     if (fileAlreadyExists) {
-      throw new Error('File already exists');
+      throw new FileAlreadyExistsError('File already exists');
     }
 
     const fileInfo = {

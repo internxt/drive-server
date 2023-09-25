@@ -12,7 +12,10 @@ import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
-import { FileWithNameAlreadyExistsError } from '../services/errors/FileWithNameAlreadyExistsError';
+import { 
+  FileAlreadyExistsError, 
+  FileWithNameAlreadyExistsError 
+} from '../services/errors/FileWithNameAlreadyExistsError';
 import { FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
 
@@ -86,6 +89,9 @@ export class StorageController {
           }),
       );
     } catch (err) {
+      if (err instanceof FileAlreadyExistsError) {
+        return res.status(409).send({ error: err.message });
+      }
       this.logger.error(
         `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
       );
