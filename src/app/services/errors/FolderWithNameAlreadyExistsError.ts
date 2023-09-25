@@ -5,3 +5,11 @@ export class FolderWithNameAlreadyExistsError extends Error {
     Object.setPrototypeOf(this, FolderWithNameAlreadyExistsError.prototype);
   }
 }
+
+export class FolderAlreadyExistsError extends Error {
+  constructor(message: string) {
+    super(message);
+
+    Object.setPrototypeOf(this, FolderAlreadyExistsError.prototype);
+  }
+}

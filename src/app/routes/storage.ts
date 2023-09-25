@@ -16,7 +16,7 @@ import {
   FileAlreadyExistsError, 
   FileWithNameAlreadyExistsError 
 } from '../services/errors/FileWithNameAlreadyExistsError';
-import { FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
+import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
@@ -138,6 +138,9 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
+        if (err instanceof FolderAlreadyExistsError) {
+          return res.status(409).send({ error: err.message });
+        }
         this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
         res.status(500).send();
       });

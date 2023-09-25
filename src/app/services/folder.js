@@ -7,7 +7,7 @@ const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
-import { FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
+import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -109,7 +109,7 @@ module.exports = (Model, App) => {
       // TODO: If the folder already exists,
       // return the folder data to make desktop
       // incorporate new info to its database
-      throw Error('Folder with the same name already exists');
+      throw new FolderAlreadyExistsError('Folder with the same name already exists');
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
