@@ -13,6 +13,49 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const log = App.logger;
 
+  const CheckFileExistence = async (user, file) => {
+    const maybeAlreadyExistentFile = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: file.name },
+        folder_id: { [Op.eq]: file.folderId },
+        type: { [Op.eq]: file.type },
+        userId: { [Op.eq]: user.id },
+        status: { [Op.eq]: 'EXISTS' },
+      },
+    });
+
+    const fileExists = !!maybeAlreadyExistentFile;
+
+    if (!fileExists) {
+      return { exists: false, file: null };
+    }
+
+    const fileInfo = {
+      name: file.name,
+      plainName: file.plain_name,
+      type: file.type,
+      size: file.size,
+      folderId: file.folder_id,
+      fileId: file.fileId,
+      bucket: file.bucket,
+      userId: user.id,
+      uuid: v4(),
+      modificationTime: file.modificationTime || new Date(),
+    };
+
+    try {
+      fileInfo.plainName = fileInfo.plainName ?? AesUtil.decrypt(file.name, file.fileId);
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
+
+    if (file.date) {
+      fileInfo.createdAt = file.date;
+    }
+
+    return { exists: true, file: fileInfo };
+  };
+
   const CreateFile = async (user, file) => {
     const folder = await Model.folder.findOne({
       where: {
@@ -405,6 +448,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Files',
     CreateFile,
+    CheckFileExistence,
     Delete,
     DeleteFile,
     UpdateMetadata,

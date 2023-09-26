@@ -99,6 +99,42 @@ export class StorageController {
     }
   }
 
+  public async checkFileExistence(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const { file } = req.body as { file: { name: string; folderId: number; type: string } };
+
+    if (
+      !file ||
+      !file.name ||
+      !file.folderId ||
+      !file.type
+    ) {
+      this.logger.error(
+        `Missing body params to check the file existence for user ${
+          behalfUser.email
+        }: ${JSON.stringify(file, null, 2)}`,
+      );
+      return res.status(400).json({ error: 'Missing information to check file existence' });
+    }
+
+    try {
+      const result = await this.services.Files.CheckFileExistence(behalfUser, file);
+
+      if (!result.exists) {
+        return res.status(404).send();
+      }
+
+      res.status(200).json(result.file);
+    } catch (err) {
+      this.logger.error(
+        `[FILE/CHECK-EXISTENCE] ERROR: ${
+          (err as Error).message
+        }, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+      );
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
+  }
+
   public async createFolder(req: Request, res: Response): Promise<void> {
     const { folderName, parentFolderId } = req.body;
     const { behalfUser: user } = req as any;
@@ -745,6 +781,11 @@ export default (router: Router, service: any) => {
     sharedAdapter,
     resourceSharingAdapter.UploadFile,
     controller.createFile.bind(controller)
+  );
+  router.post('/storage/file/exists',
+    passportAuth,
+    sharedAdapter,
+    controller.checkFileExistence.bind(controller)
   );
   router.post('/storage/thumbnail',
     passportAuth,
