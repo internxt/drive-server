@@ -127,6 +127,51 @@ module.exports = (Model, App) => {
     return folder;
   };
 
+  const CheckFolderExistence = async (user, folderName, parentFolderId) => {
+    if (parentFolderId >= 2147483648) {
+      throw Error('Invalid parent folder');
+    }
+    const isGuest = user.email !== user.bridgeUser;
+
+    if (isGuest) {
+      const { bridgeUser } = user;
+
+      user = await Model.users.findOne({
+        where: { username: bridgeUser },
+      });
+    }
+
+    const parentFolder = await Model.folder.findOne({
+      id: { [Op.eq]: parentFolderId },
+      user_id: { [Op.eq]: user.id },
+    });
+
+    if (!parentFolder) {
+      throw Error('Parent folder is not yours');
+    }
+
+    if (folderName === '' || invalidName.test(folderName)) {
+      throw Error('Invalid folder name');
+    }
+
+    // Encrypt folder name, TODO: use versioning for encryption
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
+
+    const maybeExistentFolder = await Model.folder.findOne({
+      where: {
+        parentId: { [Op.eq]: parentFolderId },
+        name: { [Op.eq]: cryptoFolderName },
+        deleted: { [Op.eq]: false },
+      },
+    });
+
+    if (maybeExistentFolder) {
+      return { exists: true, folder: maybeExistentFolder };
+    }
+
+    return { exists: false, folder: null };
+  };
+
   // Requires stored procedure
   const DeleteOrphanFolders = async (userId) => {
     const clear = await App.database.query('CALL clear_orphan_folders_by_user (:userId, :output)', {
@@ -772,6 +817,7 @@ module.exports = (Model, App) => {
     Name: 'Folder',
     getById,
     Create,
+    CheckFolderExistence,
     Delete,
     GetChildren,
     GetTree,

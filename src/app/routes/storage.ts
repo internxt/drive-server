@@ -182,6 +182,32 @@ export class StorageController {
       });
   }
 
+  public async checkFolderExistence(req: Request, res: Response): Promise<void> {
+    const { name, parentId } = req.body;
+    const { behalfUser: user } = req as any;
+
+    if (Validator.isInvalidString(name)) {
+      throw createHttpError(400, 'Folder name must be a valid string');
+    }
+
+    if (!parentId || parentId <= 0) {
+      throw createHttpError(400, 'Invalid parent folder id');
+    }
+
+    return this.services.Folder.CheckFolderExistence(user, name, parentId)
+      .then((result: { folder: FolderAttributes, exists: boolean }) => {
+        if (result.exists) {
+          res.status(200).json(result);
+        } else {
+          res.status(404).send();
+        }
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Error checking folder existence for user ${user.id}: ${err}`);
+        res.status(500).send();
+      });
+  }
+
   public async getTree(req: Request, res: Response): Promise<void> {
     const { user } = req as PassportRequest;
     const deleted = req.query?.trash === 'true';
@@ -794,6 +820,7 @@ export default (router: Router, service: any) => {
     controller.createThumbnail.bind(controller)
   );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
+  router.post('/storage/folder/exists', passportAuth, sharedAdapter, controller.checkFolderExistence.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
