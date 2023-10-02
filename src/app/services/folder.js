@@ -56,7 +56,7 @@ module.exports = (Model, App) => {
   };
 
   // Create folder entry, for desktop
-  const Create = async (user, folderName, parentFolderId, teamId = null) => {
+  const Create = async (user, folderName, parentFolderId, teamId = null, uuid = null) => {
     if (parentFolderId >= 2147483648) {
       throw Error('Invalid parent folder');
     }
@@ -117,7 +117,7 @@ module.exports = (Model, App) => {
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
-      uuid: v4(),
+      uuid: uuid || v4(),
       bucket: null,
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,

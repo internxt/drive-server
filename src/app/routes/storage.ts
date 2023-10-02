@@ -18,6 +18,7 @@ import {
 } from '../services/errors/FileWithNameAlreadyExistsError';
 import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
+import {validate } from 'uuid';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -136,7 +137,8 @@ export class StorageController {
   }
 
   public async createFolder(req: Request, res: Response): Promise<void> {
-    const { folderName, parentFolderId } = req.body;
+    this.logger.error(`A ${validate}`);
+    const { folderName, parentFolderId, uuid: clientCreatedUuuid } = req.body;
     const { behalfUser: user } = req as any;
 
     if (Validator.isInvalidString(folderName)) {
@@ -145,6 +147,10 @@ export class StorageController {
 
     if (!parentFolderId || parentFolderId <= 0) {
       throw createHttpError(400, 'Invalid parent folder id');
+    }
+
+    if (clientCreatedUuuid && !validate(clientCreatedUuuid)) {
+      throw createHttpError(400, 'Invalid uuid');
     }
 
     const clientId = String(req.headers['internxt-client-id']);
@@ -158,8 +164,9 @@ export class StorageController {
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
     }
+    
 
-    return this.services.Folder.Create(user, folderName, parentFolderId)
+    return this.services.Folder.Create(user, folderName, parentFolderId, null, clientCreatedUuuid)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
