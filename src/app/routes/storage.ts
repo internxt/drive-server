@@ -137,7 +137,6 @@ export class StorageController {
   }
 
   public async createFolder(req: Request, res: Response): Promise<void> {
-    this.logger.error(`A ${validate}`);
     const { folderName, parentFolderId, uuid: clientCreatedUuuid } = req.body;
     const { behalfUser: user } = req as any;
 
