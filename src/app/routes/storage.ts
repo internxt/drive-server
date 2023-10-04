@@ -425,71 +425,6 @@ export class StorageController {
       });
   }
 
-  public async deleteFileBridge(req: Request, res: Response): Promise<void> {
-    if (req.params.bucketid === 'null') {
-      // Weird checking...
-      res.status(500).json({ error: 'No bucket ID provided' });
-      return;
-    }
-
-    if (req.params.fileid === 'null') {
-      res.status(500).json({ error: 'No file ID provided' });
-      return;
-    }
-
-    const { user } = req as PassportRequest;
-    const bucketId = req.params.bucketid;
-    const fileIdInBucket = req.params.fileid;
-
-    return this.services.Files.Delete(user, bucketId, fileIdInBucket)
-      .then(() => {
-        res.status(200).json({
-          deleted: true,
-        });
-      })
-      .catch((err: Error) => {
-        this.logger.error(err.stack);
-        res.status(500).json({
-          error: err.message,
-        });
-      });
-  }
-
-  public async deleteFileDatabase(req: Request, res: Response): Promise<void> {
-    const { behalfUser: user } = req as SharedRequest;
-    const { folderid, fileid } = req.params;
-    const clientId = String(req.headers['internxt-client-id']);
-
-    if (Validator.isInvalidPositiveNumber(fileid)) {
-      throw createHttpError(400, 'File ID is not valid');
-    }
-
-    if (Validator.isInvalidPositiveNumber(folderid)) {
-      throw createHttpError(400, 'Folder ID is not valid');
-    }
-
-    return this.services.Files.DeleteFile(user, folderid, fileid)
-      .then(async () => {
-        res.status(200).json({ deleted: true });
-        const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.fileDeleted({
-              id: Number(fileid),
-              email,
-              uuid,
-              clientId,
-            }),
-        );
-
-        this.services.Analytics.trackFileDeleted(req);
-      })
-      .catch((err: Error) => {
-        this.logger.error(`[STORAGE]: Error deleting file ${fileid} for user ${user.uuid} : ${err.message}`);
-        res.status(500).json({ error: err.message });
-      });
-  }
-
   public async getRecentFiles(req: Request, res: Response): Promise<void> {
     const { behalfUser } = req as SharedRequest;
     const { user } = req as PassportRequest;
@@ -620,18 +555,6 @@ export class StorageController {
       });
   }
 
-  public async fixDuplicate(req: Request, res: Response): Promise<void> {
-    const { user } = req as PassportRequest;
-
-    return this.services.Folder.changeDuplicateName(user)
-      .then((result: unknown) => {
-        res.status(204).json(result);
-      })
-      .catch((err: Error) => {
-        res.status(500).json(err.message);
-      });
-  }
-
   getDirectoryFiles(req: Request, res: Response): void {
     const { user } = req as PassportRequest;
     const folderId = req.params.id;
@@ -734,13 +657,6 @@ export default (router: Router, service: any) => {
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
   router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
-  router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
-  router.delete(
-    '/storage/folder/:folderid/file/:fileid',
-    passportAuth,
-    sharedAdapter,
-    controller.deleteFileDatabase.bind(controller),
-  );
   router.get('/storage/recents', passportAuth, sharedAdapter, controller.getRecentFiles.bind(controller));
   router.post('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.acquireFolderLock.bind(controller));
   router.put('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.refreshFolderLock.bind(controller));
@@ -756,7 +672,6 @@ export default (router: Router, service: any) => {
     sharedAdapter,
     controller.renameFileInNetwork.bind(controller),
   );
-  router.post('/storage/folder/fixduplicate', passportAuth, controller.fixDuplicate.bind(controller));
 
   /**
    * V2 starts here (which will replace V1 and the /v2 will be removed)
