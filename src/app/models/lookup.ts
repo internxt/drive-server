@@ -19,7 +19,7 @@ export default (database: Sequelize): LookUpModel => {
     'look_up',
     {
       id: {
-        type: DataTypes.UUIDV4,
+        type: DataTypes.UUID,
         primaryKey: true,
         allowNull: false,
         defaultValue: DataTypes.UUIDV4,
@@ -52,6 +52,8 @@ export default (database: Sequelize): LookUpModel => {
     },
     {
       underscored: true,
+      freezeTableName: true,
+      timestamps: false,
       indexes: [
         { name: 'user_uuid_look_up_index', fields: ['user_id'] },
         { name: 'item_id_look_up_index', fields: ['item_id'] },

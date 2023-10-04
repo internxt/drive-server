@@ -121,14 +121,14 @@ module.exports = (Model, App) => {
       id_team: teamId,
     });
 
-
-    Model.lookUp.create({
+    await Model.lookUp.create({
+      id: v4(),
       itemId: folder.uuid,
-      itemType: 'FILE',
+      itemType: 'folder',
       userId: user.uuid,
-      name: folder.plainName,
+      name: folderName,
       tokenizedName: sequelize.literal(
-        `to_tsvector('simple', '${folder.plainName}')`,
+        `to_tsvector('simple', '${folderName}')`,
       ),
     }).catch((err) => {
       console.log(`[FOLDER/CREATE] ERROR indexing folder ${folder.uuid} ${err.message}`, err);

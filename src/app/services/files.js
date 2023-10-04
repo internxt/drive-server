@@ -73,10 +73,10 @@ module.exports = (Model, App) => {
 
     const newFile = await Model.file.create(fileInfo);
 
-    Model.lookUp.create({
+    await Model.lookUp.create({
       id: v4(),
       itemId: newFile.uuid,
-      itemType: 'FILE',
+      itemType: 'file',
       userId: user.uuid,
       name: newFile.plain_name,
       tokenizedName: sequelize.literal(
@@ -209,7 +209,7 @@ module.exports = (Model, App) => {
             .then((update) => {
               const plainName = newMeta.plain_name;
 
-              Model.lookUp.update(
+              return Model.lookUp.update(
                 { 
                   name: plainName, 
                   tokenizedName: sequelize.literal(
@@ -225,9 +225,7 @@ module.exports = (Model, App) => {
                 }: ${
                   err.message
                 }`, err);
-              });
-
-              next(null, update);
+              }).then(() => next(null, update));
             })
             .catch(next);
         } else {
