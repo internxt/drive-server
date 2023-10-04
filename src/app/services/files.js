@@ -115,39 +115,23 @@ module.exports = (Model, App) => {
       fileInfo.createdAt = file.date;
     }
 
-    return Model.file.create(fileInfo);
-  };
+    const newFile = await Model.file.create(fileInfo);
 
-  const Delete = (user, bucket, fileId) =>
-    new Promise((resolve, reject) => {
-      App.services.Inxt.DeleteFile(user, bucket, fileId)
-        .then(async () => {
-          const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } });
-
-          if (file) {
-            const isDestroyed = await file.destroy();
-            if (isDestroyed) {
-              return resolve('File deleted');
-            }
-            return reject(Error('Cannot delete file'));
-          }
-          return reject(Error('File not found'));
-        })
-        .catch(async (err) => {
-          if (err.message.includes('Resource not found')) {
-            const file = await Model.file.findOne({
-              where: { fileId: { [Op.eq]: fileId }, userId: user.id },
-            });
-            if (file) {
-              await file.destroy();
-            }
-
-            resolve();
-          } else {
-            reject(err);
-          }
-        });
+    await Model.lookUp.create({
+      id: v4(),
+      itemId: newFile.uuid,
+      itemType: 'file',
+      userId: user.uuid,
+      name: newFile.plain_name,
+      tokenizedName: sequelize.literal(
+        `to_tsvector('simple', '${newFile.plain_name}')`,
+      ),
+    }).catch((err) => {
+      console.log(`[FILE/CREATE] ERROR indexing file ${newFile.uuid} ${err.message}`, err);
     });
+
+    return newFile;
+  };
 
   const DeleteFile = async (user, folderId, fileId) => {
     const file = await Model.file.findOne({ where: { id: fileId, folder_id: folderId, userId: user.id } });
@@ -157,7 +141,7 @@ module.exports = (Model, App) => {
     });
 
     if (!file) {
-      throw Error('File/Folder not found');
+      throw Error('File not found');
     }
 
     try {
@@ -193,6 +177,7 @@ module.exports = (Model, App) => {
       );
     }
     await file.destroy();
+    await Model.lookUp.destroy({ where: { itemId: file.uuid }});
   };
 
   const UpdateMetadata = (user, fileId, metadata, mnemonic, bucketId, relativePath) => {
@@ -200,7 +185,6 @@ module.exports = (Model, App) => {
 
     return async.waterfall([
       (next) => {
-        // Find the file in database
         Model.file
           .findOne({ where: { fileId: { [Op.eq]: fileId }, userId: user.id } })
           .then((file) => {
@@ -267,7 +251,25 @@ module.exports = (Model, App) => {
           file
             .update(newMeta)
             .then((update) => {
-              next(null, update);
+              const plainName = newMeta.plain_name;
+
+              return Model.lookUp.update(
+                { 
+                  name: plainName, 
+                  tokenizedName: sequelize.literal(
+                    `to_tsvector('simple', '${plainName}')`,
+                  ),
+                }, 
+                { where: { itemId: file.uuid }}
+              ).catch((err) => {
+                log.error(`[FILE/UPDATE]: ERROR indexing where updating name of file ${
+                  file.uuid
+                } to ${
+                  plainName
+                }: ${
+                  err.message
+                }`, err);
+              }).then(() => next(null, update));
             })
             .catch(next);
         } else {
@@ -449,7 +451,6 @@ module.exports = (Model, App) => {
     Name: 'Files',
     CreateFile,
     CheckFileExistence,
-    Delete,
     DeleteFile,
     UpdateMetadata,
     MoveFile,

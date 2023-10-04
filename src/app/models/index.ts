@@ -18,6 +18,7 @@ import initTeamMember, { TeamMemberModel } from './teammember';
 import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
+import initLookUp, { LookUpModel } from './lookup';
 import initRole, { RoleModel } from './roles';
 import initPermission, { PermissionModel } from './permissions';
 import initPrivateSharingFolder, { PrivateSharingFolderModel } from './privateSharingFolder';
@@ -46,6 +47,7 @@ export type ModelType =
   | UserModel
   | UserReferralModel
   | FriendInvitationModel
+  | LookUpModel
   | RoleModel
   | PermissionModel
   | PrivateSharingFolderModel
@@ -73,6 +75,7 @@ export default (database: Sequelize) => {
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
+  const LookUp = initLookUp(database);
   const Role = initRole(database);
   const Permission = initPermission(database);
   const PrivateSharingFolder = initPrivateSharingFolder(database);
@@ -93,6 +96,7 @@ export default (database: Sequelize) => {
   File.belongsTo(User);
   File.hasMany(Share, { as: 'shares', foreignKey: 'file_id', sourceKey: 'id' });
   File.hasMany(Thumbnail);
+  File.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id' });
 
   Thumbnail.belongsTo(File, { foreignKey: 'file_id', targetKey: 'id' });
 
@@ -100,6 +104,7 @@ export default (database: Sequelize) => {
   Folder.belongsTo(User);
   Folder.hasMany(Folder, { foreignKey: 'parent_id', as: 'children' });
   Folder.hasMany(Share, { as: 'shares', foreignKey: 'folder_id', sourceKey: 'id' });
+  Folder.hasOne(LookUp, { sourceKey: 'uuid', foreignKey: 'item_id' });
   Folder.hasMany(PrivateSharingFolderRole, { foreignKey: 'folder_id', sourceKey: 'uuid' });
   Folder.hasMany(PrivateSharingFolder, { foreignKey: 'folder_id', sourceKey: 'uuid' });
 
@@ -125,6 +130,7 @@ export default (database: Sequelize) => {
   User.belongsToMany(Referral, { through: UserReferral });
   User.hasMany(MailLimit, { foreignKey: 'user_id' });
   User.hasMany(FriendInvitation, { foreignKey: 'host' });
+  User.hasMany(LookUp, { sourceKey: 'uuid', foreignKey: 'user_id' });
   User.hasMany(PrivateSharingFolderRole, { foreignKey: 'user_id', sourceKey: 'uuid' });
   User.hasMany(PrivateSharingFolder, { foreignKey: 'owner_id', sourceKey: 'uuid' });
   User.hasMany(PrivateSharingFolder, { foreignKey: 'shared_with', sourceKey: 'uuid' });
@@ -178,6 +184,7 @@ export default (database: Sequelize) => {
     [User.name]: User,
     [UserReferral.name]: UserReferral,
     [FriendInvitation.name]: FriendInvitation,
+    ['lookUp']: LookUp,
     [Role.name]: Role,
     [Permission.name]: Permission,
     [PrivateSharingFolder.name]: PrivateSharingFolder,

@@ -112,8 +112,6 @@ module.exports = (Model, App) => {
       throw new FolderAlreadyExistsError('Folder with the same name already exists');
     }
 
-    // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
@@ -122,6 +120,19 @@ module.exports = (Model, App) => {
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,
       id_team: teamId,
+    });
+
+    await Model.lookUp.create({
+      id: v4(),
+      itemId: folder.uuid,
+      itemType: 'folder',
+      userId: user.uuid,
+      name: folderName,
+      tokenizedName: sequelize.literal(
+        `to_tsvector('simple', '${folderName}')`,
+      ),
+    }).catch((err) => {
+      console.log(`[FOLDER/CREATE] ERROR indexing folder ${folder.uuid} ${err.message}`, err);
     });
 
     return folder;
@@ -200,10 +211,15 @@ module.exports = (Model, App) => {
     }
 
     const removed = await folder.update({
+      updatedAt: new Date(),
       deleted: true,
       deletedAt: new Date(),
       removed: true,
       removedAt: new Date(),
+    });
+
+    await Model.lookUp.destroy({
+      where: { itemId: removed.uuid }
     });
 
     return removed;
@@ -502,7 +518,29 @@ module.exports = (Model, App) => {
         // Perform the update
         folder
           .update(newMeta)
-          .then((result) => next(null, result))
+          .then((result) => {
+            const plainName = newMeta.plain_name;
+
+            Model.lookUp.update(
+              { 
+                name: plainName, 
+                tokenizedName: sequelize.literal(
+                  `to_tsvector('simple', '${plainName}')`,
+                ),
+              }, 
+              { where: { itemId: folder.uuid }}
+            ).catch((err) => {
+              logger.error(`[FOLDER/UPDATE]: ERROR indexing where updating name of folder ${
+                folder.uuid
+              } to ${
+                plainName
+              }: ${
+                err.message
+              }`, err);
+            });
+
+            next(null, result);
+          })
           .catch(next);
       },
     ]);
