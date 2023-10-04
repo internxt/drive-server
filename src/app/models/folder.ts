@@ -11,6 +11,8 @@ export interface FolderAttributes {
   encryptVersion: string;
   deleted: boolean;
   deletedAt: Date;
+  removed: boolean;
+  removedAt: Date;
 }
 
 export type FolderModel = ModelDefined<FolderAttributes, FolderAttributes>;
@@ -68,6 +70,14 @@ export default (database: Sequelize): FolderModel => {
         defaultValue: false,
       },
       deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      removed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      removedAt: {
         type: DataTypes.DATE,
         allowNull: true,
       },
