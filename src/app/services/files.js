@@ -3,6 +3,7 @@ const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const { v4 } = require('uuid');
+const { FileWithNameAlreadyExistsError, FileAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -11,6 +12,49 @@ const { Op } = sequelize;
 
 module.exports = (Model, App) => {
   const log = App.logger;
+
+  const CheckFileExistence = async (user, file) => {
+    const maybeAlreadyExistentFile = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: file.name },
+        folder_id: { [Op.eq]: file.folderId },
+        type: { [Op.eq]: file.type },
+        userId: { [Op.eq]: user.id },
+        status: { [Op.eq]: 'EXISTS' },
+      },
+    });
+
+    const fileExists = !!maybeAlreadyExistentFile;
+
+    if (!fileExists) {
+      return { exists: false, file: null };
+    }
+
+    const fileInfo = {
+      name: file.name,
+      plainName: file.plain_name,
+      type: file.type,
+      size: file.size,
+      folderId: file.folder_id,
+      fileId: file.fileId,
+      bucket: file.bucket,
+      userId: user.id,
+      uuid: v4(),
+      modificationTime: file.modificationTime || new Date(),
+    };
+
+    try {
+      fileInfo.plainName = fileInfo.plainName ?? AesUtil.decrypt(file.name, file.fileId);
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
+
+    if (file.date) {
+      fileInfo.createdAt = file.date;
+    }
+
+    return { exists: true, file: fileInfo };
+  };
 
   const CreateFile = async (user, file) => {
     const folder = await Model.folder.findOne({
@@ -35,14 +79,14 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: folder.id },
         type: { [Op.eq]: file.type },
         userId: { [Op.eq]: user.id },
-        deleted: { [Op.eq]: false },
+        status: { [Op.eq]: 'EXISTS' },
       },
     });
 
     const fileAlreadyExists = !!maybeAlreadyExistentFile;
 
     if (fileAlreadyExists) {
-      throw new Error('File already exists');
+      throw new FileAlreadyExistsError('File already exists');
     }
 
     const fileInfo = {
@@ -189,12 +233,12 @@ module.exports = (Model, App) => {
             folder_id: { [Op.eq]: file.folder_id },
             name: { [Op.eq]: cryptoFileName },
             type: { [Op.eq]: file.type },
-            deleted: { [Op.eq]: false },
+            status: { [Op.eq]: 'EXISTS' },
           },
         })
           .then((duplicateFile) => {
             if (duplicateFile) {
-              return next(Error('File with this name exists'));
+              return next(new FileWithNameAlreadyExistsError('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
             newMeta.plain_name = metadata.itemName;
@@ -257,7 +301,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
-        deleted: { [Op.eq]: false },
+        status: { [Op.eq]: 'EXISTS' },
       },
     });
 
@@ -271,8 +315,6 @@ module.exports = (Model, App) => {
       folder_id: parseInt(destination, 10),
       folderUuid: folderTarget.uuid,
       name: destinationName,
-      deleted: false,
-      deletedAt: null,
       status: 'EXISTS',
     });
 
@@ -408,6 +450,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Files',
     CreateFile,
+    CheckFileExistence,
     DeleteFile,
     UpdateMetadata,
     MoveFile,

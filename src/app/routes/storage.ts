@@ -12,6 +12,16 @@ import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError } from 'sequelize';
+import { 
+  FileAlreadyExistsError, 
+  FileWithNameAlreadyExistsError 
+} from '../services/errors/FileWithNameAlreadyExistsError';
+import { 
+  FolderAlreadyExistsError, 
+  FolderWithNameAlreadyExistsError 
+} from '../services/errors/FolderWithNameAlreadyExistsError';
+import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
+import {validate } from 'uuid';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -49,7 +59,15 @@ export class StorageController {
       file.fileId = file.file_id;
     }
 
-    if (!file || !file.fileId || !file.bucket || file.size === undefined || file.size === null || !file.folder_id || !file.name) {
+    if (
+      !file ||
+      !file.fileId ||
+      !file.bucket ||
+      file.size === undefined ||
+      file.size === null ||
+      !file.folder_id ||
+      !file.name
+    ) {
       this.logger.error(
         `Invalid metadata trying to create a file for user ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
       );
@@ -75,17 +93,54 @@ export class StorageController {
           }),
       );
     } catch (err) {
+      if (err instanceof FileAlreadyExistsError) {
+        return res.status(409).send({ error: err.message });
+      }
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(
-          file,
-        )}, STACK: ${(err as Error).stack}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+      );
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
+  }
+
+  public async checkFileExistence(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const { file } = req.body as { file: { name: string; folderId: number; type: string } };
+
+    if (
+      !file ||
+      !file.name ||
+      !file.folderId ||
+      !file.type
+    ) {
+      this.logger.error(
+        `Missing body params to check the file existence for user ${
+          behalfUser.email
+        }: ${JSON.stringify(file, null, 2)}`,
+      );
+      return res.status(400).json({ error: 'Missing information to check file existence' });
+    }
+
+    try {
+      const result = await this.services.Files.CheckFileExistence(behalfUser, file);
+
+      if (!result.exists) {
+        return res.status(404).send();
+      }
+
+      res.status(200).json(result.file);
+    } catch (err) {
+      this.logger.error(
+        `[FILE/CHECK-EXISTENCE] ERROR: ${
+          (err as Error).message
+        }, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
   }
 
   public async createFolder(req: Request, res: Response): Promise<void> {
-    const { folderName, parentFolderId } = req.body;
+    const { folderName, parentFolderId, uuid: clientCreatedUuuid } = req.body;
     const { behalfUser: user } = req as any;
 
     if (Validator.isInvalidString(folderName)) {
@@ -94,6 +149,10 @@ export class StorageController {
 
     if (!parentFolderId || parentFolderId <= 0) {
       throw createHttpError(400, 'Invalid parent folder id');
+    }
+
+    if (clientCreatedUuuid && !validate(clientCreatedUuuid)) {
+      throw createHttpError(400, 'Invalid uuid');
     }
 
     const clientId = String(req.headers['internxt-client-id']);
@@ -107,8 +166,9 @@ export class StorageController {
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
     }
+    
 
-    return this.services.Folder.Create(user, folderName, parentFolderId)
+    return this.services.Folder.Create(user, folderName, parentFolderId, null, clientCreatedUuuid)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
@@ -123,7 +183,36 @@ export class StorageController {
         );
       })
       .catch((err: Error) => {
+        if (err instanceof FolderAlreadyExistsError) {
+          return res.status(409).send({ error: err.message });
+        }
         this.logger.error(`Error creating folder for user ${user.id}: ${err}`);
+        res.status(500).send();
+      });
+  }
+
+  public async checkFolderExistence(req: Request, res: Response): Promise<void> {
+    const { name, parentId } = req.body;
+    const { behalfUser: user } = req as any;
+
+    if (Validator.isInvalidString(name)) {
+      throw createHttpError(400, 'Folder name must be a valid string');
+    }
+
+    if (!parentId || parentId <= 0) {
+      throw createHttpError(400, 'Invalid parent folder id');
+    }
+
+    return this.services.Folder.CheckFolderExistence(user, name, parentId)
+      .then((result: { folder: FolderAttributes, exists: boolean }) => {
+        if (result.exists) {
+          res.status(200).json(result);
+        } else {
+          res.status(404).send();
+        }
+      })
+      .catch((err: Error) => {
+        this.logger.error(`Error checking folder existence for user ${user.id}: ${err}`);
         res.status(500).send();
       });
   }
@@ -279,6 +368,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
+
+        if (err instanceof FolderWithNameAlreadyExistsError) {
+          res.status(409).send().end();
+        }
+
         res.status(500).send();
       });
   }
@@ -293,13 +387,7 @@ export class StorageController {
     }
 
     await Promise.all([
-      this.services.Folder.getByIdAndUserIds(
-        id,
-        [
-          behalfUser.id,
-          (req as AuthorizedRequest).user.id
-        ]
-      ),
+      this.services.Folder.getByIdAndUserIds(id, [behalfUser.id, (req as AuthorizedRequest).user.id]),
       this.services.Folder.getFolders(id, behalfUser.id, deleted),
       this.services.Files.getByFolderAndUserId(id, behalfUser.id, deleted),
     ])
@@ -421,6 +509,11 @@ export class StorageController {
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
+
+        if (err instanceof FileWithNameAlreadyExistsError) {
+          res.status(409).send().end();
+        }
+
         res.status(500).send();
       });
   }
@@ -638,11 +731,28 @@ export default (router: Router, service: any) => {
   const { passportAuth } = passport;
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
   const teamsAdapter = teamsMiddlewareBuilder.build(service);
+  const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file', passportAuth, sharedAdapter, controller.createFile.bind(controller));
-  router.post('/storage/thumbnail', passportAuth, sharedAdapter, controller.createThumbnail.bind(controller));
+  router.post('/storage/file',
+    passportAuth,
+    sharedAdapter,
+    resourceSharingAdapter.UploadFile,
+    controller.createFile.bind(controller)
+  );
+  router.post('/storage/file/exists',
+    passportAuth,
+    sharedAdapter,
+    controller.checkFileExistence.bind(controller)
+  );
+  router.post('/storage/thumbnail',
+    passportAuth,
+    sharedAdapter,
+    resourceSharingAdapter.UploadThumbnail,
+    controller.createThumbnail.bind(controller)
+  );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
+  router.post('/storage/folder/exists', passportAuth, sharedAdapter, controller.checkFolderExistence.bind(controller));
   router.get('/storage/tree', passportAuth, controller.getTree.bind(controller));
   router.get('/storage/tree/:folderId', passportAuth, controller.getTreeSpecific.bind(controller));
   router.delete('/storage/folder/:id', passportAuth, sharedAdapter, controller.deleteFolder.bind(controller));
@@ -656,7 +766,13 @@ export default (router: Router, service: any) => {
     controller.getFolderContents.bind(controller),
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));
-  router.post('/storage/file/:fileid/meta', passportAuth, sharedAdapter, controller.updateFile.bind(controller));
+  router.post(
+    '/storage/file/:fileid/meta',
+    passportAuth,
+    sharedAdapter,
+    resourceSharingAdapter.RenameFile,
+    controller.updateFile.bind(controller)
+  );
   router.get('/storage/recents', passportAuth, sharedAdapter, controller.getRecentFiles.bind(controller));
   router.post('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.acquireFolderLock.bind(controller));
   router.put('/storage/folder/:folderId/lock/:lockId', passportAuth, controller.refreshFolderLock.bind(controller));

@@ -7,6 +7,7 @@ const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
+import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -55,7 +56,7 @@ module.exports = (Model, App) => {
   };
 
   // Create folder entry, for desktop
-  const Create = async (user, folderName, parentFolderId, teamId = null) => {
+  const Create = async (user, folderName, parentFolderId, teamId = null, uuid = null) => {
     if (parentFolderId >= 2147483648) {
       throw Error('Invalid parent folder');
     }
@@ -108,13 +109,13 @@ module.exports = (Model, App) => {
       // TODO: If the folder already exists,
       // return the folder data to make desktop
       // incorporate new info to its database
-      throw Error('Folder with the same name already exists');
+      throw new FolderAlreadyExistsError('Folder with the same name already exists');
     }
 
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
-      uuid: v4(),
+      uuid: uuid || v4(),
       bucket: null,
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,
@@ -135,6 +136,51 @@ module.exports = (Model, App) => {
     });
 
     return folder;
+  };
+
+  const CheckFolderExistence = async (user, folderName, parentFolderId) => {
+    if (parentFolderId >= 2147483648) {
+      throw Error('Invalid parent folder');
+    }
+    const isGuest = user.email !== user.bridgeUser;
+
+    if (isGuest) {
+      const { bridgeUser } = user;
+
+      user = await Model.users.findOne({
+        where: { username: bridgeUser },
+      });
+    }
+
+    const parentFolder = await Model.folder.findOne({
+      id: { [Op.eq]: parentFolderId },
+      user_id: { [Op.eq]: user.id },
+    });
+
+    if (!parentFolder) {
+      throw Error('Parent folder is not yours');
+    }
+
+    if (folderName === '' || invalidName.test(folderName)) {
+      throw Error('Invalid folder name');
+    }
+
+    // Encrypt folder name, TODO: use versioning for encryption
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
+
+    const maybeExistentFolder = await Model.folder.findOne({
+      where: {
+        parentId: { [Op.eq]: parentFolderId },
+        name: { [Op.eq]: cryptoFolderName },
+        deleted: { [Op.eq]: false },
+      },
+    });
+
+    if (maybeExistentFolder) {
+      return { exists: true, folder: maybeExistentFolder };
+    }
+
+    return { exists: false, folder: null };
   };
 
   // Requires stored procedure
@@ -296,7 +342,11 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id, deleted: filterOptions.deleted || false },
+      where: { 
+        folder_id: { [Op.in]: foldersId }, 
+        userId: userObject.id, 
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS'
+      },
       include: [
         {
           model: Model.thumbnail,
@@ -349,8 +399,7 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.in]: foldersId },
         userId: userObject.id,
-        deleted: filterOptions.deleted || false,
-        removed: false,
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS',
       },
     });
 
@@ -448,7 +497,7 @@ module.exports = (Model, App) => {
             })
             .then((isDuplicated) => {
               if (isDuplicated) {
-                return next(Error('Folder with this name exists'));
+                return next(new FolderWithNameAlreadyExistsError('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
               newMeta.plain_name = metadata.itemName;
@@ -806,6 +855,7 @@ module.exports = (Model, App) => {
     Name: 'Folder',
     getById,
     Create,
+    CheckFolderExistence,
     Delete,
     GetChildren,
     GetTree,

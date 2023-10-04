@@ -191,7 +191,7 @@ module.exports = (Model, App) => {
         .then((userData) => {
           if (!userData) {
             logger.error('ERROR user %s not found on database', email);
-            return reject(Error('Wrong email/password'));
+            return reject(Error('Wrong login credentials'));
           }
 
           const user = userData.dataValues;
@@ -501,7 +501,7 @@ module.exports = (Model, App) => {
   const getUsage = async (user) => {
     const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
     const usage = await Model.file.findAll({
-      where: { user_id: targetUser.id, removed: false },
+      where: { user_id: targetUser.id, status: 'EXISTS' },
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true,
     });

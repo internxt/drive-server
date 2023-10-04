@@ -9,6 +9,7 @@ import { HttpError } from 'http-errors';
 import Logger from '../../lib/logger';
 import winston from 'winston';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
+
 interface Services {
   User: any;
   Analytics: any;
@@ -77,7 +78,7 @@ export class AuthController {
     try {
       user = await this.service.User.FindUserByEmail(req.body.email);
     } catch {
-      throw createHttpError(401, 'Wrong email/password');
+      throw createHttpError(401, 'Wrong login credentials');
     }
 
     const encSalt = this.service.Crypt.encryptText(user.hKey.toString());
@@ -118,7 +119,7 @@ export class AuthController {
 
     const userData: any = await this.service.User.FindUserByEmail(req.body.email).catch(() => {
       this.logger.info('[AUTH/LOGIN] Attempted login with a non-existing email: %s', req.body.email);
-      throw createHttpError(401, 'Wrong email/password');
+      throw createHttpError(401, 'Wrong login credentials');
     });
 
     const loginAttemptsLimitReached = userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS;
@@ -131,7 +132,7 @@ export class AuthController {
 
     if (hashedPass !== userData.password.toString()) {
       this.service.User.LoginFailed(req.body.email, true);
-      throw createHttpError(401, 'Wrong email/password');
+      throw createHttpError(401, 'Wrong login credentials');
     }
 
     const twoFactorEnabled = userData.secret_2FA && userData.secret_2FA.length > 0;
@@ -265,6 +266,10 @@ export default (router: Router, service: any, config: Config) => {
       await controller.access(req, res);
     } catch (err) {
       logger.error(`[AUTH/ACCESS]: ERROR for user ${req.body.email}: ${(err as Error).message}`);
+      if (err instanceof HttpError) {
+        return res.status(err.statusCode).send({ error: err.message, code: err.code });
+      }
+
       res.status(500).send({ error: 'Internal Server Error' });
     }
   });
