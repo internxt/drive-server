@@ -19,7 +19,7 @@ import UsersReferralsRoutes from './usersReferrals';
 import NewsletterRoutes from './newsletter';
 import UserRoutes from './user';
 import AnalyticsRoutes from './analytics';
-import { Sign, passportAuth } from '../middleware/passport';
+import { Sign, passportAuth, getTokenExpiredDate } from '../middleware/passport';
 import TeamsRoutes from './teams';
 import logger from '../../lib/logger';
 import * as ReCaptchaV3 from '../../lib/recaptcha';
@@ -57,58 +57,82 @@ export default (router: Router, service: any, App: any): Router => {
   router.get('/user/refresh', passportAuth, async (req, res) => {
     const { publicKey, privateKey, revocateKey } = req.body;
     const userData: any = (req as AuthorizedUser).user;
-
-    const keyExists = await service.KeyServer.keysExists(userData);
-
-    if (!keyExists && publicKey) {
-      await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
-    }
-
-    const keys = await service.KeyServer.getKeys(userData);
-    const userBucket = await service.User.GetUserBucket(userData);
-
     const internxtClient = req.headers['internxt-client'];
-    const token = Sign(
-      userData.email,
-      App.config.get('secrets').JWT,
-      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web',
-    );
 
-    const hasTeams = !!(await service.Team.getTeamByMember(userData.email));
-    const appSumoDetails = await service.AppSumo.GetDetails(userData.id).catch(() => null);
+    if (internxtClient === 'drive-desktop') {
+      let actualToken = String(req.headers['authorization'] || '');
+      if (actualToken.length === 0 || !actualToken.startsWith('Bearer ')) {
+        Logger.error(
+          `[AUTH/USER/REFRESH] ERROR - Invalid Authorization token: ${actualToken}`
+        );
+        return res.status(500).send({ error: 'Internal Server Error' });
+      }
+      actualToken = actualToken.substring(7, actualToken.length); //removes 'Bearer ' from auth header
 
-    const user = {
-      email: userData.email,
-      userId: userData.userId,
-      mnemonic: userData.mnemonic,
-      root_folder_id: userData.root_folder_id,
-      name: userData.name,
-      lastname: userData.lastname,
-      uuid: userData.uuid,
-      credit: userData.credit,
-      createdAt: userData.createdAt,
-      privateKey: keys ? keys.private_key : null,
-      publicKey: keys ? keys.public_key : null,
-      revocateKey: keys ? keys.revocation_key : null,
-      bucket: userBucket,
-      registerCompleted: userData.registerCompleted,
-      teams: hasTeams,
-      username: userData.username,
-      bridgeUser: userData.bridgeUser,
-      sharedWorkspace: userData.sharedWorkspace,
-      appSumoDetails: appSumoDetails || null,
-      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
-        userData.id,
+      const actualTokenExpiredDate = getTokenExpiredDate(actualToken, App.config.get('secrets').JWT);
+      const fiveDays = 5 * (24 * 60 * 60);
+      const minExpirationDate = Math.floor(Date.now() / 1000) + fiveDays;
+      if (minExpirationDate < actualTokenExpiredDate) { //no need to create new token as there's still time left on actualToken's exp
+        res.status(200).json({ token: actualToken });
+      } else {
+        const token = Sign(
+          userData.email,
+          App.config.get('secrets').JWT,
+          true,
+        );
+        res.status(200).json({ token });
+      }
+    } else {
+      const keyExists = await service.KeyServer.keysExists(userData);
+
+      if (!keyExists && publicKey) {
+        await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
+      }
+
+      const keys = await service.KeyServer.getKeys(userData);
+      const userBucket = await service.User.GetUserBucket(userData);
+
+      const token = Sign(
         userData.email,
-        userData.bridgeUser,
-        userData.userId,
-      ),
-      backupsBucket: userData.backupsBucket,
-      avatar: userData.avatar ? await service.User.getSignedAvatarUrl(userData.avatar) : null,
-      emailVerified: userData.emailVerified,
-    };
+        App.config.get('secrets').JWT,
+        internxtClient === 'x-cloud-web' || internxtClient === 'drive-web',
+      );
 
-    res.status(200).json({ user, token });
+      const hasTeams = !!(await service.Team.getTeamByMember(userData.email));
+      const appSumoDetails = await service.AppSumo.GetDetails(userData.id).catch(() => null);
+
+      const user = {
+        email: userData.email,
+        userId: userData.userId,
+        mnemonic: userData.mnemonic,
+        root_folder_id: userData.root_folder_id,
+        name: userData.name,
+        lastname: userData.lastname,
+        uuid: userData.uuid,
+        credit: userData.credit,
+        createdAt: userData.createdAt,
+        privateKey: keys ? keys.private_key : null,
+        publicKey: keys ? keys.public_key : null,
+        revocateKey: keys ? keys.revocation_key : null,
+        bucket: userBucket,
+        registerCompleted: userData.registerCompleted,
+        teams: hasTeams,
+        username: userData.username,
+        bridgeUser: userData.bridgeUser,
+        sharedWorkspace: userData.sharedWorkspace,
+        appSumoDetails: appSumoDetails || null,
+        hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
+          userData.id,
+          userData.email,
+          userData.bridgeUser,
+          userData.userId,
+        ),
+        backupsBucket: userData.backupsBucket,
+        avatar: userData.avatar ? await service.User.getSignedAvatarUrl(userData.avatar) : null,
+        emailVerified: userData.emailVerified,
+      };
+      res.status(200).json({ user, token });
+    }
   });
 
   router.post('/initialize', async (req, res) => {

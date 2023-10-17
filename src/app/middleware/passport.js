@@ -9,7 +9,21 @@ function Sign(data, secret, expires = false) {
   return token;
 }
 
+function getTokenExpiredDate(token, secret) {
+  try {
+    const decoded = jwt.verify(token, secret);
+    if (decoded?.exp){
+      return decoded.exp;
+    } else {
+      return 0;
+    }
+  } catch(err) {
+    return 0;
+  }
+}
+
 module.exports = {
   passportAuth,
   Sign,
+  getTokenExpiredDate,
 };
