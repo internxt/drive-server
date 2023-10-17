@@ -1,5 +1,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
+import { MailTypes } from '../models/mailLimit';
 const sequelize = require('sequelize');
 const bip39 = require('bip39');
 const { request } = require('@internxt/lib');
@@ -190,7 +191,7 @@ module.exports = (Model, App) => {
         .then((userData) => {
           if (!userData) {
             logger.error('ERROR user %s not found on database', email);
-            return reject(Error('Wrong email/password'));
+            return reject(Error('Wrong login credentials'));
           }
 
           const user = userData.dataValues;
@@ -220,9 +221,9 @@ module.exports = (Model, App) => {
     const [mailLimit] = await Model.mailLimit.findOrCreate({
       where: {
         userId: user.id,
-        mailType: 'deactivate_user',
+        mailType: MailTypes.DeactivateUser,
       },
-      default: {
+      defaults: {
         attemptsCount: 0,
         attemptsLimit: 10,
       },
@@ -242,7 +243,7 @@ module.exports = (Model, App) => {
       {
         where: {
           userId: user.id,
-          mailType: 'deactivate_user',
+          mailType: MailTypes.DeactivateUser,
         },
       },
     );
@@ -502,7 +503,7 @@ module.exports = (Model, App) => {
   const getUsage = async (user) => {
     const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
     const usage = await Model.file.findAll({
-      where: { user_id: targetUser.id },
+      where: { user_id: targetUser.id, status: 'EXISTS' },
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true,
     });
@@ -576,7 +577,7 @@ module.exports = (Model, App) => {
     let mailLimit = await Model.mailLimit.findOne({
       where: {
         userId: hostUserId,
-        mailType: 'invite_friend',
+        mailType: MailTypes.InviteFriend,
       },
     });
 
@@ -585,7 +586,7 @@ module.exports = (Model, App) => {
     if (!mailLimit) {
       mailLimit = await Model.mailLimit.create({
         userId: hostUserId,
-        mailType: 'invite_friend',
+        mailType: MailTypes.InviteFriend,
         attemptsCount: 0,
         attemptsLimit: 10,
       });
@@ -621,7 +622,7 @@ module.exports = (Model, App) => {
         {
           where: {
             userId: hostUserId,
-            mailType: 'invite_friend',
+            mailType: MailTypes.InviteFriend,
           },
         },
       );
@@ -716,9 +717,9 @@ module.exports = (Model, App) => {
     const [mailLimit] = await Model.mailLimit.findOrCreate({
       where: {
         userId: user.id,
-        mailType: 'email_verification',
+        mailType: MailTypes.EmailVerification,
       },
-      default: {
+      defaults: {
         attemptsCount: 0,
         attemptsLimit: 10,
       },
@@ -737,7 +738,7 @@ module.exports = (Model, App) => {
       {
         where: {
           userId: user.id,
-          mailType: 'email_verification',
+          mailType: MailTypes.EmailVerification,
           lastMailSent: new Date(),
         },
       },

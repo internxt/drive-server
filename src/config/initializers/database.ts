@@ -4,6 +4,22 @@ import Logger from '../../lib/logger';
 const SqlFormatter = require('sql-formatter');
 const _ = require('lodash');
 
+const maxPoolConnections = 
+  process.env.DATABASE_CONFIG_MAX_POOL_CONNECTIONS && 
+  parseInt(process.env.DATABASE_CONFIG_MAX_POOL_CONNECTIONS) || 20;
+
+const minPoolConnections = 
+  process.env.DATABASE_CONFIG_MIN_POOL_CONNECTIONS && 
+  parseInt(process.env.DATABASE_CONFIG_MIN_POOL_CONNECTIONS) || 0;
+
+const idle = 
+  process.env.DATABASE_CONFIG_MAX_IDLE_CONNECTION_TIME_MS &&
+  parseInt(process.env.DATABASE_CONFIG_MAX_IDLE_CONNECTION_TIME_MS) || 20000;
+
+const acquire = 
+  process.env.DATABASE_CONFIG_MAX_ACQUIRE_CONNECTION_TIME_MS &&
+  parseInt(process.env.DATABASE_CONFIG_MAX_ACQUIRE_CONNECTION_TIME_MS) || 20000;
+
 export default class Database {
   private static instance: Sequelize;
 
@@ -14,16 +30,12 @@ export default class Database {
 
     const logger = Logger.getInstance();
 
-    const defaultSettings = {
-      resetAfterUse: true,
-      operatorsAliases: 0,
+    const defaultSettings: Partial<Options> = {
       pool: {
-        maxConnections: Number.MAX_SAFE_INTEGER,
-        maxIdleTime: 30000,
-        max: 20,
-        min: 0,
-        idle: 20000,
-        acquire: 20000,
+        max: maxPoolConnections,
+        min: minPoolConnections,
+        idle,
+        acquire,
       },
       logging: (content: string) => {
         const parse = content.match(/^(Executing \(.*\):) (.*)$/);
@@ -36,6 +48,8 @@ export default class Database {
       },
     };
 
+    logger.info('Database connection started with the following config:' + JSON.stringify(defaultSettings));
+
     const sequelizeSettings: Options = _.merge(defaultSettings, config.sequelizeConfig);
 
     const instance = new Sequelize(config.name, config.user, config.password, sequelizeSettings);
@@ -46,7 +60,7 @@ export default class Database {
         logger.info('Connected to database');
       })
       .catch((err) => {
-        logger.error('Database connection error: %s', err);
+        logger.error('Database connection error:', err);
       });
 
     Database.instance = instance;

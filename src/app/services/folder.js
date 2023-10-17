@@ -7,6 +7,7 @@ const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { v4 } from 'uuid';
 import { LockNotAvaliableError } from './errors/locks';
+import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -55,7 +56,7 @@ module.exports = (Model, App) => {
   };
 
   // Create folder entry, for desktop
-  const Create = async (user, folderName, parentFolderId, teamId = null) => {
+  const Create = async (user, folderName, parentFolderId, teamId = null, uuid = null) => {
     if (parentFolderId >= 2147483648) {
       throw Error('Invalid parent folder');
     }
@@ -108,7 +109,7 @@ module.exports = (Model, App) => {
       // TODO: If the folder already exists,
       // return the folder data to make desktop
       // incorporate new info to its database
-      throw Error('Folder with the same name already exists');
+      throw new FolderAlreadyExistsError('Folder with the same name already exists');
     }
 
     // Since we upload everything in the same bucket, this line is no longer needed
@@ -116,7 +117,7 @@ module.exports = (Model, App) => {
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
-      uuid: v4(),
+      uuid: uuid || v4(),
       bucket: null,
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,
@@ -124,6 +125,51 @@ module.exports = (Model, App) => {
     });
 
     return folder;
+  };
+
+  const CheckFolderExistence = async (user, folderName, parentFolderId) => {
+    if (parentFolderId >= 2147483648) {
+      throw Error('Invalid parent folder');
+    }
+    const isGuest = user.email !== user.bridgeUser;
+
+    if (isGuest) {
+      const { bridgeUser } = user;
+
+      user = await Model.users.findOne({
+        where: { username: bridgeUser },
+      });
+    }
+
+    const parentFolder = await Model.folder.findOne({
+      id: { [Op.eq]: parentFolderId },
+      user_id: { [Op.eq]: user.id },
+    });
+
+    if (!parentFolder) {
+      throw Error('Parent folder is not yours');
+    }
+
+    if (folderName === '' || invalidName.test(folderName)) {
+      throw Error('Invalid folder name');
+    }
+
+    // Encrypt folder name, TODO: use versioning for encryption
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
+
+    const maybeExistentFolder = await Model.folder.findOne({
+      where: {
+        parentId: { [Op.eq]: parentFolderId },
+        name: { [Op.eq]: cryptoFolderName },
+        deleted: { [Op.eq]: false },
+      },
+    });
+
+    if (maybeExistentFolder) {
+      return { exists: true, folder: maybeExistentFolder };
+    }
+
+    return { exists: false, folder: null };
   };
 
   // Requires stored procedure
@@ -146,18 +192,18 @@ module.exports = (Model, App) => {
     });
 
     if (!folder) {
-      throw new Error('Folder does not exists');
+      throw new Error('Folder does not exist');
     }
 
     if (folder.id === user.root_folder_id) {
       throw new Error('Cannot delete root folder');
     }
 
-    // Destroy folder
-    const removed = await folder.destroy();
-
-    DeleteOrphanFolders(user.id).catch((err) => {
-      logger.error('ERROR deleting orphan folders from user %s, reason: %s', user.email, err.message);
+    const removed = await folder.update({
+      deleted: true,
+      deletedAt: new Date(),
+      removed: true,
+      removedAt: new Date(),
     });
 
     return removed;
@@ -280,7 +326,11 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { folder_id: { [Op.in]: foldersId }, userId: userObject.id, deleted: filterOptions.deleted || false },
+      where: { 
+        folder_id: { [Op.in]: foldersId }, 
+        userId: userObject.id, 
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS'
+      },
       include: [
         {
           model: Model.thumbnail,
@@ -321,8 +371,8 @@ module.exports = (Model, App) => {
     }
 
     const folders = await Model.folder.findAll({
-      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false },
-      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at'],
+      where: { user_id: { [Op.eq]: userObject.id }, deleted: filterOptions.deleted || false, removed: false },
+      attributes: ['id', 'parent_id', 'name', 'bucket', 'updated_at', 'created_at', 'plain_name'],
       order: [['id', 'DESC']],
       limit: 5000,
       offset: index,
@@ -333,7 +383,7 @@ module.exports = (Model, App) => {
       where: {
         folder_id: { [Op.in]: foldersId },
         userId: userObject.id,
-        deleted: filterOptions.deleted || false
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS',
       },
     });
 
@@ -431,7 +481,7 @@ module.exports = (Model, App) => {
             })
             .then((isDuplicated) => {
               if (isDuplicated) {
-                return next(Error('Folder with this name exists'));
+                return next(new FolderWithNameAlreadyExistsError('Folder with this name exists'));
               }
               newMeta.name = cryptoFolderName;
               newMeta.plain_name = metadata.itemName;
@@ -767,6 +817,7 @@ module.exports = (Model, App) => {
     Name: 'Folder',
     getById,
     Create,
+    CheckFolderExistence,
     Delete,
     GetChildren,
     GetTree,

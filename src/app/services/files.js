@@ -3,6 +3,7 @@ const async = require('async');
 const createHttpError = require('http-errors');
 const AesUtil = require('../../lib/AesUtil');
 const { v4 } = require('uuid');
+const { FileWithNameAlreadyExistsError, FileAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
 
 // Filenames that contain "/", "\" or only spaces are invalid
 const invalidName = /[/\\]|^\s*$/;
@@ -12,61 +13,109 @@ const { Op } = sequelize;
 module.exports = (Model, App) => {
   const log = App.logger;
 
+  const CheckFileExistence = async (user, file) => {
+    const maybeAlreadyExistentFile = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: file.name },
+        folder_id: { [Op.eq]: file.folderId },
+        type: { [Op.eq]: file.type },
+        userId: { [Op.eq]: user.id },
+        status: { [Op.eq]: 'EXISTS' },
+      },
+    });
+
+    const fileExists = !!maybeAlreadyExistentFile;
+
+    if (!fileExists) {
+      return { exists: false, file: null };
+    }
+
+    const fileInfo = {
+      name: file.name,
+      plainName: file.plain_name,
+      type: file.type,
+      size: file.size,
+      folderId: file.folder_id,
+      fileId: file.fileId,
+      bucket: file.bucket,
+      userId: user.id,
+      uuid: v4(),
+      modificationTime: file.modificationTime || new Date(),
+    };
+
+    try {
+      fileInfo.plainName = fileInfo.plainName ?? AesUtil.decrypt(file.name, file.fileId);
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
+
+    if (file.date) {
+      fileInfo.createdAt = file.date;
+    }
+
+    return { exists: true, file: fileInfo };
+  };
+
   const CreateFile = async (user, file) => {
-    return Model.folder
-      .findOne({
-        where: {
-          id: { [Op.eq]: file.folder_id },
-          user_id: { [Op.eq]: user.id },
-        },
-      })
-      .then(async (folder) => {
-        if (!folder) {
-          throw Error('Folder not found / Is not your folder');
-        }
+    const folder = await Model.folder.findOne({
+      where: {
+        id: { [Op.eq]: file.folder_id },
+      },
+    });
 
-        const fileExists = await Model.file.findOne({
-          where: {
-            name: { [Op.eq]: file.name },
-            folder_id: { [Op.eq]: folder.id },
-            type: { [Op.eq]: file.type },
-            userId: { [Op.eq]: user.id },
-            deleted: { [Op.eq]: false },
-          },
-        });
+    if (!folder) {
+      throw new Error('Folder not found');
+    }
 
-        if (fileExists) {
-          throw Error('File entry already exists');
-        }
+    const isTheFolderOwner = user.id === folder.user_id;
 
-        const fileInfo = {
-          name: file.name,
-          plain_name: file.plain_name,
-          type: file.type,
-          size: file.size,
-          folder_id: folder.id,
-          fileId: file.fileId,
-          bucket: file.bucket,
-          encrypt_version: file.encrypt_version,
-          userId: user.id,
-          uuid: v4(),
-          folderUuid: folder.uuid,
-          modificationTime: file.modificationTime || new Date(),
-        };
+    if (!isTheFolderOwner) {
+      throw new Error('Folder is not yours');
+    }
 
-        try {
-          AesUtil.decrypt(file.name, file.fileId);
-          fileInfo.encrypt_version = '03-aes';
-        } catch {
-          // eslint-disable-next-line no-empty
-        }
+    const maybeAlreadyExistentFile = await Model.file.findOne({
+      where: {
+        name: { [Op.eq]: file.name },
+        folder_id: { [Op.eq]: folder.id },
+        type: { [Op.eq]: file.type },
+        userId: { [Op.eq]: user.id },
+        status: { [Op.eq]: 'EXISTS' },
+      },
+    });
 
-        if (file.date) {
-          fileInfo.createdAt = file.date;
-        }
+    const fileAlreadyExists = !!maybeAlreadyExistentFile;
 
-        return Model.file.create(fileInfo);
-      });
+    if (fileAlreadyExists) {
+      throw new FileAlreadyExistsError('File already exists');
+    }
+
+    const fileInfo = {
+      name: file.name,
+      plain_name: file.plain_name,
+      type: file.type,
+      size: file.size,
+      folder_id: folder.id,
+      fileId: file.fileId,
+      bucket: file.bucket,
+      encrypt_version: file.encrypt_version,
+      userId: user.id,
+      uuid: v4(),
+      folderUuid: folder.uuid,
+      modificationTime: file.modificationTime || new Date(),
+    };
+
+    try {
+      AesUtil.decrypt(file.name, file.fileId);
+      fileInfo.encrypt_version = '03-aes';
+    } catch {
+      // eslint-disable-next-line no-empty
+    }
+
+    if (file.date) {
+      fileInfo.createdAt = file.date;
+    }
+
+    return Model.file.create(fileInfo);
   };
 
   const Delete = (user, bucket, fileId) =>
@@ -200,12 +249,12 @@ module.exports = (Model, App) => {
             folder_id: { [Op.eq]: file.folder_id },
             name: { [Op.eq]: cryptoFileName },
             type: { [Op.eq]: file.type },
-            deleted: { [Op.eq]: false },
+            status: { [Op.eq]: 'EXISTS' },
           },
         })
           .then((duplicateFile) => {
             if (duplicateFile) {
-              return next(Error('File with this name exists'));
+              return next(new FileWithNameAlreadyExistsError('File with this name exists'));
             }
             newMeta.name = cryptoFileName;
             newMeta.plain_name = metadata.itemName;
@@ -217,9 +266,7 @@ module.exports = (Model, App) => {
         if (newMeta.name !== file.name) {
           file
             .update(newMeta)
-            .then(async (update) => {
-              await App.services.Inxt.renameFile(user.email, user.userId, mnemonic, bucketId, fileId, relativePath);
-
+            .then((update) => {
               next(null, update);
             })
             .catch(next);
@@ -252,7 +299,7 @@ module.exports = (Model, App) => {
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
-        deleted: { [Op.eq]: false },
+        status: { [Op.eq]: 'EXISTS' },
       },
     });
 
@@ -266,8 +313,7 @@ module.exports = (Model, App) => {
       folder_id: parseInt(destination, 10),
       folderUuid: folderTarget.uuid,
       name: destinationName,
-      deleted: false,
-      deletedAt: null,
+      status: 'EXISTS',
     });
 
     // we don't want ecrypted name on front
@@ -365,7 +411,7 @@ module.exports = (Model, App) => {
           bucket: {
             [Op.ne]: user.backupsBucket
           },
-          deleted: { [Op.eq]: false }
+          status: { [Op.eq]: 'EXISTS' }
         },
         include: [
           {
@@ -402,6 +448,7 @@ module.exports = (Model, App) => {
   return {
     Name: 'Files',
     CreateFile,
+    CheckFileExistence,
     Delete,
     DeleteFile,
     UpdateMetadata,
