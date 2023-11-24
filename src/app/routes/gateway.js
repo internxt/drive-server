@@ -81,7 +81,7 @@ module.exports = (Router, Service) => {
         return res.status(200).send({ error: null, user });
       })
       .catch((err) => {
-        Logger.error('[GATEWAY]: Error updating storage to %s for user %s: %s', maxSpaceBytes, email, err.message);
+        Logger.error(`[GATEWAY]: Error updating storage to ${maxSpaceBytes} for user ${email}: ${err.message}`);
         return res.status(304).send();
       });
   });
