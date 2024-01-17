@@ -64,18 +64,17 @@ export default (router: Router, service: any, App: any): Router => {
       await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
     }
 
-    const keys = await service.KeyServer.getKeys(userData);
-    const userBucket = await service.User.GetUserBucket(userData);
+    const [keys, userBucket] = await Promise.all([
+      service.KeyServer.getKeys(userData),
+      service.User.GetUserBucket(userData),
+    ]);
 
     const internxtClient = req.headers['internxt-client'];
     const token = Sign(
       userData.email,
       App.config.get('secrets').JWT,
-      internxtClient === 'x-cloud-web' || internxtClient === 'drive-web',
+      internxtClient === 'drive-web',
     );
-
-    const hasTeams = !!(await service.Team.getTeamByMember(userData.email));
-    const appSumoDetails = await service.AppSumo.GetDetails(userData.id).catch(() => null);
 
     const user = {
       email: userData.email,
@@ -92,11 +91,11 @@ export default (router: Router, service: any, App: any): Router => {
       revocateKey: keys ? keys.revocation_key : null,
       bucket: userBucket,
       registerCompleted: userData.registerCompleted,
-      teams: hasTeams,
+      teams: false,
       username: userData.username,
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
-      appSumoDetails: appSumoDetails || null,
+      appSumoDetails: null,
       hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
         userData.id,
         userData.email,
