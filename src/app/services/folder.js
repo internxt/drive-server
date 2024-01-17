@@ -94,13 +94,10 @@ module.exports = (Model, App) => {
       throw Error('Invalid folder name');
     }
 
-    // Encrypt folder name, TODO: use versioning for encryption
-    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
-
     const exists = await Model.folder.findOne({
       where: {
         parentId: { [Op.eq]: parentFolderId },
-        name: { [Op.eq]: cryptoFolderName },
+        plain_name: { [Op.eq]: folderName },
         deleted: { [Op.eq]: false },
       },
     });
@@ -112,8 +109,7 @@ module.exports = (Model, App) => {
       throw new FolderAlreadyExistsError('Folder with the same name already exists');
     }
 
-    // Since we upload everything in the same bucket, this line is no longer needed
-    // const bucket = await App.services.Inxt.CreateBucket(user.email, user.userId, user.mnemonic, cryptoFolderName)
+    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
     const folder = await user.createFolder({
       name: cryptoFolderName,
       plain_name: folderName,
@@ -142,8 +138,10 @@ module.exports = (Model, App) => {
     }
 
     const parentFolder = await Model.folder.findOne({
-      id: { [Op.eq]: parentFolderId },
-      user_id: { [Op.eq]: user.id },
+      where: {
+        id: { [Op.eq]: parentFolderId },
+        user_id: { [Op.eq]: user.id },
+      }
     });
 
     if (!parentFolder) {
@@ -154,22 +152,16 @@ module.exports = (Model, App) => {
       throw Error('Invalid folder name');
     }
 
-    // Encrypt folder name, TODO: use versioning for encryption
-    const cryptoFolderName = App.services.Crypt.encryptName(folderName, parentFolderId);
-
-    const maybeExistentFolder = await Model.folder.findOne({
+    const folder = await Model.folder.findOne({
       where: {
         parentId: { [Op.eq]: parentFolderId },
-        name: { [Op.eq]: cryptoFolderName },
+        plain_name: { [Op.eq]: folderName },
         deleted: { [Op.eq]: false },
       },
     });
+    const folderExists = !!folder;
 
-    if (maybeExistentFolder) {
-      return { exists: true, folder: maybeExistentFolder };
-    }
-
-    return { exists: false, folder: null };
+    return { exists: folderExists, folder };
   };
 
   // Requires stored procedure
