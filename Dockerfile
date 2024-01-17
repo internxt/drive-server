@@ -1,4 +1,4 @@
-FROM node:14
+FROM node:16
 LABEL author="internxt"
 
 WORKDIR /drive-server
@@ -15,4 +15,4 @@ RUN yarn && yarn build && yarn --production && yarn cache clean
 # RUN mkdir -p /mnt/prometheusvol{1,2}
 
 # Start server
-CMD node /drive-server/build/app.js
+CMD node -r newrelic /drive-server/build/app.js
