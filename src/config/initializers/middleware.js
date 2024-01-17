@@ -11,6 +11,7 @@ const util = require('util');
 const Logger = require('../../lib/logger').default;
 const logger = Logger.getInstance();
 const apiMetrics = require('prometheus-api-metrics');
+const { isProduction } = require('../environments/env');
 
 module.exports = (App, Config) => {
   App.express.use(helmet());
@@ -193,7 +194,10 @@ module.exports = (App, Config) => {
     const clientVersion = `[${req.headers['internxt-client']} ${req.headers['internxt-version']}]`.trim();
     const clientAuth = req.headers.authorization && user;
 
-    App.logger.info(`[${req.method}] ${req.originalUrl} ${clientAuth && ` [w/AUTH ${clientAuth}]`} ${clientVersion}`);
+    if (!isProduction()) {
+      App.logger.info(`[${req.method}] ${req.originalUrl} ${clientAuth && ` [w/AUTH ${clientAuth}]`} ${clientVersion}`);
+    }
+
     next();
   });
 };
