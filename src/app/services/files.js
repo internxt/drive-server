@@ -163,9 +163,9 @@ module.exports = (Model, App) => {
     try {
       await App.services.Inxt.DeleteFile(user, file.bucket, file.fileId);
     } catch (err) {
-      const resourceNotFoundPattern = /Resource not found/;
+      const resourceNotFoundError = err.response.status === 404;
 
-      if (!resourceNotFoundPattern.exec(err.message)) {
+      if (!resourceNotFoundError) {
         throw err;
       }
     }
