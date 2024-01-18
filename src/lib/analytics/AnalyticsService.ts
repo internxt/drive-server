@@ -141,7 +141,7 @@ export async function trackUploadCompleted(req: express.Request & ReqUser) {
     userId: user.uuid,
     event: TrackName.UploadCompleted,
     properties: {
-      extension: file.type.toLowerCase(),
+      extension: file.type ? file.type.toLowerCase() : '',
       size: file.size,
     },
     context,
