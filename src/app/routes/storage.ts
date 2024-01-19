@@ -11,7 +11,7 @@ import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
-import { ConnectionTimedOutError } from 'sequelize';
+import { ConnectionTimedOutError, UniqueConstraintError } from 'sequelize';
 import { 
   FileAlreadyExistsError, 
   FileWithNameAlreadyExistsError 
@@ -90,8 +90,8 @@ export class StorageController {
           }),
       );
     } catch (err) {
-      if (err instanceof FileAlreadyExistsError) {
-        return res.status(409).send({ error: err.message });
+      if (err instanceof FileAlreadyExistsError || err instanceof UniqueConstraintError) {
+        return res.status(409).send({ error: 'File already exists' });
       }
       this.logger.error(
         `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
