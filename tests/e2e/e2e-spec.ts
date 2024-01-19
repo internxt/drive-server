@@ -897,7 +897,7 @@ describe('E2E TEST', () => {
           .post('/api/access')
           .send({ ...TEST_USER_LOGIN_BODY });
 
-        expect(status).toBe(HttpStatus.UNAUTHORIZED);
+        expect(status).toBe(HttpStatus.FORBIDDEN);
         expect(body.error).toBe('Your account has been blocked for security reasons. Please reach out to us');
       });
     });

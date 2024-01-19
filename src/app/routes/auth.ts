@@ -125,7 +125,7 @@ export class AuthController {
     const loginAttemptsLimitReached = userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS;
 
     if (loginAttemptsLimitReached) {
-      throw createHttpError(401, 'Your account has been blocked for security reasons. Please reach out to us');
+      throw createHttpError(403, 'Your account has been blocked for security reasons. Please reach out to us');
     }
 
     const hashedPass = this.service.Crypt.decryptText(req.body.password);
