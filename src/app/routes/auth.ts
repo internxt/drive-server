@@ -169,7 +169,6 @@ export class AuthController {
 
     const keys = await this.service.KeyServer.getKeys(userData);
     const hasTeams = !!(await this.service.Team.getTeamByMember(req.body.email));
-    const appSumoDetails = await this.service.AppSumo.GetDetails(userData.id).catch(() => null);
 
     const user = {
       email: req.body.email,
@@ -190,7 +189,7 @@ export class AuthController {
       username: userData.username,
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
-      appSumoDetails: appSumoDetails || null,
+      appSumoDetails: null,
       hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
         userData.id,
         userData.email,
