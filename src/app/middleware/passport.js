@@ -10,8 +10,15 @@ function Sign(data, secret, expires = false) {
   return token;
 }
 
-function SignWithOlderIAT(data, secret) {
-  return jwt.sign({ email: data, iat: getOlderIAT() }, secret, { expiresIn: '14d' });
+function SignWithFutureIAT(data, secret) {
+  return jwt.sign({ email: data, iat: getFutureIAT() }, secret, { expiresIn: '14d' });
+}
+
+function SignNewTokenWithFutureIAT(data, secret, expires = false) {
+  const futureIat = getFutureIAT();
+  return expires
+    ? jwt.sign(getNewTokenPayload(data, futureIat), secret, { expiresIn: '14d' })
+    : jwt.sign(getNewTokenPayload(data, futureIat), secret);
 }
 
 function SignNewToken(data, secret, expires = false) {
@@ -21,7 +28,7 @@ function SignNewToken(data, secret, expires = false) {
   return token;
 }
 
-function getNewTokenPayload(userData) {
+function getNewTokenPayload(userData, customIat) {
   return {
     payload: {
       uuid: userData.uuid,
@@ -34,8 +41,8 @@ function getNewTokenPayload(userData) {
         user: userData.bridgeUser,
         pass: userData.userId,
       },
-      iat: getDefaultIAT(),
     },
+    iat: customIat ?? getDefaultIAT(),
   };
 }
 
@@ -43,7 +50,7 @@ function getDefaultIAT() {
   return Math.floor(Date.now() / 1000);
 }
 
-function getOlderIAT() {
+function getFutureIAT() {
   return Math.floor(Date.now() / 1000) + 60;
 }
 
@@ -51,5 +58,6 @@ module.exports = {
   passportAuth,
   Sign,
   SignNewToken,
-  SignWithOlderIAT,
+  SignWithFutureIAT,
+  SignNewTokenWithFutureIAT,
 };
