@@ -1,6 +1,6 @@
 const openpgp = require('openpgp');
 const createHttpError = require('http-errors');
-const { passportAuth, Sign, SignNewToken, SignWithOlderIAT } = require('../middleware/passport');
+const { passportAuth, Sign, SignWithFutureIAT, SignNewTokenWithFutureIAT } = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
 const AnalyticsService = require('../../lib/analytics/AnalyticsService');
 const { default: uploadAvatar } = require('../middleware/upload-avatar');
@@ -16,8 +16,8 @@ module.exports = (Router, Service, App) => {
 
     Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey)
       .then(() => {
-        const token = SignWithOlderIAT(req.user.email, App.config.get('secrets').JWT);
-        const newToken = SignNewToken(req.user, App.config.get('secrets').JWT);
+        const token = SignWithFutureIAT(req.user.email, App.config.get('secrets').JWT);
+        const newToken = SignNewTokenWithFutureIAT(req.user, App.config.get('secrets').JWT);
         res.status(200).send({ token, newToken });
       })
       .catch((err) => {
@@ -158,10 +158,10 @@ module.exports = (Router, Service, App) => {
       res.status(200).send({ token, user });
     } catch (err) {
       logger.error(
-        'Update user error %s: %s. STACK %s. BODY %s', 
-        req.user.email, 
-        err.message, 
-        err.stack || 'NO STACK', 
+        'Update user error %s: %s. STACK %s. BODY %s',
+        req.user.email,
+        err.message,
+        err.stack || 'NO STACK',
         req.body
       );
       res.status(500).send({ error: 'Internal Server error' });
