@@ -307,6 +307,13 @@ module.exports = (Model, App) => {
 
       await user.destroy();
 
+      await Model.folder.update({ deleted: true, removed: true }, {
+        where: {
+          user_id: user.id,
+          parent_id: null,
+        }
+      });
+
       logger.info('User %s confirmed deactivation', userEmail);
     } catch (err) {
       if (user) {
