@@ -165,7 +165,17 @@ module.exports = (App, Config) => {
       // const email = payload.email
 
       App.services.User.FindUserObjByEmail(email)
-        .then((user) => done(null, user))
+        .then((user) => {
+          const userWithoutLastPasswordChangedAt = user.lastPasswordChangedAt === null;
+          const userWithLastPasswordChangedAtLowerThanToken =
+            user.lastPasswordChangedAt &&
+            Math.floor(new Date(user.lastPasswordChangedAt).getTime()) / 1000 < payload.iat;
+          if (userWithoutLastPasswordChangedAt || userWithLastPasswordChangedAtLowerThanToken) {
+            done(null, user);
+          } else {
+            done(null);
+          }
+        })
         .catch((err) => {
           done(err);
         });

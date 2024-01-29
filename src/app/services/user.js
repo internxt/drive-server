@@ -357,6 +357,7 @@ module.exports = (Model, App) => {
         password: newPassword,
         mnemonic,
         hKey: newSalt,
+        lastPasswordChangedAt: new Date()
       },
       {
         where: { username: { [Op.eq]: user.email } },
@@ -371,6 +372,7 @@ module.exports = (Model, App) => {
     user.hKey = newSalt;
     user.mnemonic = oldMnemonic;
     user.password = newPassword;
+    user.lastPasswordChangedAt = new Date();
     await user.save();
 
     const keys = await user.getKeyserver();

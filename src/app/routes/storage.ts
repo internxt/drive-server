@@ -16,7 +16,10 @@ import {
   FileAlreadyExistsError, 
   FileWithNameAlreadyExistsError 
 } from '../services/errors/FileWithNameAlreadyExistsError';
-import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from '../services/errors/FolderWithNameAlreadyExistsError';
+import { 
+  FolderAlreadyExistsError,
+  FolderWithNameAlreadyExistsError
+} from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
 import {validate } from 'uuid';
 
@@ -94,7 +97,9 @@ export class StorageController {
         return res.status(409).send({ error: 'File already exists' });
       }
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${
+          JSON.stringify(file)
+        }, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }

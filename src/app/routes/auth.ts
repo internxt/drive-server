@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import createHttpError from 'http-errors';
 import speakeasy from 'speakeasy';
 import { UserAttributes } from '../models/user';
-import { passportAuth, Sign } from '../middleware/passport';
+import { passportAuth, Sign, SignNewToken } from '../middleware/passport';
 import Config from '../../config/config';
 import { AuthorizedUser } from './types';
 import { HttpError } from 'http-errors';
@@ -155,7 +155,7 @@ export class AuthController {
     this.service.User.UpdateAccountActivity(req.body.email);
     const userBucket = await this.service.User.GetUserBucket(userData);
 
-    const newToken = Sign(this.getNewTokenPayload(userData), this.config.get('secrets').JWT);
+    const newToken = SignNewToken(userData, this.config.get('secrets').JWT);
     const keyExists = await this.service.KeyServer.keysExists(userData);
 
     if (!keyExists && req.body.publicKey) {
@@ -199,6 +199,7 @@ export class AuthController {
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,
+      lastPasswordChangedAt: userData.lastPasswordChangedAt,
     };
 
     const userTeam = null;
@@ -215,26 +216,9 @@ export class AuthController {
 
   async getNewToken(req: Request, res: Response) {
     const authRequest = req as Request & { user: UserAttributes };
-    const newToken = Sign(this.getNewTokenPayload(authRequest.user), this.config.get('secrets').JWT);
+    const newToken = SignNewToken(authRequest.user, this.config.get('secrets').JWT);
 
     return res.status(200).json({ newToken });
-  }
-
-  private getNewTokenPayload(userData: any) {
-    return {
-      payload: {
-        uuid: userData.uuid,
-        email: userData.email,
-        name: userData.name,
-        lastname: userData.lastname,
-        username: userData.username,
-        sharedWorkspace: true,
-        networkCredentials: {
-          user: userData.bridgeUser,
-          pass: userData.userId,
-        },
-      },
-    };
   }
 
   async areCredentialsCorrect(req: Request, res: Response) {

@@ -105,6 +105,7 @@ export default (router: Router, service: any, App: any): Router => {
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,
+      lastPasswordChangedAt: userData.lastPasswordChangedAt,
     };
 
     res.status(200).json({ user, token });
