@@ -6,7 +6,7 @@ const passportAuth = passport.authenticate('jwt', { session: false });
 function Sign(data, secret, expires = false) {
   const token = expires ?
     jwt.sign({ email: data, iat: getDefaultIAT() }, secret, { expiresIn: '14d' }) :
-    jwt.sign(Object.assign(data, { iat: getDefaultIAT() }), secret);
+    jwt.sign({ email: data, iat: getDefaultIAT() }, secret);
   return token;
 }
 

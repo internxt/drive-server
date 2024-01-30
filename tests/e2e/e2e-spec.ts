@@ -98,7 +98,7 @@ describe('E2E TEST', () => {
 
         userId = user.dataValues.id;
         rootFolderId = user.dataValues.root_folder_id;
-        token = Sign({ email }, server.config.get('secrets').JWT);
+        token = Sign(email, server.config.get('secrets').JWT);
       } catch (err: any) {
         // eslint-disable-next-line no-console
         console.error('Error setting up storage e2e tests: %s', err.message);
@@ -943,7 +943,7 @@ describe('E2E TEST', () => {
 
         userId = user.dataValues.id;
         rootFolderId = user.dataValues.root_folder_id;
-        token = Sign({ email }, server.config.get('secrets').JWT);
+        token = Sign(email, server.config.get('secrets').JWT);
       } catch (err: any) {
         // eslint-disable-next-line no-console
         console.error('Error setting up storage e2e tests: %s', err.message);
