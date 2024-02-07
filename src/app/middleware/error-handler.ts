@@ -23,21 +23,19 @@ export default function errorHandler(
   const { path, user } = req;
   const handlerPath = '/' + path.split('/').slice(2).join('/');
 
-  if (err.status === 401) {
-    return;
-  }
-
-  if (user) {
-    req.logger?.error(
-      '%s ERROR for user %s: %s Stack: %s. Payload %s', 
-      handlerPath, 
-      user.email, 
-      err.message, 
-      err.stack, 
-      req.body ? JSON.stringify(req.body) : 'NO PAYLOAD'
-    );
-  } else {
-    req.logger?.error('%s ERROR %s Stack: %s', handlerPath, err.message, err.stack);
+  if (err.status !== 401) {
+    if (user) {
+      req.logger?.error(
+        '%s ERROR for user %s: %s Stack: %s. Payload %s', 
+        handlerPath, 
+        user.email, 
+        err.message, 
+        err.stack, 
+        req.body ? JSON.stringify(req.body) : 'NO PAYLOAD'
+      );
+    } else {
+      req.logger?.error('%s ERROR %s Stack: %s', handlerPath, err.message, err.stack);
+    }
   }
 
   if (res.headersSent) {
