@@ -190,7 +190,6 @@ module.exports = (Model, App) => {
         .findOne({ where: { username: { [Op.eq]: email } } })
         .then((userData) => {
           if (!userData) {
-            logger.error('ERROR user %s not found on database', email);
             return reject(Error('Wrong login credentials'));
           }
 
