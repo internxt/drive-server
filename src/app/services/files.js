@@ -244,14 +244,15 @@ module.exports = (Model, App) => {
           : '';
 
         // Check if there is a file with the same name
-        Model.file.findOne({
-          where: {
-            folder_id: { [Op.eq]: file.folder_id },
-            name: { [Op.eq]: cryptoFileName },
-            type: { [Op.eq]: file.type },
-            status: { [Op.eq]: 'EXISTS' },
-          },
-        })
+        Model.file
+          .findOne({
+            where: {
+              folder_id: { [Op.eq]: file.folder_id },
+              name: { [Op.eq]: cryptoFileName },
+              type: { [Op.eq]: file.type },
+              status: { [Op.eq]: 'EXISTS' },
+            },
+          })
           .then((duplicateFile) => {
             if (duplicateFile) {
               return next(new FileWithNameAlreadyExistsError('File with this name exists'));
@@ -278,7 +279,10 @@ module.exports = (Model, App) => {
   };
 
   const MoveFile = async (user, fileId, destination) => {
-    const file = await Model.file.findOne({ where: { fileId: { [Op.eq]: fileId } }, userId: user.id });
+    const file = await Model.file.findOne({
+      where: { fileId: { [Op.eq]: fileId }, status: { [Op.not]: 'DELETED' } },
+      userId: user.id,
+    });
 
     if (!file) {
       throw Error('File not found');
@@ -330,19 +334,20 @@ module.exports = (Model, App) => {
 
   const isFileOfTeamFolder = (fileId) =>
     new Promise((resolve, reject) => {
-      Model.file.findOne({
-        where: {
-          file_id: { [Op.eq]: fileId },
-        },
-        include: [
-          {
-            model: Model.folder,
-            where: {
-              id_team: { [Op.ne]: null },
-            },
+      Model.file
+        .findOne({
+          where: {
+            file_id: { [Op.eq]: fileId },
           },
-        ],
-      })
+          include: [
+            {
+              model: Model.folder,
+              where: {
+                id_team: { [Op.ne]: null },
+              },
+            },
+          ],
+        })
         .then((file) => {
           if (!file) {
             throw Error('File not found on database, please refresh');
@@ -409,9 +414,9 @@ module.exports = (Model, App) => {
         where: {
           userId: user.id,
           bucket: {
-            [Op.ne]: user.backupsBucket
+            [Op.ne]: user.backupsBucket,
           },
-          status: { [Op.eq]: 'EXISTS' }
+          status: { [Op.eq]: 'EXISTS' },
         },
         include: [
           {
