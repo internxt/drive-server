@@ -1,4 +1,4 @@
-const { PLAN_FREE_TIER_ID } = require('../constants');
+const { INDIVIDUAL_FREE_TIER_PLAN_ID } = require('../constants');
 const basicAuthBuilder = require('../middleware/basic-auth');
 const logger = require('../../lib/logger').default;
 
@@ -66,14 +66,14 @@ module.exports = (Router, Service) => {
   });
 
   Router.put('/gateway/user/update/tier', basicAuth, async (req, res) => {
-    const { planId, assignFreeTier } = req.body;
+    const { planId } = req.body;
     const uuid = req.body.uuid;
 
     if (!uuid) {
       return res.status(400).send({ error: 'Users uuid is required' });
     }
 
-    if (!planId && !assignFreeTier) {
+    if (!planId) {
       return res.status(400).send({ error: 'You need to asign a tier to the user' });
     }
 
@@ -83,7 +83,9 @@ module.exports = (Router, Service) => {
       return res.status(500).send();
     }
 
-    const paidPlanTier = await Service.FeatureLimits.getTierByPlanId(assignFreeTier ? PLAN_FREE_TIER_ID : planId);
+    const paidPlanTier = await Service.FeatureLimits.getTierByPlanId(
+      planId === 'free_individual_tier' ? INDIVIDUAL_FREE_TIER_PLAN_ID : planId,
+    );
     if (!paidPlanTier) {
       Logger.error(`[GATEWAY]: Plan id not found id: ${planId} email: ${user.email}`);
       return res.status(500).send({ error: 'Plan was not found' });
