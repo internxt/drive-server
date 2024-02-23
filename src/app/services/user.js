@@ -715,6 +715,10 @@ module.exports = (Model, App) => {
     return Model.users.update({ avatar: null }, { where: { id: user.id } });
   };
 
+  const updateTier = async (user, tierId) => {
+    return Model.users.update({ tierId }, { where: { uuid: user.uuid } });
+  };
+
   const getFriendInvites = async (id) => {
     return Model.FriendInvitation.findAll({ where: { host: id } });
   };
@@ -816,5 +820,6 @@ module.exports = (Model, App) => {
     getFriendInvites,
     sendEmailVerification,
     verifyEmail,
+    updateTier,
   };
 };

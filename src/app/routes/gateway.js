@@ -1,3 +1,4 @@
+const { PLAN_FREE_TIER_ID } = require('../constants');
 const basicAuthBuilder = require('../middleware/basic-auth');
 const logger = require('../../lib/logger').default;
 
@@ -62,6 +63,33 @@ module.exports = (Router, Service) => {
         Logger.error(`Error updating user storage ${email}. Storage requested: ${maxSpaceBytes} `);
         return res.status(500).send();
       });
+  });
+
+  Router.put('/gateway/user/update/tier', basicAuth, async (req, res) => {
+    const { planId, assignFreeTier } = req.body;
+    const email = req.body.email.toLowerCase();
+
+    if (!planId || assignFreeTier) {
+      return res.status(400).send({ error: 'You need to asign a tier to the user' });
+    }
+
+    let user = await Service.User.FindUserByEmail(email).catch(() => null);
+    if (!user) {
+      try {
+        user = await Service.User.CreateStaggingUser(email);
+      } catch (err) {
+        Logger.error('[Gateway]: Failed to get user :%s', email, err.message);
+        return res.status(500).send({ error: err.message });
+      }
+    }
+
+    const paidPlanTier = await Service.FeatureLimits.getTierByPlanId(assignFreeTier ? PLAN_FREE_TIER_ID : planId);
+    if (!paidPlanTier) {
+      Logger.error(`[GATEWAY]: Plan id not found id: ${planId} email: ${email}`);
+      return res.status(500).send({ error: null, user });
+    }
+    await Service.User.updateTier(user, paidPlanTier.tierId);
+    return res.status(200).send({ error: null, user: { ...user, tierId: paidPlanTier.tierId } });
   });
 
   Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
