@@ -67,29 +67,29 @@ module.exports = (Router, Service) => {
 
   Router.put('/gateway/user/update/tier', basicAuth, async (req, res) => {
     const { planId, assignFreeTier } = req.body;
-    const email = req.body.email.toLowerCase();
+    const uuid = req.body.uuid;
 
-    if (!planId || assignFreeTier) {
+    if (!uuid) {
+      return res.status(400).send({ error: 'Users uuid is required' });
+    }
+
+    if (!planId && !assignFreeTier) {
       return res.status(400).send({ error: 'You need to asign a tier to the user' });
     }
 
-    let user = await Service.User.FindUserByEmail(email).catch(() => null);
+    let user = await Service.User.FindUserByUuid(uuid).catch(() => null);
     if (!user) {
-      try {
-        user = await Service.User.CreateStaggingUser(email);
-      } catch (err) {
-        Logger.error('[Gateway]: Failed to get user :%s', email, err.message);
-        return res.status(500).send({ error: err.message });
-      }
+      Logger.error('[Gateway]: Failed to get user :%s', uuid);
+      return res.status(500).send();
     }
 
     const paidPlanTier = await Service.FeatureLimits.getTierByPlanId(assignFreeTier ? PLAN_FREE_TIER_ID : planId);
     if (!paidPlanTier) {
-      Logger.error(`[GATEWAY]: Plan id not found id: ${planId} email: ${email}`);
-      return res.status(500).send({ error: null, user });
+      Logger.error(`[GATEWAY]: Plan id not found id: ${planId} email: ${user.email}`);
+      return res.status(500).send({ error: 'Plan was not found' });
     }
     await Service.User.updateTier(user, paidPlanTier.tierId);
-    return res.status(200).send({ error: null, user: { ...user, tierId: paidPlanTier.tierId } });
+    return res.status(200).send({ error: null, user: { ...user.dataValues, tierId: paidPlanTier.tierId } });
   });
 
   Router.post('/gateway/user/updateOrCreate', basicAuth, async (req, res) => {
