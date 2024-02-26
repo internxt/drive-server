@@ -29,6 +29,7 @@ export interface UserAttributes {
   avatar: string;
   emailVerified: boolean;
   lastPasswordChangedAt: Date;
+  tierId?: string;
 }
 
 export type UserModel = ModelDefined<UserAttributes, UserAttributes>;
@@ -149,6 +150,9 @@ export default (database: Sequelize): UserModel => {
         type: DataTypes.DATE,
         allowNull: true,
         defaultValue: null,
+      },
+      tierId: {
+        type: DataTypes.STRING(36),
       },
     },
     {
