@@ -77,7 +77,7 @@ module.exports = (Router, Service) => {
       return res.status(400).send({ error: 'You need to asign a tier to the user' });
     }
 
-    let user = await Service.User.FindUserByUuid(uuid).catch(() => null);
+    let user = await Service.User.FindUserByUuid(uuid);
     if (!user) {
       Logger.error('[Gateway]: Failed to get user :%s', uuid);
       return res.status(500).send();
