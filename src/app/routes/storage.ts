@@ -21,6 +21,7 @@ import {
   FolderWithNameAlreadyExistsError
 } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
+import * as featureLimitsMiddlewareBuilder from '../middleware/feature-limits.middleware';
 import {validate } from 'uuid';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
@@ -811,12 +812,14 @@ export default (router: Router, service: any) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
   const teamsAdapter = teamsMiddlewareBuilder.build(service);
   const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
+  const featureLimitsAdapter = featureLimitsMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
   router.post('/storage/file',
     passportAuth,
     sharedAdapter,
     resourceSharingAdapter.UploadFile,
+    featureLimitsAdapter.UploadFile,
     controller.createFile.bind(controller)
   );
   router.post('/storage/file/exists',

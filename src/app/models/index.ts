@@ -176,7 +176,6 @@ export default (database: Sequelize) => {
 
   Limit.belongsToMany(Tier, {
     through: TierLimit,
-    as: 'tiers',
   });
 
   return {
