@@ -21,7 +21,7 @@ import {
   FolderWithNameAlreadyExistsError
 } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
-import * as featureLimitsMiddlewareBuilder from '../middleware/feature-limits.middleware';
+import { build as featureLimitsMiddlewareBuilder, LimitLabels } from '../middleware/feature-limits.middleware';
 import {validate } from 'uuid';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
@@ -31,6 +31,7 @@ interface Services {
   Folder: any;
   UsersReferrals: any;
   Analytics: any;
+  FeatureLimits: any;
   User: any;
   Notifications: any;
   Share: any;
@@ -101,6 +102,36 @@ export class StorageController {
         `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${
           JSON.stringify(file)
         }, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+      );
+      res.status(500).send({ error: 'Internal Server Error' });
+    }
+  }
+
+  public async checkFileSizeLimit(req: Request, res: Response) {
+    const { behalfUser } = req as SharedRequest;
+    const { file } = req.body;
+    try {
+      if (!file || file.size === undefined || file.size === null) {
+        this.logger.error(
+          `Invalid metadata for file limit check ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
+        );
+        return res.status(400).json({ error: 'Invalid metadata for limit check' });
+      }
+      const shouldLimitBeEnforced = await this.services.FeatureLimits.shouldLimitBeEnforced(
+        behalfUser,
+        LimitLabels.MaxFileUploadSize,
+        {file},
+      );
+
+      if (shouldLimitBeEnforced) {
+        return res.status(402).send('This file size exceeds the limit for your tier!');
+      }
+      return res.status(200).send('File can be upload');
+    } catch (err) {
+      this.logger.error(
+        `[FEATURE_LIMIT] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${
+          (err as Error).stack
+        } USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
@@ -812,7 +843,7 @@ export default (router: Router, service: any) => {
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
   const teamsAdapter = teamsMiddlewareBuilder.build(service);
   const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
-  const featureLimitsAdapter = featureLimitsMiddlewareBuilder.build(service);
+  const featureLimitsAdapter = featureLimitsMiddlewareBuilder(service);
   const controller = new StorageController(service, Logger);
 
   router.post('/storage/file',
@@ -822,6 +853,14 @@ export default (router: Router, service: any) => {
     featureLimitsAdapter.UploadFile,
     controller.createFile.bind(controller)
   );
+
+  router.post('/storage/file/check-limit',
+  passportAuth,
+  sharedAdapter,
+  resourceSharingAdapter.UploadFile,
+  controller.checkFileSizeLimit.bind(controller)
+  );
+
   router.post('/storage/file/exists',
     passportAuth,
     sharedAdapter,
