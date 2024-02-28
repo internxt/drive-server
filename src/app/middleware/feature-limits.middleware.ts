@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthorizedUser } from '../routes/types';
+import { MissingValuesForFeatureLimit, NoLimitFoundForUserTierAndLabel } from '../services/errors/FeatureLimitsErrors';
+import Logger from '../../lib/logger';
+
+const logger = Logger.getInstance();
 
 type User = AuthorizedUser['user'];
 type Middleware = (req: Request & { behalfUser?: User }, res: Response, next: NextFunction) => Promise<void>;
@@ -27,15 +31,29 @@ const build = (Service: {
           return next();
         }
 
-        const extractedData = extractDataFromRequest(req, dataSources);
-        const shouldLimitBeEnforced = await Service.FeatureLimits.shouldLimitBeEnforced(
-          user,
-          limitLabel,
-          extractedData,
-        );
+        try {
+          const extractedData = extractDataFromRequest(req, dataSources);
+          const shouldLimitBeEnforced = await Service.FeatureLimits.shouldLimitBeEnforced(
+            user,
+            limitLabel,
+            extractedData,
+          );
 
-        if (shouldLimitBeEnforced) {
-          return res.status(402).send('You reached the limit for your tier!');
+          if (shouldLimitBeEnforced) {
+            return res.status(402).send('You reached the limit for your tier!');
+          }
+        } catch (err) {
+          if (err instanceof MissingValuesForFeatureLimit) {
+            return res.status(400).send('You reached the limit for your tier!');
+          }
+
+          if (err instanceof NoLimitFoundForUserTierAndLabel) {
+            logger.error('[FEATURE_LIMIT]: Error getting user limit, bypassing it userUuid: %s', user.uuid);
+            next();
+          }
+
+          logger.error('[FEATURE_LIMIT]: Unexpected error ', err);
+          return res.status(400).send('Internal Server error');
         }
 
         next();

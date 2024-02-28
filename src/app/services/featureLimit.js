@@ -54,7 +54,7 @@ module.exports = (Model, App) => {
       case LimitLabels.MaxFileUploadSize:
         return isMaxFileSizeLimitSurprassed({ limit, data });
       default:
-        return null;
+        return false;
     }
   };
 
