@@ -27,7 +27,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: ./
-          file: ./Dockerfile
+          file: ./infrastructure/preview.Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:preview-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
   add_preview_label:
