@@ -44,7 +44,7 @@ const build = (Service: {
           }
         } catch (err) {
           if (err instanceof MissingValuesForFeatureLimit) {
-            return res.status(400).send('You reached the limit for your tier!');
+            return res.status(400).send('You have missing values needed to validate users limit!');
           }
 
           if (err instanceof NoLimitFoundForUserTierAndLabel) {
