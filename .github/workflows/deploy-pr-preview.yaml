@@ -23,13 +23,13 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: Build and push to drive-server-dev
+      - name: Build and push to ${{ github.event.repository.name }}-dev
         uses: docker/build-push-action@v2
         with:
           context: ./
           file: ./infrastructure/preview.Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:preview-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-dev:preview-${{ github.event.number }}-${{ github.event.pull_request.head.sha }}
   add_preview_label:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest

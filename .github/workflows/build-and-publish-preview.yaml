@@ -23,13 +23,13 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
-      - name: Build and push to drive-server-dev
+      - name: Build and push to ${{ github.event.repository.name }}-dev
         uses: docker/build-push-action@v2
         with:
           context: ./
           file: ./infrastructure/preview.Dockerfile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev:${{ github.sha }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-dev:${{ github.sha }}
   dispatch_update_preview_image:
     needs: build
     runs-on: ubuntu-latest
@@ -43,8 +43,8 @@ jobs:
           payload: |
             { 
               "image": { 
-                "name": "${{ secrets.DOCKERHUB_USERNAME }}/drive-server",
-                "newName": "${{ secrets.DOCKERHUB_USERNAME }}/drive-server-dev",
+                "name": "${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}",
+                "newName": "${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}-dev",
                 "newTag": "${{ github.sha }}"
               }
             }
