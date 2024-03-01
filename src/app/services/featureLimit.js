@@ -1,6 +1,7 @@
 const { INDIVIDUAL_FREE_TIER_PLAN_ID } = require('../constants');
 const { LimitLabels } = require('../middleware/feature-limits.middleware');
 const { NoLimitFoundForUserTierAndLabel } = require('./errors/FeatureLimitsErrors');
+const { INDIVIDUAL_FREE_TIER_PLAN_ID } = require('../constants');
 
 const LimitTypes = {
   Counter: 'counter',
@@ -75,5 +76,6 @@ module.exports = (Model, App) => {
     getTierByPlanId,
     getIndividualFreeTier,
     shouldLimitBeEnforced,
+    getIndividualFreeTier,
   };
 };
