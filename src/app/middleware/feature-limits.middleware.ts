@@ -44,7 +44,7 @@ const build = (Service: {
           }
         } catch (err) {
           if (err instanceof MissingValuesForFeatureLimit) {
-            return res.status(400).send('You have missing values needed to validate users limit!');
+            return res.status(400).send(err.message);
           }
 
           if (err instanceof NoLimitFoundForUserTierAndLabel) {
@@ -74,6 +74,9 @@ const extractDataFromRequest = (request: any, dataSources: DataSource[]) => {
   const extractedData = {} as any;
   for (const { sourceKey, fieldName } of dataSources) {
     const value = request[sourceKey][fieldName];
+    if (value === null || value === undefined) {
+      throw new MissingValuesForFeatureLimit(`Missing required value to check user limits, ${fieldName} is missing`);
+    }
     extractedData[fieldName] = value;
   }
   return extractedData;
