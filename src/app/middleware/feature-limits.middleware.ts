@@ -27,7 +27,7 @@ const build = (Service: {
       try {
         const user = (req as any).behalfUser || (req as AuthorizedUser).user;
 
-        if (!user) {
+        if (!user || !user.tierId) {
           return next();
         }
 
