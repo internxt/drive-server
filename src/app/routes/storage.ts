@@ -111,6 +111,9 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body;
     try {
+      if (!behalfUser.tierId) {
+        return res.status(404).json({ error: 'User does not have a limit set' });
+      }
       if (!file || file.size === undefined || file.size === null) {
         this.logger.error(
           `Invalid metadata for file limit check ${behalfUser.email}: ${JSON.stringify(file, null, 2)}`,
@@ -120,7 +123,7 @@ export class StorageController {
       const shouldLimitBeEnforced = await this.services.FeatureLimits.shouldLimitBeEnforced(
         behalfUser,
         LimitLabels.MaxFileUploadSize,
-        {file},
+        { file },
       );
 
       if (shouldLimitBeEnforced) {
@@ -129,8 +132,7 @@ export class StorageController {
       return res.status(200).send('File can be upload');
     } catch (err) {
       this.logger.error(
-        `[FEATURE_LIMIT] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${
-          (err as Error).stack
+        `[FEATURE_LIMIT] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack
         } USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
