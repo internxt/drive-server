@@ -68,7 +68,7 @@ module.exports = (Model, App) => {
     const {
       file: { size },
     } = data;
-    return Number(limit.value) < size / 1024 / 1024 / 1024;
+    return Number(limit.value) < size;
   };
 
   return {
