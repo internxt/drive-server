@@ -79,17 +79,21 @@ module.exports = (Router, Service) => {
 
     let user = await Service.User.FindUserByUuid(uuid);
     if (!user) {
-      Logger.error('[Gateway]: Failed to get user :%s', uuid);
+      Logger.error('[GATEWAY/TIER]: Failed to get user :%s', uuid);
       return res.status(500).send();
     }
 
-    const paidPlanTier = await Service.FeatureLimits.getTierByPlanId(
+    let paidPlanTier = await Service.FeatureLimits.getTierByPlanId(
       planId === 'free_individual_tier' ? INDIVIDUAL_FREE_TIER_PLAN_ID : planId,
     );
+
     if (!paidPlanTier) {
-      Logger.error(`[GATEWAY]: Plan id not found id: ${planId} email: ${user.email}`);
-      return res.status(500).send({ error: 'Plan was not found' });
+      Logger.error(
+        `[GATEWAY/TIER]: Plan id not found, assigning free tier by default. id: ${planId}, email: ${user.email}`,
+      );
+      paidPlanTier = await Service.FeatureLimits.getIndividualFreeTier();
     }
+
     await Service.User.updateTier(user, paidPlanTier.tierId);
     return res.status(200).send({ error: null, user: { ...user.dataValues, tierId: paidPlanTier.tierId } });
   });
