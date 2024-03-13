@@ -58,13 +58,13 @@ module.exports = (Model, App) => {
   const checkCounterLimit = (user, limit, data) => {
     switch (limit.label) {
       case LimitLabels.MaxFileUploadSize:
-        return isMaxFileSizeLimitSurprassed({ limit, data });
+        return isMaxFileSizeLimitSurpassed({ limit, data });
       default:
         return false;
     }
   };
 
-  const isMaxFileSizeLimitSurprassed = async ({ limit, data }) => {
+  const isMaxFileSizeLimitSurpassed = async ({ limit, data }) => {
     const {
       file: { size },
     } = data;
