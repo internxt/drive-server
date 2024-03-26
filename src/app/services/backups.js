@@ -154,12 +154,9 @@ module.exports = (Model, App) => {
     if (!folder) throw createHttpError(404, 'Folder does not exist');
 
     if (data.name) {
-      const encryptedFolderName = App.services.Crypt.encryptName(data.deviceName, folder.bucket);
+      const encryptedFolderName = App.services.Crypt.encryptName(data.name, folder.bucket);
       data.name = encryptedFolderName;
-    }
-    if (data.updatedAt) {
-      folder.changed('updatedAt', true);
-      data.updatedAt = new Date(data.updatedAt);
+      folder.changed('name', true);
     }
 
     return folder.update({ ...data });

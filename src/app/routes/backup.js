@@ -107,7 +107,7 @@ module.exports = (Router, Service) => {
   });
 
   Router.patch('/backup/deviceAsFolder/:id', passportAuth, async (req, res) => {
-    const expectedProperties = ['deviceName', 'updatedAt'];
+    const expectedProperties = ['deviceName'];
     const bodyFiltered = Object.keys(req.body)
       .filter((key) => expectedProperties.includes(key))
       .reduce((obj, key) => {
