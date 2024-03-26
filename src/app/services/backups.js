@@ -70,23 +70,14 @@ module.exports = (Model, App) => {
   };
 
   const activate = async (userData) => {
-    const { Inxt, User, Plan } = App.services;
+    const { Inxt, User } = App.services;
     let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
-
-    const plan = await Plan.getByUserId(userData.id);
-    let limit = -1;
 
     if (!backupsBucket) {
       // TODO: Remove mnemonic from here
       backupsBucket = (await Inxt.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
       await Model.users.update({ backupsBucket }, { where: { username: { [Op.eq]: userData.email } } });
     }
-
-    if (plan && plan.type === 'one_time') {
-      limit = 100 * 1024 * 1024 * 1024;
-    }
-
-    return Inxt.updateBucketLimit(backupsBucket, limit);
   };
 
   const createDeviceAsFolder = async (userData, deviceName) => {

@@ -37,6 +37,7 @@ module.exports = (Router, Service) => {
         // eslint-disable-next-line consistent-return
       })
       .then(() => {
+        // TODO: updateBucketLimit is malfunctioning and no longer needed
         if (user.backupsBucket) {
           return Service.Inxt.updateBucketLimit(user.backupsBucket, bucketLimit);
         }

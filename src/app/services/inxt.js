@@ -120,6 +120,7 @@ module.exports = (Model, App) => {
       });
   };
 
+  // TODO: updateBucketLimit is malfunctioning and no longer needed
   const updateBucketLimit = (bucketId, limit) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
