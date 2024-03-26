@@ -135,7 +135,7 @@ module.exports = (Model, App) => {
 
     return {
       ...folder.get({ plain: true }),
-      hasBackups: !isDeviceAsFolderEmpty(folder),
+      hasBackups: !(await isDeviceAsFolderEmpty(folder)),
       lastBackupAt: folder.updatedAt,
     };
   };
@@ -175,7 +175,7 @@ module.exports = (Model, App) => {
     return Promise.all(
       folders.map(async (folder) => ({
         ...folder.get({ plain: true }),
-        hasBackups: !isDeviceAsFolderEmpty(folder),
+        hasBackups: !(await isDeviceAsFolderEmpty(folder)),
         lastBackupAt: folder.updatedAt,
       })),
     );
