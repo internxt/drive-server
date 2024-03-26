@@ -113,13 +113,34 @@ module.exports = (Model, App) => {
     return Model.folder.create({ name: encryptedFolderName, bucket: backupsBucket, userId: userData.id });
   };
 
+  const isDeviceAsFolderEmpty = async (folder) => {
+    const folders = await Model.folder.findOne({
+      where: {
+        parent_id: folder.id,
+        deleted: false,
+      },
+    });
+    const files = await Model.file.findOne({
+      where: {
+        folder_id: folder.id,
+        deleted: false,
+      },
+    });
+    return !folders && !files;
+  };
+
   const getDeviceAsFolder = async (userData, id) => {
     const folder = await Model.folder.findOne({ where: { id, user_id: userData.id } });
     if (!folder) throw createHttpError(404, 'Folder does not exist');
 
-    return folder;
+    return {
+      ...folder.get({ plain: true }),
+      hasBackups: !isDeviceAsFolderEmpty(folder),
+      lastBackupAt: folder.updatedAt,
+    };
   };
 
+  // deprecated in favor of updateDeviceAsFolder
   const renameDeviceAsFolder = async (userData, id, deviceName) => {
     const folder = await Model.folder.findOne({ where: { id, user_id: userData.id } });
     if (!folder) throw createHttpError(404, 'Folder does not exist');
@@ -128,12 +149,36 @@ module.exports = (Model, App) => {
     return folder.update({ name: encryptedFolderName });
   };
 
+  const updateDeviceAsFolder = async (userData, id, data) => {
+    const folder = await Model.folder.findOne({ where: { id, user_id: userData.id } });
+    if (!folder) throw createHttpError(404, 'Folder does not exist');
+
+    if (data.name) {
+      const encryptedFolderName = App.services.Crypt.encryptName(data.deviceName, folder.bucket);
+      data.name = encryptedFolderName;
+    }
+    if (data.updatedAt) {
+      folder.changed('updatedAt', true);
+      data.updatedAt = new Date(data.updatedAt);
+    }
+
+    return folder.update({ ...data });
+  };
+
   const getDevicesAsFolder = async (userData) => {
     const { backupsBucket } = await Model.users.findOne({ where: { id: userData.id } });
 
     if (!backupsBucket) throw createHttpError(400, 'Backups is not activated for this user');
 
-    return Model.folder.findAll({ where: { bucket: backupsBucket } });
+    const folders = await Model.folder.findAll({ where: { bucket: backupsBucket } });
+
+    return Promise.all(
+      folders.map(async (folder) => ({
+        ...folder.get({ plain: true }),
+        hasBackups: !isDeviceAsFolderEmpty(folder),
+        lastBackupAt: folder.updatedAt,
+      })),
+    );
   };
 
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
@@ -206,6 +251,7 @@ module.exports = (Model, App) => {
     createDeviceAsFolder,
     getDeviceAsFolder,
     renameDeviceAsFolder,
+    updateDeviceAsFolder,
     getDevicesAsFolder,
   };
 };
