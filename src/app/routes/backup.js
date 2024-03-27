@@ -107,8 +107,25 @@ module.exports = (Router, Service) => {
   });
 
   Router.patch('/backup/deviceAsFolder/:id', passportAuth, async (req, res) => {
-    const { deviceName } = req.body;
-    const folder = await Service.Backup.renameDeviceAsFolder(req.user, req.params.id, deviceName);
+    const expectedProperties = ['deviceName'];
+    const bodyFiltered = Object.keys(req.body)
+      .filter((key) => expectedProperties.includes(key))
+      .reduce((obj, key) => {
+        if (key === 'deviceName') {
+          obj.name = req.body[key];
+        } else {
+          obj[key] = req.body[key];
+        }
+        return obj;
+      }, {});
+
+    if (Object.keys(bodyFiltered).length === 0) {
+      return res.status(400).send({
+        message: `At least one of these properties (${expectedProperties.join(', ')}) must be present in the body`,
+      });
+    }
+
+    const folder = await Service.Backup.updateDeviceAsFolder(req.user, req.params.id, bodyFiltered);
     return res.status(200).send(folder);
   });
 
