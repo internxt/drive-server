@@ -95,6 +95,8 @@ module.exports = (Model, App) => {
       where: {
         bucket: { [Op.eq]: backupsBucket },
         name: { [Op.eq]: encryptedFolderName },
+        deleted: { [Op.eq]: false},
+        removed: { [Op.eq]: false}
       },
     });
 
