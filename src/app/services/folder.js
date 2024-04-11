@@ -750,6 +750,7 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         folder_id: { [Op.eq]: directoryId },
+        status: 'EXISTS',
       },
       include: [
         {
@@ -787,6 +788,8 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         parent_id: { [Op.eq]: directoryId },
+        deleted: false, 
+        removed: false,
       },
       offset,
       limit,
