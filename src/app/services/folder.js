@@ -6,8 +6,8 @@ const AesUtil = require('../../lib/AesUtil');
 const logger = require('../../lib/logger').default.getInstance();
 const { default: Redis } = require('../../config/initializers/redis');
 import { v4 } from 'uuid';
-import { LockNotAvaliableError } from './errors/locks';
 import { FolderAlreadyExistsError, FolderWithNameAlreadyExistsError } from './errors/FolderWithNameAlreadyExistsError';
+import { LockNotAvaliableError } from './errors/locks';
 
 const invalidName = /[\\/]|^\s*$/;
 
@@ -32,17 +32,16 @@ module.exports = (Model, App) => {
   };
 
   const getByIdAndUserIds = async (id, userIds = []) => {
-    const folder = await Model.folder
-      .findOne({
-        where: { id },
-        raw: true,
-      });
+    const folder = await Model.folder.findOne({
+      where: { id },
+      raw: true,
+    });
 
     if (!folder) {
       throw new Error('Folder not found');
     }
 
-    const ownedFolder = userIds.some(userId => {
+    const ownedFolder = userIds.some((userId) => {
       return userId === folder.userId;
     });
 
@@ -141,7 +140,7 @@ module.exports = (Model, App) => {
       where: {
         id: { [Op.eq]: parentFolderId },
         user_id: { [Op.eq]: user.id },
-      }
+      },
     });
 
     if (!parentFolder) {
@@ -318,10 +317,10 @@ module.exports = (Model, App) => {
     });
     const foldersId = folders.map((result) => result.id);
     const files = await Model.file.findAll({
-      where: { 
-        folder_id: { [Op.in]: foldersId }, 
-        userId: userObject.id, 
-        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS'
+      where: {
+        folder_id: { [Op.in]: foldersId },
+        userId: userObject.id,
+        status: filterOptions.deleted ? 'TRASHED' : 'EXISTS',
       },
       include: [
         {
@@ -343,11 +342,7 @@ module.exports = (Model, App) => {
     };
   };
 
-  const GetFoldersPaginationWithoutSharesNorThumbnails = async (
-    user,
-    index,
-    filterOptions
-  ) => {
+  const GetFoldersPaginationWithoutSharesNorThumbnails = async (user, index, filterOptions) => {
     let userObject = user.get({ plain: true });
 
     const isSharedWorkspace = user.bridgeUser !== user.email;
@@ -412,16 +407,18 @@ module.exports = (Model, App) => {
   };
 
   const isFolderOfTeam = (folderId) => {
-    return Model.folder.findOne({
-      where: {
-        id: { [Op.eq]: folderId },
-      },
-    }).then((folder) => {
-      if (!folder) {
-        throw Error('Folder not found on database, please refresh');
-      }
-      return folder;
-    });
+    return Model.folder
+      .findOne({
+        where: {
+          id: { [Op.eq]: folderId },
+        },
+      })
+      .then((folder) => {
+        if (!folder) {
+          throw Error('Folder not found on database, please refresh');
+        }
+        return folder;
+      });
   };
 
   const UpdateMetadata = (user, folderId, metadata) => {
@@ -444,12 +441,13 @@ module.exports = (Model, App) => {
       },
       (next) => {
         // Get the target folder from database
-        Model.folder.findOne({
-          where: {
-            id: { [Op.eq]: folderId },
-            user_id: { [Op.eq]: user.id },
-          },
-        })
+        Model.folder
+          .findOne({
+            where: {
+              id: { [Op.eq]: folderId },
+              user_id: { [Op.eq]: user.id },
+            },
+          })
           .then((result) => {
             if (!result) {
               throw Error('Folder does not exists');
@@ -683,6 +681,7 @@ module.exports = (Model, App) => {
       where: {
         user_id: userId,
         folder_id: { [Op.eq]: directoryId },
+        status: 'EXISTS',
       },
       include: [
         {
@@ -720,6 +719,8 @@ module.exports = (Model, App) => {
       where: {
         user_id: userId,
         parent_id: { [Op.eq]: directoryId },
+        deleted: false,
+        removed: false,
       },
       offset,
       limit,
@@ -788,7 +789,7 @@ module.exports = (Model, App) => {
       raw: true,
       where: {
         parent_id: { [Op.eq]: directoryId },
-        deleted: false, 
+        deleted: false,
         removed: false,
       },
       offset,
