@@ -108,6 +108,7 @@ module.exports = (Router, Service) => {
 
   Router.patch('/backup/deviceAsFolder/:id', passportAuth, async (req, res) => {
     const expectedProperties = ['deviceName'];
+    logger.info('[BACKUP/DEVICEASFOLDER/:ID]: Received body payload %s', JSON.stringify(req.body));
     const bodyFiltered = Object.keys(req.body)
       .filter((key) => expectedProperties.includes(key))
       .reduce((obj, key) => {
