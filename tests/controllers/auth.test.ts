@@ -1,13 +1,11 @@
+import { expect } from 'chai';
+import { Request, Response } from 'express';
 import sinon from 'sinon';
 import { AuthController } from '../../src/app/routes/auth';
-import { Request, Response } from 'express';
-import { expect } from 'chai';
 import Config from '../../src/config/config';
 
 describe('Auth controller', () => {
-
   describe('/register', () => {
-
     // it('should verify recaptcha when is not invoked from mobile', async () => {
     //   // Arrange
     //   const services = {
@@ -43,16 +41,13 @@ describe('Auth controller', () => {
     //     }
     //   });
     //   const controller = getController(services);
-
     //   // Act
     //   await controller.register(request as Request<{ email: string }>, response);
-
     //   // Assert
     //   expect(services.ReCaptcha.verify.calledOnce).to.be.true;
     //   expect(services.User.RegisterUser.calledOnce).to.be.true;
     //   expect(services.Analytics.trackSignUp.calledOnce).to.be.true;
     // });
-
     // it('should not verify recaptcha when is invoked from mobile', async () => {
     //   // Arrange
     //   const services = {
@@ -91,16 +86,13 @@ describe('Auth controller', () => {
     //     }
     //   });
     //   const controller = getController(services);
-
     //   // Act
     //   await controller.register(request as Request<{ email: string }>, response);
-
     //   // Assert
     //   expect(services.ReCaptcha.verify.calledOnce).to.be.false;
     //   expect(services.User.RegisterUser.calledOnce).to.be.true;
     //   expect(services.Analytics.trackSignUp.calledOnce).to.be.true;
     // });
-
   });
 
   describe('/login', () => {
@@ -309,7 +301,7 @@ describe('Auth controller', () => {
         // Act
         await controller.access(request, response);
       } catch ({ message }) {
-        expect(message).to.equal('Your account has been blocked for security reasons. Please reach out to us');
+        expect(message).to.equal('Your account has been blocked for security reasons.');
       }
     });
 
@@ -445,9 +437,7 @@ describe('Auth controller', () => {
       expect(jsonSpy.calledOnce).to.be.true;
     });
   });
-
 });
-
 
 function getController(services = {}, secrets = {}): AuthController {
   const defaultServices = {
@@ -463,13 +453,13 @@ function getController(services = {}, secrets = {}): AuthController {
 
   const finalServices = {
     ...defaultServices,
-    ...services
+    ...services,
   };
 
   const config = {
     get: () => {
       return secrets;
-    }
+    },
   };
 
   return new AuthController(finalServices, config as unknown as Config);

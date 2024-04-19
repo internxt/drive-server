@@ -1,14 +1,13 @@
-import { Router, Request, Response } from 'express';
-import createHttpError from 'http-errors';
+import { Request, Response, Router } from 'express';
+import createHttpError, { HttpError } from 'http-errors';
 import speakeasy from 'speakeasy';
-import { UserAttributes } from '../models/user';
-import { passportAuth, Sign, SignNewToken } from '../middleware/passport';
-import Config from '../../config/config';
-import { AuthorizedUser } from './types';
-import { HttpError } from 'http-errors';
-import Logger from '../../lib/logger';
 import winston from 'winston';
+import Config from '../../config/config';
+import Logger from '../../lib/logger';
+import { Sign, SignNewToken, passportAuth } from '../middleware/passport';
+import { UserAttributes } from '../models/user';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
+import { AuthorizedUser } from './types';
 
 interface Services {
   User: any;
@@ -125,7 +124,7 @@ export class AuthController {
     const loginAttemptsLimitReached = userData.errorLoginCount >= MAX_LOGIN_FAIL_ATTEMPTS;
 
     if (loginAttemptsLimitReached) {
-      throw createHttpError(403, 'Your account has been blocked for security reasons. Please reach out to us');
+      throw createHttpError(403, 'Your account has been blocked for security reasons.');
     }
 
     const hashedPass = this.service.Crypt.decryptText(req.body.password);
