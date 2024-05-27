@@ -62,6 +62,7 @@
     "debug": "cross-env NODE_ENV=development nodemon --ext 'ts,js' --exec 'node --inspect=0.0.0.0:9202 --require ts-node/register src/app.ts'",
     "dev": "cross-env NODE_ENV=development nodemon --ext 'ts,js' src/app.ts",
     "docker": "cross-env NODE_ENV=docker nodemon app.ts",
+    "rename-items": "ts-node ./bin/rename-files",
     "testsuite": "cross-env APP_SEGMENT_KEY=a NODE_ENV=test ts-mocha tests/controllers/*.ts tests/services/*.ts",
     "test": "yarn check --integrity && npm run lint && npm run testsuite",
     "test:e2e": "NODE_ENV=e2e jest --config ./tests/e2e/jest-e2e.json --setupFiles dotenv/config",
