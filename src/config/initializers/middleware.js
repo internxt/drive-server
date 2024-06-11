@@ -109,6 +109,15 @@ module.exports = (App, Config) => {
     }),
   );
 
+  App.express.use(
+    '/user/refresh',
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000,
+      max: 10,
+      keyGenerator: limiterKeyGenerator,
+    }),
+  );
+
   // enables cors
   App.express.use(
     cors({
