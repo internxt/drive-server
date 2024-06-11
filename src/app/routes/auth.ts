@@ -12,6 +12,7 @@ import { ReferralsNotAvailableError } from '../services/errors/referrals';
 
 interface Services {
   User: any;
+  Folder: any;
   Analytics: any;
   ReCaptcha: any;
   Crypt: any;
@@ -169,12 +170,14 @@ export class AuthController {
 
     const keys = await this.service.KeyServer.getKeys(userData);
     const hasTeams = !!(await this.service.Team.getTeamByMember(req.body.email));
+    const rootFolder = await this.service.Folder.getById(userData.root_folder_id);
 
     const user = {
       email: req.body.email,
       userId: userData.userId,
       mnemonic: userData.mnemonic,
       root_folder_id: userData.root_folder_id,
+      rootFolderId: rootFolder?.uuid,
       name: userData.name,
       lastname: userData.lastname,
       uuid: userData.uuid,
