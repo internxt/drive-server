@@ -17,6 +17,7 @@ const MailService = require('./mail');
 const UtilsService = require('./utils');
 const passport = require('../middleware/passport');
 const Logger = require('../../lib/logger').default;
+const { default: Redis } = require('../../config/initializers/redis');
 
 const { Op, col, fn } = sequelize;
 
@@ -508,13 +509,24 @@ module.exports = (Model, App) => {
 
   const getUsage = async (user) => {
     const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
-    const usage = await Model.file.findAll({
-      where: { user_id: targetUser.id, status: { [Op.ne]: 'DELETED' } },
-      attributes: [[fn('sum', col('size')), 'total']],
-      raw: true,
-    });
+    Redis.getInstance();
+    const cachedUsage = await Redis.getUsage(user.uuid);
+    let driveUsage = 0;
 
-    const driveUsage = parseInt(usage[0].total);
+    if (cachedUsage) {
+      logger.info('Cache hit for user ' + user.uuid);
+      driveUsage = cachedUsage;
+    } else {
+      const usage = await Model.file.findAll({
+        where: { user_id: targetUser.id, status: { [Op.ne]: 'DELETED' } },
+        attributes: [[fn('sum', col('size')), 'total']],
+        raw: true,
+      });
+  
+      driveUsage = parseInt(usage[0].total);
+
+      await Redis.setUsage(user.uuid, driveUsage);
+    }
 
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },

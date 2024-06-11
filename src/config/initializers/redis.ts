@@ -38,6 +38,24 @@ export default class Redis {
     return Redis.instance;
   }
 
+  static async getUsage(userUuid: string): Promise<number | null> {
+    const r = Redis.instance;
+
+    const v = await r.get(`${userUuid}-usage`);
+
+    if (!v) {
+      return null;
+    } 
+
+    return (JSON.parse(v) as { usage: number }).usage;
+  }
+
+  static async setUsage(userUuid: string, usage: number): Promise<void> {
+    const r = Redis.instance;
+
+    await r.set(`${userUuid}-usage`, JSON.stringify({ usage }), 'EX', 10*60);
+  }
+
   static async releaseLock(key: string) {
     const r = Redis.instance;
 
