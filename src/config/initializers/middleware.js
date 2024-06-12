@@ -157,6 +157,12 @@ module.exports = (App, Config) => {
    */
   Passport.use(
     new JwtStrategy(passportOpts, (payload, done) => {
+      const tokenWithoutExpiration = !payload.exp;
+
+      if (tokenWithoutExpiration) {
+        return done(new Error('Invalid token, sign in again'));
+      }
+
       /* Temporal compatibility with old JWT
        * BEGIN
        */
