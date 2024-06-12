@@ -17,7 +17,7 @@ module.exports = (Router, Service, App) => {
     Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey)
       .then(() => {
         const token = SignWithFutureIAT(req.user.email, App.config.get('secrets').JWT);
-        const newToken = SignNewTokenWithFutureIAT(req.user, App.config.get('secrets').JWT);
+        const newToken = SignNewTokenWithFutureIAT(req.user, App.config.get('secrets').JWT, true);
         res.status(200).send({ token, newToken });
       })
       .catch((err) => {

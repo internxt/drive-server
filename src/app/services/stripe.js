@@ -48,7 +48,7 @@ module.exports = () => {
 
   const userExistsInPayments = async (user) => {
     const paymentsUrl = process.env.PAYMENTS_SERVER_URL;
-    const token = SignNewToken(user, process.env.JWT_SECRET);
+    const token = SignNewToken(user, process.env.JWT_SECRET, true);
 
     try {
       await axios.get(`${paymentsUrl}/users/exists`, {

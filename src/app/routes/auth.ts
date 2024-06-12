@@ -156,7 +156,7 @@ export class AuthController {
     this.service.User.UpdateAccountActivity(req.body.email);
     const userBucket = await this.service.User.GetUserBucket(userData);
 
-    const newToken = SignNewToken(userData, this.config.get('secrets').JWT);
+    const newToken = SignNewToken(userData, this.config.get('secrets').JWT, true);
     const keyExists = await this.service.KeyServer.keysExists(userData);
 
     if (!keyExists && req.body.publicKey) {
@@ -205,20 +205,13 @@ export class AuthController {
     };
 
     const userTeam = null;
-    // TODO: Not working. Team members can not use team workspace due to this
-    // if (userTeam) {
-    //   const tokenTeam = Sign(userTeam.bridge_user, App.config.get('secrets').JWT, internxtClient === 'drive-web');
 
-    //   return res.status(200).json({
-    //     user, token, userTeam, tokenTeam
-    //   });
-    // }
     return res.status(200).json({ user, token, userTeam, newToken });
   }
 
   async getNewToken(req: Request, res: Response) {
     const authRequest = req as Request & { user: UserAttributes };
-    const newToken = SignNewToken(authRequest.user, this.config.get('secrets').JWT);
+    const newToken = SignNewToken(authRequest.user, this.config.get('secrets').JWT, true);
 
     return res.status(200).json({ newToken });
   }

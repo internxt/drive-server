@@ -447,7 +447,7 @@ module.exports = (Model, App) => {
     }
 
     // Successfull register
-    const token = passport.Sign(userData.email, App.config.get('secrets').JWT);
+    const token = passport.Sign(userData.email, App.config.get('secrets').JWT, true);
 
     // Creates user referrals
     await App.services.UsersReferrals.createUserReferrals(userData.id);

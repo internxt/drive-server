@@ -69,12 +69,7 @@ export default (router: Router, service: any, App: any): Router => {
       service.User.GetUserBucket(userData),
     ]);
 
-    const internxtClient = req.headers['internxt-client'];
-    const token = Sign(
-      userData.email,
-      App.config.get('secrets').JWT,
-      internxtClient === 'drive-web',
-    );
+    const token = Sign(userData.email, App.config.get('secrets').JWT, true);
 
     const user = {
       email: userData.email,
