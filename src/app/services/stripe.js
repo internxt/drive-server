@@ -1,8 +1,10 @@
 const StripeTest = require('stripe')(process.env.STRIPE_SK_TEST, { apiVersion: '2020-08-27' });
 const StripeProduction = require('stripe')(process.env.STRIPE_SK, { apiVersion: '2020-08-27' });
+const axios = require('axios');
 
 const cache = require('memory-cache');
 const { isProduction } = require('../../config/environments/env');
+const { SignNewToken } = require('../middleware/passport');
 
 const RenewalPeriod = {
   Monthly: 'monthly',
@@ -42,6 +44,26 @@ function getRenewalPeriod(intervalCount, interval) {
 module.exports = () => {
   const getStripe = (isTest = false) => {
     return isTest ? StripeTest : StripeProduction;
+  };
+
+  const userExistsInPayments = async (user) => {
+    const paymentsUrl = process.env.PAYMENTS_SERVER_URL;
+    const token = SignNewToken(user, process.env.JWT_SECRET);
+
+    try {
+      await axios.get(`${paymentsUrl}/users/exists`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+    } catch (err) {
+      if (err.response.status !== 404) {
+        throw err;
+      }
+
+      return false;
+    }
   };
 
   const getStoragePlans = (stripeProduct, test = false) =>
@@ -280,6 +302,7 @@ module.exports = () => {
     findCustomerByEmail,
     getBilling,
     getUserSubscriptionPlans,
-    findSessionById
+    findSessionById,
+    userExistsInPayments
   };
 };

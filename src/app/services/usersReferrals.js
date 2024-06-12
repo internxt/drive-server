@@ -65,12 +65,12 @@ module.exports = (Model, App) => {
     }));
   };
 
-  const hasReferralsProgram = async (userId, userEmail, networkUser, networkPassword) => {
-    const appSumoDetails = await App.services.AppSumo.GetDetails(userId).catch(() => null);
+  const hasReferralsProgram = async (user, networkUser, networkPassword) => {
+    const appSumoDetails = await App.services.AppSumo.GetDetails(user.id).catch(() => null);
 
     return (
       !appSumoDetails &&
-      !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(userEmail, networkUser, networkPassword))
+      !(await App.services.Plan.hasBeenIndividualSubscribedAnyTime(user, networkUser, networkPassword))
     );
   };
 
@@ -113,7 +113,7 @@ module.exports = (Model, App) => {
       return;
     }
 
-    const userHasReferralsProgram = await hasReferralsProgram(userId, user.email, user.bridgeUser, user.userId);
+    const userHasReferralsProgram = await hasReferralsProgram(user, user.bridgeUser, user.userId);
     if (!userHasReferralsProgram) {
       throw new ReferralsNotAvailableError();
     }
