@@ -160,7 +160,7 @@ module.exports = (App, Config) => {
       const tokenWithoutExpiration = !payload.exp;
 
       if (tokenWithoutExpiration) {
-        return done(new Error('Invalid token, sign in again'));
+        return done(null, false, { message: 'Invalid token, sign in again' });
       }
 
       /* Temporal compatibility with old JWT
