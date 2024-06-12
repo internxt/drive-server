@@ -176,7 +176,7 @@ module.exports = (App, Config) => {
       App.services.User.FindUserObjByEmail(email)
         .then((user) => {
           if (!user) {
-            return done(new Error("User not found"));
+            return done(new Error(`User ${email} not found`));
           }
   
           const userWithoutLastPasswordChangedAt = user.lastPasswordChangedAt === null;
