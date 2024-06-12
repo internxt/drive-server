@@ -25,7 +25,6 @@ export interface UserAttributes {
   registerCompleted: boolean;
   backupsBucket: string;
   sharedWorkspace: boolean;
-  tempKey: string;
   avatar: string;
   emailVerified: boolean;
   lastPasswordChangedAt: Date;
@@ -134,9 +133,6 @@ export default (database: Sequelize): UserModel => {
       sharedWorkspace: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
-      },
-      tempKey: {
-        type: DataTypes.STRING,
       },
       avatar: {
         type: DataTypes.STRING,
