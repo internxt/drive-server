@@ -97,8 +97,7 @@ export default (router: Router, service: any, App: any): Router => {
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
       hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
-        userData.id,
-        userData.email,
+        userData,
         userData.bridgeUser,
         userData.userId,
       ),
