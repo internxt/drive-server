@@ -95,12 +95,12 @@ module.exports = (Model, App) => {
     return result;
   };
 
-  const hasBeenIndividualSubscribedAnyTime = async (userEmail, networkUser, networkPass) => {
-    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail)).filter((plan) => !plan.isTeam);
+  const hasBeenIndividualSubscribedAnyTime = async (user, networkUser, networkPass) => {
+    const userExistsInPayments = await stripeService.userExistsInPayments(user);
     const { maxSpaceBytes } = await limitService.getLimit(networkUser, networkPass);
     const isLifetime = maxSpaceBytes > MAX_FREE_PLAN_BYTES;
 
-    return subscriptionPlans.length > 0 || isLifetime;
+    return userExistsInPayments || isLifetime;
   };
 
   const isValid = (plan) => {
