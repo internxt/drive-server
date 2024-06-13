@@ -40,6 +40,7 @@ module.exports = (Model, App) => {
       bucket: file.bucket,
       userId: user.id,
       uuid: v4(),
+      creationTime: file.creationTime || file.date || new Date(),
       modificationTime: file.modificationTime || new Date(),
     };
 
@@ -47,10 +48,6 @@ module.exports = (Model, App) => {
       fileInfo.plainName = fileInfo.plainName ?? AesUtil.decrypt(file.name, file.fileId);
     } catch {
       // eslint-disable-next-line no-empty
-    }
-
-    if (file.date) {
-      fileInfo.createdAt = file.date;
     }
 
     return { exists: true, file: fileInfo };
@@ -101,6 +98,7 @@ module.exports = (Model, App) => {
       userId: user.id,
       uuid: v4(),
       folderUuid: folder.uuid,
+      creationTime: file.creationTime || file.date || new Date(),
       modificationTime: file.modificationTime || new Date(),
     };
 
@@ -109,10 +107,6 @@ module.exports = (Model, App) => {
       fileInfo.encrypt_version = '03-aes';
     } catch {
       // eslint-disable-next-line no-empty
-    }
-
-    if (file.date) {
-      fileInfo.createdAt = file.date;
     }
 
     return Model.file.create(fileInfo);
