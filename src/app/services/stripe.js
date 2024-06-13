@@ -58,7 +58,7 @@ module.exports = () => {
       });
 
     } catch (err) {
-      if (err.response.status !== 404) {
+      if (err.response?.status !== 404) {
         throw err;
       }
 
