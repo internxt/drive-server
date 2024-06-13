@@ -6,7 +6,6 @@ import { Logger } from 'winston';
 import { default as logger } from '../../lib/logger';
 import createHttpError, { HttpError } from 'http-errors';
 import { FolderAttributes } from '../models/folder';
-import teamsMiddlewareBuilder from '../middleware/teams';
 import Validator from '../../lib/Validator';
 import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
@@ -809,7 +808,6 @@ export default (router: Router, service: any) => {
   const Logger = logger.getInstance();
   const { passportAuth } = passport;
   const sharedAdapter = sharedMiddlewareBuilder.build(service);
-  const teamsAdapter = teamsMiddlewareBuilder.build(service);
   const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
@@ -841,7 +839,6 @@ export default (router: Router, service: any) => {
     '/storage/v2/folder/:id/:idTeam?',
     passportAuth,
     sharedAdapter,
-    teamsAdapter,
     controller.getFolderContents.bind(controller),
   );
   router.post('/storage/move/file', passportAuth, sharedAdapter, controller.moveFile.bind(controller));

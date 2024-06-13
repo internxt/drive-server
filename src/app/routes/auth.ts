@@ -17,7 +17,6 @@ interface Services {
   ReCaptcha: any;
   Crypt: any;
   KeyServer: any;
-  Team: any;
   AppSumo: any;
   UsersReferrals: any;
   Newsletter: any;
@@ -169,7 +168,6 @@ export class AuthController {
     }
 
     const keys = await this.service.KeyServer.getKeys(userData);
-    const hasTeams = !!(await this.service.Team.getTeamByMember(req.body.email));
     const rootFolder = await this.service.Folder.getById(userData.root_folder_id);
 
     const user = {
@@ -188,7 +186,7 @@ export class AuthController {
       revocateKey: keys ? keys.revocation_key : null,
       bucket: userBucket,
       registerCompleted: userData.registerCompleted,
-      teams: hasTeams,
+      teams: false,
       username: userData.username,
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,

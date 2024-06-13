@@ -28,11 +28,6 @@ module.exports = (Model, App) => {
   const UserServiceInstance = UserService(Model, App);
   const CryptServiceInstance = CryptService(Model, App);
 
-  const UserExists = async (email) => {
-    const user = await Model.users.findOne({ where: { username: email }, attributes: ['id'] });
-    return !!user;
-  };
-
   const ApplyLicense = async (user, plan) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
@@ -160,7 +155,6 @@ module.exports = (Model, App) => {
 
   return {
     Name: 'AppSumo',
-    UserExists,
     RegisterIncomplete,
     CompleteInfo,
     GetDetails,

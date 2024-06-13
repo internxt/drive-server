@@ -20,7 +20,6 @@ import NewsletterRoutes from './newsletter';
 import UserRoutes from './user';
 import AnalyticsRoutes from './analytics';
 import { Sign, passportAuth } from '../middleware/passport';
-import TeamsRoutes from './teams';
 import logger from '../../lib/logger';
 import * as ReCaptchaV3 from '../../lib/recaptcha';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
@@ -42,7 +41,6 @@ export default (router: Router, service: any, App: any): Router => {
   DesktopRoutes(router, service);
   MobileRoutes(router, service, App);
   TwoFactorRoutes(router, service, App);
-  TeamsRoutes(router, service, App);
   AppSumoRoutes(router, service, App);
   PlanRoutes(router, service);
   ShareRoutes(router, service);

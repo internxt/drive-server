@@ -439,7 +439,6 @@ describe('Auth controller', () => {
       expect(services.User.GetUserBucket.calledOnce).to.be.true;
       expect(services.KeyServer.keysExists.calledOnce).to.be.true;
       expect(services.KeyServer.getKeys.calledOnce).to.be.true;
-      expect(services.Team.getTeamByMember.calledOnce).to.be.true;
       expect(services.AppSumo.GetDetails.calledOnce).to.be.true;
       expect(services.UsersReferrals.hasReferralsProgram.calledOnce).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;

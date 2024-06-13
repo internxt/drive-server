@@ -332,32 +332,6 @@ module.exports = (Model, App) => {
     };
   };
 
-  const isFileOfTeamFolder = (fileId) =>
-    new Promise((resolve, reject) => {
-      Model.file
-        .findOne({
-          where: {
-            file_id: { [Op.eq]: fileId },
-          },
-          include: [
-            {
-              model: Model.folder,
-              where: {
-                id_team: { [Op.ne]: null },
-              },
-            },
-          ],
-        })
-        .then((file) => {
-          if (!file) {
-            throw Error('File not found on database, please refresh');
-          }
-
-          resolve(file);
-        })
-        .catch(reject);
-    });
-
   const getFileByFolder = (fileId, folderId, userId) => {
     return Model.file.findOne({
       where: {
@@ -458,7 +432,6 @@ module.exports = (Model, App) => {
     DeleteFile,
     UpdateMetadata,
     MoveFile,
-    isFileOfTeamFolder,
     getRecentFiles,
     getFileByFolder,
     getByFolderAndUserId,
