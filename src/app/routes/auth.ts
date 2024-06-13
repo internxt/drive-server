@@ -170,6 +170,7 @@ export class AuthController {
     const keys = await this.service.KeyServer.getKeys(userData);
     const rootFolder = await this.service.Folder.getById(userData.root_folder_id);
 
+    console.log('Request before payments');
     const user = {
       email: req.body.email,
       userId: userData.userId,
@@ -245,6 +246,7 @@ export default (router: Router, service: any, config: Config) => {
         return res.status(err.statusCode).send({ error: err.message, code: err.code });
       }
 
+      logger.error(err);
       logger.error(`[AUTH/ACCESS]: ERROR for user ${req.body.email}: ${(err as Error).message}`);
 
       res.status(500).send({ error: 'Internal Server Error' });
