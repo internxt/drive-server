@@ -24,30 +24,6 @@ module.exports = (Model) => {
     return new InternxtMailer(mailConfig);
   };
 
-  const sendEmailTeamsMember = (name, member, cryptedToken, teamName) => {
-    const mailer = mailInstance();
-    return new Promise((resolve, reject) => {
-      mailer.dispatchSendGrid(
-        member,
-        'join-team',
-        {
-          template: 'join-team',
-          go: { in: 'here' },
-          memberName: name,
-          teamName,
-          urlAcceptInvitation: `${process.env.HOST_DRIVE_WEB}/teams/join/${cryptedToken}`,
-        },
-        (err) => {
-          if (!err) {
-            resolve(`Mail team's invitation send to ${member}!`);
-          } else {
-            reject(Error(`Error sending mail team's invitation to ${member}`));
-          }
-        },
-      );
-    });
-  };
-
   const sendGuestInvitation = async (user, guestEmail) => {
     const mailer = mailInstance();
 
@@ -96,7 +72,6 @@ module.exports = (Model) => {
 
   return {
     Name: 'Mail',
-    sendEmailTeamsMember,
     sendGuestInvitation,
     sendInviteFriendMail,
     sendVerifyEmailMail,

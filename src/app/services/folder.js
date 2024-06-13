@@ -71,17 +71,10 @@ module.exports = (Model, App) => {
       });
     }
 
-    if (teamId) {
-      whereCondition.where = {
-        id: { [Op.eq]: parentFolderId },
-        id_team: { [Op.eq]: teamId },
-      };
-    } else {
-      whereCondition.where = {
-        id: { [Op.eq]: parentFolderId },
-        user_id: { [Op.eq]: user.id },
-      };
-    }
+    whereCondition.where = {
+      id: { [Op.eq]: parentFolderId },
+      user_id: { [Op.eq]: user.id },
+    };
 
     const parentFolder = await Model.folder.findOne(whereCondition);
 
@@ -116,7 +109,6 @@ module.exports = (Model, App) => {
       bucket: null,
       parentId: parentFolderId || null,
       parentUuid: parentFolder.uuid,
-      id_team: teamId,
     });
 
     return folder;

@@ -12,9 +12,6 @@ import initMailLimit, { MailLimitModel } from './mailLimit';
 import initPlan, { PlanModel } from './plan';
 import initReferral, { ReferralModel } from './referral';
 import initShare, { ShareModel } from './share';
-import initTeam, { TeamModel } from './team';
-import initTeamInvitation, { TeamInvitationModel } from './teaminvitation';
-import initTeamMember, { TeamMemberModel } from './teammember';
 import initThumbnail, { ThumbnailModel } from './thumbnail';
 import initUser, { UserModel } from './user';
 import initUserReferral, { UserReferralModel } from './userReferral';
@@ -43,9 +40,6 @@ export type ModelType =
   | PlanModel
   | ReferralModel
   | ShareModel
-  | TeamModel
-  | TeamInvitationModel
-  | TeamMemberModel
   | UserModel
   | UserReferralModel
   | FriendInvitationModel
@@ -74,9 +68,6 @@ export default (database: Sequelize) => {
   const Plan = initPlan(database);
   const Referral = initReferral(database);
   const Share = initShare(database);
-  const Team = initTeam(database);
-  const TeamMember = initTeamMember(database);
-  const TeamInvitation = initTeamInvitation(database);
   const User = initUser(database);
   const UserReferral = initUserReferral(database);
   const FriendInvitation = initFriendInvitation(database);
@@ -192,9 +183,6 @@ export default (database: Sequelize) => {
     [Plan.name]: Plan,
     [Referral.name]: Referral,
     [Share.name]: Share,
-    [Team.name]: Team,
-    [TeamMember.name]: TeamMember,
-    [TeamInvitation.name]: TeamInvitation,
     [User.name]: User,
     [UserReferral.name]: UserReferral,
     [FriendInvitation.name]: FriendInvitation,

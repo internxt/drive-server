@@ -125,61 +125,6 @@ module.exports = (Router, Service) => {
    * Should create a new Stripe Session token.
    * Stripe Session is neccesary to perform a new payment
    */
-  Router.post('/stripe/teams/session', passportAuth, async (req, res) => {
-    const test = req.body.test || false;
-    const stripe = test ? StripeTest : StripeProduction;
-    const { mode, successUrl, canceledUrl, priceId, quantity } = req.body;
-
-    let bridgeUser = await Service.Team.getTeamByEmail(req.user.email);
-   
-    if (!bridgeUser) {
-      const newRandomTeam = Service.Team.randomEmailBridgeUserTeam();
-      bridgeUser = await Service.Team.create({
-        name: 'My team',
-        admin: req.user.email,
-        bridge_user: newRandomTeam.bridge_user,
-        bridge_password: newRandomTeam.password,
-        bridge_mnemonic: req.body.mnemonicTeam,
-      });
-    }
-
-    const sessionParams = {
-      payment_method_types: ['card'],
-      success_url: successUrl || `${process.env.HOST_DRIVE_WEB}/team/success/{CHECKOUT_SESSION_ID}`,
-      cancel_url: canceledUrl || `${process.env.HOST_DRIVE_WEB}/account?tab=plans`,
-      mode,
-      line_items: [
-        {
-          price: priceId,
-          quantity,
-        },
-      ],
-      metadata: {
-        is_teams: true,
-        total_members: quantity,
-        team_email: bridgeUser.bridge_user,
-        admin_email: req.user.email,
-      },
-      customer_email: req.user.email,
-      allow_promotion_codes: true,
-      billing_address_collection: 'required',
-    };
-
-    if (sessionParams.customer) {
-      delete sessionParams.customer_email;
-    } else {
-      delete sessionParams.customer;
-    }
-
-    const result = await stripe.checkout.sessions.create(sessionParams);
-    
-    res.status(200).send(result);
-  });
-
-  /**
-   * Should create a new Stripe Session token.
-   * Stripe Session is neccesary to perform a new payment
-   */
   Router.post('/v2/stripe/session', passportAuth, (req, res) => {
     const stripe = req.body.test ? StripeTest : StripeProduction;
     const user = req.user.email;
@@ -308,30 +253,4 @@ module.exports = (Router, Service) => {
         res.status(500).send({ error: err.message });
       });
   });
-
-  Router.get('/stripe/teams/products', passportAuth, (req, res) => {
-    const test = req.query.test || false;
-
-    Service.Stripe.getTeamProducts(test)
-      .then((products) => {
-        res.status(200).send(products);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err });
-      });
-  });
-
-  Router.post('/stripe/teams/plans', passportAuth, (req, res) => {
-    const stripeProduct = req.body.product;
-    const test = req.body.test || false;
-
-    Service.Stripe.getTeamPlans(stripeProduct, test)
-      .then((plans) => {
-        res.status(200).send(plans);
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
-  });
-
 };

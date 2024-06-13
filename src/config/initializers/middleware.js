@@ -101,15 +101,6 @@ module.exports = (App, Config) => {
   );
 
   App.express.use(
-    '/api/teams/team-invitations',
-    rateLimit({
-      windowMs: 30 * 60 * 1000,
-      max: 10,
-      keyGenerator: limiterKeyGenerator,
-    }),
-  );
-
-  App.express.use(
     '/user/refresh',
     rateLimit({
       windowMs: 24 * 60 * 60 * 1000,
