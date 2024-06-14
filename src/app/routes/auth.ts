@@ -192,11 +192,11 @@ export class AuthController {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
-      hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
+      /*     hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
         userData,
         userData.bridgeUser,
         userData.userId,
-      ),
+      ), */
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,
