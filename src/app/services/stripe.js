@@ -13,7 +13,7 @@ const RenewalPeriod = {
   Lifetime: 'lifetime',
 };
 
-function getMonthCount(intervalCount, timeInterval) {
+function getMonthCount (intervalCount, timeInterval) {
   const byTimeIntervalCalculator = {
     month: () => intervalCount,
     year: () => intervalCount * 12,
@@ -22,14 +22,14 @@ function getMonthCount(intervalCount, timeInterval) {
   return byTimeIntervalCalculator[timeInterval]();
 }
 
-function getMonthlyAmount(totalPrice, intervalCount, timeInterval) {
+function getMonthlyAmount (totalPrice, intervalCount, timeInterval) {
   const monthCount = getMonthCount(intervalCount, timeInterval);
   const monthlyPrice = totalPrice / monthCount;
 
   return monthlyPrice;
 }
 
-function getRenewalPeriod(intervalCount, interval) {
+function getRenewalPeriod (intervalCount, interval) {
   let renewalPeriod = RenewalPeriod.Monthly;
 
   if (interval === 'month' && intervalCount === 6) {
@@ -46,22 +46,23 @@ module.exports = () => {
     return isTest ? StripeTest : StripeProduction;
   };
 
-  const userExistsInPayments = async (user) => {
+  const userExistsInPayments = async user => {
     const paymentsUrl = process.env.PAYMENTS_SERVER_URL;
+    console.log({ paymentsUrl });
     const token = SignNewToken(user, process.env.JWT_SECRET, true);
 
     try {
       await axios.get(`${paymentsUrl}/users/exists`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-
     } catch (err) {
       if (err.response?.status !== 404) {
         throw err;
       }
 
+      console.log(err);
       return false;
     }
   };
@@ -75,7 +76,7 @@ module.exports = () => {
           reject(err.message);
         } else {
           const plansMin = plans.data
-            .map((p) => ({
+            .map(p => ({
               id: p.id,
               price: p.amount,
               name: p.nickname,
@@ -97,8 +98,8 @@ module.exports = () => {
           reject(err.message);
         } else {
           const prices = response.data
-            .filter((p) => !!p.metadata.show)
-            .map((p) => ({
+            .filter(p => !!p.metadata.show)
+            .map(p => ({
               id: p.id,
               name: p.nickname,
               amount: p.unit_amount,
@@ -130,8 +131,8 @@ module.exports = () => {
     const response = await stripe.products.list({ limit: 100 });
 
     const stripeProducts = response.data
-      .filter((p) => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1') && p.metadata.show === '1')
-      .map((p) => ({
+      .filter(p => (p.metadata.is_drive === '1' || p.metadata.is_teams === '1') && p.metadata.show === '1')
+      .map(p => ({
         id: p.id,
         name: p.name,
         metadata: {
@@ -150,7 +151,7 @@ module.exports = () => {
       const prices = await getProductPrices(stripeProduct.id, isTest);
 
       products.push(
-        ...prices.map((price) => ({
+        ...prices.map(price => ({
           ...stripeProduct,
           price: {
             ...price,
@@ -195,7 +196,7 @@ module.exports = () => {
     return result.url;
   };
 
-  const getUserSubscriptionPlans = async (email) => {
+  const getUserSubscriptionPlans = async email => {
     const isTest = !isProduction();
     const stripe = await getStripe(isTest);
     const customers = await findCustomersByEmail(email, isTest);
@@ -213,7 +214,7 @@ module.exports = () => {
         allCustomerSubscriptions.data.sort((a, b) => b.created - a.created);
 
         plans.push(
-          ...allCustomerSubscriptions.data.map((subscription) => ({
+          ...allCustomerSubscriptions.data.map(subscription => ({
             status: subscription.status,
             planId: subscription.plan.id,
             productId: subscription.plan.product.id,
@@ -239,10 +240,10 @@ module.exports = () => {
     return plans;
   };
 
-  const findSessionById = async (sessionId) => {
+  const findSessionById = async sessionId => {
     const stripe = await getStripe(sessionId.match(/^cs_test/));
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['total_details.breakdown.discounts.discount']
+      expand: ['total_details.breakdown.discounts.discount'],
     });
 
     return session;
@@ -257,6 +258,6 @@ module.exports = () => {
     getBilling,
     getUserSubscriptionPlans,
     findSessionById,
-    userExistsInPayments
+    userExistsInPayments,
   };
 };

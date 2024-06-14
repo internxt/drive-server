@@ -192,7 +192,7 @@ export class AuthController {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
-      /*     hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
+      /* hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
         userData,
         userData.bridgeUser,
         userData.userId,
