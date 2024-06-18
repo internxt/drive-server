@@ -544,6 +544,33 @@ module.exports = (Model, App) => {
     };
   };
 
+  const getUsageWithoutCache = async user => {
+    const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
+
+    const usage = await Model.file.findAll({
+      where: { user_id: targetUser.id, status: { [Op.ne]: 'DELETED' } },
+      attributes: [[fn('sum', col('size')), 'total']],
+      raw: true,
+    });
+
+    driveUsage = parseInt(usage[0].total);
+
+    const backupsQuery = await Model.backup.findAll({
+      where: { userId: targetUser.id },
+      attributes: [[fn('sum', col('size')), 'total']],
+      raw: true,
+    });
+
+    const backupsUsage = parseInt(backupsQuery[0].total ? backupsQuery[0].total : 0);
+
+    return {
+      total: driveUsage + backupsUsage,
+      _id: user.email,
+      drive: driveUsage || 0,
+      backups: backupsUsage,
+    };
+  };
+
   const UpdateUserStorage = async (email, maxSpaceBytes) => {
     const { GATEWAY_USER, GATEWAY_PASS } = process.env;
 
@@ -821,6 +848,7 @@ module.exports = (Model, App) => {
     recoverPassword,
     invite,
     deactivate,
+    getUsageWithoutCache,
     confirmDeactivate,
     findWorkspaceMembers,
     UserAlreadyRegisteredError,

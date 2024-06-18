@@ -13,7 +13,17 @@ class BridgeController {
   }
 
   async getUsage(req: Request, res: Response) {
-    const usage = await this.service.User.getUsage((req as AuthorizedRequest).user);
+    let usage; 
+    try{
+      usage = await this.service.User.getUsage((req as AuthorizedRequest).user);
+    }catch(err){
+      console.error(err);
+    }
+
+    if(!usage){
+      console.log('Getting usage without using redis')
+      usage = await this.service.User.getUsageWithoutCache((req as AuthorizedRequest).user)
+    }
 
     res.status(200).send(usage);
   }
