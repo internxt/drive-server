@@ -553,7 +553,7 @@ module.exports = (Model, App) => {
       raw: true,
     });
 
-    driveUsage = parseInt(usage[0].total);
+    const driveUsage = parseInt(usage[0]?.total ?? 0);
 
     const backupsQuery = await Model.backup.findAll({
       where: { userId: targetUser.id },

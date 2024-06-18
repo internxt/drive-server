@@ -17,7 +17,9 @@ class BridgeController {
     try{
       usage = await this.service.User.getUsage((req as AuthorizedRequest).user);
     }catch(err){
-      console.error(err);
+      console.error(
+        `[REDIS_USAGE_ERROR] - Details:`, err
+      );
     }
 
     if(!usage){
