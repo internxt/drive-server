@@ -59,10 +59,7 @@ export default (database: Sequelize): FileModel => {
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED,
-      },
-      numericSize: {
-        type: DataTypes.VIRTUAL,
-        get(this: Model) {
+        get(): number {
           const size = this.getDataValue('size');
           return typeof size === 'number' ? size : parseInt(size);
         },
