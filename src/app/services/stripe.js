@@ -219,6 +219,7 @@ module.exports = () => {
             productId: subscription.plan.product.id,
             name: subscription.plan.product.name,
             simpleName: subscription.plan.product.metadata.simple_name,
+            type: subscription.plan.product.metadata.type || 'individual',
             price: subscription.plan.amount * 0.01,
             monthlyPrice: getMonthlyAmount(
               subscription.plan.amount * 0.01,

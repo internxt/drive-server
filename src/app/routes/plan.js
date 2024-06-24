@@ -37,4 +37,23 @@ module.exports = (Router, Service) => {
       return res.status(500).send({ error: errorMessage });
     }
   });
+
+  Router.get('/plan/business', passportAuth, async (req, res) => {
+    try {
+      const { user } = req;
+
+      const plan = await Service.Plan.getBusinessPlan(user.bridgeUser, user.userId);
+
+      if (!plan) {
+        throw createHttpError(404, 'Business plan not found');
+      }
+
+      return res.status(200).json(plan);
+    } catch (error) {
+      const errorMessage = error.message || '';
+
+      Logger.error(`Error getting stripe business plan ${req.user.email}: ${error.message}`);
+      return res.status(500).send({ error: errorMessage });
+    }
+  });
 };

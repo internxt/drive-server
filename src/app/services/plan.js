@@ -83,6 +83,7 @@ module.exports = (Model, App) => {
   const getIndividualPlan = async (userEmail, userId) => {
     const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
       .filter((subscription) => subscription.status === 'active' || subscription.status === 'trialing')
+      .filter((subscription) => subscription.type === 'individual')
       .filter((plan) => !plan.isTeam);
     let result = subscriptionPlans[0];
 
@@ -122,9 +123,18 @@ module.exports = (Model, App) => {
     return result;
   };
 
+  const getBusinessPlan = async (userEmail, userId) => {
+    const subscriptionPlans = (await stripeService.getUserSubscriptionPlans(userEmail, userId))
+      .filter((subscription) => subscription.status === 'active' || subscription.status === 'trialing')
+      .filter((subscription) => subscription.type === 'business');
+
+    return subscriptionPlans[0] || null;
+  };
+
   return {
     Name: 'Plan',
     getIndividualPlan,
+    getBusinessPlan,
     getTeamPlan,
     isValid,
     create,
