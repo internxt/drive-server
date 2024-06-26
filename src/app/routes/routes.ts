@@ -89,11 +89,7 @@ export default (router: Router, service: any, App: any): Router => {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
-      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
-        userData,
-        userData.bridgeUser,
-        userData.userId,
-      ),
+      hasReferralsProgram: false,
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,
