@@ -53,6 +53,10 @@ export default (router: Router, service: any, App: any): Router => {
   AnalyticsRoutes(router);
 
   router.get('/user/refresh', passportAuth, async (req, res) => {
+    if (req.headers['internxt-version'] === '2.2.2.54') {
+      return res.status(503).send();
+    }
+
     const { publicKey, privateKey, revocateKey } = req.body;
     const userData: any = (req as AuthorizedUser).user;
 
