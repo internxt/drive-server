@@ -53,6 +53,8 @@ export default (router: Router, service: any, App: any): Router => {
   AnalyticsRoutes(router);
 
   router.get('/user/refresh', passportAuth, async (req, res) => {
+    console.log('/user/refresh -->', JSON.stringify(req.headers, null), (req as AuthorizedUser).user.uuid);
+
     const { publicKey, privateKey, revocateKey } = req.body;
     const userData: any = (req as AuthorizedUser).user;
 
