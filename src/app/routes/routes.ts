@@ -56,16 +56,17 @@ export default (router: Router, service: any, App: any): Router => {
     const { publicKey, privateKey, revocateKey } = req.body;
     const userData: any = (req as AuthorizedUser).user;
 
-    const keyExists = await service.KeyServer.keysExists(userData);
-
-    if (!keyExists && publicKey) {
-      await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
-    }
-
-    const [keys, userBucket] = await Promise.all([
+    let [keys, userBucket] = await Promise.all([
       service.KeyServer.getKeys(userData),
       service.User.GetUserBucket(userData),
     ]);
+
+    const keyExists = !!keys;
+
+    if (!keyExists && publicKey) {
+      await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
+      keys = await service.KeyServer.getKeys(userData);
+    }
 
     const token = Sign(userData.email, App.config.get('secrets').JWT, true);
 
