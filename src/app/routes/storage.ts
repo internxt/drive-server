@@ -21,6 +21,7 @@ import {
 } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
 import {validate } from 'uuid';
+import { convertSizeMiddleware } from '../middleware/convert-size';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -815,7 +816,8 @@ export default (router: Router, service: any) => {
     passportAuth,
     sharedAdapter,
     resourceSharingAdapter.UploadFile,
-    controller.createFile.bind(controller)
+    convertSizeMiddleware,
+    controller.createFile.bind(controller),
   );
   router.post('/storage/file/exists',
     passportAuth,

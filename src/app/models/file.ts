@@ -1,4 +1,4 @@
-import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
+import { Sequelize, ModelDefined, DataTypes, Model } from 'sequelize';
 
 export enum FileStatus {
   EXISTS = 'EXISTS',
@@ -59,6 +59,10 @@ export default (database: Sequelize): FileModel => {
       },
       size: {
         type: DataTypes.BIGINT.UNSIGNED,
+        get(): number {
+          const size = this.getDataValue('size');
+          return typeof size === 'number' ? size : parseInt(size);
+        },
       },
       bucket: {
         type: DataTypes.STRING(24),
