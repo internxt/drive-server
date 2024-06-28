@@ -26,6 +26,7 @@ import initLimit, { LimitModel } from './limit';
 import initTier, { TierModel } from './tier';
 import initPaidPlan, { PaidPlansModel } from './paidPlans';
 import initTierLimit, { TierLimitsModel } from './tierLimit';
+import initUserNotificationTokens, { UserNotificationTokenModel } from './userNotificationTokens';
 
 export type ModelType =
   | AppSumoModel
@@ -53,7 +54,8 @@ export type ModelType =
   | PaidPlansModel
   | TierLimitsModel
   | LimitModel
-  | TierModel;
+  | TierModel
+  | UserNotificationTokenModel;
 
 export default (database: Sequelize) => {
   const AppSumo = initAppSumo(database);
@@ -82,6 +84,7 @@ export default (database: Sequelize) => {
   const Tier = initTier(database);
   const PaidPlans = initPaidPlan(database);
   const TierLimit = initTierLimit(database);
+  const UserNotificationToken = initUserNotificationTokens(database);
 
   AppSumo.belongsTo(User);
 
@@ -132,6 +135,7 @@ export default (database: Sequelize) => {
   User.hasMany(PrivateSharingFolder, { foreignKey: 'shared_with', sourceKey: 'uuid' });
   User.hasMany(Sharings, { foreignKey: 'owner_id', sourceKey: 'uuid' });
   User.hasMany(Sharings, { foreignKey: 'shared_with', sourceKey: 'uuid' });
+  User.hasMany(UserNotificationToken, { foreignKey: 'userId', sourceKey: 'uuid' });
 
   UserReferral.belongsTo(User, { foreignKey: 'user_id' });
   UserReferral.belongsTo(Referral, { foreignKey: 'referral_id' });
@@ -170,6 +174,8 @@ export default (database: Sequelize) => {
     as: 'tiers',
   });
 
+  UserNotificationToken.belongsTo(User, { foreignKey: 'userId', targetKey: 'uuid' });
+
   return {
     [AppSumo.name]: AppSumo,
     [Backup.name]: Backup,
@@ -197,5 +203,6 @@ export default (database: Sequelize) => {
     [Limit.name]: Limit,
     [PaidPlans.name]: PaidPlans,
     [TierLimit.name]: TierLimit,
+    [UserNotificationToken.name]: UserNotificationToken,
   };
 };

@@ -307,12 +307,15 @@ module.exports = (Model, App) => {
 
       await user.destroy();
 
-      await Model.folder.update({ deleted: true, removed: true }, {
-        where: {
-          user_id: user.id,
-          parent_id: null,
-        }
-      });
+      await Model.folder.update(
+        { deleted: true, removed: true },
+        {
+          where: {
+            user_id: user.id,
+            parent_id: null,
+          },
+        },
+      );
 
       logger.info('User %s confirmed deactivation', userEmail);
     } catch (err) {
@@ -357,7 +360,7 @@ module.exports = (Model, App) => {
         password: newPassword,
         mnemonic,
         hKey: newSalt,
-        lastPasswordChangedAt: new Date()
+        lastPasswordChangedAt: new Date(),
       },
       {
         where: { username: { [Op.eq]: user.email } },
@@ -522,7 +525,7 @@ module.exports = (Model, App) => {
         attributes: [[fn('sum', col('size')), 'total']],
         raw: true,
       });
-  
+
       driveUsage = parseInt(usage[0].total);
 
       await Redis.setUsage(user.uuid, driveUsage);
@@ -797,6 +800,15 @@ module.exports = (Model, App) => {
     }
   };
 
+  const getUserNotificationTokens = async (user, type = null) => {
+    let whereClause = { userId: user.uuid };
+
+    if (type !== null) {
+      whereClause.type = type;
+    }
+    return Model.UserNotificationToken.findAll({ where: whereClause });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -833,5 +845,6 @@ module.exports = (Model, App) => {
     sendEmailVerification,
     verifyEmail,
     updateTier,
+    getUserNotificationTokens,
   };
 };
