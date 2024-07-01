@@ -806,7 +806,7 @@ module.exports = (Model, App) => {
     if (type !== null) {
       whereClause.type = type;
     }
-    return Model.UserNotificationToken.findAll({ where: whereClause });
+    return Model.userNotificationToken.findAll({ where: whereClause });
   };
 
   return {

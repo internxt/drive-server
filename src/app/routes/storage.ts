@@ -811,7 +811,7 @@ export class StorageController {
   private async getTokensAndSendNotification(userUuid: string) {
     const tokens = await this.services.User.getUserNotificationTokens(userUuid, 'macos');
 
-    tokens.forEach((token: string) => {
+    tokens.forEach(({ token }: { token: string }) => {
       this.services.Apn.sendStorageNotification(token, userUuid);
     });
   }

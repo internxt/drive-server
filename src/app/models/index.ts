@@ -203,6 +203,6 @@ export default (database: Sequelize) => {
     [Limit.name]: Limit,
     [PaidPlans.name]: PaidPlans,
     [TierLimit.name]: TierLimit,
-    [UserNotificationToken.name]: UserNotificationToken,
+    ['userNotificationToken']: UserNotificationToken,
   };
 };
