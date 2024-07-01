@@ -800,8 +800,8 @@ module.exports = (Model, App) => {
     }
   };
 
-  const getUserNotificationTokens = async (user, type = null) => {
-    let whereClause = { userId: user.uuid };
+  const getUserNotificationTokens = async (userUuid, type = null) => {
+    let whereClause = { userId: userUuid };
 
     if (type !== null) {
       whereClause.type = type;

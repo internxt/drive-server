@@ -10,6 +10,9 @@ export default class Apn {
   private reconnectDelay = 1000;
   private readonly bundleId = process.env.APN_BUNDLE_ID;
 
+  private readonly apnUrl =
+    process.env.NODE_ENV === 'production' ? 'https://api.push.apple.com' : 'http://api.sandbox.push.apple.com';
+
   private jwt: string | null = null;
   private jwtGeneratedAt = 0;
 
@@ -33,7 +36,7 @@ export default class Apn {
       Logger.getInstance().warn('APN env variables must be defined');
     }
 
-    const client = http2.connect(process.env.APN_URL as string, {});
+    const client = http2.connect(this.apnUrl, {});
 
     client.on('error', (err) => {
       Logger.getInstance().error('APN connection error', err);
@@ -59,7 +62,7 @@ export default class Apn {
         iss: process.env.APN_TEAM_ID,
         iat: Math.floor(Date.now() / 1000),
       },
-      process.env.APN_SECRET as string,
+      Buffer.from(process.env.APN_SECRET as string, 'base64').toString('utf8'),
       {
         algorithm: 'ES256',
         header: {
@@ -71,6 +74,7 @@ export default class Apn {
 
     this.jwtGeneratedAt = Date.now();
 
+    console.log('Generated new APN JWT', this.jwt);
     return this.jwt;
   }
 
@@ -86,15 +90,15 @@ export default class Apn {
     }
   }
 
-  public sendNotification(payload: Record<string, any>, topic?: string): void {
+  public sendStorageNotification(deviceToken: string, userUuid: string): void {
     const headers = {
-      'apns-topic': topic ?? `${this.bundleId}.pushkit.fileprovider`,
+      'apns-topic': `${this.bundleId}.pushkit.fileprovider`,
       authorization: `bearer ${this.generateJwt()}`,
     };
 
     const options = {
       ':method': 'POST',
-      ':path': `/3/device/${payload.deviceToken}`,
+      ':path': `/3/device/${deviceToken}`,
       ':scheme': 'https',
       ':authority': 'api.push.apple.com',
       'content-type': 'application/json',
@@ -103,7 +107,12 @@ export default class Apn {
     const req = this.client.request({ ...options, ...headers });
 
     req.setEncoding('utf8');
-    req.write(JSON.stringify(payload));
+    req.write(
+      JSON.stringify({
+        'container-identifier': 'NSFileProviderWorkingSetContainerItemIdentifier',
+        domain: userUuid,
+      }),
+    );
     req.end();
 
     req.on('error', (err) => {
