@@ -53,6 +53,9 @@ export default class Apn {
   }
 
   private generateJwt(): string {
+    if (!process.env.APN_SECRET || !process.env.APN_KEY_ID || !process.env.APN_TEAM_ID) {
+      throw new Error('Undefined APN env variables, necessary for JWT generation');
+    }
     if (this.jwt && Date.now() - this.jwtGeneratedAt < 3600) {
       return this.jwt;
     }
