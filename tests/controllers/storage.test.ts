@@ -227,13 +227,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -286,13 +286,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -349,13 +349,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -414,13 +414,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -569,13 +569,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderCreated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -868,13 +868,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderDeleted: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1003,13 +1003,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderUpdated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1127,13 +1127,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderUpdated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1563,13 +1563,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileUpdated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1771,13 +1771,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileUpdated: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -2074,13 +2074,13 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves(['token']),
+          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileDeleted: sinon.spy(),
         },
         Apn: {
-          sendStorageNotification: sinon.spy(),
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
         Analytics: {
           trackFileDeleted: sinon.spy(),
@@ -2835,6 +2835,65 @@ describe('Storage controller', () => {
         },
       ]);
     });
+  });
+  describe('getTokensAndSendNotification', () => {
+    it('When no tokens are found apn should not be called', async () => {
+      const services = {
+        User: {
+          getUserNotificationTokens: sinon.stub().resolves([]),
+        },
+        Apn: {
+          sendStorageNotification: sinon.stub(),
+        },
+      };
+
+      const controller = getController(services);
+
+      await controller.getTokensAndSendNotification('userId');
+
+      expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
+      expect(services.Apn.sendStorageNotification.called).to.be.false;
+    });
+
+    it('When APN returns 410 the token should be deleted', async () => {
+      const services = {
+        User: {
+          getUserNotificationTokens: sinon.stub().resolves(['token']),
+          deleteUserNotificationTokens: sinon.stub().resolves(1),
+        },
+        Apn: {
+          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 410, body: 'Expired token' })),
+        },
+      };
+
+      const controller = getController(services);
+
+      await controller.getTokensAndSendNotification('userId');
+
+      expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
+      expect(services.Apn.sendStorageNotification.calledOnce).to.be.true;
+      expect(services.User.deleteUserNotificationTokens.calledOnce).to.be.true;
+    });
+  });
+
+  it('When APN returns 200 the token should not be deleted', async () => {
+    const services = {
+      User: {
+        getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
+        deleteUserNotificationTokens: sinon.spy(),
+      },
+      Apn: {
+        sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
+      },
+    };
+
+    const controller = getController(services);
+
+    await controller.getTokensAndSendNotification('userId');
+
+    expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
+    expect(services.Apn.sendStorageNotification.calledOnce).to.be.true;
+    expect(services.User.deleteUserNotificationTokens.called).to.be.false;
   });
 });
 

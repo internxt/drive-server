@@ -808,12 +808,21 @@ export class StorageController {
     res.status(200).json(result);
   }
 
-  private async getTokensAndSendNotification(userUuid: string) {
+  public async getTokensAndSendNotification(userUuid: string) {
     const tokens = await this.services.User.getUserNotificationTokens(userUuid, 'macos');
 
-    tokens.forEach(({ token }: { token: string }) => {
-      this.services.Apn.sendStorageNotification(token, userUuid);
+    const tokenPromises = tokens.map(async ({ token }: { token: string }) => {
+      const response = await this.services.Apn.sendStorageNotification(token, userUuid);
+      return response.statusCode === 410 ? token : null;
     });
+
+    const results = await Promise.all(tokenPromises);
+
+    const expiredTokens = results.filter((token) => token !== null);
+
+    if (expiredTokens.length > 0) {
+      await this.services.User.deleteUserNotificationTokens(userUuid, expiredTokens);
+    }
   }
 }
 

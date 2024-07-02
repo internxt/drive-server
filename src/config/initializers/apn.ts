@@ -11,7 +11,7 @@ export default class Apn {
   private readonly bundleId = process.env.APN_BUNDLE_ID;
 
   private readonly apnUrl =
-    process.env.NODE_ENV === 'production' ? 'https://api.push.apple.com' : 'http://api.sandbox.push.apple.com';
+    process.env.NODE_ENV === 'production' ? 'https://api.push.apple.com' : 'https://api.sandbox.push.apple.com';
 
   private jwt: string | null = null;
   private jwtGeneratedAt = 0;
@@ -36,7 +36,7 @@ export default class Apn {
       Logger.getInstance().warn('APN env variables must be defined');
     }
 
-    const client = http2.connect(this.apnUrl, {});
+    const client = http2.connect(this.apnUrl);
 
     client.on('error', (err) => {
       Logger.getInstance().error('APN connection error', err);
@@ -74,7 +74,6 @@ export default class Apn {
 
     this.jwtGeneratedAt = Date.now();
 
-    console.log('Generated new APN JWT', this.jwt);
     return this.jwt;
   }
 
@@ -90,33 +89,55 @@ export default class Apn {
     }
   }
 
-  public sendStorageNotification(deviceToken: string, userUuid: string): void {
-    const headers = {
-      'apns-topic': `${this.bundleId}.pushkit.fileprovider`,
-      authorization: `bearer ${this.generateJwt()}`,
-    };
+  public sendStorageNotification(deviceToken: string, userUuid: string): Promise<{ statusCode: number; body: string }> {
+    return new Promise((resolve, reject) => {
+      if (!this.client || this.client.closed) {
+        this.connectToAPN();
+      }
+      const headers = {
+        'apns-topic': `${this.bundleId}.pushkit.fileprovider`,
+        authorization: `bearer ${this.generateJwt()}`,
+      };
 
-    const options = {
-      ':method': 'POST',
-      ':path': `/3/device/${deviceToken}`,
-      ':scheme': 'https',
-      ':authority': 'api.push.apple.com',
-      'content-type': 'application/json',
-    };
+      const options = {
+        ':method': 'POST',
+        ':path': `/3/device/${deviceToken}`,
+        ':scheme': 'https',
+        ':authority': 'api.push.apple.com',
+        'content-type': 'application/json',
+      };
 
-    const req = this.client.request({ ...options, ...headers });
+      const req = this.client.request({ ...options, ...headers });
 
-    req.setEncoding('utf8');
-    req.write(
-      JSON.stringify({
-        'container-identifier': 'NSFileProviderWorkingSetContainerItemIdentifier',
-        domain: userUuid,
-      }),
-    );
-    req.end();
+      req.setEncoding('utf8');
+      req.write(
+        JSON.stringify({
+          'container-identifier': 'NSFileProviderWorkingSetContainerItemIdentifier',
+          domain: userUuid,
+        }),
+      );
 
-    req.on('error', (err) => {
-      Logger.getInstance().error('APN request error', err);
+      req.end();
+
+      let statusCode = 0;
+      let data = '';
+
+      req.on('response', (_, status) => {
+        statusCode = status || 0;
+      });
+
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      req.on('end', () => {
+        resolve({ statusCode, body: data });
+      });
+
+      req.on('error', (err) => {
+        Logger.getInstance().error('APN request error', err);
+        reject(new Error(err));
+      });
     });
   }
 }

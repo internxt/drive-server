@@ -809,6 +809,17 @@ module.exports = (Model, App) => {
     return Model.userNotificationToken.findAll({ where: whereClause });
   };
 
+  const deleteUserNotificationTokens = async (userUuid, tokens) => {
+    return Model.userNotificationToken.destroy({
+      where: {
+        userId: userUuid,
+        token: {
+          [Op.in]: tokens,
+        },
+      },
+    });
+  };
+
   return {
     Name: 'User',
     FindOrCreate,
@@ -846,5 +857,6 @@ module.exports = (Model, App) => {
     verifyEmail,
     updateTier,
     getUserNotificationTokens,
+    deleteUserNotificationTokens,
   };
 };
