@@ -508,7 +508,6 @@ module.exports = (Model, App) => {
   };
 
   const getUsage = async (user) => {
-    const targetUser = await Model.users.findOne({ where: { username: user.bridgeUser } });
     Redis.getInstance();
     const cachedUsage = await Redis.getUsage(user.uuid);
     let driveUsage = 0;
@@ -518,7 +517,7 @@ module.exports = (Model, App) => {
       driveUsage = cachedUsage;
     } else {
       const usage = await Model.file.findAll({
-        where: { user_id: targetUser.id, status: { [Op.ne]: 'DELETED' } },
+        where: { user_id: user.id, status: { [Op.ne]: 'DELETED' } },
         attributes: [[fn('sum', col('size')), 'total']],
         raw: true,
       });
@@ -529,7 +528,7 @@ module.exports = (Model, App) => {
     }
 
     const backupsQuery = await Model.backup.findAll({
-      where: { userId: targetUser.id },
+      where: { userId: user.id },
       attributes: [[fn('sum', col('size')), 'total']],
       raw: true,
     });
