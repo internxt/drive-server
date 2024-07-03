@@ -10,8 +10,7 @@ export default class Apn {
   private reconnectDelay = 1000;
   private readonly bundleId = process.env.APN_BUNDLE_ID;
 
-  private readonly apnUrl =
-    process.env.NODE_ENV === 'production' ? 'https://api.push.apple.com' : 'https://api.sandbox.push.apple.com';
+  private readonly apnUrl = process.env.NODE_ENV as string;
 
   private jwt: string | null = null;
   private jwtGeneratedAt = 0;
@@ -32,8 +31,8 @@ export default class Apn {
     const apnKeyId = process.env.APN_KEY_ID;
     const apnTeamId = process.env.APN_TEAM_ID;
 
-    if (!apnSecret || !apnKeyId || !apnTeamId) {
-      Logger.getInstance().warn('APN env variables must be defined');
+    if (!apnSecret || !apnKeyId || !apnTeamId || !this.apnUrl) {
+      Logger.getInstance().warn('APN env variables are not defined');
     }
 
     const client = http2.connect(this.apnUrl);
@@ -65,7 +64,7 @@ export default class Apn {
         iss: process.env.APN_TEAM_ID,
         iat: Math.floor(Date.now() / 1000),
       },
-      Buffer.from(process.env.APN_SECRET as string, 'base64').toString('utf8'),
+      Buffer.from(process.env.APN_SECRET, 'base64').toString('utf8'),
       {
         algorithm: 'ES256',
         header: {
@@ -97,20 +96,18 @@ export default class Apn {
       if (!this.client || this.client.closed) {
         this.connectToAPN();
       }
-      const headers = {
+
+      const headers: http2.OutgoingHttpHeaders = {
+        [http2.constants.HTTP2_HEADER_METHOD]: 'POST',
+        [http2.constants.HTTP2_HEADER_PATH]: `/3/device/${deviceToken}`,
+        [http2.constants.HTTP2_HEADER_SCHEME]: 'https',
+        [http2.constants.HTTP2_HEADER_AUTHORITY]: 'api.push.apple.com',
+        [http2.constants.HTTP2_HEADER_CONTENT_TYPE]: 'application/json',
+        [http2.constants.HTTP2_HEADER_AUTHORIZATION]: `bearer ${this.generateJwt()}`,
         'apns-topic': `${this.bundleId}.pushkit.fileprovider`,
-        authorization: `bearer ${this.generateJwt()}`,
       };
 
-      const options = {
-        ':method': 'POST',
-        ':path': `/3/device/${deviceToken}`,
-        ':scheme': 'https',
-        ':authority': 'api.push.apple.com',
-        'content-type': 'application/json',
-      };
-
-      const req = this.client.request({ ...options, ...headers });
+      const req = this.client.request({ ...headers });
 
       req.setEncoding('utf8');
       req.write(
