@@ -14,16 +14,6 @@ const apiMetrics = require('prometheus-api-metrics');
 const { isProduction } = require('../environments/env');
 
 module.exports = (App, Config) => {
-  App.express.use((req, res, next) => {    
-    if (
-      req.headers['internxt-version'] 
-      && req.headers['internxt-version'] === '2.2.2.54'
-      && req.path.includes('/user/refresh')
-    ) {
-      return res.status(503).send();
-    }
-    next();
-  });
   App.express.use(helmet());
   App.express.use(addRequestId());
   App.express.use(apiMetrics());

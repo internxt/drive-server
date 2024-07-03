@@ -227,13 +227,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -271,7 +267,6 @@ describe('Storage controller', () => {
       expect(services.Analytics.trackUploadCompleted.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileCreated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
     });
 
@@ -286,13 +281,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -331,7 +322,6 @@ describe('Storage controller', () => {
       expect(services.Analytics.trackUploadCompleted.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileCreated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
     });
 
@@ -349,13 +339,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -394,7 +380,6 @@ describe('Storage controller', () => {
       expect(services.Analytics.trackUploadCompleted.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileCreated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(services.UsersReferrals.applyUserReferral.calledOnce).to.be.true;
       expect(services.UsersReferrals.applyUserReferral.args[0]).to.deep.equal(['id', 'install-mobile-app']);
@@ -414,13 +399,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileCreated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -459,7 +440,6 @@ describe('Storage controller', () => {
       expect(services.Analytics.trackUploadCompleted.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileCreated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(services.UsersReferrals.applyUserReferral.calledOnce).to.be.true;
       expect(services.UsersReferrals.applyUserReferral.args[0]).to.deep.equal(['id', 'install-desktop-app']);
@@ -569,13 +549,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderCreated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -605,7 +581,6 @@ describe('Storage controller', () => {
       expect(services.Folder.Create.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderCreated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([
         {
@@ -868,13 +843,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: stubOf('getUserNotificationTokens').resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderDeleted: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -901,7 +872,6 @@ describe('Storage controller', () => {
       expect(services.Folder.Delete.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderDeleted.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(sendSpy.calledOnce).to.be.true;
       expect(sendSpy.args[0]).to.deep.equal([
         {
@@ -1003,13 +973,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderUpdated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1037,7 +1003,6 @@ describe('Storage controller', () => {
       expect(services.Folder.MoveFolder.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([
         {
@@ -1127,13 +1092,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           folderUpdated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1163,7 +1124,6 @@ describe('Storage controller', () => {
       expect(services.Folder.UpdateMetadata.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.folderUpdated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([
         {
@@ -1563,13 +1523,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileUpdated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -1597,7 +1553,6 @@ describe('Storage controller', () => {
       expect(services.Files.MoveFile.calledOnce).to.be.true;
       expect(services.User.findWorkspaceMembers.calledOnce).to.be.true;
       expect(services.Notifications.fileUpdated.calledTwice).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledTwice).to.be.true;
       expect(jsonSpy.calledOnce).to.be.true;
       expect(jsonSpy.args[0]).to.deep.equal([
         {
@@ -1771,13 +1726,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileUpdated: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
       };
       const controller = getController(services);
@@ -2074,13 +2025,9 @@ describe('Storage controller', () => {
         },
         User: {
           findWorkspaceMembers: stubOf('findWorkspaceMembers').resolves([{}, {}]),
-          getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
         },
         Notifications: {
           fileDeleted: sinon.spy(),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
         },
         Analytics: {
           trackFileDeleted: sinon.spy(),
@@ -2836,66 +2783,8 @@ describe('Storage controller', () => {
       ]);
     });
   });
-  describe('getTokensAndSendNotification', () => {
-    it('When no tokens are found apn should not be called', async () => {
-      const services = {
-        User: {
-          getUserNotificationTokens: sinon.stub().resolves([]),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub(),
-        },
-      };
-
-      const controller = getController(services);
-
-      await controller.getTokensAndSendNotification('userId');
-
-      expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
-      expect(services.Apn.sendStorageNotification.called).to.be.false;
-    });
-
-    it('When APN returns 410 the token should be deleted', async () => {
-      const services = {
-        User: {
-          getUserNotificationTokens: sinon.stub().resolves(['token']),
-          deleteUserNotificationTokens: sinon.stub().resolves(1),
-        },
-        Apn: {
-          sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 410, body: 'Expired token' })),
-        },
-      };
-
-      const controller = getController(services);
-
-      await controller.getTokensAndSendNotification('userId');
-
-      expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
-      expect(services.Apn.sendStorageNotification.calledOnce).to.be.true;
-      expect(services.User.deleteUserNotificationTokens.calledOnce).to.be.true;
-    });
-  });
-
-  it('When APN returns 200 the token should not be deleted', async () => {
-    const services = {
-      User: {
-        getUserNotificationTokens: sinon.stub().resolves([{ token: 'token' }]),
-        deleteUserNotificationTokens: sinon.spy(),
-      },
-      Apn: {
-        sendStorageNotification: sinon.stub().resolves(Promise.resolve({ statusCode: 200, body: 'ok' })),
-      },
-    };
-
-    const controller = getController(services);
-
-    await controller.getTokensAndSendNotification('userId');
-
-    expect(services.User.getUserNotificationTokens.calledOnce).to.be.true;
-    expect(services.Apn.sendStorageNotification.calledOnce).to.be.true;
-    expect(services.User.deleteUserNotificationTokens.called).to.be.false;
-  });
 });
+
 
 function getController(services = {}, logger = {}): StorageController {
   const defaultServices = {
@@ -2912,17 +2801,17 @@ function getController(services = {}, logger = {}): StorageController {
 
   const finalServices = {
     ...defaultServices,
-    ...services,
+    ...services
   };
 
   const defaultLogger = {
     error: () => null,
-    warn: () => null,
+    warn: () => null
   };
 
   const finalLogger = {
     ...defaultLogger,
-    ...logger,
+    ...logger
   } as unknown as Logger;
 
   return new StorageController(finalServices, finalLogger);
@@ -2937,10 +2826,7 @@ function getResponse(props = {}): Response {
 }
 
 function stubOf(functionName: string): SinonStub {
-  return sinon.stub(
-    {
-      [functionName]: null,
-    },
-    functionName,
-  );
+  return sinon.stub({
+    [functionName]: null
+  }, functionName);
 }
