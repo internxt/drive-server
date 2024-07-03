@@ -10,7 +10,7 @@ export default class Apn {
   private reconnectDelay = 1000;
   private readonly bundleId = process.env.APN_BUNDLE_ID;
 
-  private readonly apnUrl = process.env.NODE_ENV as string;
+  private readonly apnUrl = process.env.APN_URL as string;
 
   private jwt: string | null = null;
   private jwtGeneratedAt = 0;
