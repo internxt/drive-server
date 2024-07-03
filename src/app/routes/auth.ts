@@ -170,16 +170,6 @@ export class AuthController {
     const keys = await this.service.KeyServer.getKeys(userData);
     const rootFolder = await this.service.Folder.getById(userData.root_folder_id);
 
-    try {
-      const hasReferralsProgram = await this.service.UsersReferrals.hasReferralsProgram(
-        userData,
-        userData.bridgeUser,
-        userData.userId,
-      );
-    } catch (err) {
-      console.error(`[ACCESS_ERROR_PAYMENTS] - Details:`, err);
-    }
-
     console.log('Request before payments');
     const user = {
       email: req.body.email,
@@ -202,11 +192,7 @@ export class AuthController {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
-      /* hasReferralsProgram: await this.service.UsersReferrals.hasReferralsProgram(
-        userData,
-        userData.bridgeUser,
-        userData.userId,
-      ), */
+      hasReferralsProgram: false,
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await this.service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,

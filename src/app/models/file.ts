@@ -23,6 +23,7 @@ export interface FileAttributes {
   deleted: boolean;
   deletedAt: Date;
   userId: number;
+  creationTime: Date;
   modificationTime: Date;
   status: FileStatus;
 }
@@ -92,8 +93,13 @@ export default (database: Sequelize): FileModel => {
       userId: {
         type: DataTypes.INTEGER,
       },
+      creationTime: {
+        type: DataTypes.DATE,
+        defaultValue: Sequelize.fn('NOW'),
+      },
       modificationTime: {
         type: DataTypes.DATE,
+        defaultValue: Sequelize.fn('NOW'),
       },
       status: {
         type: DataTypes.ENUM,

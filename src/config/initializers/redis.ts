@@ -50,10 +50,34 @@ export default class Redis {
     return (JSON.parse(v) as { usage: number }).usage;
   }
 
+  static async getLimit(userUuid: string): Promise<{
+    limit: number,
+    cachedAt: number
+  } | null> {
+    const r = Redis.instance;
+
+    const v = await r.get(`${userUuid}-limit`);
+
+    if (!v) {
+      return null;
+    } 
+
+    return (JSON.parse(v) as { limit: number, cachedAt: number });
+  }
+
   static async setUsage(userUuid: string, usage: number): Promise<void> {
     const r = Redis.instance;
 
     await r.set(`${userUuid}-usage`, JSON.stringify({ usage }), 'EX', 10*60);
+  }
+
+  static async setLimit(userUuid: string, limit: number): Promise<void> {
+    const r = Redis.instance;
+
+    await r.set(`${userUuid}-limit`, JSON.stringify({ 
+      limit,
+      cachedAt: new Date().getTime()
+    }), 'EX', 24*3600);
   }
 
   static async releaseLock(key: string) {
