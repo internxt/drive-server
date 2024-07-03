@@ -11,16 +11,16 @@ import { FileAttributes } from '../models/file';
 import CONSTANTS from '../constants';
 import { LockNotAvaliableError } from '../services/errors/locks';
 import { ConnectionTimedOutError, UniqueConstraintError } from 'sequelize';
-import { 
-  FileAlreadyExistsError, 
-  FileWithNameAlreadyExistsError 
+import {
+  FileAlreadyExistsError,
+  FileWithNameAlreadyExistsError,
 } from '../services/errors/FileWithNameAlreadyExistsError';
-import { 
+import {
   FolderAlreadyExistsError,
-  FolderWithNameAlreadyExistsError
+  FolderWithNameAlreadyExistsError,
 } from '../services/errors/FolderWithNameAlreadyExistsError';
 import * as resourceSharingMiddlewareBuilder from '../middleware/resource-sharing.middleware';
-import {validate } from 'uuid';
+import { validate } from 'uuid';
 
 type AuthorizedRequest = Request & { user: UserAttributes };
 interface Services {
@@ -34,6 +34,7 @@ interface Services {
   Share: any;
   Crypt: any;
   Inxt: any;
+  Apn: any;
 }
 
 type SharedRequest = Request & { behalfUser: UserAttributes };
@@ -82,23 +83,24 @@ export class StorageController {
 
       const workspaceMembers = await this.services.User.findWorkspaceMembers(behalfUser.bridgeUser);
 
-      workspaceMembers.forEach(
-        ({ email, uuid }: { email: string; uuid: string }) =>
-          void this.services.Notifications.fileCreated({
-            file: result,
-            email,
-            uuid,
-            clientId: clientId,
-          }),
-      );
+      workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+        void this.services.Notifications.fileCreated({
+          file: result,
+          email,
+          uuid,
+          clientId: clientId,
+        });
+
+        void this.getTokensAndSendNotification(uuid);
+      });
     } catch (err) {
       if (err instanceof FileAlreadyExistsError || err instanceof UniqueConstraintError) {
         return res.status(409).send({ error: 'File already exists' });
       }
       this.logger.error(
-        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${
-          JSON.stringify(file)
-        }, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+        `[FILE/CREATE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${
+          (err as Error).stack
+        } USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
@@ -108,16 +110,13 @@ export class StorageController {
     const { behalfUser } = req as SharedRequest;
     const { file } = req.body as { file: { name: string; folderId: number; type: string } };
 
-    if (
-      !file ||
-      !file.name ||
-      !file.folderId ||
-      !file.type
-    ) {
+    if (!file || !file.name || !file.folderId || !file.type) {
       this.logger.error(
-        `Missing body params to check the file existence for user ${
-          behalfUser.email
-        }: ${JSON.stringify(file, null, 2)}`,
+        `Missing body params to check the file existence for user ${behalfUser.email}: ${JSON.stringify(
+          file,
+          null,
+          2,
+        )}`,
       );
       return res.status(400).json({ error: 'Missing information to check file existence' });
     }
@@ -132,9 +131,9 @@ export class StorageController {
       res.status(200).json(result.file);
     } catch (err) {
       this.logger.error(
-        `[FILE/CHECK-EXISTENCE] ERROR: ${
-          (err as Error).message
-        }, BODY ${JSON.stringify(file)}, STACK: ${(err as Error).stack} USER: ${behalfUser.email}`,
+        `[FILE/CHECK-EXISTENCE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(file)}, STACK: ${
+          (err as Error).stack
+        } USER: ${behalfUser.email}`,
       );
       res.status(500).send({ error: 'Internal Server Error' });
     }
@@ -167,21 +166,21 @@ export class StorageController {
     if (parentFolder.userId !== user.id) {
       throw createHttpError(403, 'Parent folder does not belong to user');
     }
-    
 
     return this.services.Folder.Create(user, folderName, parentFolderId, null, clientCreatedUuuid)
       .then(async (result: FolderAttributes) => {
         res.status(201).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { uuid: string; email: string }) =>
-            void this.services.Notifications.folderCreated({
-              folder: result,
-              email: email,
-              uuid,
-              clientId: clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { uuid: string; email: string }) => {
+          void this.services.Notifications.folderCreated({
+            folder: result,
+            email: email,
+            uuid,
+            clientId: clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       })
       .catch((err: Error) => {
         if (err instanceof FolderAlreadyExistsError) {
@@ -205,7 +204,7 @@ export class StorageController {
     }
 
     return this.services.Folder.CheckFolderExistence(user, name, parentId)
-      .then((result: { folder: FolderAttributes, exists: boolean }) => {
+      .then((result: { folder: FolderAttributes; exists: boolean }) => {
         if (result.exists) {
           res.status(200).json(result);
         } else {
@@ -274,15 +273,16 @@ export class StorageController {
       res.status(204).send(result);
 
       this.services.User.findWorkspaceMembers(user.bridgeUser).then((workspaceMembers: any) => {
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.folderDeleted({
-              id: folderId,
-              email: email,
-              uuid,
-              clientId: clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.folderDeleted({
+            id: folderId,
+            email: email,
+            uuid,
+            clientId: clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       });
     } catch (error) {
       const err = error as Error;
@@ -322,15 +322,16 @@ export class StorageController {
       .then(async (result: { result: FolderAttributes }) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.folderUpdated({
-              folder: result.result,
-              email: email,
-              uuid,
-              clientId: clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.folderUpdated({
+            folder: result.result,
+            email: email,
+            uuid,
+            clientId: clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       })
       .catch((err: Error) => {
         if (err instanceof HttpError) {
@@ -357,15 +358,16 @@ export class StorageController {
       .then(async (result: FolderAttributes) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.folderUpdated({
-              folder: result,
-              email: email,
-              uuid,
-              clientId: clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.folderUpdated({
+            folder: result,
+            email: email,
+            uuid,
+            clientId: clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from folder ${folderId}: ${err}`);
@@ -455,15 +457,16 @@ export class StorageController {
       .then(async (result: { result: FileAttributes }) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.fileUpdated({
-              file: result.result,
-              email: email,
-              uuid,
-              clientId: clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.fileUpdated({
+            file: result.result,
+            email: email,
+            uuid,
+            clientId: clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       })
       .catch((err: Error) => {
         this.logger.error(err);
@@ -498,15 +501,16 @@ export class StorageController {
       .then(async (result: FileAttributes) => {
         res.status(200).json(result);
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.fileUpdated({
-              file: result,
-              email,
-              uuid,
-              clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.fileUpdated({
+            file: result,
+            email,
+            uuid,
+            clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
       })
       .catch((err: Error) => {
         this.logger.error(`Error updating metadata from file ${fileId} : ${err}`);
@@ -566,15 +570,16 @@ export class StorageController {
       .then(async () => {
         res.status(200).json({ deleted: true });
         const workspaceMembers = await this.services.User.findWorkspaceMembers(user.bridgeUser);
-        workspaceMembers.forEach(
-          ({ email, uuid }: { email: string; uuid: string }) =>
-            void this.services.Notifications.fileDeleted({
-              id: Number(fileid),
-              email,
-              uuid,
-              clientId,
-            }),
-        );
+        workspaceMembers.forEach(({ email, uuid }: { email: string; uuid: string }) => {
+          void this.services.Notifications.fileDeleted({
+            id: Number(fileid),
+            email,
+            uuid,
+            clientId,
+          });
+
+          void this.getTokensAndSendNotification(uuid);
+        });
 
         this.services.Analytics.trackFileDeleted(req);
       })
@@ -802,6 +807,28 @@ export class StorageController {
 
     res.status(200).json(result);
   }
+
+  public async getTokensAndSendNotification(userUuid: string) {
+    const tokens = await this.services.User.getUserNotificationTokens(userUuid, 'macos');
+
+    const tokenPromises = tokens.map(async ({ token }: { token: string }) => {
+      try {
+        const response = await this.services.Apn.sendStorageNotification(token, userUuid);
+        return response.statusCode === 410 ? token : null;
+      } catch (error) {
+        this.logger.error(`Error sending APN notification to ${userUuid}: ${error}`);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(tokenPromises);
+
+    const expiredTokens = results.filter((token) => token !== null);
+
+    if (expiredTokens.length > 0) {
+      await this.services.User.deleteUserNotificationTokens(userUuid, expiredTokens);
+    }
+  }
 }
 
 export default (router: Router, service: any) => {
@@ -811,22 +838,20 @@ export default (router: Router, service: any) => {
   const resourceSharingAdapter = resourceSharingMiddlewareBuilder.build(service);
   const controller = new StorageController(service, Logger);
 
-  router.post('/storage/file',
+  router.post(
+    '/storage/file',
     passportAuth,
     sharedAdapter,
     resourceSharingAdapter.UploadFile,
-    controller.createFile.bind(controller)
+    controller.createFile.bind(controller),
   );
-  router.post('/storage/file/exists',
-    passportAuth,
-    sharedAdapter,
-    controller.checkFileExistence.bind(controller)
-  );
-  router.post('/storage/thumbnail',
+  router.post('/storage/file/exists', passportAuth, sharedAdapter, controller.checkFileExistence.bind(controller));
+  router.post(
+    '/storage/thumbnail',
     passportAuth,
     sharedAdapter,
     resourceSharingAdapter.UploadThumbnail,
-    controller.createThumbnail.bind(controller)
+    controller.createThumbnail.bind(controller),
   );
   router.post('/storage/folder', passportAuth, sharedAdapter, controller.createFolder.bind(controller));
   router.post('/storage/folder/exists', passportAuth, sharedAdapter, controller.checkFolderExistence.bind(controller));
@@ -847,7 +872,7 @@ export default (router: Router, service: any) => {
     passportAuth,
     sharedAdapter,
     resourceSharingAdapter.RenameFile,
-    controller.updateFile.bind(controller)
+    controller.updateFile.bind(controller),
   );
   router.delete('/storage/bucket/:bucketid/file/:fileid', passportAuth, controller.deleteFileBridge.bind(controller));
   router.delete(
