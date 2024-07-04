@@ -25,7 +25,6 @@ import * as ReCaptchaV3 from '../../lib/recaptcha';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
 import { AuthorizedUser } from './types';
 import { default as Notifications } from '../../config/initializers/notifications';
-import { default as Apn } from '../../config/initializers/apn';
 
 const Logger = logger.getInstance();
 
@@ -33,7 +32,6 @@ export default (router: Router, service: any, App: any): Router => {
   service.Analytics = AnalyticsService;
   service.ReCaptcha = ReCaptchaV3;
   service.Notifications = Notifications.getInstance();
-  service.Apn = Apn.getInstance();
 
   AuthRoutes(router, service, App.config);
   ActivationRoutes(router, service);
@@ -58,17 +56,16 @@ export default (router: Router, service: any, App: any): Router => {
     const { publicKey, privateKey, revocateKey } = req.body;
     const userData: any = (req as AuthorizedUser).user;
 
-    let [keys, userBucket] = await Promise.all([
-      service.KeyServer.getKeys(userData),
-      service.User.GetUserBucket(userData),
-    ]);
-
-    const keyExists = !!keys;
+    const keyExists = await service.KeyServer.keysExists(userData);
 
     if (!keyExists && publicKey) {
       await service.KeyServer.addKeysLogin(userData, publicKey, privateKey, revocateKey);
-      keys = await service.KeyServer.getKeys(userData);
     }
+
+    const [keys, userBucket] = await Promise.all([
+      service.KeyServer.getKeys(userData),
+      service.User.GetUserBucket(userData),
+    ]);
 
     const token = Sign(userData.email, App.config.get('secrets').JWT, true);
 
@@ -92,7 +89,11 @@ export default (router: Router, service: any, App: any): Router => {
       bridgeUser: userData.bridgeUser,
       sharedWorkspace: userData.sharedWorkspace,
       appSumoDetails: null,
-      hasReferralsProgram: false,
+      hasReferralsProgram: await service.UsersReferrals.hasReferralsProgram(
+        userData,
+        userData.bridgeUser,
+        userData.userId,
+      ),
       backupsBucket: userData.backupsBucket,
       avatar: userData.avatar ? await service.User.getSignedAvatarUrl(userData.avatar) : null,
       emailVerified: userData.emailVerified,
@@ -109,7 +110,7 @@ export default (router: Router, service: any, App: any): Router => {
       if (!userData.root_folder_id) {
         throw createHttpError(500, 'Account can not be initialized');
       }
-
+  
       const user = {
         email: userData.email,
         bucket: userData.bucket,
@@ -123,9 +124,13 @@ export default (router: Router, service: any, App: any): Router => {
       res.status(200).send({ user });
     } catch (err) {
       Logger.error(
-        `[AUTH/INITIALIZE] ERROR: ${(err as Error).message}, BODY ${JSON.stringify(req.body)}, STACK: ${
+        `[AUTH/INITIALIZE] ERROR: ${
+          (err as Error).message
+        }, BODY ${
+          JSON.stringify(req.body)
+        }, STACK: ${
           (err as Error).stack
-        }`,
+        }`
       );
 
       return res.status(500).send({ error: 'Internal Server Error' });

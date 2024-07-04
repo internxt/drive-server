@@ -28,7 +28,6 @@ export interface UserAttributes {
   avatar: string;
   emailVerified: boolean;
   lastPasswordChangedAt: Date;
-  updatedAt: Date;
   tierId?: string;
 }
 

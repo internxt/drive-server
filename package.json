@@ -38,7 +38,7 @@
     "multer": "^1.4.4",
     "multer-s3": "^2.10.0",
     "nconf": "^0.11.1",
-    "newrelic": "11.22.0",
+    "newrelic": "^11.9.0",
     "node-device-detector": "^1.4.1",
     "openpgp": "^5.0.0",
     "passport": "^0.4.1",

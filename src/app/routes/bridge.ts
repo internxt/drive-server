@@ -13,25 +13,27 @@ class BridgeController {
   }
 
   async getUsage(req: Request, res: Response) {
-    const usage = await this.service.User.getUsage((req as AuthorizedRequest).user);
+    let usage; 
+    try{
+      usage = await this.service.User.getUsage((req as AuthorizedRequest).user);
+    }catch(err){
+      console.error(
+        `[REDIS_USAGE_ERROR] - Details:`, err
+      );
+    }
+
+    if(!usage){
+      console.log('Getting usage without using redis')
+      usage = await this.service.User.getUsageWithoutCache((req as AuthorizedRequest).user)
+    }
 
     res.status(200).send(usage);
   }
 
   async getLimit(req: Request, res: Response) {
-    const { 
-      bridgeUser, 
-      userId: bridgePass,
-      updatedAt,
-      uuid
-    } = (req as AuthorizedRequest).user;
+    const { bridgeUser, userId: bridgePass } = (req as AuthorizedRequest).user;
 
-    const limit = await this.service.Limit.getLimit(
-      bridgeUser, 
-      bridgePass,
-      uuid, 
-      updatedAt
-    );
+    const limit = await this.service.Limit.getLimit(bridgeUser, bridgePass);
 
     res.status(200).send(limit);
   }
