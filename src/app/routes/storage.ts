@@ -814,6 +814,7 @@ export class StorageController {
     const tokenPromises = tokens.map(async ({ token }: { token: string }) => {
       try {
         const response = await this.services.Apn.sendStorageNotification(token, userUuid);
+        this.logger.info(`APN response: ${response.statusCode} for user ${userUuid}`);
         return response.statusCode === 410 ? token : null;
       } catch (error) {
         this.logger.error(`Error sending APN notification to ${userUuid}: ${error}`);
