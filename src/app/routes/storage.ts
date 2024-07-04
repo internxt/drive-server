@@ -816,7 +816,7 @@ export class StorageController {
         const response = await this.services.Apn.sendStorageNotification(token, userUuid);
         return response.statusCode === 410 ? token : null;
       } catch (error) {
-        this.logger.error(`Error sending APN notification to ${userUuid}: ${error}`);
+        this.logger.error(`Error sending APN notification to ${userUuid}: ${(error as Error).message}`);
         return null;
       }
     });

@@ -109,6 +109,27 @@ export default class Apn {
 
       const req = this.client.request({ ...headers });
 
+      req.on('response', (res) => {
+        statusCode = res[':status'] || 0;
+      });
+
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      req.on('end', () => {
+        if (statusCode > 399) {
+          reject(new Error(JSON.parse(data).reason));
+        } else {
+          resolve({ statusCode, body: data });
+        }
+      });
+
+      req.on('error', (err) => {
+        Logger.getInstance().error('APN request error', err);
+        reject(new Error(err));
+      });
+
       req.setEncoding('utf8');
       req.write(
         JSON.stringify({
@@ -122,22 +143,6 @@ export default class Apn {
       let statusCode = 0;
       let data = '';
 
-      req.on('response', (_, status) => {
-        statusCode = status || 0;
-      });
-
-      req.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      req.on('end', () => {
-        resolve({ statusCode, body: data });
-      });
-
-      req.on('error', (err) => {
-        Logger.getInstance().error('APN request error', err);
-        reject(new Error(err));
-      });
     });
   }
 }
