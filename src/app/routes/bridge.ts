@@ -15,12 +15,14 @@ class BridgeController {
 
   async getUsage(req: Request, res: Response) {
     let user = (req as AuthorizedRequest).user;
-    const { workspaceUserId } = req.query;
+    const workspaceUserId = req.query.workspaceUserId;
 
     if (workspaceUserId) {
-      user = await this.service.User.FindUserByUuid(workspaceUserId).catch(() => {
-        throw createHttpError(404, 'WorkspaceUser not found');
-      });
+      user = await this.service.User.FindUserByUuid(workspaceUserId);
+      
+      if(!user) {
+        throw createHttpError(404, 'Workspace user not found');
+      }
     }
 
     const usage = await this.service.User.getUsage(user);
@@ -36,17 +38,19 @@ class BridgeController {
       uuid
     } = (req as AuthorizedRequest).user;
 
-    const { workspaceUserId } = req.query;
+    const workspaceUserId = req.query.workspaceUserId;
 
     if (workspaceUserId) {
-      const workspaceUser = await this.service.User.FindUserByUuid(workspaceUserId).catch(() => {
-        throw createHttpError(404, 'WorkspaceUser not found');
-      });
+      const user = await this.service.User.FindUserByUuid(workspaceUserId);
 
-      bridgeUser = workspaceUser.username;
-      bridgePass = workspaceUser.userId;
-      uuid = workspaceUser.uuid;
-      updatedAt = workspaceUser.updatedAt;
+      if(!user) {
+        throw createHttpError(404, 'Workspace user not found');
+      }
+
+      bridgeUser = user.username;
+      bridgePass = user.userId;
+      uuid = user.uuid;
+      updatedAt = user.updatedAt;
     }
 
     const limit = await this.service.Limit.getLimit(
