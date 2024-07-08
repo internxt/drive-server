@@ -121,6 +121,12 @@ module.exports = (Router, Service) => {
       });
   });
 
+  Router.post('/gateway/user/findByEmail', basicAuth, async (req, res) => {
+    const email = req.body.email.toLowerCase();
+    const user = await Service.User.FindUserByEmail(email).catch(() => null);
+    return res.status(200).send({ error: null, user });
+  });
+
   Router.post('/gateway/register/stage', basicAuth, (req, res) => {
     const { email } = req.body;
     Service.User.CreateStaggingUser(email)
