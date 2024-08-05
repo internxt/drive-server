@@ -37,8 +37,15 @@ module.exports = (Model, App) => {
     return response.data;
   };
 
+  const expireLimit = async (userUuid) => {
+    Redis.getInstance();
+
+    await Redis.expireLimit(userUuid);
+  };
+
   return {
     Name: 'Limit',
     getLimit,
+    expireLimit,
   };
 };

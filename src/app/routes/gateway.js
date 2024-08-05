@@ -96,6 +96,11 @@ module.exports = (Router, Service) => {
     }
 
     await Service.User.updateTier(user, paidPlanTier.tierId);
+
+    await Service.Limit.expireLimit(uuid).catch((err) => {
+      Logger.error(`Error expiring limit for user ${uuid}: ${err.message}`);
+    });
+
     return res.status(200).send({ error: null, user: { ...user.dataValues, tierId: paidPlanTier.tierId } });
   });
 

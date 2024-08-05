@@ -80,6 +80,12 @@ export default class Redis {
     }), 'EX', 24*3600);
   }
 
+  static async expireLimit(userUuid: string): Promise<void> {
+    const r = Redis.instance;
+
+    await r.del(`${userUuid}-limit`);
+  }
+
   static async releaseLock(key: string) {
     const r = Redis.instance;
 
