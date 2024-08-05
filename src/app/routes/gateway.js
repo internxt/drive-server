@@ -78,9 +78,13 @@ module.exports = (Router, Service) => {
       return res.status(400).send({ error: 'You need to asign a tier to the user' });
     }
 
+    await Service.Limit.expireLimit(uuid).catch((err) => {
+      Logger.error(`Error expiring limit for user ${uuid}: ${err.message}`);
+    });
+
     let user = await Service.User.FindUserByUuid(uuid);
     if (!user) {
-      Logger.error('[GATEWAY/TIER]: Failed to get user :%s', uuid);
+      Logger.error('[GATEWAY/TIER]: Failed to get user', uuid);
       return res.status(500).send();
     }
 
@@ -96,10 +100,6 @@ module.exports = (Router, Service) => {
     }
 
     await Service.User.updateTier(user, paidPlanTier.tierId);
-
-    await Service.Limit.expireLimit(uuid).catch((err) => {
-      Logger.error(`Error expiring limit for user ${uuid}: ${err.message}`);
-    });
 
     return res.status(200).send({ error: null, user: { ...user.dataValues, tierId: paidPlanTier.tierId } });
   });
