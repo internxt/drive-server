@@ -14,6 +14,7 @@ export default class Apn {
   private jwtGeneratedAt = 0;
   private lastActivity = Date.now();
   private readonly pingInterval = 3600 * 1000;
+  private pingIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.client = this.connectToAPN();
@@ -55,7 +56,8 @@ export default class Apn {
   }
 
   private generateJwt(): string {
-    if (this.jwt && Date.now() - this.jwtGeneratedAt < 3500 * 1000) { // 3500 seconds to add buffer
+    if (this.jwt && Date.now() - this.jwtGeneratedAt < 3500 * 1000) {
+      // 3500 seconds to add buffer
       return this.jwt;
     }
 
@@ -151,7 +153,7 @@ export default class Apn {
   }
 
   private schedulePing() {
-    setInterval(() => {
+    this.pingIntervalId = setInterval(() => {
       if (Date.now() - this.lastActivity >= this.pingInterval) {
         this.sendPing();
       }
@@ -168,6 +170,16 @@ export default class Apn {
           this.lastActivity = Date.now();
         }
       });
+    }
+  }
+
+  public close() {
+    if (this.pingIntervalId) {
+      clearInterval(this.pingIntervalId);
+      this.pingIntervalId = null;
+    }
+    if (this.client && !this.client.closed) {
+      this.client.close();
     }
   }
 }
