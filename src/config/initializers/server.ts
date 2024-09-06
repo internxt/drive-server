@@ -77,6 +77,7 @@ export default class Server {
       this.logger.info('Finished all requests');
       process.exitCode = 0;
     });
+    this.services.Apn?.close();
   }
 
   initDatabase() {

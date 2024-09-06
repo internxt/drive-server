@@ -9,14 +9,16 @@ export default class Apn {
   private reconnectAttempts = 0;
   private reconnectDelay = 1000;
   private readonly bundleId = process.env.APN_BUNDLE_ID;
-
   private readonly apnUrl = process.env.APN_URL as string;
-
   private jwt: string | null = null;
   private jwtGeneratedAt = 0;
+  private lastActivity = Date.now();
+  private readonly pingInterval = 3600 * 1000;
+  private pingIntervalId: NodeJS.Timeout | null = null;
 
   constructor() {
     this.client = this.connectToAPN();
+    this.schedulePing();
   }
 
   static getInstance(): Apn {
@@ -46,16 +48,16 @@ export default class Apn {
     });
     client.on('connect', () => {
       Logger.getInstance().info('Connected to APN');
+      this.reconnectAttempts = 0;
+      this.lastActivity = Date.now();
     });
 
     return client;
   }
 
   private generateJwt(): string {
-    if (!process.env.APN_SECRET || !process.env.APN_KEY_ID || !process.env.APN_TEAM_ID) {
-      throw new Error('Undefined APN env variables, necessary for JWT generation');
-    }
-    if (this.jwt && Date.now() - this.jwtGeneratedAt < 3600 * 1000) {
+    if (this.jwt && Date.now() - this.jwtGeneratedAt < 3500 * 1000) {
+      // 3500 seconds to add buffer
       return this.jwt;
     }
 
@@ -64,7 +66,7 @@ export default class Apn {
         iss: process.env.APN_TEAM_ID,
         iat: Math.floor(Date.now() / 1000),
       },
-      Buffer.from(process.env.APN_SECRET, 'base64').toString('utf8'),
+      Buffer.from(process.env.APN_SECRET!, 'base64').toString('utf8'),
       {
         algorithm: 'ES256',
         header: {
@@ -83,7 +85,10 @@ export default class Apn {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       setTimeout(() => {
         Logger.getInstance().info(`Attempting to reconnect to APN (#${this.reconnectAttempts + 1})`);
-        this.connectToAPN();
+        if (this.client && !this.client.closed) {
+          this.client.close();
+        }
+        this.client = this.connectToAPN();
         this.reconnectAttempts++;
       }, this.reconnectDelay * Math.pow(2, this.reconnectAttempts));
     } else {
@@ -94,7 +99,8 @@ export default class Apn {
   public sendStorageNotification(deviceToken: string, userUuid: string): Promise<{ statusCode: number; body: string }> {
     return new Promise((resolve, reject) => {
       if (!this.client || this.client.closed) {
-        this.connectToAPN();
+        Logger.getInstance().warn('APN client session is closed, attempting to reconnect');
+        this.client = this.connectToAPN();
       }
 
       const headers: http2.OutgoingHttpHeaders = {
@@ -142,6 +148,38 @@ export default class Apn {
 
       let statusCode = 0;
       let data = '';
+      this.lastActivity = Date.now();
     });
+  }
+
+  private schedulePing() {
+    this.pingIntervalId = setInterval(() => {
+      if (Date.now() - this.lastActivity >= this.pingInterval) {
+        this.sendPing();
+      }
+    }, this.pingInterval);
+  }
+
+  private sendPing() {
+    if (this.client && !this.client.closed) {
+      this.client.ping((err) => {
+        if (err) {
+          Logger.getInstance().error('APN PING error', err);
+        } else {
+          Logger.getInstance().info('APN PING sent successfully');
+          this.lastActivity = Date.now();
+        }
+      });
+    }
+  }
+
+  public close() {
+    if (this.pingIntervalId) {
+      clearInterval(this.pingIntervalId);
+      this.pingIntervalId = null;
+    }
+    if (this.client && !this.client.closed) {
+      this.client.close();
+    }
   }
 }
