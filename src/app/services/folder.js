@@ -56,7 +56,7 @@ module.exports = (Model, App) => {
 
   // Create folder entry, for desktop
   const Create = async (user, folderName, parentFolderId, teamId = null, uuid = null) => {
-    if (parentFolderId >= 2147483648) {
+    if (!parentFolderId || isNaN(parentFolderId) || parentFolderId >= 2147483648) {
       throw Error('Invalid parent folder');
     }
     // parent folder is yours?
