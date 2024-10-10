@@ -119,6 +119,15 @@ module.exports = (App, Config) => {
     }),
   );
 
+  App.express.use(
+    '/login',
+    rateLimit({
+      windowMs: 1000,
+      max: 1,
+      keyGenerator: limiterKeyGenerator,
+    })
+  );
+
   // enables cors
   App.express.use(
     cors({
