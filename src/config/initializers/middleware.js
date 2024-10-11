@@ -120,7 +120,7 @@ module.exports = (App, Config) => {
   );
 
   App.express.use(
-    '/login',
+    '/api/login',
     rateLimit({
       windowMs: 1000,
       max: 1,
