@@ -1,13 +1,13 @@
 require('dotenv').config();
 const uuid = require('uuid');
-import request from 'supertest';
 import { HttpStatus } from '@nestjs/common';
-import { encryptFilename, createTestUser, deleteTestUser, delay } from './utils';
+import sequelize from 'sequelize';
+import sinon from 'sinon';
+import speakeasy from 'speakeasy';
+import request from 'supertest';
 import { Sign } from '../../src/app/middleware/passport';
 import { applicationInitialization } from './setup';
-import sequelize from 'sequelize';
-import speakeasy from 'speakeasy';
-import sinon from 'sinon';
+import { createTestUser, delay, deleteTestUser, encryptFilename } from './utils';
 const { Op } = sequelize;
 
 const server = require('../../src/app');
@@ -898,7 +898,7 @@ describe('E2E TEST', () => {
           .send({ ...TEST_USER_LOGIN_BODY });
 
         expect(status).toBe(HttpStatus.FORBIDDEN);
-        expect(body.error).toBe('Your account has been blocked for security reasons. Please reach out to us');
+        expect(body.error).toBe('Your account has been blocked for security reasons.');
       });
     });
 
@@ -991,7 +991,7 @@ describe('E2E TEST', () => {
         'createdAt',
         'updatedAt',
         'folderId',
-        'plain_name'
+        'plain_name',
       ];
       enforcePropertiesInObject(file, expectedProperties);
     });
