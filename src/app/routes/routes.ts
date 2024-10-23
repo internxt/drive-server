@@ -19,7 +19,7 @@ import UsersReferralsRoutes from './usersReferrals';
 import NewsletterRoutes from './newsletter';
 import UserRoutes from './user';
 import AnalyticsRoutes from './analytics';
-import { Sign, passportAuth } from '../middleware/passport';
+import { Sign, passportAuth, SignNewToken } from '../middleware/passport';
 import logger from '../../lib/logger';
 import * as ReCaptchaV3 from '../../lib/recaptcha';
 import * as AnalyticsService from '../../lib/analytics/AnalyticsService';
@@ -71,12 +71,16 @@ export default (router: Router, service: any, App: any): Router => {
     }
 
     const token = Sign(userData.email, App.config.get('secrets').JWT, true);
+    const newToken = SignNewToken(userData, App.config.get('secrets').JWT, true);
+
+    const rootFolder = await service.Folder.getById(userData.root_folder_id);
 
     const user = {
       email: userData.email,
       userId: userData.userId,
       mnemonic: userData.mnemonic,
       root_folder_id: userData.root_folder_id,
+      rootFolderId: rootFolder?.uuid,
       name: userData.name,
       lastname: userData.lastname,
       uuid: userData.uuid,
@@ -99,7 +103,7 @@ export default (router: Router, service: any, App: any): Router => {
       lastPasswordChangedAt: userData.lastPasswordChangedAt,
     };
 
-    res.status(200).json({ user, token });
+    res.status(200).json({ user, token, newToken });
   });
 
   router.post('/initialize', async (req, res) => {
