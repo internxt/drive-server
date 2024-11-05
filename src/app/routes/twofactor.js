@@ -89,12 +89,7 @@ module.exports = (Router, Service, App) => {
             window: 2,
           });
 
-          // Check user password is valid
-          const decryptedPass = App.services.Crypt.decryptText(req.body.pass);
-
-          if (userData.password.toString() !== decryptedPass) {
-            res.status(500).send({ error: 'Invalid password' });
-          } else if (!isValid) {
+          if (!isValid) {
             res.status(500).send({
               error: 'Invalid 2FA code. Please, use an updated code.',
             });
