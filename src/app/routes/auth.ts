@@ -81,25 +81,32 @@ export class AuthController {
       throw createHttpError(401, 'Wrong login credentials');
     }
 
-    const encSalt = this.service.Crypt.encryptText(user.hKey.toString());
-    const required2FA = user.secret_2FA && user.secret_2FA.length > 0;
+    try {
+      const encSalt = this.service.Crypt.encryptText(user.hKey.toString());
+      const required2FA = user.secret_2FA && user.secret_2FA.length > 0;
 
-    const hasKeys = await this.service.KeyServer.keysExists(user);
+      const hasKeys = await this.service.KeyServer.keysExists(user);
 
-    // TODO: If user has referrals, then apply. Do not catch everything
-    if (internxtClient === 'drive-mobile') {
-      this.service.UsersReferrals.applyUserReferral(user.id, 'install-mobile-app').catch((err: Error) => {
-        this.logReferralError(user.id, err);
-      });
+      // TODO: If user has referrals, then apply. Do not catch everything
+      if (internxtClient === 'drive-mobile') {
+        this.service.UsersReferrals.applyUserReferral(user.id, 'install-mobile-app').catch((err: Error) => {
+          this.logReferralError(user.id, err);
+        });
+      }
+
+      if (internxtClient === 'drive-desktop') {
+        this.service.UsersReferrals.applyUserReferral(user.id, 'install-desktop-app').catch((err: Error) => {
+          this.logReferralError(user.id, err);
+        });
+      }
+
+      return res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
+    } catch (err) {
+      this.logger.error(
+        `[AUTH/LOGIN] USER: ${user.email} ERROR: ${(err as Error).message}, STACK: ${(err as Error).stack}`,
+      );
+      throw err;
     }
-
-    if (internxtClient === 'drive-desktop') {
-      this.service.UsersReferrals.applyUserReferral(user.id, 'install-desktop-app').catch((err: Error) => {
-        this.logReferralError(user.id, err);
-      });
-    }
-
-    res.status(200).send({ hasKeys, sKey: encSalt, tfa: required2FA });
   }
 
   private logReferralError(userId: unknown, err: Error) {
