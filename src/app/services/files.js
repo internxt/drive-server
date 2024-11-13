@@ -265,7 +265,7 @@ module.exports = (Model, App) => {
     }
 
     const plainName = file.plainName ?? file.plain_name ?? App.services.Crypt.decryptName(file.name, file.folder_id);
-    const destinationName = App.services.Crypt.encryptName(originalName, destination);
+    const destinationName = App.services.Crypt.encryptName(plainName, destination);
 
     const exists = await Model.file.findOne({
       where: {
