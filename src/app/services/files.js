@@ -1,7 +1,6 @@
 const sequelize = require('sequelize');
 const async = require('async');
 const createHttpError = require('http-errors');
-const AesUtil = require('../../lib/AesUtil');
 const { v4 } = require('uuid');
 const { FileWithNameAlreadyExistsError, FileAlreadyExistsError } = require('./errors/FileWithNameAlreadyExistsError');
 
@@ -14,9 +13,11 @@ module.exports = (Model, App) => {
   const log = App.logger;
 
   const CheckFileExistence = async (user, file) => {
+    const plainName = App.services.Crypt.decryptName(file.name, file.folderId);
+
     const maybeAlreadyExistentFile = await Model.file.findOne({
       where: {
-        name: { [Op.eq]: file.name },
+        plain_name: { [Op.eq]: plainName },
         folder_id: { [Op.eq]: file.folderId },
         type: { [Op.eq]: file.type },
         userId: { [Op.eq]: user.id },
@@ -30,27 +31,7 @@ module.exports = (Model, App) => {
       return { exists: false, file: null };
     }
 
-    const fileInfo = {
-      name: file.name,
-      plainName: file.plain_name,
-      type: file.type,
-      size: file.size,
-      folderId: file.folder_id,
-      fileId: file.fileId,
-      bucket: file.bucket,
-      userId: user.id,
-      uuid: v4(),
-      creationTime: file.creationTime || file.date || new Date(),
-      modificationTime: file.modificationTime || new Date(),
-    };
-
-    try {
-      fileInfo.plainName = fileInfo.plainName ?? AesUtil.decrypt(file.name, file.fileId);
-    } catch {
-      // eslint-disable-next-line no-empty
-    }
-
-    return { exists: true, file: fileInfo };
+    return { exists: true, file: maybeAlreadyExistentFile };
   };
 
   const CreateFile = async (user, file) => {
@@ -70,9 +51,11 @@ module.exports = (Model, App) => {
       throw new Error('Folder is not yours');
     }
 
+    const plainName = file.plainName ?? file.plain_name ?? App.services.Crypt.decryptName(file.name, folder.id);
+
     const maybeAlreadyExistentFile = await Model.file.findOne({
       where: {
-        name: { [Op.eq]: file.name },
+        plain_name: { [Op.eq]: plainName },
         folder_id: { [Op.eq]: folder.id },
         type: { [Op.eq]: file.type },
         userId: { [Op.eq]: user.id },
@@ -88,26 +71,19 @@ module.exports = (Model, App) => {
 
     const fileInfo = {
       name: file.name,
-      plain_name: file.plain_name,
+      plain_name: plainName,
       type: file.type,
       size: file.size,
       folder_id: folder.id,
       fileId: file.fileId,
       bucket: file.bucket,
-      encrypt_version: file.encrypt_version,
+      encrypt_version: file.encrypt_version || '03-aes',
       userId: user.id,
       uuid: v4(),
       folderUuid: folder.uuid,
       creationTime: file.creationTime || file.date || new Date(),
       modificationTime: file.modificationTime || new Date(),
     };
-
-    try {
-      AesUtil.decrypt(file.name, file.fileId);
-      fileInfo.encrypt_version = '03-aes';
-    } catch {
-      // eslint-disable-next-line no-empty
-    }
 
     return Model.file.create(fileInfo);
   };
@@ -242,7 +218,7 @@ module.exports = (Model, App) => {
           .findOne({
             where: {
               folder_id: { [Op.eq]: file.folder_id },
-              name: { [Op.eq]: cryptoFileName },
+              plain_name: { [Op.eq]: metadata.itemName },
               type: { [Op.eq]: file.type },
               status: { [Op.eq]: 'EXISTS' },
             },
@@ -288,12 +264,12 @@ module.exports = (Model, App) => {
       throw Error('Folder not found');
     }
 
-    const originalName = App.services.Crypt.decryptName(file.name, file.folder_id);
+    const plainName = file.plainName ?? file.plain_name ?? App.services.Crypt.decryptName(file.name, file.folder_id);
     const destinationName = App.services.Crypt.encryptName(originalName, destination);
 
     const exists = await Model.file.findOne({
       where: {
-        name: { [Op.eq]: destinationName },
+        plain_name: { [Op.eq]: plainName },
         folder_id: { [Op.eq]: destination },
         type: { [Op.eq]: file.type },
         fileId: { [Op.ne]: fileId },
@@ -314,8 +290,8 @@ module.exports = (Model, App) => {
       status: 'EXISTS',
     });
 
-    // we don't want ecrypted name on front
-    file.setDataValue('name', App.services.Crypt.decryptName(destinationName, destination));
+    // we don't want encrypted name on front
+    file.setDataValue('name', plainName);
     file.setDataValue('folder_id', parseInt(destination, 10));
 
     return {
