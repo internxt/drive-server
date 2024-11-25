@@ -191,6 +191,16 @@ export class AuthController {
       privateKey: keys ? keys.private_key : null,
       publicKey: keys ? keys.public_key : null,
       revocateKey: keys ? keys.revocation_key : null,
+      keys: {
+        ecc: {
+          privateKey: keys ? keys.private_key : null,
+          publicKey: keys ? keys.public_key : null,
+        },
+        kyber: {
+          privateKey: null,
+          publicKey: null
+        }
+      }, 
       bucket: userBucket,
       registerCompleted: userData.registerCompleted,
       teams: false,
