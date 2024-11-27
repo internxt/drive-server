@@ -1,14 +1,13 @@
-import { Router, Request, Response } from 'express';
-import createHttpError from 'http-errors';
+import { Request, Response, Router } from 'express';
+import createHttpError, { HttpError } from 'http-errors';
 import speakeasy from 'speakeasy';
-import { UserAttributes } from '../models/user';
-import { passportAuth, Sign, SignNewToken } from '../middleware/passport';
-import Config from '../../config/config';
-import { AuthorizedUser } from './types';
-import { HttpError } from 'http-errors';
-import Logger from '../../lib/logger';
 import winston from 'winston';
+import Config from '../../config/config';
+import Logger from '../../lib/logger';
+import { passportAuth, Sign, SignNewToken } from '../middleware/passport';
+import { UserAttributes } from '../models/user';
 import { ReferralsNotAvailableError } from '../services/errors/referrals';
+import { AuthorizedUser } from './types';
 
 interface Services {
   User: any;
@@ -198,9 +197,9 @@ export class AuthController {
         },
         kyber: {
           privateKey: null,
-          publicKey: null
-        }
-      }, 
+          publicKey: null,
+        },
+      },
       bucket: userBucket,
       registerCompleted: userData.registerCompleted,
       teams: false,
@@ -254,11 +253,11 @@ export default (router: Router, service: any, config: Config) => {
     try {
       await controller.access(req, res);
     } catch (err) {
+      logger.error(`[AUTH/ACCESS]: ERROR for user ${req.body.email}: ${(err as Error).message}`);
+
       if (err instanceof HttpError) {
         return res.status(err.statusCode).send({ error: err.message, code: err.code });
       }
-
-      logger.error(`[AUTH/ACCESS]: ERROR for user ${req.body.email}: ${(err as Error).message}`);
 
       res.status(500).send({ error: 'Internal Server Error' });
     }
