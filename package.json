@@ -13,7 +13,7 @@
     "analytics-node": "^5.1.0",
     "async": "^3.2.0",
     "aws-sdk": "^2.1138.0",
-    "axios": "^0.22.0",
+    "axios": "^0.28.0",
     "bcryptjs": "^2.4.3",
     "bip39": "^3.0.2",
     "body-parser": "^1.19.0",
