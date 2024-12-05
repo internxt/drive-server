@@ -16,6 +16,7 @@ export interface FileAttributes {
   size: number;
   bucket: string;
   folderId: number;
+  folder_id: number;
   folderUuid: string;
   createdAt: Date;
   updatedAt: Date;
