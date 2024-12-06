@@ -78,6 +78,8 @@ module.exports = (Model, App) => {
       backupsBucket = (await Inxt.CreateBucket(userData.email, userData.userId, userData.mnemonic)).id;
       await Model.users.update({ backupsBucket }, { where: { username: { [Op.eq]: userData.email } } });
     }
+
+    return backupsBucket;
   };
 
   const createDeviceAsFolder = async (userData, deviceName) => {
@@ -85,8 +87,7 @@ module.exports = (Model, App) => {
     let { backupsBucket } = await User.FindUserObjByEmail(userData.email);
 
     if (!backupsBucket) {
-      await activate(userData);
-      backupsBucket = (await User.FindUserObjByEmail(userData.email)).backupsBucket;
+      backupsBucket = await activate(userData);
     }
 
     const encryptedFolderName = Crypt.encryptName(deviceName, backupsBucket);
