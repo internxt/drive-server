@@ -20,6 +20,18 @@ module.exports = (Model, App) => {
     }
   }
 
+  function decryptNameWithNullFolderId(content) {
+    try {
+      const decryptedText = AesUtil.decrypt(content, null);
+
+      return decryptedText;
+    } catch (error) {
+      log.error(`(decryptNameWithNullFolderId): ${error}`);
+
+      return null;
+    }
+  }
+
   function probabilisticDecryption(cipherText) {
     try {
       const reb64 = CryptoJS.enc.Hex.parse(cipherText);
@@ -168,5 +180,6 @@ module.exports = (Model, App) => {
     hashSha256,
     encryptTextWithKey,
     RandomPassword,
+    decryptNameWithNullFolderId,
   };
 };
