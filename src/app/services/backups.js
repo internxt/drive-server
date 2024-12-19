@@ -96,8 +96,8 @@ module.exports = (Model, App) => {
       where: {
         bucket: { [Op.eq]: backupsBucket },
         name: { [Op.eq]: encryptedFolderName },
-        deleted: { [Op.eq]: false},
-        removed: { [Op.eq]: false}
+        deleted: { [Op.eq]: false },
+        removed: { [Op.eq]: false },
       },
     });
 
@@ -163,13 +163,30 @@ module.exports = (Model, App) => {
 
     const folders = await Model.folder.findAll({ where: { bucket: backupsBucket } });
 
-    return Promise.all(
-      folders.map(async (folder) => ({
-        ...folder.get({ plain: true }),
-        hasBackups: !(await isDeviceAsFolderEmpty(folder)),
-        lastBackupAt: folder.updatedAt,
-      })),
+    const newFolders = await Promise.all(
+      folders.map(async (folder) => {
+        const decryptedWithBucket = App.services.Crypt.decryptName(folder.name, folder.bucket);
+
+        const shouldUpdateName = !decryptedWithBucket && folder.bucket;
+
+        const backupName = shouldUpdateName
+          ? App.services.Crypt.encryptName(App.services.Crypt.decryptNameWithNullFolderId(folder.name), folder.bucket)
+          : folder.name;
+
+        if (shouldUpdateName) {
+          await folder.update({ name: backupName }, { silent: true });
+        }
+
+        return {
+          ...folder.get({ plain: true }),
+          name: backupName,
+          hasBackups: !(await isDeviceAsFolderEmpty(folder)),
+          lastBackupAt: folder.updatedAt,
+        };
+      }),
     );
+
+    return newFolders;
   };
 
   const create = async ({ userId, path, deviceId, encryptVersion, interval, enabled }) => {
