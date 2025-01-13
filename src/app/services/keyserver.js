@@ -26,6 +26,7 @@ module.exports = (Model) => {
           public_key: publicKey,
           private_key: privateKey,
           revocation_key: revocationKey,
+          encrypt_version: 'ecc',
         })
         .then((userKeys) => {
           resolve(userKeys);
