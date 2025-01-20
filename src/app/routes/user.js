@@ -9,20 +9,7 @@ const logger = Logger.getInstance();
 
 module.exports = (Router, Service, App) => {
   Router.patch('/user/password', passportAuth, (req, res) => {
-    const currentPassword = App.services.Crypt.decryptText(req.body.currentPassword);
-    const newPassword = App.services.Crypt.decryptText(req.body.newPassword);
-    const newSalt = App.services.Crypt.decryptText(req.body.newSalt);
-    const { mnemonic, privateKey } = req.body;
-
-    Service.User.UpdatePasswordMnemonic(req.user, currentPassword, newPassword, newSalt, mnemonic, privateKey)
-      .then(() => {
-        const token = SignWithFutureIAT(req.user.email, App.config.get('secrets').JWT);
-        const newToken = SignNewTokenWithFutureIAT(req.user, App.config.get('secrets').JWT, true);
-        res.status(200).send({ token, newToken });
-      })
-      .catch((err) => {
-        res.status(500).send({ error: err.message });
-      });
+    res.status(400).send({ error: 'Deprecated endpoint' });
   });
 
   Router.patch('/user/recover', passportAuth, (req, res) => {
