@@ -7,6 +7,7 @@ module.exports = (Model) => {
     Model.keyserver.findOne({
       where: {
         user_id: { [Op.eq]: user.id },
+        encrypt_version: { [Op.eq]: 'ecc' }
       },
     });
 
