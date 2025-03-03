@@ -84,7 +84,7 @@ module.exports = (Router, Service) => {
 
     let user = await Service.User.FindUserByUuid(uuid);
     if (!user) {
-      Logger.error('[GATEWAY/TIER]: Failed to get user', uuid);
+      Logger.error(`[GATEWAY/TIER]: Failed to get user ${uuid}`);
       return res.status(500).send();
     }
 
