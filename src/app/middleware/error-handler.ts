@@ -26,15 +26,18 @@ export default function errorHandler(
   if (err.status !== 401) {
     if (user) {
       req.logger?.error(
-        '%s ERROR for user %s: %s Stack: %s. Payload %s', 
-        handlerPath, 
-        user.email, 
-        err.message, 
-        err.stack, 
-        req.body ? JSON.stringify(req.body) : 'NO PAYLOAD'
+        '%s ERROR for user %s: %s Stack: %s. Payload %s',
+        handlerPath,
+        user.email,
+        err.message,
+        err.stack,
+        req.body ? JSON.stringify(req.body) : 'NO PAYLOAD',
+        { headers: req.headers ? JSON.stringify(req.headers) : 'NO HEADERS' },
       );
     } else {
-      req.logger?.error('%s ERROR %s Stack: %s', handlerPath, err.message, err.stack);
+      req.logger?.error('%s ERROR %s Stack: %s', handlerPath, err.message, err.stack, {
+        headers: req.headers ? JSON.stringify(req.headers) : 'NO HEADERS',
+      });
     }
   }
 
