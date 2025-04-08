@@ -182,6 +182,7 @@ module.exports = (Model, App) => {
           name: backupName,
           hasBackups: !(await isDeviceAsFolderEmpty(folder)),
           lastBackupAt: folder.updatedAt,
+          plainName: App.services.Crypt.decryptName(backupName, folder.bucket),
         };
       }),
     );
