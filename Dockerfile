@@ -15,4 +15,4 @@ RUN yarn && yarn build && yarn --production && yarn cache clean
 # RUN mkdir -p /mnt/prometheusvol{1,2}
 
 # Start server
-CMD node -r newrelic /drive-server/build/app.js
+CMD node /drive-server/build/app.js
