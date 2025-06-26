@@ -3,6 +3,7 @@ import { Sequelize, ModelDefined, DataTypes } from 'sequelize';
 export interface ThumbnailAttributes {
   id: number;
   file_id: number;
+  file_uuid: string;
   type: string;
   size: number;
   bucket_id: string;
@@ -22,35 +23,38 @@ export default (database: Sequelize): ThumbnailModel => {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true,
-        allowNull: false
+        allowNull: false,
       },
       file_id: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+      },
+      file_uuid: {
+        type: DataTypes.STRING,
       },
       max_width: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       max_height: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
       },
       type: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
       },
       size: {
-        type: DataTypes.BIGINT.UNSIGNED
+        type: DataTypes.BIGINT.UNSIGNED,
       },
       bucket_id: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING(24),
       },
       bucket_file: {
-        type: DataTypes.STRING(24)
+        type: DataTypes.STRING(24),
       },
       encrypt_version: {
-        type: DataTypes.STRING(20)
+        type: DataTypes.STRING(20),
       },
       created_at: {
         type: DataTypes.VIRTUAL,

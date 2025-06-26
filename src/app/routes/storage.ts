@@ -803,7 +803,13 @@ export class StorageController {
       return res.status(400).json({ error: 'Invalid metadata for new thumbnail' });
     }
 
-    const result = await this.services.Thumbnails.CreateThumbnail(behalfUser, thumbnail);
+    const file = await this.services.Files.getFileByUserAndNumericId(behalfUser, thumbnail.file_id);
+    if (!file) {
+      this.logger.error(`File not found for thumbnail ${thumbnail.file_id}`);
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const result = await this.services.Thumbnails.CreateThumbnail(behalfUser, thumbnail, file);
 
     res.status(200).json(result);
   }

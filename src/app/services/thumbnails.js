@@ -2,8 +2,7 @@ const sequelize = require('sequelize');
 const { Op } = sequelize;
 
 module.exports = (Model, App) => {
-  const CreateThumbnail = async (user, thumbnail) => {
-
+  const CreateThumbnail = async (user, thumbnail, file) => {
     const thumbnailExists = await Model.thumbnail.findOne({
       where: {
         file_id: { [Op.eq]: thumbnail.file_id },
@@ -13,6 +12,7 @@ module.exports = (Model, App) => {
 
     const thumbnailInfo = {
       file_id: thumbnail.file_id,
+      file_uuid: file.uuid,
       type: thumbnail.type,
       max_width: thumbnail.max_width,
       max_height: thumbnail.max_height,
@@ -27,17 +27,14 @@ module.exports = (Model, App) => {
     if (thumbnailExists) {
       thumbnailInfo.updated_at = new Date();
       await App.services.Inxt.DeleteFile(user, thumbnailExists.bucket_id, thumbnailExists.bucket_file);
-      await Model.thumbnail.update(
-        thumbnailInfo,
-        {
-          where: {
-            file_id: { [Op.eq]: thumbnail.file_id },
-            max_width: { [Op.eq]: thumbnail.max_width },
-            max_height: { [Op.eq]: thumbnail.max_height },
-            type: { [Op.eq]: thumbnail.type },
-          }
+      await Model.thumbnail.update(thumbnailInfo, {
+        where: {
+          file_id: { [Op.eq]: thumbnail.file_id },
+          max_width: { [Op.eq]: thumbnail.max_width },
+          max_height: { [Op.eq]: thumbnail.max_height },
+          type: { [Op.eq]: thumbnail.type },
         },
-      );
+      });
       return await Model.thumbnail.findOne({
         where: {
           file_id: { [Op.eq]: thumbnail.file_id },
