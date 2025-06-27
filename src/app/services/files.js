@@ -358,9 +358,7 @@ module.exports = (Model, App) => {
       },
     });
 
-    if (file) return file;
-
-    throw new Error('File not found');
+    return file;
   };
 
   const getRecentFiles = (user, limit) => {
