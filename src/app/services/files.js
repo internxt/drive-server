@@ -350,6 +350,17 @@ module.exports = (Model, App) => {
       });
   };
 
+  const getFileByUserAndNumericId = async (user, numericId) => {
+    const file = await Model.file.findOne({
+      where: {
+        id: { [Op.eq]: numericId },
+        userId: { [Op.eq]: user.id },
+      },
+    });
+
+    return file;
+  };
+
   const getRecentFiles = (user, limit) => {
     return Model.file
       .findAll({
@@ -406,5 +417,6 @@ module.exports = (Model, App) => {
     getFileByFolder,
     getByFolderAndUserId,
     getFileByFileId,
+    getFileByUserAndNumericId,
   };
 };
