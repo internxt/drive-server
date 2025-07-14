@@ -39,7 +39,6 @@ function getNewTokenPayload(userData, customIat) {
       sharedWorkspace: true,
       networkCredentials: {
         user: userData.bridgeUser,
-        pass: userData.userId,
       },
     },
     iat: customIat ?? getDefaultIAT(),
